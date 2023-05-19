@@ -4,11 +4,26 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "build": "webpack --config webpack.prod.js",
-    "dev": "webpack --watch --config webpack.dev.js"
+    "build": "webpack --config webpack.prod.ts",
+    "build:dev": "webpack --config webpack.dev.ts",
+    "dev": "webpack --watch --config webpack.dev.ts",
+    "lint": "eslint ."
   },
   "devDependencies": {
+    "@types/node": "^20.2.1",
+    "@types/webpack": "^5.28.1",
+    "@typescript-eslint/eslint-plugin": "^5.13.0",
+    "@typescript-eslint/parser": "^5.0.0",
+    "eslint": "^7.32.0 || ^8.2.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-config-semistandard": "^17.0.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.25.3",
+    "eslint-plugin-n": "^15.0.0",
+    "eslint-plugin-promise": "^6.0.0",
     "ts-loader": "^9.4.2",
+    "ts-node": "^10.9.1",
     "typescript": "^5.0.4",
     "webpack": "^5.83.1",
     "webpack-cli": "^5.1.1",
