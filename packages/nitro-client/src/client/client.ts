@@ -6,6 +6,7 @@ import { VoucherManager } from '../payments/voucher-manager';
 import { Engine } from './engine/engine';
 
 export class Client {
+  // The core business logic of the client
   private engine: Engine;
 
   private vm: VoucherManager;
