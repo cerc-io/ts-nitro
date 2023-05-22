@@ -6,3 +6,4 @@ const test = (): string => {
 };
 
 export default test;
+export { Client } from './client/client';
