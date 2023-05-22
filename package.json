@@ -1,10 +1,18 @@
 {
   "name": "root",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "nohoist": ["**/mocha", "**/mocha/**"]
+  },
   "devDependencies": {
     "lerna": "^6.6.2"
+  },
+  "scripts": {
+    "lint": "lerna run lint --stream",
+    "build": "lerna run build --stream",
+    "test": "lerna run test --stream"
   }
 }

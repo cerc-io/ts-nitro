@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import test from '@cerc-io/nitro-client';
 
@@ -6,25 +6,18 @@ import logo from './logo.svg';
 import './App.css';
 
 function App() {
+  const [data, setData] = useState('')
+
   useEffect(() => {
-    test()
+    const res = test();
+    setData(res);
   }, []);
 
   return (
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <p>{data}</p>
       </header>
     </div>
   );
