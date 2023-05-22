@@ -6,5 +6,10 @@
   ],
   "devDependencies": {
     "lerna": "^6.6.2"
+  },
+  "scripts": {
+    "lint": "lerna run lint --stream",
+    "build": "lerna run build --stream",
+    "test": "lerna run test --stream"
   }
 }
