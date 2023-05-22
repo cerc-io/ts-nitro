@@ -1,2 +1,2 @@
-// TODO Implement
+// TODO: Implement
 export class Message {}

@@ -62,5 +62,5 @@ export type PaymentRequest = {
   amount: bigint
 };
 
-// TODO Implement
+// TODO: Implement
 export class EngineEvent {}
