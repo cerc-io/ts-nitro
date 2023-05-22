@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import test from '@cerc-io/nitro-client';
+import { test } from '@cerc-io/nitro-client';
 
 import logo from './logo.svg';
 import './App.css';
