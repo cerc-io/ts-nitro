@@ -1,2 +1,2 @@
 // TODO: Add methods
-export interface MessageService  {}
+export interface MessageService {}

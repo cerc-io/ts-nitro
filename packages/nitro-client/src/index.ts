@@ -5,5 +5,4 @@ const test = (): string => {
   return 'test output';
 };
 
-export default test;
-export { Client } from './client/client';
+export * as Client from './client/client';

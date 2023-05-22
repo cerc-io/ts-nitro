@@ -1,44 +1,57 @@
-import { GoChannelPlaceholder, GoReceivingChannelPlaceholder } from "../../go-channel";
-import { MessageService } from "./messageservice/messageservice";
-import { ChainService } from "./chainservice/chainservice";
-import { Store } from "./store/store";
-import { PolicyMaker } from "./policy-maker";
-import { MetricsRecorder } from "./metrics";
-import { VoucherManager } from "../../payments/voucher-manager";
+import { GoChannelPlaceholder, GoReceivingChannelPlaceholder } from '../../go-channel';
+import { MessageService } from './messageservice/messageservice';
+import { ChainService } from './chainservice/chainservice';
+import { Store } from './store/store';
+import { PolicyMaker } from './policy-maker';
+import MetricsRecorder from './metrics';
+import VoucherManager from '../../payments/voucher-manager';
 
-export class Engine {
+class Engine {
   objectiveRequestsFromAPI?: GoChannelPlaceholder;
+
   paymentRequestsFromAPI?: GoChannelPlaceholder;
 
-  _fromChain?: GoReceivingChannelPlaceholder;
-	_fromMsg?: GoReceivingChannelPlaceholder;
-	_fromLedger?: GoChannelPlaceholder;
+  private fromChain?: GoReceivingChannelPlaceholder;
 
-  _toApi?: GoChannelPlaceholder;
-	_stop?:  GoChannelPlaceholder;
+  private fromMsg?: GoReceivingChannelPlaceholder;
 
-  _msg: MessageService;
-  _chain: ChainService;
+  private fromLedger?: GoChannelPlaceholder;
+
+  private toApi?: GoChannelPlaceholder;
+
+  private stop?: GoChannelPlaceholder;
+
+  private msg: MessageService;
+
+  private chain: ChainService;
 
   // A Store for persisting and restoring important data
-  _store: Store;
+  private store: Store;
 
   // A PolicyMaker decides whether to approve or reject objectives
-  _policymaker: PolicyMaker
+  private policymaker: PolicyMaker;
 
-	// logger zerolog.Logger
+  // logger zerolog.Logger
 
-	_metrics?: MetricsRecorder
+  private metrics?: MetricsRecorder;
 
-	_vm: VoucherManager
+  private vm: VoucherManager;
 
-  constructor (vm: VoucherManager, msg: MessageService, chain: ChainService, store: Store, policymaker: PolicyMaker) {
-    this._vm = vm;
+  constructor(
+    vm: VoucherManager,
+    msg: MessageService,
+    chain: ChainService,
+    store: Store,
+    policymaker: PolicyMaker,
+  ) {
+    this.vm = vm;
 
-    this._msg = msg;
-    this._chain = chain;
-    this._store = store;
+    this.msg = msg;
+    this.chain = chain;
+    this.store = store;
 
-    this._policymaker = policymaker;
+    this.policymaker = policymaker;
   }
 }
+
+export default Engine;
