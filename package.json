@@ -1,9 +1,12 @@
 {
   "name": "root",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ],
+    "nohoist": ["**/mocha", "**/mocha/**"]
+  },
   "devDependencies": {
     "lerna": "^6.6.2"
   },
