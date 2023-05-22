@@ -11,7 +11,7 @@
     "import/no-extraneous-dependencies": [
       "error",
       {
-        "devDependencies": ["webpack.*.ts"]
+        "devDependencies": ["webpack.*.ts", "test/**/*.test.ts"]
       }
     ]
   }
