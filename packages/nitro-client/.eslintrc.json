@@ -22,7 +22,6 @@
         "code": 150
       }
     ],
-
     // TODO: Switch on after implementing class methods
     "@typescript-eslint/no-unused-vars": "off",
     "class-methods-use-this": "off"
