@@ -1,4 +1,2 @@
 // TODO: Implement
-class MetricsRecorder {}
-
-export default MetricsRecorder;
+export class MetricsRecorder {}

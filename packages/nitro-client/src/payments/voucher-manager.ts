@@ -1,4 +1,2 @@
 // TODO: Implement
-class VoucherManager {}
-
-export default VoucherManager;
+export class VoucherManager {}

@@ -2,10 +2,10 @@ import { MessageService } from './engine/messageservice/messageservice';
 import { ChainService } from './engine/chainservice/chainservice';
 import { Store } from './engine/store/store';
 import { PolicyMaker } from './engine/policy-maker';
-import VoucherManager from '../payments/voucher-manager';
-import Engine from './engine/engine';
+import { VoucherManager } from '../payments/voucher-manager';
+import { Engine } from './engine/engine';
 
-class Client {
+export class Client {
   private engine: Engine;
 
   private vm: VoucherManager;
@@ -15,5 +15,3 @@ class Client {
     this.engine = new Engine(this.vm, msg, chain, store, policymaker);
   }
 }
-
-export default Client;

@@ -1,25 +1,28 @@
 import { GoChannelPlaceholder, GoReceivingChannelPlaceholder } from '../../go-channel';
 import { MessageService } from './messageservice/messageservice';
-import { ChainService } from './chainservice/chainservice';
+import { ChainService, Event as ChainEvent } from './chainservice/chainservice';
 import { Store } from './store/store';
 import { PolicyMaker } from './policy-maker';
-import MetricsRecorder from './metrics';
-import VoucherManager from '../../payments/voucher-manager';
+import { MetricsRecorder } from './metrics';
+import { VoucherManager } from '../../payments/voucher-manager';
+import { ObjectiveRequest } from '../../protocols/interfaces';
+import { Message } from '../../protocols/messages';
+import { Proposal } from '../../channel/consensus_channel/consensus_channel';
 
-class Engine {
-  objectiveRequestsFromAPI?: GoChannelPlaceholder;
+export class Engine {
+  objectiveRequestsFromAPI?: GoChannelPlaceholder<ObjectiveRequest>;
 
-  paymentRequestsFromAPI?: GoChannelPlaceholder;
+  paymentRequestsFromAPI?: GoChannelPlaceholder<PaymentRequest>;
 
-  private fromChain?: GoReceivingChannelPlaceholder;
+  private fromChain?: GoReceivingChannelPlaceholder<ChainEvent>;
 
-  private fromMsg?: GoReceivingChannelPlaceholder;
+  private fromMsg?: GoReceivingChannelPlaceholder<Message>;
 
-  private fromLedger?: GoChannelPlaceholder;
+  private fromLedger?: GoChannelPlaceholder<Proposal>;
 
-  private toApi?: GoChannelPlaceholder;
+  private toApi?: GoChannelPlaceholder<EngineEvent>;
 
-  private stop?: GoChannelPlaceholder;
+  private stop?: GoChannelPlaceholder<void>;
 
   private msg: MessageService;
 
@@ -54,4 +57,10 @@ class Engine {
   }
 }
 
-export default Engine;
+export type PaymentRequest = {
+  channelId: string
+  amount: number
+};
+
+// TODO Implement
+export class EngineEvent {}
