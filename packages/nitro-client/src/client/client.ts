@@ -1,3 +1,5 @@
+import { ethers } from 'ethers';
+
 import { MessageService } from './engine/messageservice/messageservice';
 import { ChainService } from './engine/chainservice/chainservice';
 import { Store } from './engine/store/store';
@@ -12,7 +14,7 @@ export class Client {
   private vm: VoucherManager;
 
   constructor(msg: MessageService, chain: ChainService, store: Store, policymaker: PolicyMaker) {
-    this.vm = new VoucherManager();
+    this.vm = new VoucherManager(ethers.ZeroAddress, store);
     this.engine = new Engine(this.vm, msg, chain, store, policymaker);
   }
 }
