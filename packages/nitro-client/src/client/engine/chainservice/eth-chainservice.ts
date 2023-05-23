@@ -1,4 +1,6 @@
-import { AddressLike, Log, TransactionLike, ethers } from 'ethers';
+import {
+  AddressLike, Log, TransactionLike, ethers,
+} from 'ethers';
 import debug from 'debug';
 
 import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
