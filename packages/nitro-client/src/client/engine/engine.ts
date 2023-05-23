@@ -8,6 +8,7 @@ import { MetricsRecorder } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
 import { Objective, ObjectiveRequest, SideEffects } from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
+import { Objective as VirtualFundObjective } from '../../protocols/virtualfund/virtualfund';
 import { Proposal } from '../../channel/consensus-channel/consensus-channel';
 
 export type PaymentRequest = {
@@ -169,7 +170,7 @@ export class Engine {
   }
 
   // TODO: Can throw an error
-  private registerPaymentChannel(vfo: virtualfund.Objective): void {}
+  private registerPaymentChannel(vfo: VirtualFundObjective): void {}
 
   // spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from
   // the supplied Objective if it is a directfund.Objective.
