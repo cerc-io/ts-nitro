@@ -35,7 +35,10 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
+    "@chainsafe/libp2p-yamux": "^4.0.2",
+    "@libp2p/crypto": "^1.0.4",
     "@libp2p/mdns": "^8.0.0",
+    "@libp2p/tcp": "^7.0.1",
     "@nodeguy/channel": "^1.0.2",
     "@types/debug": "^4.1.7",
     "debug": "^4.3.4",

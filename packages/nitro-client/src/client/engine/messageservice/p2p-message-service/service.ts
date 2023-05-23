@@ -1,11 +1,13 @@
+import assert from 'assert';
 import debug from 'debug';
 // https://github.com/microsoft/TypeScript/issues/49721
 // @ts-expect-error
-import type { Libp2p } from 'libp2p';
-import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
+import type { Libp2p, Libp2pOptions } from 'libp2p';
 
+import Channel from '@nodeguy/channel';
+import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 // @ts-expect-error
-import type { PrivateKey } from '@libp2p/crypto';
+import type { PrivateKey } from '@libp2p/interface-keys';
 // @ts-expect-error
 import type { MulticastDNSComponents } from '@libp2p/mdns';
 // @ts-expect-error
@@ -13,11 +15,19 @@ import type { PeerDiscovery } from '@libp2p/interface-peer-discovery';
 // @ts-expect-error
 import type { Stream } from '@libp2p/interface-connection';
 // @ts-expect-error
+import type { IncomingStreamData } from '@libp2p/interface-registrar';
+// @ts-expect-error
 import type { Multiaddr } from '@multiformats/multiaddr';
 
 import { SyncMap } from '../../../../internal/safesync/safesync';
 import { Message } from '../../../../protocols/messages';
 import { Address } from '../../../../types/types';
+
+const log = debug('ts-nitro:p2p-message-service');
+
+const PROTOCOL_ID = '/ts-nitro/msg/1.0.0';
+const PEER_EXCHANGE_PROTOCOL_ID = '/ts-nitro/peerinfo/1.0.0';
+const BUFFER_SIZE = 1_000;
 
 // BasicPeerInfo contains the basic information about a peer
 interface BasicPeerInfo {
@@ -33,6 +43,17 @@ interface PeerInfo {
   ipAddress: string;
 }
 
+interface ConstructorOptions {
+  toEngine: ReadWriteChannel<Message>;
+  peers: SyncMap<BasicPeerInfo>;
+  me: Address;
+  newPeerInfo: ReadWriteChannel<BasicPeerInfo>;
+  logger: debug.Debugger;
+  key?: PrivateKey;
+  p2pHost?: Libp2p;
+  mdns?: (components: MulticastDNSComponents) => PeerDiscovery;
+}
+
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
 export class P2PMessageService {
   // For forwarding processed messages to the engine
@@ -42,26 +63,26 @@ export class P2PMessageService {
 
   private me: Address;
 
-  private key: PrivateKey;
+  private key?: PrivateKey;
 
-  private p2pHost: Libp2p;
+  private p2pHost?: Libp2p;
 
-  private mdns: (components: MulticastDNSComponents) => PeerDiscovery;
+  private mdns?: (components: MulticastDNSComponents) => PeerDiscovery;
 
   private newPeerInfo: ReadWriteChannel<BasicPeerInfo>;
 
   private logger: debug.Debugger;
 
-  constructor(
-    toEngine: ReadWriteChannel<Message>,
-    peers: SyncMap<BasicPeerInfo>,
-    me: Address,
-    key: PrivateKey,
-    p2pHost: Libp2p,
-    mdns: (components: MulticastDNSComponents) => PeerDiscovery,
-    newPeerInfo: ReadWriteChannel<BasicPeerInfo>,
-    logger: debug.Debugger,
-  ) {
+  constructor({
+    toEngine,
+    peers,
+    me,
+    key,
+    p2pHost,
+    mdns,
+    newPeerInfo,
+    logger,
+  }: ConstructorOptions) {
     this.toEngine = toEngine;
     this.peers = peers;
     this.me = me;
@@ -76,14 +97,73 @@ export class P2PMessageService {
   // If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
   // Otherwise, peers must be added manually via `AddPeers`.
   // TODO: Implement and remove void
-  static newMessageService(
+  static async newMessageService(
     ip: string,
     port: number,
     me: Address,
     pk: Uint8Array,
     useMdnsPeerDiscovery: boolean,
     logWriter: WritableStream,
-  ): P2PMessageService | void {}
+  ): Promise<P2PMessageService> {
+    const ms = new P2PMessageService({
+      toEngine: Channel<Message>(BUFFER_SIZE),
+      newPeerInfo: Channel<BasicPeerInfo>(BUFFER_SIZE),
+      peers: new SyncMap<BasicPeerInfo>(),
+      me,
+      logger: log,
+    });
+
+    const { unmarshalPrivateKey } = await import('@libp2p/crypto/keys');
+
+    try {
+      const messageKey = await unmarshalPrivateKey(pk);
+      ms.key = messageKey;
+    } catch (err: unknown) {
+      ms.checkError(err as Error);
+    }
+
+    assert(ms.key);
+    const PeerIdFactory = await import('@libp2p/peer-id-factory');
+    const { tcp } = await import('@libp2p/tcp');
+    const { yamux } = await import('@chainsafe/libp2p-yamux');
+
+    const options: Libp2pOptions = {
+      peerId: await PeerIdFactory.createFromPrivKey(ms.key),
+      addresses: {
+        listen: [`/ip4/${ip}/tcp/${port}`],
+      },
+      transports: [
+        tcp(),
+      ],
+      streamMuxers: [
+        yamux(),
+      ],
+      // libp2p.NoSecurity,
+    };
+
+    if (useMdnsPeerDiscovery) {
+      const { mdns } = await import('@libp2p/mdns');
+
+      options.peerDiscovery = [
+        mdns({
+          interval: 20e3,
+        }),
+      ];
+    }
+
+    const { createLibp2p } = await import('libp2p');
+    const host = await createLibp2p(options);
+    ms.p2pHost = host;
+
+    ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler);
+
+    ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
+      ms.receivePeerInfo(stream);
+      stream.close();
+    });
+
+    return ms;
+  }
 
   // id returns the libp2p peer ID of the message service.
   // TODO: Implement and remove void
@@ -94,7 +174,7 @@ export class P2PMessageService {
   handlePeerFound(pi: Multiaddr[]) {}
 
   // TODO: Implement
-  private msgStreamHandler(stream: Stream) {}
+  private msgStreamHandler({ stream }: IncomingStreamData) {}
 
   // sendPeerInfo sends our peer info over the given stream
   // TODO: Implement

@@ -23,6 +23,13 @@ const config: webpack.Configuration = {
       },
     ],
   },
+  // TODO: Remove/refactor when building for browser
+  target: 'node',
+  // https://github.com/websockets/ws/issues/1126#issuecomment-631605589
+  externals: {
+    bufferutil: 'bufferutil',
+    'utf-8-validate': 'utf-8-validate',
+  },
 };
 
 export default config;
