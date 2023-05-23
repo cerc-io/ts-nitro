@@ -15,7 +15,7 @@ import type { Stream } from '@libp2p/interface-connection';
 import type { Multiaddr } from '@multiformats/multiaddr';
 
 import { GoChannelPlaceholder, GoReceivingChannelPlaceholder } from '../../../../go-channel';
-import { Map } from '../../../../internal/safesync/safesync';
+import { SyncMap } from '../../../../internal/safesync/safesync';
 import { Message } from '../../../../protocols/messages';
 import { Address } from '../../../../types/types';
 
@@ -38,7 +38,7 @@ export class P2PMessageService {
   // For forwarding processed messages to the engine
   private toEngine: GoChannelPlaceholder<Message>;
 
-  private peers: Map<BasicPeerInfo>;
+  private peers: SyncMap<BasicPeerInfo>;
 
   private me: Address;
 
@@ -54,7 +54,7 @@ export class P2PMessageService {
 
   constructor(
     toEngine: GoChannelPlaceholder<Message>,
-    peers: Map<BasicPeerInfo>,
+    peers: SyncMap<BasicPeerInfo>,
     me: Address,
     key: PrivateKey,
     p2pHost: Libp2p,
