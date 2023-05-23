@@ -2,7 +2,7 @@ import { AddressLike } from 'ethers';
 
 import { Objective } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
-import { ConsensusChannel } from '../../../channel/consensus_channel/consensus_channel';
+import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
 import { VoucherStore } from '../../../payments/voucher-manager';
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data

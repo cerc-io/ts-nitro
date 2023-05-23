@@ -3,7 +3,7 @@ import { AddressLike, ethers } from 'ethers';
 import { Store } from './store';
 import { Objective, ObjectiveId } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
-import { ConsensusChannel } from '../../../channel/consensus_channel/consensus_channel';
+import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
 import { VoucherInfo } from '../../../payments/vouchers';
 import { SyncMap } from '../../../internal/safesync/safesync';
 
