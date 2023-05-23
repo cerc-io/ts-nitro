@@ -1,5 +1,7 @@
 import { AddressLike, ethers } from 'ethers';
-import { GoChannelPlaceholder, GoReceivingChannelPlaceholder } from '../../go-channel';
+import createChannel from '@nodeguy/channel';
+import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
+
 import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent } from './chainservice/chainservice';
 import { Store } from './store/store';
@@ -20,19 +22,19 @@ export type PaymentRequest = {
 export class EngineEvent {}
 
 export class Engine {
-  objectiveRequestsFromAPI: GoChannelPlaceholder<ObjectiveRequest>;
+  objectiveRequestsFromAPI: ReadWriteChannel<ObjectiveRequest>;
 
-  paymentRequestsFromAPI: GoChannelPlaceholder<PaymentRequest>;
+  paymentRequestsFromAPI: ReadWriteChannel<PaymentRequest>;
 
-  private fromChain: GoReceivingChannelPlaceholder<ChainEvent>;
+  private fromChain: ReadChannel<ChainEvent>;
 
-  private fromMsg: GoReceivingChannelPlaceholder<Message>;
+  private fromMsg: ReadChannel<Message>;
 
-  private fromLedger: GoChannelPlaceholder<Proposal>;
+  private fromLedger: ReadWriteChannel<Proposal>;
 
-  private _toApi: GoChannelPlaceholder<EngineEvent>;
+  private _toApi: ReadWriteChannel<EngineEvent>;
 
-  private stop: GoChannelPlaceholder<void>;
+  private stop: ReadWriteChannel<void>;
 
   private msg: MessageService;
 
@@ -59,13 +61,11 @@ export class Engine {
   ) {
     this.store = store;
 
-    // TODO: Use buffered channel
-    this.fromLedger = new GoChannelPlaceholder<Proposal>();
-
-    // bind to inbound chans
-    this.objectiveRequestsFromAPI = new GoReceivingChannelPlaceholder<ObjectiveRequest>();
-    this.paymentRequestsFromAPI = new GoReceivingChannelPlaceholder<PaymentRequest>();
-    this.stop = new GoChannelPlaceholder();
+    this.fromLedger = createChannel<Proposal>(100);
+    // bind to inbound channels
+    this.objectiveRequestsFromAPI = createChannel<ObjectiveRequest>();
+    this.paymentRequestsFromAPI = createChannel<PaymentRequest>();
+    this.stop = createChannel();
 
     this.fromChain = chain.eventFeed();
     this.fromMsg = msg.out();
@@ -73,8 +73,7 @@ export class Engine {
     this.chain = chain;
     this.msg = msg;
 
-    // TODO: Use buffered channel
-    this._toApi = new GoChannelPlaceholder<EngineEvent>();
+    this._toApi = createChannel<EngineEvent>(100);
 
     // logging.ConfigureZeroLogger()
     // e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
@@ -91,8 +90,8 @@ export class Engine {
     // e.metrics = NewMetricsRecorder(*e.store.GetAddress(), metricsApi)
   }
 
-  toApi(): GoChannelPlaceholder<EngineEvent> {
-    return this._toApi;
+  get toApi(): ReadChannel<EngineEvent> {
+    return this._toApi.readOnly();
   }
 
   // TODO: Can throw an error

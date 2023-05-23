@@ -1,5 +1,6 @@
 import { AddressLike } from 'ethers';
-import { GoReceivingChannelPlaceholder } from '../../../go-channel';
+import type { ReadChannel } from '@nodeguy/channel';
+
 import { ChainTransaction } from '../../../protocols/interfaces';
 
 // ChainEvent dictates which methods all chain events must implement
@@ -9,7 +10,7 @@ export interface ChainEvent {
 
 // TODO: Add eth chainservice implementation
 export interface ChainService {
-  eventFeed (): GoReceivingChannelPlaceholder<ChainEvent>;
+  eventFeed (): ReadChannel<ChainEvent>;
 
   // TODO: Use protocols chain transaction type
   // TODO: Can throw an error
