@@ -1,8 +1,8 @@
-import { AddressLike, Log, TransactionLike } from 'ethers';
+import { AddressLike, Log, TransactionLike, ethers } from 'ethers';
 import debug from 'debug';
 
 import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
-import { Event } from './chainservice';
+import { ChainService, ChainEvent } from './chainservice';
 import { GoChannelPlaceholder, GoReceivingChannelPlaceholder } from '../../../go-channel';
 import { ChainTransaction } from '../../../protocols/interfaces';
 
@@ -19,7 +19,7 @@ interface BlockRange {
   to: bigint;
 }
 
-export class EthChainService {
+export class EthChainService implements ChainService {
   private chain: EthChain;
 
   private na: NitroAdjudicator;
@@ -101,18 +101,26 @@ export class EthChainService {
   private splitBlockRange(total: BlockRange, maxInterval: bigint): BlockRange[] | void {}
 
   // eventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
-  // TODO: Implement and remove void
-  eventFeed(): GoReceivingChannelPlaceholder<Event> | void {}
+  // TODO: Implement
+  eventFeed(): GoReceivingChannelPlaceholder<ChainEvent> {
+    return new GoReceivingChannelPlaceholder<ChainEvent>();
+  }
 
-  // TODO: Implement and remove void
-  getConsensusAppAddress(): AddressLike | void {}
+  // TODO: Implement
+  getConsensusAppAddress(): AddressLike {
+    return ethers.ZeroAddress;
+  }
 
-  // TODO: Implement and remove void
-  getVirtualPaymentAppAddress(): AddressLike | void {}
+  // TODO: Implement
+  getVirtualPaymentAppAddress(): AddressLike {
+    return ethers.ZeroAddress;
+  }
 
   // TODO: Implement and remove void
   // TODO: Can throw an error
-  getChainId(): bigint | void {}
+  getChainId(): bigint {
+    return BigInt(0);
+  }
 
   // TODO: Implement and remove void
   close(): Error | void {}
