@@ -2,10 +2,10 @@ import {
   AddressLike, Log, TransactionLike, ethers,
 } from 'ethers';
 import debug from 'debug';
+import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 
 import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
 import { ChainService, ChainEvent } from './chainservice';
-import { GoChannelPlaceholder, GoReceivingChannelPlaceholder } from '../../../go-channel';
 import { ChainTransaction } from '../../../protocols/interfaces';
 
 interface EthChain {
@@ -34,7 +34,7 @@ export class EthChainService implements ChainService {
 
   private txSigner: TransactionLike;
 
-  private out: GoChannelPlaceholder<Event>;
+  private out: ReadWriteChannel<ChainEvent>;
 
   private logger: debug.Debugger;
 
@@ -49,7 +49,7 @@ export class EthChainService implements ChainService {
     consensusAppAddress: AddressLike,
     virtualPaymentAppAddress: AddressLike,
     txSigner: TransactionLike,
-    out: GoChannelPlaceholder<Event>,
+    out: ReadWriteChannel<ChainEvent>,
     logger: debug.Debugger,
     ctx: AbortController,
     cancel: () => void,
@@ -104,8 +104,8 @@ export class EthChainService implements ChainService {
 
   // eventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
   // TODO: Implement
-  eventFeed(): GoReceivingChannelPlaceholder<ChainEvent> {
-    return new GoReceivingChannelPlaceholder<ChainEvent>();
+  eventFeed(): ReadChannel<ChainEvent> {
+    return this.out.readOnly();
   }
 
   // TODO: Implement

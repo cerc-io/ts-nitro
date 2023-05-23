@@ -2,6 +2,7 @@ import debug from 'debug';
 // https://github.com/microsoft/TypeScript/issues/49721
 // @ts-expect-error
 import type { Libp2p } from 'libp2p';
+import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 
 // @ts-expect-error
 import type { PrivateKey } from '@libp2p/crypto';
@@ -14,7 +15,6 @@ import type { Stream } from '@libp2p/interface-connection';
 // @ts-expect-error
 import type { Multiaddr } from '@multiformats/multiaddr';
 
-import { GoChannelPlaceholder, GoReceivingChannelPlaceholder } from '../../../../go-channel';
 import { SyncMap } from '../../../../internal/safesync/safesync';
 import { Message } from '../../../../protocols/messages';
 import { Address } from '../../../../types/types';
@@ -36,7 +36,7 @@ interface PeerInfo {
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
 export class P2PMessageService {
   // For forwarding processed messages to the engine
-  private toEngine: GoChannelPlaceholder<Message>;
+  private toEngine: ReadWriteChannel<Message>;
 
   private peers: SyncMap<BasicPeerInfo>;
 
@@ -48,18 +48,18 @@ export class P2PMessageService {
 
   private mdns: (components: MulticastDNSComponents) => PeerDiscovery;
 
-  private newPeerInfo: GoChannelPlaceholder<BasicPeerInfo>;
+  private newPeerInfo: ReadWriteChannel<BasicPeerInfo>;
 
   private logger: debug.Debugger;
 
   constructor(
-    toEngine: GoChannelPlaceholder<Message>,
+    toEngine: ReadWriteChannel<Message>,
     peers: SyncMap<BasicPeerInfo>,
     me: Address,
     key: PrivateKey,
     p2pHost: Libp2p,
     mdns: (components: MulticastDNSComponents) => PeerDiscovery,
-    newPeerInfo: GoChannelPlaceholder<BasicPeerInfo>,
+    newPeerInfo: ReadWriteChannel<BasicPeerInfo>,
     logger: debug.Debugger,
   ) {
     this.toEngine = toEngine;
@@ -117,7 +117,7 @@ export class P2PMessageService {
 
   // out returns a channel that can be used to receive messages from the message service
   // TODO: Implement and remove void
-  out(): GoReceivingChannelPlaceholder<Message> | void {}
+  out(): ReadChannel<Message> | void {}
 
   // Closes the P2PMessageService
   // TODO: Implement and remove void
@@ -125,7 +125,7 @@ export class P2PMessageService {
 
   // peerInfoReceived returns a channel that receives a PeerInfo when a peer is discovered
   // TODO: Implement and remove void
-  peerInfoReceived(): GoReceivingChannelPlaceholder<BasicPeerInfo> | void {}
+  peerInfoReceived(): ReadChannel<BasicPeerInfo> | void {}
 
   // AddPeers adds the peers to the message service.
   // We ignore peers that are ourselves.
