@@ -59,7 +59,7 @@ export class Engine {
 
 export type PaymentRequest = {
   channelId: string
-  amount: number
+  amount: bigint
 };
 
 // TODO Implement

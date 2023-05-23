@@ -15,6 +15,16 @@
       }
     ],
     "max-classes-per-file": "off",
-    "import/prefer-default-export": "off"
+    "import/prefer-default-export": "off",
+    "max-len": [
+      "error",
+      {
+        "code": 150
+      }
+    ],
+
+    // TODO: Switch on after implementing class methods
+    "@typescript-eslint/no-unused-vars": "off",
+    "class-methods-use-this": "off"
   }
 }

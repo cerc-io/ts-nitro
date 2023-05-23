@@ -33,5 +33,10 @@
     "webpack": "^5.83.1",
     "webpack-cli": "^5.1.1",
     "webpack-merge": "^5.8.0"
+  },
+  "dependencies": {
+    "@types/debug": "^4.1.7",
+    "debug": "^4.3.4",
+    "ethers": "^6.4.0"
   }
 }

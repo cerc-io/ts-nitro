@@ -19,7 +19,7 @@ export interface ChainService {
   getVirtualPaymentAppAddress (): string;
 
   // TODO: Can throw an error
-  getChainId (): number;
+  getChainId (): bigint;
 
   // TODO: Can throw an error
   close (): void;
