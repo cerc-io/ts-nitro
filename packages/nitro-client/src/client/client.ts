@@ -4,7 +4,7 @@ import { MessageService } from './engine/messageservice/messageservice';
 import { ChainService } from './engine/chainservice/chainservice';
 import { Store } from './engine/store/store';
 import { PolicyMaker } from './engine/policy-maker';
-import { VoucherManager, VoucherStore } from '../payments/voucher-manager';
+import { VoucherManager } from '../payments/voucher-manager';
 import { Engine } from './engine/engine';
 
 export class Client {
@@ -14,7 +14,7 @@ export class Client {
   private vm: VoucherManager;
 
   constructor(msg: MessageService, chain: ChainService, store: Store, policymaker: PolicyMaker) {
-    this.vm = new VoucherManager(ethers.ZeroAddress, store as unknown as VoucherStore);
+    this.vm = new VoucherManager(ethers.ZeroAddress, store);
     this.engine = new Engine(this.vm, msg, chain, store, policymaker);
   }
 }
