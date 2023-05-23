@@ -1,23 +1,24 @@
+import { AddressLike } from 'ethers';
 import { GoReceivingChannelPlaceholder } from '../../../go-channel';
 import { ChainTransaction } from '../../../protocols/interfaces';
 
-// Event dictates which methods all chain events must implement
-export interface Event {
+// ChainEvent dictates which methods all chain events must implement
+export interface ChainEvent {
   channelID (): string
 }
 
 // TODO: Add eth chainservice implementation
 export interface ChainService {
-  eventFeed (): GoReceivingChannelPlaceholder<Event>;
+  eventFeed (): GoReceivingChannelPlaceholder<ChainEvent>;
 
   // TODO: Use protocols chain transaction type
   // TODO: Can throw an error
   sendTransaction (tx: ChainTransaction): void;
 
   // TODO: Use Address type
-  getConsensusAppAddress (): string;
+  getConsensusAppAddress (): AddressLike;
 
-  getVirtualPaymentAppAddress (): string;
+  getVirtualPaymentAppAddress (): AddressLike;
 
   // TODO: Can throw an error
   getChainId (): bigint;
