@@ -13,6 +13,9 @@ export interface ChainTransaction {}
 // TODO: Add methods
 export interface Objective {}
 
+// ObjectiveId is a unique identifier for an Objective.
+export type ObjectiveId = string;
+
 // ObjectiveRequest is a request to create a new objective.
 // TODO: Add methods
 export interface ObjectiveRequest {}

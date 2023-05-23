@@ -7,7 +7,7 @@ import { MetricsRecorder } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
 import { ObjectiveRequest } from '../../protocols/interfaces';
 import { Message } from '../../protocols/messages';
-import { Proposal } from '../../channel/consensus_channel/consensus_channel';
+import { Proposal } from '../../channel/consensus-channel/consensus-channel';
 
 export class Engine {
   objectiveRequestsFromAPI?: GoChannelPlaceholder<ObjectiveRequest>;
