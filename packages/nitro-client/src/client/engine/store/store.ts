@@ -23,11 +23,11 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 
   // Write an objective
   // TODO: Can throw an error
-  SetObjective (obj: Objective): void
+  setObjective (obj: Objective): void
 
   // Returns a collection of channels with the given ids
   // TODO: Can throw an error
-  getChannelsByIds (ids: string[]): Channel
+  getChannelsByIds (ids: string[]): Channel[]
 
   // TODO: Can throw an error
   getChannelById (id: string): Channel
@@ -50,12 +50,15 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
   // The behavior of Close after the first call is undefined
   // TODO: Check for io.Closer alternative
   // TODO: Can throw an error
-  Close (): void
+  close (): void
 }
 
 export interface ConsensusChannelStore {
   // TODO: Can throw an error
-  getAllConsensusChannels (): ConsensusChannel
+  getAllConsensusChannels (): ConsensusChannel[]
+
+  // TODO: Can throw an error
+  getConsensusChannel (counterparty: AddressLike): ConsensusChannel
 
   // TODO: Can throw an error
   getConsensusChannelById (id: string): ConsensusChannel
