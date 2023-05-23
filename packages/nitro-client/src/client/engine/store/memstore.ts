@@ -1,11 +1,12 @@
 import { AddressLike, ethers } from 'ethers';
 
 import { Store } from './store';
-import { Objective, ObjectiveId } from '../../../protocols/interfaces';
+import { Objective } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
 import { VoucherInfo } from '../../../payments/vouchers';
 import { SyncMap } from '../../../internal/safesync/safesync';
+import { ObjectiveId } from '../../../protocols/messages';
 
 export class MemStore implements Store {
   obectives: SyncMap<Buffer>;
@@ -51,7 +52,7 @@ export class MemStore implements Store {
 
   // TODO: Implement
   getObjectiveById(): Objective {
-    return {};
+    return {} as Objective;
   }
 
   // TODO: Implement
@@ -111,7 +112,7 @@ export class MemStore implements Store {
 
   // TODO: Implement
   getObjectiveByChannelId(channelId: string): Objective {
-    return {};
+    return {} as Objective;
   }
 
   // populateChannelData fetches stored Channel data relevant to the given
@@ -142,5 +143,5 @@ export class MemStore implements Store {
 // TODO: Can throw an error
 // TODO: Implement
 function decodeObjective(id: ObjectiveId, data: Buffer): Objective {
-  return {};
+  return {} as Objective;
 }

@@ -2,8 +2,9 @@ import { GoReceivingChannelPlaceholder } from '../../../go-channel';
 import { ChainTransaction } from '../../../protocols/interfaces';
 
 // Event dictates which methods all chain events must implement
-// TODO: Add methods
-export interface Event {}
+export interface Event {
+  channelID (): string
+}
 
 // TODO: Add eth chainservice implementation
 export interface ChainService {

@@ -1,6 +1,32 @@
+import { AddressLike } from 'ethers';
+
+import { Message, ObjectiveId, ObjectivePayload } from './messages';
+import { Proposal } from '../channel/consensus-channel/consensus-channel';
+
 // ChainTransaction defines the interface that every transaction must implement
-// TODO: Add methods
-export interface ChainTransaction {}
+export interface ChainTransaction {
+  channelID (): string
+}
+
+// SideEffects are effects to be executed by an imperative shell
+export type SideEffects = {
+  messagesToSend: Message[]
+  transactionsToSubmit: ChainTransaction[]
+  proposalsToProcess: Proposal[]
+};
+
+// WaitingFor is an enumerable "pause-point" computed from an Objective.
+// It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
+type WaitingFor = string;
+
+// Storable is an object that can be stored by the store.
+export interface Storable {
+  // TODO: Can throw an error
+  marshalJSON (): Buffer
+
+  // TODO: Can throw an error
+  unmarshalJSON (b: Buffer): void
+}
 
 // Objective is the interface for off-chain protocols.
 // The lifecycle of an objective is as follows:
@@ -10,12 +36,45 @@ export interface ChainTransaction {}
 //   - It is updated with external information arriving to the client
 //   - After each update, it is cranked. This generates side effects and other metadata
 //   - The metadata will eventually indicate that the Objective has stalled OR the Objective has completed successfully
-// TODO: Add methods
-export interface Objective {}
+export interface Objective extends Storable {
+  // TODO: Update comments
 
-// ObjectiveId is a unique identifier for an Objective.
-export type ObjectiveId = string;
+  id (): ObjectiveId
+
+  // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+  approve (): Objective
+
+  // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+  reject (): [Objective, SideEffects]
+
+  // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+  // TODO: Can throw an error
+  update (payload: ObjectivePayload): Objective
+
+  // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
+  // TODO: Can throw an error
+  crank (secretKey: Buffer): [Objective, SideEffects, WaitingFor]
+
+  // Related returns a slice of related objects that need to be stored along with the objective
+  related (): Storable[]
+
+  // OwnsChannel returns the channel the objective exclusively owns.
+  ownsChannel (): string
+
+  // GetStatus returns the status of the objective.
+  getStatus (): ObjectiveStatus
+}
+
+export enum ObjectiveStatus {
+  Unapproved = 0,
+  Approved,
+  Rejected,
+  Completed,
+}
 
 // ObjectiveRequest is a request to create a new objective.
-// TODO: Add methods
-export interface ObjectiveRequest {}
+export interface ObjectiveRequest {
+  id (address: AddressLike, chainId: bigint): ObjectiveId
+  waitForObjectiveToStart (): void
+  signalObjectiveStarted (): void
+}
