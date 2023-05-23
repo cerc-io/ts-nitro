@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { test } from '@cerc-io/nitro-client';
+import { test, P2PMessageService } from '@cerc-io/nitro-client';
 
 import logo from './logo.svg';
 import './App.css';
@@ -10,6 +10,8 @@ function App() {
 
   useEffect(() => {
     const res = test();
+    const p2pMessageService = P2PMessageService.newMessageService();
+    console.log('p2pMessageService', p2pMessageService);
     setData(res);
   }, []);
 
