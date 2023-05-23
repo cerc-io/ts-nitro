@@ -1,15 +1,17 @@
 import * as webpack from 'webpack';
 import * as path from 'path';
+import { merge } from 'webpack-merge';
 
-const config: webpack.Configuration = {
-  mode: 'production',
-  entry: './src/index.ts',
+const baseConfig: webpack.Configuration = {
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'index.js',
-    library: '@cerc-io/nitro-client',
+    library: {
+      name: '@cerc-io/nitro-client',
+      type: 'umd',
+    },
     libraryTarget: 'umd',
     globalObject: 'this',
+    clean: true
   },
   resolve: {
     extensions: ['.ts', '.js'],
@@ -19,17 +21,38 @@ const config: webpack.Configuration = {
       {
         test: /\.ts$/,
         use: 'ts-loader',
-        exclude: /node_modules/,
+        exclude: /node_modules/
       },
     ],
   },
-  // TODO: Remove/refactor when building for browser
-  target: 'node',
-  // https://github.com/websockets/ws/issues/1126#issuecomment-631605589
   externals: {
-    bufferutil: 'bufferutil',
-    'utf-8-validate': 'utf-8-validate',
+    '@chainsafe/libp2p-yamux': '@chainsafe/libp2p-yamux',
+    '@libp2p/crypto': '@libp2p/crypto',
+    '@libp2p/mdns': '@libp2p/mdns',
+    '@libp2p/tcp': '@libp2p/tcp',
+    '@nodeguy/channel': '@nodeguy/channel',
+    debug: 'debug',
+    ethers: 'ethers',
+    libp2p: 'libp2p',
   },
 };
 
-export default config;
+export const browserConfig: webpack.Configuration = merge(baseConfig, {
+  entry: './src/browser.ts',
+  output: {
+    filename: 'browser.js',
+  },
+});
+
+export const nodeConfig: webpack.Configuration = merge(baseConfig, {
+  entry: './src/node.ts',
+  output: {
+    filename: 'node.js',
+  },
+  target: 'node'
+});
+
+export default [
+  browserConfig,
+  nodeConfig,
+];

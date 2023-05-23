@@ -1,7 +1,8 @@
 {
   "name": "@cerc-io/nitro-client",
   "version": "0.1.0",
-  "main": "dist/index.js",
+  "main": "dist/node.js",
+  "browser": "dist/browser.js",
   "license": "MIT",
   "scripts": {
     "build": "webpack --config webpack.prod.ts",
@@ -12,6 +13,7 @@
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",
+    "@types/debug": "^4.1.7",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.2.1",
     "@types/webpack": "^5.28.1",
@@ -40,7 +42,6 @@
     "@libp2p/mdns": "^8.0.0",
     "@libp2p/tcp": "^7.0.1",
     "@nodeguy/channel": "^1.0.2",
-    "@types/debug": "^4.1.7",
     "debug": "^4.3.4",
     "ethers": "^6.4.0",
     "libp2p": "^0.45.3"

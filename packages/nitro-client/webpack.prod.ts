@@ -1,13 +1,15 @@
 import * as webpack from 'webpack';
 import { merge } from 'webpack-merge';
 
-import baseConfig from './webpack.common';
+import commonConfigs from './webpack.common';
 
-const config: webpack.Configuration = merge(baseConfig, {
-  mode: 'production',
-  optimization: {
-    // Add production-specific optimizations here
-  },
-});
+const prodConfigs: webpack.Configuration[] = commonConfigs.map(
+  (config) => merge(config, {
+    mode: 'production',
+    optimization: {
+      // Add production-specific optimizations here
+    },
+  }),
+);
 
-export default config;
+export default prodConfigs;
