@@ -1,6 +1,4 @@
-import { AddressLike } from 'ethers';
-
-export type Address = AddressLike;
+export type Address = string;
 
 // TODO: Add Destination type
 // Destination represents a payable address in go-nitro. In a state channel network,

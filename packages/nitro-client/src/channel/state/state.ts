@@ -115,7 +115,7 @@ export class State {
   // TODO: Can throw an error
   // TODO: Implement
   recoverSigner(sig: Signature): Address {
-    return ethers.ZeroAddress;
+    return ethers.constants.AddressZero;
   }
 
   // Equal returns true if the given State is deeply equal to the receiever.

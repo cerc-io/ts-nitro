@@ -1,7 +1,7 @@
-import { AddressLike } from 'ethers';
 import type { ReadChannel } from '@nodeguy/channel';
 
 import { ChainTransaction } from '../../../protocols/interfaces';
+import { Address } from '../../../types/types';
 
 // ChainEvent dictates which methods all chain events must implement
 export interface ChainEvent {
@@ -17,9 +17,9 @@ export interface ChainService {
   sendTransaction (tx: ChainTransaction): void;
 
   // TODO: Use Address type
-  getConsensusAppAddress (): AddressLike;
+  getConsensusAppAddress (): Address;
 
-  getVirtualPaymentAppAddress (): AddressLike;
+  getVirtualPaymentAppAddress (): Address;
 
   // TODO: Can throw an error
   getChainId (): bigint;

@@ -1,4 +1,4 @@
-import { AddressLike, ethers } from 'ethers';
+import { ethers } from 'ethers';
 
 import { Store } from './store';
 import { Objective } from '../../../protocols/interfaces';
@@ -7,6 +7,7 @@ import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-c
 import { VoucherInfo } from '../../../payments/vouchers';
 import { SyncMap } from '../../../internal/safesync/safesync';
 import { ObjectiveId } from '../../../protocols/messages';
+import { Address } from '../../../types/types';
 
 export class MemStore implements Store {
   obectives: SyncMap<Buffer>;
@@ -41,8 +42,8 @@ export class MemStore implements Store {
   close(): void {}
 
   // TODO: Implement
-  getAddress(): AddressLike {
-    return ethers.ZeroAddress;
+  getAddress(): Address {
+    return ethers.constants.AddressZero;
   }
 
   // TODO: Implement
@@ -86,12 +87,12 @@ export class MemStore implements Store {
   }
 
   // TODO: Implement
-  getChannelsByAppDefinition(appDef: AddressLike): Channel[] {
+  getChannelsByAppDefinition(appDef: Address): Channel[] {
     return [];
   }
 
   // TODO: Implement
-  getChannelsByParticipant(participant: AddressLike): Channel[] {
+  getChannelsByParticipant(participant: Address): Channel[] {
     return [];
   }
 
@@ -101,7 +102,7 @@ export class MemStore implements Store {
   }
 
   // TODO: Implement
-  getConsensusChannel(counterparty: AddressLike): ConsensusChannel {
+  getConsensusChannel(counterparty: Address): ConsensusChannel {
     return {};
   }
 

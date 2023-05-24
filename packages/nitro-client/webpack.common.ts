@@ -1,15 +1,18 @@
 import * as webpack from 'webpack';
 import * as path from 'path';
+import { merge } from 'webpack-merge';
 
-const config: webpack.Configuration = {
-  mode: 'production',
-  entry: './src/index.ts',
+const baseConfig: webpack.Configuration = {
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'index.js',
-    library: '@cerc-io/nitro-client',
+    library: {
+      name: '@cerc-io/nitro-client',
+      type: 'umd',
+    },
     libraryTarget: 'umd',
     globalObject: 'this',
+    clean: true,
+    filename: 'index.js',
   },
   resolve: {
     extensions: ['.ts', '.js'],
@@ -23,6 +26,25 @@ const config: webpack.Configuration = {
       },
     ],
   },
+  externals: {
+    '@chainsafe/libp2p-yamux': '@chainsafe/libp2p-yamux',
+    '@libp2p/crypto': '@libp2p/crypto',
+    '@libp2p/mdns': '@libp2p/mdns',
+    '@libp2p/tcp': '@libp2p/tcp',
+    '@nodeguy/channel': '@nodeguy/channel',
+    debug: 'debug',
+    ethers: 'ethers',
+    libp2p: 'libp2p',
+  },
 };
 
-export default config;
+export const browserConfig: webpack.Configuration = merge(baseConfig, {
+  entry: './src/browser.ts',
+});
+
+export const nodeConfig: webpack.Configuration = merge(baseConfig, {
+  entry: './src/node.ts',
+  target: 'node',
+});
+
+export default { browserConfig, nodeConfig };

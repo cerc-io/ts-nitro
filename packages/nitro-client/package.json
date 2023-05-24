@@ -4,14 +4,19 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "build": "webpack --config webpack.prod.ts",
-    "build:dev": "webpack --config webpack.dev.ts",
+    "index:browser": "cp src/browser.ts src/index.ts",
+    "index:node": "cp src/node.ts src/index.ts",
+    "build:browser": "yarn index:browser && webpack --config webpack.prod.ts --env target=browser",
+    "build:node": "yarn index:node && webpack --config webpack.prod.ts --env target=node",
+    "build:dev:browser": "yarn index:browser && webpack --config webpack.dev.ts --env target=browser",
+    "build:dev:node": "yarn index:node && webpack --config webpack.dev.ts --env target=node",
     "dev": "webpack --watch --config webpack.dev.ts",
     "lint": "eslint .",
     "test": "mocha"
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",
+    "@types/debug": "^4.1.7",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.2.1",
     "@types/webpack": "^5.28.1",
@@ -35,11 +40,13 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
+    "@chainsafe/libp2p-yamux": "^4.0.2",
+    "@libp2p/crypto": "^1.0.4",
     "@libp2p/mdns": "^8.0.0",
+    "@libp2p/tcp": "^7.0.1",
     "@nodeguy/channel": "^1.0.2",
-    "@types/debug": "^4.1.7",
     "debug": "^4.3.4",
-    "ethers": "^6.4.0",
+    "ethers": "^5.7.2",
     "libp2p": "^0.45.3"
   }
 }

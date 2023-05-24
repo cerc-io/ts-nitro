@@ -1,3 +1,6 @@
 node_modules/
 
 dist
+
+# Generated using script before build
+src/index.ts
