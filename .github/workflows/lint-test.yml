@@ -24,8 +24,8 @@ jobs:
         run: yarn
       - name: "Linter check"
         run: yarn lint
-  test:
-    name: "Run tests"
+  test-browser:
+    name: "Run tests for browser"
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -40,5 +40,23 @@ jobs:
         run: yarn
       - name: "Run tests"
         run: |
-          yarn build --ignore @cerc-io/example-web-app
-          yarn test
+          yarn build:browser --ignore @cerc-io/example-web-app
+          yarn test:browser
+  test-node:
+    name: "Run tests for node"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+    steps:
+      - uses: actions/checkout@v3
+      - name: "Use Node.js ${{ matrix.node-version }}"
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: "Install dependencies"
+        run: yarn
+      - name: "Run tests"
+        run: |
+          yarn build:node
+          yarn test:node

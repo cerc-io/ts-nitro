@@ -14,6 +14,7 @@
     "lint": "lerna run lint --stream",
     "build:browser": "lerna run build,build:browser --stream",
     "build:node": "lerna run build,build:node --stream --ignore @cerc-io/example-web-app",
-    "test": "lerna run test --stream"
+    "test:browser": "lerna run test --stream",
+    "test:node": "lerna run test --stream --ignore @cerc-io/example-web-app"
   }
 }
