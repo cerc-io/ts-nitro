@@ -98,12 +98,12 @@ export class MemStore implements Store {
 
   // TODO: Implement
   getConsensusChannelById(id: string): ConsensusChannel {
-    return {};
+    return {} as ConsensusChannel;
   }
 
   // TODO: Implement
   getConsensusChannel(counterparty: Address): ConsensusChannel {
-    return {};
+    return {} as ConsensusChannel;
   }
 
   // TODO: Implement
