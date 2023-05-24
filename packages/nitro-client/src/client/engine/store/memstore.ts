@@ -72,12 +72,12 @@ export class MemStore implements Store {
 
   // TODO: Implement
   getChannelById(id: string): Channel {
-    return new Channel();
+    return {} as Channel;
   }
 
   // TODO: Implement
   private _getChannelById(id: string): Channel {
-    return new Channel();
+    return {} as Channel;
   }
 
   // TODO: Implement
