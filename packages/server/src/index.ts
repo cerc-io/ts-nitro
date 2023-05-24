@@ -34,13 +34,15 @@ const main = async () => {
     '',
     privateKey.bytes,
     true
-  )
-
-  console.log('p2pMessageService key', p2pMessageService)
+  );
 }
 
-main().catch(err => {
+main().then(() => {
+  log('Started P2PMessageService');
+}).catch(err => {
   log(err);
-}).finally(() => {
-  process.exit(0);
+});
+
+process.on('uncaughtException', err => {
+  log('uncaughtException', err);
 });

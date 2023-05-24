@@ -17,7 +17,7 @@ import type { Stream } from '@libp2p/interface-connection';
 // @ts-expect-error
 import type { IncomingStreamData } from '@libp2p/interface-registrar';
 // @ts-expect-error
-import type { Multiaddr } from '@multiformats/multiaddr';
+import type { PeerInfo as Libp2pPeerInfo } from '@libp2p/interface-peer-info';
 
 import { SyncMap } from '../../../../internal/safesync/safesync';
 import { Message } from '../../../../protocols/messages';
@@ -118,7 +118,7 @@ export class P2PMessageService {
     try {
       const messageKey = await unmarshalPrivateKey(pk);
       ms.key = messageKey;
-    } catch (err: unknown) {
+    } catch (err) {
       ms.checkError(err as Error);
     }
 
@@ -155,6 +155,8 @@ export class P2PMessageService {
     const host = await createLibp2p(options);
     ms.p2pHost = host;
 
+    ms.p2pHost.addEventListener('peer:discovery', ms.handlePeerFound.bind(ms));
+
     ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler);
 
     ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
@@ -171,7 +173,30 @@ export class P2PMessageService {
 
   // handlePeerFound is called by the mDNS service when a peer is found.
   // TODO: Implement and remove void
-  handlePeerFound(pi: Multiaddr[]) {}
+  async handlePeerFound({ detail: pi }: CustomEvent<Libp2pPeerInfo>) {
+    assert(this.p2pHost);
+
+    const peer = await this.p2pHost.peerStore.save(
+      pi.id,
+      {
+        multiaddrs: pi.multiaddrs,
+        // TODO: Check if ttl option exists to set it like in go-nitro
+        // peerstore.PermanentAddrTTL
+      },
+    );
+
+    try {
+      const stream = await this.p2pHost.dialProtocol(
+        peer.id,
+        PEER_EXCHANGE_PROTOCOL_ID,
+      );
+
+      this.sendPeerInfo(stream);
+      stream.close();
+    } catch (err) {
+      this.checkError(err as Error);
+    }
+  }
 
   // TODO: Implement
   private msgStreamHandler({ stream }: IncomingStreamData) {}
