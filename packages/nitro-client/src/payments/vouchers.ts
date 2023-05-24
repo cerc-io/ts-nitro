@@ -1,5 +1,3 @@
-import { AddressLike } from 'ethers';
-
 // A Voucher signed by Alice can be used by Bob to redeem payments in case of
 // a misbehaving Alice.
 //
@@ -16,9 +14,9 @@ export class Voucher {}
 // As well as details about the balance and who the payee/payer is.
 // TODO: Implement
 export class VoucherInfo {
-  channelPayer?: AddressLike;
+  channelPayer?: string;
 
-  channelPayee?: AddressLike;
+  channelPayee?: string;
 
   startingBalance?: bigint;
 

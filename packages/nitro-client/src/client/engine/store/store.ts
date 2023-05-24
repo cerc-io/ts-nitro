@@ -1,9 +1,8 @@
-import { AddressLike } from 'ethers';
-
 import { Objective } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
 import { VoucherStore } from '../../../payments/voucher-manager';
+import { Address } from '../../../types/types';
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
 export interface Store extends ConsensusChannelStore, VoucherStore {
@@ -11,7 +10,7 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
   getChannelSecretKey (): string
 
   // Get the (Ethereum) address associated with the ChannelSecretKey
-  getAddress (): AddressLike
+  getAddress (): Address
 
   // Read an existing objective
   // TODO: Can throw an error
@@ -33,7 +32,7 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
   getChannelById (id: string): Channel
 
   // Returns any channels that includes the given participant
-  getChannelsByParticipant (participant: AddressLike): Channel[]
+  getChannelsByParticipant (participant: Address): Channel[]
 
   // TODO: Can throw an error
   setChannel (ch: Channel): void
@@ -42,7 +41,7 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 
   // Returns any channels that includes the given app definition
   // TODO: Can throw an error
-  getChannelsByAppDefinition (appDef: AddressLike): Channel[]
+  getChannelsByAppDefinition (appDef: Address): Channel[]
 
   // Release channel from being owned by any objective
   releaseChannelFromOwnership (channelId: string): void
@@ -58,7 +57,7 @@ export interface ConsensusChannelStore {
   getAllConsensusChannels (): ConsensusChannel[]
 
   // TODO: Can throw an error
-  getConsensusChannel (counterparty: AddressLike): ConsensusChannel
+  getConsensusChannel (counterparty: Address): ConsensusChannel
 
   // TODO: Can throw an error
   getConsensusChannelById (id: string): ConsensusChannel

@@ -1,12 +1,12 @@
-import {
-  AddressLike, Log, TransactionLike, ethers,
-} from 'ethers';
+import { ethers } from 'ethers';
 import debug from 'debug';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 
+import { Log } from '@ethersproject/abstract-provider'
 import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
 import { ChainService, ChainEvent } from './chainservice';
 import { ChainTransaction } from '../../../protocols/interfaces';
+import { Address } from '../../../types/types';
 
 interface EthChain {
   // TODO: Extend bind.ContractBackend (github.com/ethereum/go-ethereum/accounts/abi/bind)
@@ -26,13 +26,13 @@ export class EthChainService implements ChainService {
 
   private na: NitroAdjudicator;
 
-  private naAddress: AddressLike;
+  private naAddress: string;
 
-  private consensusAppAddress: AddressLike;
+  private consensusAppAddress: string;
 
-  private virtualPaymentAppAddress: AddressLike;
+  private virtualPaymentAppAddress: string;
 
-  private txSigner: TransactionLike;
+  private txSigner: ethers.Transaction;
 
   private out: ReadWriteChannel<ChainEvent>;
 
@@ -45,10 +45,10 @@ export class EthChainService implements ChainService {
   constructor(
     chain: EthChain,
     na: NitroAdjudicator,
-    naAddress: AddressLike,
-    consensusAppAddress: AddressLike,
-    virtualPaymentAppAddress: AddressLike,
-    txSigner: TransactionLike,
+    naAddress: string,
+    consensusAppAddress: string,
+    virtualPaymentAppAddress: string,
+    txSigner: ethers.Transaction,
     out: ReadWriteChannel<ChainEvent>,
     logger: debug.Debugger,
     ctx: AbortController,
@@ -71,15 +71,15 @@ export class EthChainService implements ChainService {
   static newEthChainService(
     chainUrl: string,
     chainPk: string,
-    naAddress: AddressLike,
-    caAddress: AddressLike,
-    vpaAddress: AddressLike,
+    naAddress: string,
+    caAddress: string,
+    vpaAddress: string,
     logDestination: WritableStream,
   ): EthChainService | void {}
 
   // defaultTxOpts returns transaction options suitable for most transaction submissions
   // TODO: Implement and remove void
-  private defaultTxOpts(): TransactionLike | void {}
+  private defaultTxOpts(): ethers.Transaction | void {}
 
   // sendTransaction sends the transaction and blocks until it has been submitted.
   // TODO: Implement and remove void
@@ -109,13 +109,13 @@ export class EthChainService implements ChainService {
   }
 
   // TODO: Implement
-  getConsensusAppAddress(): AddressLike {
-    return ethers.ZeroAddress;
+  getConsensusAppAddress(): Address {
+    return ethers.constants.AddressZero;
   }
 
   // TODO: Implement
-  getVirtualPaymentAppAddress(): AddressLike {
-    return ethers.ZeroAddress;
+  getVirtualPaymentAppAddress(): Address {
+    return ethers.constants.AddressZero;
   }
 
   // TODO: Implement and remove void

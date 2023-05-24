@@ -25,8 +25,8 @@ import { Address } from '../../../../types/types';
 
 const log = debug('ts-nitro:p2p-message-service');
 
-const PROTOCOL_ID = '/ts-nitro/msg/1.0.0';
-const PEER_EXCHANGE_PROTOCOL_ID = '/ts-nitro/peerinfo/1.0.0';
+const PROTOCOL_ID = '/go-nitro/msg/1.0.0';
+const PEER_EXCHANGE_PROTOCOL_ID = '/go-nitro/peerinfo/1.0.0';
 const BUFFER_SIZE = 1_000;
 
 // BasicPeerInfo contains the basic information about a peer

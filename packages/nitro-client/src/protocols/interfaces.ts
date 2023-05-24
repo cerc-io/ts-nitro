@@ -1,7 +1,6 @@
-import { AddressLike } from 'ethers';
-
 import { Message, ObjectiveId, ObjectivePayload } from './messages';
 import { Proposal } from '../channel/consensus-channel/consensus-channel';
+import { Address } from '../types/types';
 
 // ChainTransaction defines the interface that every transaction must implement
 export interface ChainTransaction {
@@ -74,7 +73,7 @@ export enum ObjectiveStatus {
 
 // ObjectiveRequest is a request to create a new objective.
 export interface ObjectiveRequest {
-  id (address: AddressLike, chainId: bigint): ObjectiveId
+  id (address: Address, chainId: bigint): ObjectiveId
   waitForObjectiveToStart (): void
   signalObjectiveStarted (): void
 }

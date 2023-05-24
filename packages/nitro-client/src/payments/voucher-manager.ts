@@ -1,5 +1,3 @@
-import { AddressLike } from 'ethers';
-
 import { Voucher, VoucherInfo } from './vouchers';
 
 // VoucherStore is an interface for storing voucher information that the voucher manager expects.
@@ -21,16 +19,16 @@ export interface VoucherStore {
 export class VoucherManager {
   private store: VoucherStore;
 
-  private me: AddressLike;
+  private me: string;
 
-  constructor(me: AddressLike, store: VoucherStore) {
+  constructor(me: string, store: VoucherStore) {
     this.store = store;
     this.me = me;
   }
 
   // Register registers a channel for use, given the payer, payee and starting balance of the channel
   // TODO: Can throw an error
-  register(channelId: string, payer: AddressLike, payee: AddressLike, startingBalance: bigint): void {}
+  register(channelId: string, payer: string, payee: string, startingBalance: bigint): void {}
 
   // Remove deletes the channel's status
   // TODO: Can throw an error

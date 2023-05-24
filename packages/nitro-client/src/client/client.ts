@@ -14,7 +14,7 @@ export class Client {
   private vm: VoucherManager;
 
   constructor(msg: MessageService, chain: ChainService, store: Store, policymaker: PolicyMaker) {
-    this.vm = new VoucherManager(ethers.ZeroAddress, store);
+    this.vm = new VoucherManager(ethers.constants.AddressZero, store);
     this.engine = new Engine(this.vm, msg, chain, store, policymaker);
   }
 }

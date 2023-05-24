@@ -1,4 +1,4 @@
-import { AddressLike, ethers } from 'ethers';
+import { ethers } from 'ethers';
 import createChannel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 
@@ -12,6 +12,7 @@ import { Objective, ObjectiveRequest, SideEffects } from '../../protocols/interf
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
 import { Objective as VirtualFundObjective } from '../../protocols/virtualfund/virtualfund';
 import { Proposal } from '../../channel/consensus-channel/consensus-channel';
+import { Address } from '../../types/types';
 
 export type PaymentRequest = {
   channelId: string
@@ -192,13 +193,14 @@ export class Engine {
   }
 
   // GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
-  getConsensusAppAddress(): AddressLike {
-    return ethers.ZeroAddress;
+  getConsensusAppAddress(): Address {
+    ethers.utils.getAddress
+    return ethers.constants.AddressZero;
   }
 
   // GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp
-  getVirtualPaymentAppAddress(): AddressLike {
-    return ethers.ZeroAddress;
+  getVirtualPaymentAppAddress(): Address {
+    return ethers.constants.AddressZero;
   }
 
   // logMessage logs a message to the engine's logger
