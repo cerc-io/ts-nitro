@@ -131,7 +131,7 @@ export class MemStore implements Store {
 
   // TODO: Implement
   getVoucherInfo(channelId: string): VoucherInfo {
-    return {};
+    return {} as VoucherInfo;
   }
 
   // TODO: Implement
