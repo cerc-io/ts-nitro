@@ -18,3 +18,7 @@ export class Allocation {
   // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
   metadata?: Buffer;
 }
+
+// Allocations is an array of type Allocation
+// TODO: Implement
+export type Allocations = Allocation[];
