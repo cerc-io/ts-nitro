@@ -1,0 +1,19 @@
+{
+  "name": "@cerc-io/server",
+  "version": "0.1.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "DEBUG=ts-nitro:* node --enable-source-maps dist/index.js"
+  },
+  "dependencies": {
+    "debug": "^4.3.4",
+    "yargs": "^17.7.2",
+    "@cerc-io/nitro-client": "^0.1.0"
+  }
+}

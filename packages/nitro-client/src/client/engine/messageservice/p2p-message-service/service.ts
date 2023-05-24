@@ -103,7 +103,7 @@ export class P2PMessageService {
     me: Address,
     pk: Uint8Array,
     useMdnsPeerDiscovery: boolean,
-    logWriter: WritableStream,
+    logWriter?: WritableStream,
   ): Promise<P2PMessageService> {
     const ms = new P2PMessageService({
       toEngine: Channel<Message>(BUFFER_SIZE),
