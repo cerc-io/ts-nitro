@@ -1,8 +1,8 @@
 import { ethers } from 'ethers';
 import debug from 'debug';
-import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 
-import { Log } from '@ethersproject/abstract-provider'
+import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
+import type { Log } from '@ethersproject/abstract-provider';
 import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
 import { ChainService, ChainEvent } from './chainservice';
 import { ChainTransaction } from '../../../protocols/interfaces';

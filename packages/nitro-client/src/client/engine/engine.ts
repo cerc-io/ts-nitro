@@ -194,7 +194,6 @@ export class Engine {
 
   // GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
   getConsensusAppAddress(): Address {
-    ethers.utils.getAddress
     return ethers.constants.AddressZero;
   }
 
