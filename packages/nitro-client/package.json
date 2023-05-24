@@ -6,6 +6,7 @@
   "scripts": {
     "index:browser": "cp src/browser.ts src/index.ts",
     "index:node": "cp src/node.ts src/index.ts",
+    "build": "if [ \"$TARGET\" = \"browser\" ]; then yarn build:browser; else yarn build:node; fi",
     "build:browser": "yarn index:browser && webpack --config webpack.prod.ts --env target=browser",
     "build:node": "yarn index:node && webpack --config webpack.prod.ts --env target=node",
     "build:dev:browser": "yarn index:browser && webpack --config webpack.dev.ts --env target=browser",
