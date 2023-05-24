@@ -1,33 +1,14 @@
+import { ethers } from 'ethers';
+
 import { Signature } from '../../crypto/signatures';
 import { Address, Funds } from '../../types/types';
 import { FixedPart } from '../state/state';
+import { SignedState } from '../state/signedstate';
 
 type LedgerIndex = number;
 
 const Leader: LedgerIndex = 0;
 const Follower: LedgerIndex = 1;
-
-// ConsensusChannel is used to manage states in a running ledger channel.
-// TODO: Implement
-export class ConsensusChannel {
-  // constants
-
-  id?: String;
-
-  myIndex?: LedgerIndex;
-
-  onChainFunding?: Funds;
-
-  private fp?: FixedPart;
-
-  // variables
-
-  // current represents the "consensus state", signed by both parties
-  private current?: SignedVars;
-
-  // a queue of proposed changes which can be applied to the current state, ordered by TurnNum.
-  private proposalQueue?: SignedProposal[];
-}
 
 // Balance is a convenient, ergonomic representation of a single-asset Allocation
 // of type 0, ie. a simple allocation.
@@ -85,6 +66,222 @@ export class SignedVars {
   vars?: Vars;
 
   signatures?: [Signature, Signature];
+}
+
+// ConsensusChannel is used to manage states in a running ledger channel.
+export class ConsensusChannel {
+  // constants
+
+  id: String;
+
+  myIndex: LedgerIndex;
+
+  onChainFunding: Funds;
+
+  private fp: FixedPart;
+
+  // variables
+
+  // current represents the "consensus state", signed by both parties
+  private current: SignedVars;
+
+  // a queue of proposed changes which can be applied to the current state, ordered by TurnNum.
+  private _proposalQueue: SignedProposal[];
+
+  // newConsensusChannel constructs a new consensus channel, validating its input by
+  // checking that the signatures are as expected for the given fp, initialTurnNum and outcome.
+  // TODO: Can throw an error
+  // TODO: Implement
+  constructor(
+    fp: FixedPart,
+    myIndex: LedgerIndex,
+    initialTurnNum: number,
+    outcome: LedgerOutcome,
+    signatures: [Signature, Signature],
+  ) {
+    // TODO: Use try-catch
+    fp.validate();
+
+    const cId = fp.channelId();
+
+    const vars = new Vars();
+
+    const current = new SignedVars();
+
+    this.fp = fp;
+    this.id = cId;
+    this.myIndex = myIndex;
+    this.onChainFunding = new Map();
+    this._proposalQueue = [];
+    this.current = current;
+  }
+
+  // FixedPart returns the fixed part of the channel.
+  // TODO: Implement
+  fixedPart(): FixedPart {
+    return this.fp!;
+  }
+
+  // Receive accepts a proposal signed by the ConsensusChannel counterparty,
+  // validates its signature, and performs updates to the proposal queue and
+  // consensus state.
+  // TODO: Can throw an error
+  // TODO: Implement
+  receive(sp: SignedProposal): void {}
+
+  // IsProposed returns true if a proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
+  //
+  // Specific clarification: If the current outcome already includes g, IsProposed returns false.
+  // TODO: Can throw an error
+  // TODO: Implement
+  isProposed(g: Guarantee): boolean {
+    return false;
+  }
+
+  // IsProposedNext returns true if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
+  // TODO: Can throw an error
+  // TODO: Implement
+  isProposedNext(g: Guarantee): boolean {
+    return false;
+  }
+
+  // ConsensusTurnNum returns the turn number of the current consensus state.
+  // TODO: uint64 replacement
+  // TODO: Implement
+  consensusTurnNum(): number {
+    return 0;
+  }
+
+  // Includes returns whether or not the consensus state includes the given guarantee.
+  // TODO: Implement
+  includes(g: Guarantee): boolean {
+    return false;
+  }
+
+  // IncludesTarget returns whether or not the consensus state includes a guarantee
+  // addressed to the given target.
+  // TODO: Implement
+  includesTarget(target: string): boolean {
+    return false;
+  }
+
+  // HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
+  // TODO: Implement
+  hasRemovalBeenProposed(target: string): boolean {
+    return false;
+  }
+
+  // HasRemovalBeenProposedNext returns whether or not the next proposal in the queue is a remove proposal for the given target
+  // TODO: Implement
+  hasRemovalBeenProposedNext(target: string): boolean {
+    return false;
+  }
+
+  // IsLeader returns true if the calling client is the leader of the channel,
+  // and false otherwise.
+  // TODO: Implement
+  isLeader(): boolean {
+    return false;
+  }
+
+  // IsFollower returns true if the calling client is the follower of the channel,
+  // and false otherwise.
+  // TODO: Implement
+  isFollower(): boolean {
+    return false;
+  }
+
+  // Leader returns the address of the participant responsible for proposing.
+  // TODO: Implement
+  leader(): Address {
+    return ethers.constants.AddressZero;
+  }
+
+  // Follower returns the address of the participant who receives and contersigns
+  // proposals.
+  // TODO: Implement
+  follower(): Address {
+    return ethers.constants.AddressZero;
+  }
+
+  // FundingTargets returns a list of channels funded by the ConsensusChannel
+  // TODO: Implement
+  fundingTargets(): string[] {
+    return [];
+  }
+
+  // TODO: Can throw an error
+  // TODO: Implement
+  accept(p: SignedProposal): void {
+    throw new Error('UNIMPLEMENTED');
+  }
+
+  // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
+  // values. It signs the resulting state using sk.
+  // TODO: Can throw an error
+  // TODO: Implement
+  private sign(vars: Vars, sk: Buffer): Signature {
+    return {};
+  }
+
+  // recoverSigner returns the signer of the vars using the given signature.
+  // TODO: Can throw an error
+  // TODO: Implement
+  private recoverSigner(vars: Vars, sig: Signature): Address {
+    return ethers.constants.AddressZero;
+  }
+
+  // ConsensusVars returns the vars of the consensus state
+  // The consensus state is the latest state that has been signed by both parties.
+  // TODO: Implement
+  consensusVars(): Vars {
+    return {};
+  }
+
+  // Signatures returns the signatures on the currently supported state.
+  // TODO: Implement
+  signatures(): [Signature, Signature] {
+    return [{}, {}];
+  }
+
+  // ProposalQueue returns the current queue of proposals, ordered by TurnNum.
+  // TODO: Implement
+  proposalQueue(): SignedProposal[] {
+    // Since c.proposalQueue is already ordered by TurnNum, we can simply return it.
+    return this._proposalQueue!;
+  }
+
+  // latestProposedVars returns the latest proposed vars in a consensus channel
+  // by cloning its current vars and applying each proposal in the queue.
+  // TODO: Can throw an error
+  // TODO: Implement
+  private latestProposedVars(): Vars {
+    return {};
+  }
+
+  // validateProposalID checks that the given proposal's ID matches
+  // the channel's ID.
+  // TODO: Can throw an error
+  // TODO: Implement
+  private validateProposalID(propsal: Proposal): void {}
+
+  // Participants returns the channel participants.
+  // TODO: Implement
+  participants(): Address[] {
+    return [];
+  }
+
+  // Clone returns a deep copy of the receiver.
+  // TODO: Implement
+  clone(): ConsensusChannel {
+    return {} as ConsensusChannel;
+  }
+
+  // SupportedSignedState returns the latest supported signed state.
+  // TODO: Implement
+  supportedSignedState(): SignedState {
+    return {} as SignedState;
+  }
 }
 
 // Proposal is a proposal either to add or to remove a guarantee.
