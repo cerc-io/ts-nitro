@@ -1,12 +1,15 @@
 {
   "name": "@cerc-io/nitro-client",
   "version": "0.1.0",
-  "main": "dist/node.js",
-  "browser": "dist/browser.js",
+  "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "build": "webpack --config webpack.prod.ts",
-    "build:dev": "webpack --config webpack.dev.ts",
+    "index:browser": "cp src/browser.ts src/index.ts",
+    "index:node": "cp src/node.ts src/index.ts",
+    "build:browser": "yarn index:browser && webpack --config webpack.prod.ts --env target=browser",
+    "build:node": "yarn index:node && webpack --config webpack.prod.ts --env target=node",
+    "build:dev:browser": "yarn index:browser && webpack --config webpack.dev.ts --env target=browser",
+    "build:dev:node": "yarn index:node && webpack --config webpack.dev.ts --env target=node",
     "dev": "webpack --watch --config webpack.dev.ts",
     "lint": "eslint .",
     "test": "mocha"

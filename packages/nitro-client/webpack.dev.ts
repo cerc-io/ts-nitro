@@ -1,13 +1,20 @@
 import * as webpack from 'webpack';
 import { merge } from 'webpack-merge';
 
-import commonConfigs from './webpack.common';
+import { browserConfig, nodeConfig } from './webpack.common';
 
-const devConfigs: webpack.Configuration[] = commonConfigs.map(
-  (config) => merge(config, {
-    mode: 'development',
-    devtool: 'source-map',
-  }),
-);
+const devConfig: webpack.Configuration = {
+  mode: 'development',
+  devtool: 'source-map',
+};
 
-export default devConfigs;
+const devBrowserConfig: webpack.Configuration = merge(browserConfig, devConfig);
+const devNodeConfig: webpack.Configuration = merge(nodeConfig, devConfig);
+
+export default (env: { [key: string]: string | boolean }) => {
+  if (env.target === 'browser') {
+    return devBrowserConfig;
+  }
+
+  return devNodeConfig;
+};

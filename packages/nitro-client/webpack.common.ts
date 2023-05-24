@@ -11,7 +11,8 @@ const baseConfig: webpack.Configuration = {
     },
     libraryTarget: 'umd',
     globalObject: 'this',
-    clean: true
+    clean: true,
+    filename: 'index.js',
   },
   resolve: {
     extensions: ['.ts', '.js'],
@@ -21,7 +22,7 @@ const baseConfig: webpack.Configuration = {
       {
         test: /\.ts$/,
         use: 'ts-loader',
-        exclude: /node_modules/
+        exclude: /node_modules/,
       },
     ],
   },
@@ -39,20 +40,11 @@ const baseConfig: webpack.Configuration = {
 
 export const browserConfig: webpack.Configuration = merge(baseConfig, {
   entry: './src/browser.ts',
-  output: {
-    filename: 'browser.js',
-  },
 });
 
 export const nodeConfig: webpack.Configuration = merge(baseConfig, {
   entry: './src/node.ts',
-  output: {
-    filename: 'node.js',
-  },
-  target: 'node'
+  target: 'node',
 });
 
-export default [
-  browserConfig,
-  nodeConfig,
-];
+export default { browserConfig, nodeConfig };

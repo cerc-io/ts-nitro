@@ -1,15 +1,22 @@
 import * as webpack from 'webpack';
 import { merge } from 'webpack-merge';
 
-import commonConfigs from './webpack.common';
+import { browserConfig, nodeConfig } from './webpack.common';
 
-const prodConfigs: webpack.Configuration[] = commonConfigs.map(
-  (config) => merge(config, {
-    mode: 'production',
-    optimization: {
-      // Add production-specific optimizations here
-    },
-  }),
-);
+const prodConfig: webpack.Configuration = {
+  mode: 'production',
+  optimization: {
+    // Add production-specific optimizations here
+  },
+};
 
-export default prodConfigs;
+const prodBrowserConfig = merge(browserConfig, prodConfig);
+const prodNodeConfig = merge(nodeConfig, prodConfig);
+
+export default (env: { [key: string]: string | boolean }) => {
+  if (env.target === 'browser') {
+    return prodBrowserConfig;
+  }
+
+  return prodNodeConfig;
+};
