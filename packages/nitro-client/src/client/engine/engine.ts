@@ -1,7 +1,7 @@
-import { ethers } from 'ethers';
 import assert from 'assert';
+import { ethers } from 'ethers';
 
-import createChannel from '@nodeguy/channel';
+import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 
 import { MessageService } from './messageservice/messageservice';
@@ -93,11 +93,11 @@ export class Engine {
     const e = new Engine();
     e.store = store;
 
-    e.fromLedger = createChannel<Proposal>(100);
+    e.fromLedger = Channel<Proposal>(100);
     // bind to inbound channels
-    e.objectiveRequestsFromAPI = createChannel<ObjectiveRequest>();
-    e.paymentRequestsFromAPI = createChannel<PaymentRequest>();
-    e.stop = createChannel();
+    e.objectiveRequestsFromAPI = Channel<ObjectiveRequest>();
+    e.paymentRequestsFromAPI = Channel<PaymentRequest>();
+    e.stop = Channel();
 
     e.fromChain = chain.eventFeed();
     e.fromMsg = msg.out();
@@ -105,7 +105,7 @@ export class Engine {
     e.chain = chain;
     e.msg = msg;
 
-    e._toApi = createChannel<EngineEvent>(100);
+    e._toApi = Channel<EngineEvent>(100);
 
     // logging.ConfigureZeroLogger()
     // e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
@@ -134,7 +134,71 @@ export class Engine {
 
   // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
   // The loop exits when a struct is received on the stop channel. Engine.Close() sends that signal.
-  run(): void {}
+  async run(): Promise<void> {
+    assert(this.objectiveRequestsFromAPI);
+    assert(this.paymentRequestsFromAPI);
+    assert(this.fromChain);
+    assert(this.fromMsg);
+    assert(this.fromLedger);
+    assert(this.stop);
+    assert(this._toApi);
+
+    while (true) {
+      let res: EngineEvent | undefined;
+
+      try {
+        // TODO: Check switch-case behaviour
+        /* eslint-disable no-await-in-loop */
+        /* eslint-disable default-case */
+        switch (await Channel.select([
+          this.objectiveRequestsFromAPI.shift(),
+          this.paymentRequestsFromAPI.shift(),
+          this.fromChain.shift(),
+          this.fromMsg.shift(),
+          this.fromLedger.shift(),
+          this.stop.shift(),
+        ])) {
+          case this.objectiveRequestsFromAPI:
+            res = this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
+            break;
+
+          case this.paymentRequestsFromAPI:
+            res = this.handlePaymentRequest(this.paymentRequestsFromAPI.value());
+            break;
+
+          case this.fromChain:
+            res = this.handleChainEvent(this.fromChain.value());
+            break;
+
+          case this.fromMsg:
+            res = this.handleMessage(this.fromMsg.value());
+            break;
+
+          case this.fromLedger:
+            res = this.handleProposal(this.fromLedger.value());
+            break;
+
+          case this.stop:
+            return;
+        }
+      } catch (err) {
+        // Handle errors
+        this.checkError(err as Error);
+      }
+
+      assert(res);
+
+      // Only send out an event if there are changes
+      if (!res.isEmpty()) {
+        res.completedObjectives?.forEach((obj) => {
+          // e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
+          // e.metrics.RecordObjectiveCompleted(obj.Id())
+        });
+
+        this._toApi.push(res);
+      }
+    }
+  }
 
   // handleProposal handles a Proposal returned to the engine from
   // a running ledger channel by pulling its corresponding objective
@@ -228,6 +292,7 @@ export class Engine {
 
   // GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
   getConsensusAppAddress(): Address {
+    assert(this.chain);
     return this.chain.getConsensusAppAddress();
   }
 
