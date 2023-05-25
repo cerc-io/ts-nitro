@@ -17,12 +17,12 @@ export class EthClient {
     return transaction;
   }
 
-  async chainID(): Promise<number> {
+  async chainID(): Promise<bigint> {
     assert(this.provider);
 
     // Get chain ID
-    const chainId = await this.provider.getNetwork();
-    return chainId.chainId;
+    const network = await this.provider.getNetwork();
+    return BigInt(network.chainId);
   }
 
   subscribeFilterLogs(filter: EventFilter, callback: (log: providers.Log) => void): providers.Listener {
