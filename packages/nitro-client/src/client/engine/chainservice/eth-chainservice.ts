@@ -11,6 +11,8 @@ import { ChainService, ChainEvent } from './chainservice';
 import { ChainTransaction } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
 
+const log = debug('ts-nitro:eth-chain-service');
+
 interface EthChain {
   // TODO: Extend bind.ContractBackend (github.com/ethereum/go-ethereum/accounts/abi/bind)
   // TODO: Extend ethereum.TransactionReader (github.com/ethereum/go-ethereum)
@@ -76,6 +78,7 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
+    logDestination?: WritableStream,
   ): Promise<EthChainService> {
     if (vpaAddress === caAddress) {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
@@ -87,7 +90,7 @@ export class EthChainService implements ChainService {
     // TODO: Initialize NitroAdjudicator
     const na = new NitroAdjudicator();
 
-    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress);
+    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, logDestination);
   }
 
   // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
@@ -98,9 +101,8 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
+    logDestination?: WritableStream,
   ): EthChainService {
-    // TODO: Configure logger
-
     // TODO: Create AbortController
     const cancelFunc = () => {};
 
@@ -115,7 +117,7 @@ export class EthChainService implements ChainService {
       vpaAddress,
       {} as ethers.Transaction,
       out,
-      {} as debug.Debugger,
+      log,
       {} as AbortController,
       cancelFunc,
     );
