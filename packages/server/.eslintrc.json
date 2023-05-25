@@ -13,6 +13,7 @@
       {
         "devDependencies": ["test/**/*.test.ts"]
       }
-    ]
+    ],
+    "import/prefer-default-export": "off"
   }
 }

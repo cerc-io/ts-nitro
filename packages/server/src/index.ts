@@ -1,7 +1,8 @@
 import yargs from 'yargs';
 import debug from 'debug';
 
-import { P2PMessageService, EthChainService } from '@cerc-io/nitro-client';
+import { EthChainService } from '@cerc-io/nitro-client';
+import { createP2PMessageService } from './utils';
 
 const log = debug('ts-nitro:server');
 
@@ -26,19 +27,7 @@ const getArgv = () => yargs.parserConfiguration({
 const main = async () => {
   const argv = getArgv();
 
-  const keys = await import('@libp2p/crypto/keys');
-
-  // TODO: Generate private key from a string
-  const privateKey = await keys.generateKeyPair('Ed25519');
-
-  const p2pMessageService = await P2PMessageService.newMessageService(
-    '127.0.0.1',
-    argv.port,
-    // TODO: Pass account address
-    '',
-    privateKey.bytes,
-    true,
-  );
+  const p2pMessageService = await createP2PMessageService(argv.port);
 
   log('p2pMessageService', p2pMessageService.constructor.name);
 

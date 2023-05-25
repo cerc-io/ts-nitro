@@ -4,6 +4,10 @@
 // TODO: Add interface fields
 export interface MetricsApi {}
 
+// NewNoOpMetrics returns a MetricsApi that does nothing.
+// TODO: Implement
+export class NoOpMetrics {}
+
 // MetricsRecorder is used to record metrics about the engine
 // TODO: Implement
 export class MetricsRecorder {}

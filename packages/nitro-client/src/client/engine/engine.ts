@@ -1,4 +1,6 @@
 import { ethers } from 'ethers';
+import assert from 'assert';
+
 import createChannel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 
@@ -6,7 +8,7 @@ import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent } from './chainservice/chainservice';
 import { Store } from './store/store';
 import { PolicyMaker } from './policy-maker';
-import { MetricsRecorder } from './metrics';
+import { MetricsApi, MetricsRecorder } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
 import { Objective, ObjectiveRequest, SideEffects } from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
@@ -23,65 +25,68 @@ export type PaymentRequest = {
 export class EngineEvent {}
 
 export class Engine {
-  objectiveRequestsFromAPI: ReadWriteChannel<ObjectiveRequest>;
+  objectiveRequestsFromAPI?: ReadWriteChannel<ObjectiveRequest>;
 
-  paymentRequestsFromAPI: ReadWriteChannel<PaymentRequest>;
+  paymentRequestsFromAPI?: ReadWriteChannel<PaymentRequest>;
 
-  private fromChain: ReadChannel<ChainEvent>;
+  private fromChain?: ReadChannel<ChainEvent>;
 
-  private fromMsg: ReadChannel<Message>;
+  private fromMsg?: ReadChannel<Message>;
 
-  private fromLedger: ReadWriteChannel<Proposal>;
+  private fromLedger?: ReadWriteChannel<Proposal>;
 
-  private _toApi: ReadWriteChannel<EngineEvent>;
+  private _toApi?: ReadWriteChannel<EngineEvent>;
 
-  private stop: ReadWriteChannel<void>;
+  private stop?: ReadWriteChannel<void>;
 
-  private msg: MessageService;
+  private msg?: MessageService;
 
-  private chain: ChainService;
+  private chain?: ChainService;
 
   // A Store for persisting and restoring important data
-  private store: Store;
+  private store?: Store;
 
   // A PolicyMaker decides whether to approve or reject objectives
-  private policymaker: PolicyMaker;
+  private policymaker?: PolicyMaker;
 
   // logger zerolog.Logger
 
   private metrics?: MetricsRecorder;
 
-  private vm: VoucherManager;
+  private vm?: VoucherManager;
 
-  constructor(
+  static new(
     vm: VoucherManager,
     msg: MessageService,
     chain: ChainService,
     store: Store,
+    logDestination: WritableStream | undefined,
     policymaker: PolicyMaker,
+    metricsApi?: MetricsApi,
   ) {
-    this.store = store;
+    const e = new Engine();
+    e.store = store;
 
-    this.fromLedger = createChannel<Proposal>(100);
+    e.fromLedger = createChannel<Proposal>(100);
     // bind to inbound channels
-    this.objectiveRequestsFromAPI = createChannel<ObjectiveRequest>();
-    this.paymentRequestsFromAPI = createChannel<PaymentRequest>();
-    this.stop = createChannel();
+    e.objectiveRequestsFromAPI = createChannel<ObjectiveRequest>();
+    e.paymentRequestsFromAPI = createChannel<PaymentRequest>();
+    e.stop = createChannel();
 
-    this.fromChain = chain.eventFeed();
-    this.fromMsg = msg.out();
+    e.fromChain = chain.eventFeed();
+    e.fromMsg = msg.out();
 
-    this.chain = chain;
-    this.msg = msg;
+    e.chain = chain;
+    e.msg = msg;
 
-    this._toApi = createChannel<EngineEvent>(100);
+    e._toApi = createChannel<EngineEvent>(100);
 
     // logging.ConfigureZeroLogger()
     // e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
 
-    this.policymaker = policymaker;
+    e.policymaker = policymaker;
 
-    this.vm = vm;
+    e.vm = vm;
 
     // e.logger.Print("Constructed Engine")
 
@@ -89,9 +94,12 @@ export class Engine {
     //   metricsApi = &NoOpMetrics{}
     // }
     // e.metrics = NewMetricsRecorder(*e.store.GetAddress(), metricsApi)
+
+    return e;
   }
 
   get toApi(): ReadChannel<EngineEvent> {
+    assert(this._toApi);
     return this._toApi.readOnly();
   }
 

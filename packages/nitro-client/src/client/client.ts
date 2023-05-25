@@ -3,7 +3,8 @@ import assert from 'assert';
 import { ethers } from 'ethers';
 
 import type { ReadWriteChannel } from '@nodeguy/channel';
-import { randUint64 } from '@cerc-io/nitro-util';
+import createChannel from '@nodeguy/channel';
+import { go, randUint64 } from '@cerc-io/nitro-util';
 
 import { MessageService } from './engine/messageservice/messageservice';
 import { ChainService } from './engine/chainservice/chainservice';
@@ -16,7 +17,7 @@ import { ChannelNotifier } from './notifier/channel-notifier';
 import { ObjectiveId } from '../protocols/messages';
 import { SyncMap } from '../internal/safesync/safesync';
 import { Voucher } from '../payments/vouchers';
-import { MetricsApi } from './engine/metrics';
+import { MetricsApi, NoOpMetrics } from './engine/metrics';
 import { Exit } from '../channel/state/outcome/exit';
 import {
   ObjectiveResponse as DirectFundObjectiveResponse,
@@ -53,20 +54,43 @@ export class Client {
     messageService: MessageService,
     chainservice: ChainService,
     store: Store,
-    logDestination: WritableStream,
+    logDestination: WritableStream | undefined,
     policymaker: PolicyMaker,
-    metricsApi: MetricsApi,
+    metricsApi?: MetricsApi,
   ): Promise<Client> {
-    // TODO: Port over implementation
-    const client = new Client();
+    const c = new Client();
+    // TODO: Implement memstore.getAddress
+    c.address = store.getAddress();
 
-    client.address = store.getAddress();
-    client.chainId = await chainservice.getChainId();
-    client.vm = new VoucherManager(ethers.constants.AddressZero, store);
+    // If a metrics API is not provided we used the no-op version which does nothing.
+    if (!metricsApi) {
+      // eslint-disable-next-line no-param-reassign
+      metricsApi = new NoOpMetrics();
+    }
 
-    client.engine = new Engine(client.vm, messageService, chainservice, store, policymaker);
+    const chainId = await chainservice.getChainId();
+    c.chainId = chainId;
+    c.store = store;
+    c.vm = VoucherManager.newVoucherManager(store.getAddress(), store);
+    c.logger = log;
 
-    return client;
+    c.engine = Engine.new(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi);
+    c.completedObjectives = new SyncMap<ReadWriteChannel<null>>();
+    c.completedObjectivesForRPC = createChannel<ObjectiveId>(100);
+
+    c.failedObjectives = createChannel<ObjectiveId>(100);
+    // Using a larger buffer since payments can be sent frequently.
+    c.receivedVouchers = createChannel<Voucher>(1000);
+
+    c.channelNotifier = ChannelNotifier.newChannelNotifier(store, c.vm);
+    // Start the engine in a go routine
+    go(c.engine.run);
+
+    // Start the event handler in a go routine
+    // It will listen for events from the engine and dispatch events to client channels
+    go(c.handleEngineEvents);
+
+    return c;
   }
 
   // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
@@ -85,9 +109,15 @@ export class Client {
       this.engine.getConsensusAppAddress(),
     );
 
+    assert(this.engine.objectiveRequestsFromAPI);
     // Send the event to the engine
     this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
     objectiveRequest.waitForObjectiveToStart();
     return objectiveRequest.response(this.address, this.chainId);
   }
+
+  // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
+  // It parses events from the ToApi chan and then dispatches events to the necessary client chan.
+  // TODO: Implement
+  private handleEngineEvents() {}
 }
