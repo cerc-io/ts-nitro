@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
 import { ethers } from 'ethers';
 
 import {
@@ -37,5 +38,8 @@ describe('test Client', () => {
     );
 
     expect(client.address).to.equal(ethers.constants.AddressZero);
+
+    const response = client.createLedgerChannel('', 0, []);
+    expect(response).to.be.empty;
   });
 });
