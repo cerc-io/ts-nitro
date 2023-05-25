@@ -4,12 +4,12 @@ import debug from 'debug';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import createChannel from '@nodeguy/channel';
+import { ConnectToChain } from '@cerc-io/nitro-util';
 
 import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
 import { ChainService, ChainEvent } from './chainservice';
 import { ChainTransaction } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
-import { ConnectToChain } from './utils/utils';
 
 interface EthChain {
   // TODO: Extend bind.ContractBackend (github.com/ethereum/go-ethereum/accounts/abi/bind)
