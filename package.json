@@ -8,13 +8,15 @@
     "nohoist": ["**/mocha", "**/mocha/**"]
   },
   "devDependencies": {
-    "lerna": "^6.6.2"
+    "lerna": "^6.6.2",
+    "husky": "^7.0.2"
   },
   "scripts": {
     "lint": "lerna run lint --stream",
     "build:browser": "TARGET=browser lerna run build --stream --ignore @cerc-io/server",
     "build:node": "TARGET=node lerna run build --stream --ignore @cerc-io/example-web-app",
     "test:browser": "lerna run test --stream --ignore @cerc-io/server",
-    "test:node": "lerna run test --stream --ignore @cerc-io/example-web-app"
+    "test:node": "lerna run test --stream --ignore @cerc-io/example-web-app",
+    "prepare": "husky install"
   }
 }
