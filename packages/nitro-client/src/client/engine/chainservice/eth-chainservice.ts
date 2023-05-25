@@ -4,7 +4,7 @@ import debug from 'debug';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import createChannel from '@nodeguy/channel';
-import { ConnectToChain } from '@cerc-io/nitro-util';
+import { connectToChain } from '@cerc-io/nitro-util';
 
 import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
 import { ChainService, ChainEvent } from './chainservice';
@@ -82,7 +82,7 @@ export class EthChainService implements ChainService {
     }
 
     // TODO: Get txSigner
-    const ethClient = await ConnectToChain(chainUrl);
+    const ethClient = await connectToChain(chainUrl);
 
     // TODO: Initialize NitroAdjudicator
     const na = new NitroAdjudicator();
