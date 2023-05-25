@@ -28,6 +28,7 @@ const baseConfig: webpack.Configuration = {
   },
   externals: {
     '@nodeguy/channel': '@nodeguy/channel',
+    assert: 'assert',
     debug: 'debug',
     ethers: 'ethers',
   },

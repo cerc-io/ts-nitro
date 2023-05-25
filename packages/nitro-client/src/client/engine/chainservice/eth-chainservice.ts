@@ -93,20 +93,38 @@ export class EthChainService implements ChainService {
 
   // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
   // and listens to events from an eventSource
-  static _newEthChainService(chain: EthChain, na: NitroAdjudicator, naAddress: Address, caAddress: Address, vpaAddress: Address, logDestination: WritableStream): EthChainService {
+  static _newEthChainService(
+    chain: EthChain,
+    na: NitroAdjudicator,
+    naAddress: Address,
+    caAddress: Address,
+    vpaAddress: Address,
+    logDestination: WritableStream,
+  ): EthChainService {
     // TODO: Configure logger
 
     // TODO: Create AbortController
-    const cancelFunc = () => {}
+    const cancelFunc = () => {};
 
     const out = createChannel<ChainEvent>(10);
 
     // Use a buffered channel so we don't have to worry about blocking on writing to the channel.
-    const ecs = new EthChainService(chain, na, naAddress, caAddress, vpaAddress, {} as ethers.Transaction, out, {} as debug.Debugger, {} as AbortController, cancelFunc);
+    const ecs = new EthChainService(
+      chain,
+      na,
+      naAddress,
+      caAddress,
+      vpaAddress,
+      {} as ethers.Transaction,
+      out,
+      {} as debug.Debugger,
+      {} as AbortController,
+      cancelFunc,
+    );
 
-    ecs.subscribeForLogs()
+    ecs.subscribeForLogs();
 
-    return ecs
+    return ecs;
   }
 
   // defaultTxOpts returns transaction options suitable for most transaction submissions
