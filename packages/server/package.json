@@ -19,6 +19,7 @@
     "typescript": "^5.0.4",
     "chai": "^4.3.7",
     "mocha": "^10.2.0",
+    "hardhat": "^2.14.0",
     "ts-node": "^10.9.1",
     "ethers": "^5.7.2"
   },
@@ -26,11 +27,12 @@
     "build": "tsc",
     "start": "DEBUG=ts-nitro:* node --enable-source-maps dist/index.js",
     "lint": "eslint .",
-    "test": "mocha"
+    "test:e2e": "mocha test-e2e/**/*.test.ts",
+    "chain": "hardhat node"
   },
   "dependencies": {
+    "@cerc-io/nitro-client": "^0.1.0",
     "debug": "^4.3.4",
-    "yargs": "^17.7.2",
-    "@cerc-io/nitro-client": "^0.1.0"
+    "yargs": "^17.7.2"
   }
 }
