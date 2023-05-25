@@ -16,7 +16,7 @@ interface EthChain {
   // TODO: Extend ethereum.TransactionReader (github.com/ethereum/go-ethereum)
 
   // TODO: Can throw an error
-  chainID (ctx: AbortController): Promise<bigint>;
+  chainID (): Promise<bigint>;
 }
 
 interface BlockRange {
@@ -76,7 +76,6 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
-    logDestination: WritableStream,
   ): Promise<EthChainService> {
     if (vpaAddress === caAddress) {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
@@ -88,18 +87,17 @@ export class EthChainService implements ChainService {
     // TODO: Initialize NitroAdjudicator
     const na = new NitroAdjudicator();
 
-    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, logDestination);
+    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress);
   }
 
   // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
   // and listens to events from an eventSource
-  static _newEthChainService(
+  private static _newEthChainService(
     chain: EthChain,
     na: NitroAdjudicator,
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
-    logDestination: WritableStream,
   ): EthChainService {
     // TODO: Configure logger
 
@@ -168,10 +166,8 @@ export class EthChainService implements ChainService {
     return ethers.constants.AddressZero;
   }
 
-  // TODO: Implement and remove void
-  // TODO: Can throw an error
-  getChainId(): bigint {
-    return BigInt(0);
+  getChainId(): Promise<bigint> {
+    return this.chain.chainID();
   }
 
   // TODO: Implement and remove void
