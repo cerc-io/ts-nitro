@@ -15,14 +15,40 @@ import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages
 import { Objective as VirtualFundObjective } from '../../protocols/virtualfund/virtualfund';
 import { Proposal } from '../../channel/consensus-channel/consensus-channel';
 import { Address } from '../../types/types';
+import { Voucher } from '../../payments/vouchers';
+import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
 
 export type PaymentRequest = {
   channelId: string
   amount: bigint
 };
 
-// TODO: Implement
-export class EngineEvent {}
+// EngineEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
+export class EngineEvent {
+  // These are objectives that are now completed
+  completedObjectives?: Objective[];
+
+  // These are objectives that have failed
+  failedObjectives?: Objective[];
+
+  // ReceivedVouchers are vouchers we've received from other participants
+  receivedVouchers?: Voucher[];
+
+  // LedgerChannelUpdates contains channel info for ledger channels that have been updated
+  ledgerChannelUpdates?: LedgerChannelInfo[];
+
+  // PaymentChannelUpdates contains channel info for payment channels that have been updated
+  paymentChannelUpdates?: PaymentChannelInfo[];
+
+  // IsEmpty returns true if the EngineEvent contains no changes
+  // TODO: Implement
+  isEmpty(): boolean {
+    return false;
+  }
+
+  // TODO: Implement
+  merge(other: EngineEvent): void {}
+}
 
 export class Engine {
   objectiveRequestsFromAPI?: ReadWriteChannel<ObjectiveRequest>;
@@ -202,7 +228,7 @@ export class Engine {
 
   // GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
   getConsensusAppAddress(): Address {
-    return ethers.constants.AddressZero;
+    return this.chain.getConsensusAppAddress();
   }
 
   // GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp

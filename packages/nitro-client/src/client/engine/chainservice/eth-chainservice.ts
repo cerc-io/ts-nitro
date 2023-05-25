@@ -158,9 +158,8 @@ export class EthChainService implements ChainService {
     return this.out.readOnly();
   }
 
-  // TODO: Implement
   getConsensusAppAddress(): Address {
-    return ethers.constants.AddressZero;
+    return this.consensusAppAddress;
   }
 
   // TODO: Implement
