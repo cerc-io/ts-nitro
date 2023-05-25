@@ -96,7 +96,6 @@ export class P2PMessageService {
   // newMessageService returns a running P2PMessageService listening on the given ip, port and message key.
   // If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
   // Otherwise, peers must be added manually via `AddPeers`.
-  // TODO: Implement and remove void
   static async newMessageService(
     ip: string,
     port: number,
@@ -172,7 +171,6 @@ export class P2PMessageService {
   id(): string | void {}
 
   // handlePeerFound is called by the mDNS service when a peer is found.
-  // TODO: Implement and remove void
   async handlePeerFound({ detail: pi }: CustomEvent<Libp2pPeerInfo>) {
     assert(this.p2pHost);
 

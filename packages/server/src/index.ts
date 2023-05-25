@@ -3,21 +3,19 @@ import debug from 'debug';
 
 import { P2PMessageService } from '@cerc-io/nitro-client';
 
-const log = debug('ts-nitro:server')
+const log = debug('ts-nitro:server');
 
-const getArgv = () => {
-  return yargs.parserConfiguration({
-    'parse-numbers': false
-  }).options({
-    port: {
-      alias: 'p',
-      type: 'number',
-      require: true,
-      demandOption: true,
-      describe: 'Message service port',
-    },
-  }).argv;
-}
+const getArgv = () => yargs.parserConfiguration({
+  'parse-numbers': false,
+}).options({
+  port: {
+    alias: 'p',
+    type: 'number',
+    require: true,
+    demandOption: true,
+    describe: 'Message service port',
+  },
+}).argv;
 
 const main = async () => {
   const argv = getArgv();
@@ -33,16 +31,18 @@ const main = async () => {
     // TODO: Pass account address
     '',
     privateKey.bytes,
-    true
+    true,
   );
-}
+
+  log('p2pMessageService', p2pMessageService.constructor.name);
+};
 
 main().then(() => {
   log('Started P2PMessageService');
-}).catch(err => {
+}).catch((err) => {
   log(err);
 });
 
-process.on('uncaughtException', err => {
+process.on('uncaughtException', (err) => {
   log('uncaughtException', err);
 });
