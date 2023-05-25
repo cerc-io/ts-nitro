@@ -22,7 +22,7 @@ export interface ChainService {
   getVirtualPaymentAppAddress (): Address;
 
   // TODO: Can throw an error
-  getChainId (): bigint;
+  getChainId (): Promise<bigint>;
 
   // TODO: Can throw an error
   close (): void;

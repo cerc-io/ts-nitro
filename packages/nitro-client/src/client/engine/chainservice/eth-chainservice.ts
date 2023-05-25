@@ -3,6 +3,9 @@ import debug from 'debug';
 
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import type { Log } from '@ethersproject/abstract-provider';
+import createChannel from '@nodeguy/channel';
+import { ConnectToChain } from '@cerc-io/nitro-util';
+
 import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
 import { ChainService, ChainEvent } from './chainservice';
 import { ChainTransaction } from '../../../protocols/interfaces';
@@ -13,7 +16,7 @@ interface EthChain {
   // TODO: Extend ethereum.TransactionReader (github.com/ethereum/go-ethereum)
 
   // TODO: Can throw an error
-  chainID: (ctx: AbortController) => bigint
+  chainID (): Promise<bigint>;
 }
 
 interface BlockRange {
@@ -67,15 +70,60 @@ export class EthChainService implements ChainService {
   }
 
   // newEthChainService is a convenient wrapper around _newEthChainService, which provides a simpler API
-  // TODO: Implement and remove void
-  static newEthChainService(
+  static async newEthChainService(
     chainUrl: string,
     chainPk: string,
-    naAddress: string,
-    caAddress: string,
-    vpaAddress: string,
-    logDestination: WritableStream,
-  ): EthChainService | void {}
+    naAddress: Address,
+    caAddress: Address,
+    vpaAddress: Address,
+  ): Promise<EthChainService> {
+    if (vpaAddress === caAddress) {
+      throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
+    }
+
+    // TODO: Get txSigner
+    const ethClient = await ConnectToChain(chainUrl);
+
+    // TODO: Initialize NitroAdjudicator
+    const na = new NitroAdjudicator();
+
+    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress);
+  }
+
+  // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
+  // and listens to events from an eventSource
+  private static _newEthChainService(
+    chain: EthChain,
+    na: NitroAdjudicator,
+    naAddress: Address,
+    caAddress: Address,
+    vpaAddress: Address,
+  ): EthChainService {
+    // TODO: Configure logger
+
+    // TODO: Create AbortController
+    const cancelFunc = () => {};
+
+    const out = createChannel<ChainEvent>(10);
+
+    // Use a buffered channel so we don't have to worry about blocking on writing to the channel.
+    const ecs = new EthChainService(
+      chain,
+      na,
+      naAddress,
+      caAddress,
+      vpaAddress,
+      {} as ethers.Transaction,
+      out,
+      {} as debug.Debugger,
+      {} as AbortController,
+      cancelFunc,
+    );
+
+    ecs.subscribeForLogs();
+
+    return ecs;
+  }
 
   // defaultTxOpts returns transaction options suitable for most transaction submissions
   // TODO: Implement and remove void
@@ -118,10 +166,8 @@ export class EthChainService implements ChainService {
     return ethers.constants.AddressZero;
   }
 
-  // TODO: Implement and remove void
-  // TODO: Can throw an error
-  getChainId(): bigint {
-    return BigInt(0);
+  getChainId(): Promise<bigint> {
+    return this.chain.chainID();
   }
 
   // TODO: Implement and remove void

@@ -1,7 +1,7 @@
 import yargs from 'yargs';
 import debug from 'debug';
 
-import { P2PMessageService } from '@cerc-io/nitro-client';
+import { P2PMessageService, EthChainService } from '@cerc-io/nitro-client';
 
 const log = debug('ts-nitro:server');
 
@@ -14,6 +14,12 @@ const getArgv = () => yargs.parserConfiguration({
     require: true,
     demandOption: true,
     describe: 'Message service port',
+  },
+  chainurl: {
+    alias: 'c',
+    type: 'string',
+    describe: 'RPC endpoint for the chain',
+    default: 'http://127.0.0.1:8545',
   },
 }).argv;
 
@@ -35,6 +41,18 @@ const main = async () => {
   );
 
   log('p2pMessageService', p2pMessageService.constructor.name);
+
+  // TODO: Pass a pk and contract addresses
+  const ethChainService = await EthChainService.newEthChainService(
+    argv.chainurl,
+    '',
+    'naaddress',
+    'caAddress',
+    'vpaAddress',
+  );
+  const chainId = await ethChainService.getChainId();
+
+  log('Connected to chain with chain ID: ', chainId.toString());
 };
 
 main().then(() => {

@@ -41,6 +41,7 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
+    "@cerc-io/nitro-util": "^0.1.0",
     "@chainsafe/libp2p-yamux": "^4.0.2",
     "@libp2p/crypto": "^1.0.4",
     "@libp2p/mdns": "^8.0.0",
