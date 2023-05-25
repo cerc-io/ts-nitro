@@ -27,19 +27,22 @@ const baseConfig: webpack.Configuration = {
     ],
   },
   externals: {
-    '@chainsafe/libp2p-yamux': '@chainsafe/libp2p-yamux',
-    '@libp2p/crypto': '@libp2p/crypto',
-    '@libp2p/mdns': '@libp2p/mdns',
-    '@libp2p/tcp': '@libp2p/tcp',
     '@nodeguy/channel': '@nodeguy/channel',
     debug: 'debug',
     ethers: 'ethers',
-    libp2p: 'libp2p',
   },
 };
 
 export const browserConfig: webpack.Configuration = merge(baseConfig, {
   entry: './src/browser.ts',
+  // Packages are resolved properly in browser build tool; so not required in build output
+  externals: {
+    '@chainsafe/libp2p-yamux': '@chainsafe/libp2p-yamux',
+    '@libp2p/crypto': '@libp2p/crypto',
+    '@libp2p/mdns': '@libp2p/mdns',
+    '@libp2p/tcp': '@libp2p/tcp',
+    libp2p: 'libp2p',
+  },
 });
 
 export const nodeConfig: webpack.Configuration = merge(baseConfig, {
