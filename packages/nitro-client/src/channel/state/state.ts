@@ -1,24 +1,43 @@
 import { ethers } from 'ethers';
 
+import { getChannelId as utilGetChannelId } from '@statechannels/nitro-protocol';
+
+import assert from 'assert';
 import { Signature } from '../../crypto/signatures';
-import { Address } from '../../types/types';
+import { Address, Destination } from '../../types/types';
 import { Exit } from './outcome/exit';
 
 // FixedPart contains the subset of State data which does not change during a state update.
 export class FixedPart {
-  participants?: Address[];
+  participants: Address[];
 
   // TODO: unit64 replacement
-  channelNonce?: number;
+  channelNonce: string;
 
-  appDefinition?: Address;
+  appDefinition: Address;
 
   // TODO: unit64 replacement
-  challengeDuration?: number;
+  challengeDuration: number;
+
+  constructor(
+    participants: Address[],
+    channelNonce: string,
+    challengeDuration: number,
+    appDefinition: Address = '',
+  ) {
+    this.participants = participants;
+    this.channelNonce = channelNonce;
+    this.challengeDuration = challengeDuration;
+    this.appDefinition = appDefinition;
+  }
 
   // TODO: Implement
   channelId(): string {
     return '';
+  }
+
+  getChannelId(): Destination {
+    return utilGetChannelId(this);
   }
 
   // Clone returns a deep copy of the receiver.
@@ -50,7 +69,7 @@ export class State {
   participants?: Address[];
 
   // TODO: unit64 replacement
-  channelNonce?: number;
+  channelNonce?: string;
 
   appDefinition?: Address;
 
@@ -69,7 +88,17 @@ export class State {
   // FixedPart returns the FixedPart of the State
   // TODO: Implement
   fixedPart(): FixedPart {
-    return new FixedPart();
+    assert(this.participants);
+    assert(this.channelNonce);
+    assert(this.challengeDuration);
+    assert(this.appDefinition);
+
+    return new FixedPart(
+      this.participants,
+      this.channelNonce,
+      this.challengeDuration,
+      this.appDefinition,
+    );
   }
 
   // VariablePart returns the VariablePart of the State
