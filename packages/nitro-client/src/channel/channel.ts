@@ -41,12 +41,12 @@ export class Channel {
 
     // Store prefund
     this.signedStateForTurnNum = new Map();
-    this.signedStateForTurnNum.set(PreFundTurnNum, new SignedState(s));
+    this.signedStateForTurnNum.set(PreFundTurnNum, new SignedState({ state: s }));
 
     // Store postfund
     const post = s.clone();
     post.turnNum = PostFundTurnNum;
-    this.signedStateForTurnNum.set(PostFundTurnNum, new SignedState(post));
+    this.signedStateForTurnNum.set(PostFundTurnNum, new SignedState({ state: post }));
 
     // TODO: Implement
     // Set on chain holdings to zero for each asset

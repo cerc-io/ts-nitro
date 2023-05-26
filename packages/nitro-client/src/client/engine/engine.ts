@@ -19,7 +19,7 @@ import { Address } from '../../types/types';
 import { Voucher } from '../../payments/vouchers';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
 import { ObjectiveRequest as DirectDefundObjectiveRequest } from '../../protocols/directdefund/directdefund';
-import { ObjectiveRequest as DirectFundObjectiveRequest } from '../../protocols/directfund/directfund';
+import { ObjectiveRequest as DirectFundObjectiveRequest, Objective as DirectFundObjective } from '../../protocols/directfund/directfund';
 import { ObjectiveRequest as VirtualDefundObjectiveRequest } from '../../protocols/virtualdefund/virtualdefund';
 
 const log = debug('ts-nitro:client');
@@ -274,7 +274,20 @@ export class Engine {
         break;
       case or instanceof DirectFundObjectiveRequest:
         // TODO: Use try-catch
-        // const dfo = directfund.NewObjective(request, true, myAddress, chainId, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
+        try {
+          const dfo = DirectFundObjective.newObjective(
+            or as DirectFundObjectiveRequest,
+            true,
+            myAddress,
+            chainId,
+            this.store.getChannelsByParticipant,
+            this.store.getConsensusChannel,
+          );
+
+          return this.attemptProgress(dfo);
+        } catch (err) {
+          throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(or)}: ${err}`);
+        }
         // return this.attemptProgress(dfo);
         break;
       case or instanceof DirectDefundObjectiveRequest:

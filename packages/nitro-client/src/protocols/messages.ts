@@ -18,7 +18,7 @@ export type ObjectivePayload = {
   type: PayloadType
 };
 
-type PayloadType = string;
+export type PayloadType = string;
 
 // Message is an object to be sent across the wire.
 // TODO: Implement

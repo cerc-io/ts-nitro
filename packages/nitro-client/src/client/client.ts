@@ -100,13 +100,13 @@ export class Client {
     assert(this.address);
     assert(this.chainId);
 
-    const objectiveRequest = new DirectFundObjectiveRequest(
-      counterparty,
+    const objectiveRequest = new DirectFundObjectiveRequest({
+      counterParty: counterparty,
       challengeDuration,
       outcome,
-      randUint64(),
-      this.engine.getConsensusAppAddress(),
-    );
+      nonce: randUint64(),
+      appDefinition: this.engine.getConsensusAppAddress(),
+    });
 
     assert(this.engine.objectiveRequestsFromAPI);
     // Send the event to the engine

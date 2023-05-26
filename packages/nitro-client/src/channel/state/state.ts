@@ -66,33 +66,40 @@ export class VariablePart {
 
 // State holds all of the data describing the state of a channel
 export class State {
-  participants?: Address[];
+  participants: Address[] = [];
+
+  channelNonce: string = '';
+
+  appDefinition: Address = '';
+
+  challengeDuration: number = 0;
+
+  appData: Buffer = Buffer.alloc(0);
+
+  outcome: Exit = [];
 
   // TODO: unit64 replacement
-  channelNonce?: string;
+  turnNum : number = 0;
 
-  appDefinition?: Address;
+  isFinal: boolean = false;
 
-  // TODO: unit64 replacement
-  challengeDuration?: number;
-
-  appData?: Buffer;
-
-  outcome?: Exit;
-
-  // TODO: unit64 replacement
-  turnNum? : number;
-
-  isFinal?: boolean;
+  constructor(
+    params: {
+      participants: Address[],
+      channelNonce: string,
+      appDefinition: Address,
+      challengeDuration: number,
+      appData: Buffer,
+      outcome: Exit,
+      turnNum: number,
+      isFinal: boolean
+    },
+  ) {
+    Object.assign(this, params);
+  }
 
   // FixedPart returns the FixedPart of the State
-  // TODO: Implement
   fixedPart(): FixedPart {
-    assert(this.participants);
-    assert(this.channelNonce);
-    assert(this.challengeDuration);
-    assert(this.appDefinition);
-
     return new FixedPart(
       this.participants,
       this.channelNonce,

@@ -16,7 +16,7 @@ export type SideEffects = {
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective.
 // It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
-type WaitingFor = string;
+export type WaitingFor = string;
 
 // Storable is an object that can be stored by the store.
 export interface Storable {
