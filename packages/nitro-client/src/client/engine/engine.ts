@@ -1,3 +1,4 @@
+import debug from 'debug';
 import assert from 'assert';
 import { ethers } from 'ethers';
 
@@ -8,7 +9,7 @@ import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent } from './chainservice/chainservice';
 import { Store } from './store/store';
 import { PolicyMaker } from './policy-maker';
-import { MetricsApi, MetricsRecorder } from './metrics';
+import { MetricsApi, MetricsRecorder, NoOpMetrics } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
 import { Objective, ObjectiveRequest, SideEffects } from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
@@ -17,6 +18,8 @@ import { Proposal } from '../../channel/consensus-channel/consensus-channel';
 import { Address } from '../../types/types';
 import { Voucher } from '../../payments/vouchers';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
+
+const log = debug('ts-nitro:client');
 
 export type PaymentRequest = {
   channelId: string
@@ -75,7 +78,7 @@ export class Engine {
   // A PolicyMaker decides whether to approve or reject objectives
   private policymaker?: PolicyMaker;
 
-  // logger zerolog.Logger
+  private logger?: debug.Debugger;
 
   private metrics?: MetricsRecorder;
 
@@ -107,19 +110,19 @@ export class Engine {
 
     e._toApi = Channel<EngineEvent>(100);
 
-    // logging.ConfigureZeroLogger()
-    // e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
+    e.logger = log;
 
     e.policymaker = policymaker;
 
     e.vm = vm;
 
-    // e.logger.Print("Constructed Engine")
+    e.logger('Constructed Engine');
 
-    // if metricsApi == nil {
-    //   metricsApi = &NoOpMetrics{}
-    // }
-    // e.metrics = NewMetricsRecorder(*e.store.GetAddress(), metricsApi)
+    if (!metricsApi) {
+      // eslint-disable-next-line no-param-reassign
+      metricsApi = new NoOpMetrics();
+    }
+    e.metrics = new MetricsRecorder();
 
     return e;
   }
@@ -142,6 +145,8 @@ export class Engine {
     assert(this.fromLedger);
     assert(this.stop);
     assert(this._toApi);
+
+    // TODO: Implement metrics
 
     while (true) {
       let res: EngineEvent | undefined;
@@ -191,7 +196,9 @@ export class Engine {
       // Only send out an event if there are changes
       if (!res.isEmpty()) {
         res.completedObjectives?.forEach((obj) => {
-          // e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
+          assert(this.logger);
+          this.logger(`Objective ${obj.id()} is complete & returned to API`);
+          // TODO: Implement metrics
           // e.metrics.RecordObjectiveCompleted(obj.Id())
         });
 

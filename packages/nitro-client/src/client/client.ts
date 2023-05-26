@@ -1,6 +1,5 @@
 import debug from 'debug';
 import assert from 'assert';
-import { ethers } from 'ethers';
 
 import type { ReadWriteChannel } from '@nodeguy/channel';
 import Channel from '@nodeguy/channel';
