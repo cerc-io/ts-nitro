@@ -1,4 +1,4 @@
-import createChannel from '@nodeguy/channel';
+import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
 
 import { Exit } from '../../channel/state/outcome/exit';
@@ -35,7 +35,7 @@ export class ObjectiveRequest {
     this.outcome = outcome;
     this.nonce = nonce;
     this.appDefinition = appDefinition;
-    this.objectiveStarted = createChannel();
+    this.objectiveStarted = Channel();
   }
 
   // SignalObjectiveStarted is used by the engine to signal the objective has been started.

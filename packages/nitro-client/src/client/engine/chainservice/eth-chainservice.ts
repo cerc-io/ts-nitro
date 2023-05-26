@@ -3,7 +3,7 @@ import debug from 'debug';
 
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import type { Log } from '@ethersproject/abstract-provider';
-import createChannel from '@nodeguy/channel';
+import Channel from '@nodeguy/channel';
 import { connectToChain } from '@cerc-io/nitro-util';
 
 import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
@@ -106,7 +106,7 @@ export class EthChainService implements ChainService {
     // TODO: Create AbortController
     const cancelFunc = () => {};
 
-    const out = createChannel<ChainEvent>(10);
+    const out = Channel<ChainEvent>(10);
 
     // Use a buffered channel so we don't have to worry about blocking on writing to the channel.
     const ecs = new EthChainService(

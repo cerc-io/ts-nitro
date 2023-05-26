@@ -3,7 +3,7 @@ import assert from 'assert';
 import { ethers } from 'ethers';
 
 import type { ReadWriteChannel } from '@nodeguy/channel';
-import createChannel from '@nodeguy/channel';
+import Channel from '@nodeguy/channel';
 import { go, randUint64 } from '@cerc-io/nitro-util';
 
 import { MessageService } from './engine/messageservice/messageservice';
@@ -76,11 +76,11 @@ export class Client {
 
     c.engine = Engine.new(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi);
     c.completedObjectives = new SyncMap<ReadWriteChannel<null>>();
-    c.completedObjectivesForRPC = createChannel<ObjectiveId>(100);
+    c.completedObjectivesForRPC = Channel<ObjectiveId>(100);
 
-    c.failedObjectives = createChannel<ObjectiveId>(100);
+    c.failedObjectives = Channel<ObjectiveId>(100);
     // Using a larger buffer since payments can be sent frequently.
-    c.receivedVouchers = createChannel<Voucher>(1000);
+    c.receivedVouchers = Channel<Voucher>(1000);
 
     c.channelNotifier = ChannelNotifier.newChannelNotifier(store, c.vm);
     // Start the engine in a go routine

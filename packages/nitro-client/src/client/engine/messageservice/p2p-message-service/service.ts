@@ -4,7 +4,7 @@ import debug from 'debug';
 // @ts-expect-error
 import type { Libp2p, Libp2pOptions } from 'libp2p';
 
-import createChannel from '@nodeguy/channel';
+import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 // @ts-expect-error
 import type { PrivateKey } from '@libp2p/interface-keys';
@@ -106,8 +106,8 @@ export class P2PMessageService implements MessageService {
     logWriter?: WritableStream,
   ): Promise<P2PMessageService> {
     const ms = new P2PMessageService({
-      toEngine: createChannel<Message>(BUFFER_SIZE),
-      newPeerInfo: createChannel<BasicPeerInfo>(BUFFER_SIZE),
+      toEngine: Channel<Message>(BUFFER_SIZE),
+      newPeerInfo: Channel<BasicPeerInfo>(BUFFER_SIZE),
       peers: new SyncMap<BasicPeerInfo>(),
       me,
       logger: log,
