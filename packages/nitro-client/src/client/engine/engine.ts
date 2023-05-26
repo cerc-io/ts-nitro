@@ -13,11 +13,14 @@ import { MetricsApi, MetricsRecorder, NoOpMetrics } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
 import { Objective, ObjectiveRequest, SideEffects } from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
-import { Objective as VirtualFundObjective } from '../../protocols/virtualfund/virtualfund';
+import { Objective as VirtualFundObjective, ObjectiveRequest as VirtualFundObjectiveRequest } from '../../protocols/virtualfund/virtualfund';
 import { Proposal } from '../../channel/consensus-channel/consensus-channel';
 import { Address } from '../../types/types';
 import { Voucher } from '../../payments/vouchers';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
+import { ObjectiveRequest as DirectDefundObjectiveRequest } from '../../protocols/directdefund/directdefund';
+import { ObjectiveRequest as DirectFundObjectiveRequest } from '../../protocols/directfund/directfund';
+import { ObjectiveRequest as VirtualDefundObjectiveRequest } from '../../protocols/virtualdefund/virtualdefund';
 
 const log = debug('ts-nitro:client');
 
@@ -164,7 +167,7 @@ export class Engine {
           this.stop.shift(),
         ])) {
           case this.objectiveRequestsFromAPI:
-            res = this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
+            res = await this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
             break;
 
           case this.paymentRequestsFromAPI:
@@ -239,7 +242,49 @@ export class Engine {
   // handleObjectiveRequest handles an ObjectiveRequest (triggered by a client API call).
   // It will attempt to spawn a new, approved objective.
   // TODO: Can throw an error
-  private handleObjectiveRequest(or: ObjectiveRequest): EngineEvent {
+  private async handleObjectiveRequest(or: ObjectiveRequest): Promise<EngineEvent> {
+    assert(this.store);
+    assert(this.chain);
+    assert(this.logger);
+
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    const myAddress = this.store.getAddress();
+
+    let chainId: bigint;
+    try {
+      chainId = await this.chain.getChainId();
+    } catch (err) {
+      throw new Error(`could get chain id from chain service: ${err}`);
+    }
+
+    const objectiveId = or.id(myAddress, chainId);
+    this.logger(`handling new objective request for ${objectiveId}`);
+
+    // TODO: Implement metrics
+    // e.metrics.RecordObjectiveStarted(objectiveId);
+
+    switch (true) {
+      case or instanceof VirtualFundObjectiveRequest:
+        // TODO: Implement
+        break;
+      case or instanceof VirtualDefundObjectiveRequest:
+        // TODO: Implement
+        break;
+      case or instanceof DirectFundObjectiveRequest:
+        // TODO: Use try-catch
+        // const dfo = directfund.NewObjective(request, true, myAddress, chainId, e.store.GetChannelsByParticipant, e.store.GetConsensusChannel)
+        // return this.attemptProgress(dfo);
+        break;
+      case or instanceof DirectDefundObjectiveRequest:
+        // TODO: Implement
+        break;
+      default:
+        throw new Error(`handleAPIEvent: Unknown objective type ${typeof or}`);
+    }
+
+    or.signalObjectiveStarted();
     return new EngineEvent();
   }
 
