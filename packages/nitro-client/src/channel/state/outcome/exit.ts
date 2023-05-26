@@ -19,6 +19,16 @@ export class SingleAssetExit {
 
   allocations?: Allocations;
 
+  constructor(
+    asset: Address,
+    assetMetadata: AssetMetadata,
+    allocations: Allocations,
+  ) {
+    this.asset = asset;
+    this.assetMetadata = assetMetadata;
+    this.allocations = allocations;
+  }
+
   // Equal returns true if the supplied SingleAssetExit is deeply equal to the receiver.
   // TODO: Implement
   equal(r: SingleAssetExit): boolean {

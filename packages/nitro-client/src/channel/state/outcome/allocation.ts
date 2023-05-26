@@ -17,6 +17,18 @@ export class Allocation {
   // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
   metadata?: Buffer;
 
+  constructor(
+    destination: string,
+    amount: bigint,
+    allocationType: AllocationType,
+    metadata: Buffer,
+  ) {
+    this.destination = destination;
+    this.amount = amount;
+    this.allocationType = allocationType;
+    this.metadata = metadata;
+  }
+
   // Equal returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.
   // Fields are compared with ==, except for big.Ints which are compared using Cmp
   // TODO: Implement
