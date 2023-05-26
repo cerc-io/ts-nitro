@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import assert from 'assert';
+import { expect } from 'chai';
 
 import {
   Client, EthChainService, MemStore, PermissivePolicy,
 } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
 
-import { expect } from 'chai';
 import { createP2PMessageService } from '../src/utils';
 import { createOutcome } from './utils';
 import { DirectFundParams } from './types';
@@ -18,10 +18,15 @@ const MESSAGING_PORT = 3005;
 // Chain should be running locally
 const CHAIN_URL = 'http://127.0.0.1:8545';
 
-const ALICE_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
-const ALICE_PK = 'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+// https://github.com/cerc-io/go-nitro/blob/ts-port-v1.0/scripts/test-configs/alice.toml
+const ALICE_ADDRESS = '0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE';
+const ALICE_PK = '2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d';
 
-const BOB = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+// First account from hardhat chain
+const ALICE_CHAIN_PK = 'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+
+// https://github.com/cerc-io/go-nitro/blob/ts-port-v1.0/scripts/test-configs/bob.toml
+const BOB_ADDRESS = '0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94';
 
 describe('test Client', () => {
   let client: Client;
@@ -31,7 +36,7 @@ describe('test Client', () => {
 
     const chainService = await EthChainService.newEthChainService(
       CHAIN_URL,
-      ALICE_PK,
+      ALICE_CHAIN_PK,
       'naaddress',
       'caAddress',
       'vpaAddress',
@@ -53,7 +58,7 @@ describe('test Client', () => {
   it('should create ledger channel', async () => {
     assert(client.address);
 
-    const counterParty = BOB;
+    const counterParty = BOB_ADDRESS;
     const asset = `0x${'00'.repeat(20)}`;
     const params: DirectFundParams = {
       CounterParty: counterParty,

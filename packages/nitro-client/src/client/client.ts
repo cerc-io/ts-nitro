@@ -83,11 +83,11 @@ export class Client {
 
     c.channelNotifier = ChannelNotifier.newChannelNotifier(store, c.vm);
     // Start the engine in a go routine
-    go(c.engine.run);
+    go(c.engine.run.bind(c.engine));
 
     // Start the event handler in a go routine
     // It will listen for events from the engine and dispatch events to client channels
-    go(c.handleEngineEvents);
+    go(c.handleEngineEvents.bind(c));
 
     return c;
   }
