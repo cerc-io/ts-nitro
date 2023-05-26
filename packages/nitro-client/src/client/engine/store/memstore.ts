@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { bytes2Hex } from '@cerc-io/nitro-util';
 
 import { Store } from './store';
 import { Objective } from '../../../protocols/interfaces';
@@ -8,6 +8,7 @@ import { VoucherInfo } from '../../../payments/vouchers';
 import { SyncMap } from '../../../internal/safesync/safesync';
 import { ObjectiveId } from '../../../protocols/messages';
 import { Address } from '../../../types/types';
+import { getAddressFromSecretKeyBytes } from '../../../crypto/keys';
 
 export class MemStore implements Store {
   obectives: SyncMap<Buffer>;
@@ -27,9 +28,9 @@ export class MemStore implements Store {
   address: string;
 
   constructor(key: Buffer) {
-    this.key = key.toString();
+    this.key = bytes2Hex(key);
     // TODO: Get address from key bytes
-    this.address = '';
+    this.address = getAddressFromSecretKeyBytes(key);
 
     this.obectives = new SyncMap();
     this.channels = new SyncMap();
@@ -41,9 +42,8 @@ export class MemStore implements Store {
   // TODO: Implement
   close(): void {}
 
-  // TODO: Implement
   getAddress(): Address {
-    return ethers.constants.AddressZero;
+    return this.address;
   }
 
   // TODO: Implement
