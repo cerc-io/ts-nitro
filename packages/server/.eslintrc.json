@@ -11,8 +11,9 @@
     "import/no-extraneous-dependencies": [
       "error",
       {
-        "devDependencies": ["test/**/*.test.ts"]
+        "devDependencies": ["test-e2e/**/*.test.ts", "hardhat.config.ts"]
       }
-    ]
+    ],
+    "import/prefer-default-export": "off"
   }
 }

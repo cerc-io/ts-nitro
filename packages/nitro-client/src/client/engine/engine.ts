@@ -1,87 +1,118 @@
+import assert from 'assert';
 import { ethers } from 'ethers';
-import createChannel from '@nodeguy/channel';
+
+import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 
 import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent } from './chainservice/chainservice';
 import { Store } from './store/store';
 import { PolicyMaker } from './policy-maker';
-import { MetricsRecorder } from './metrics';
+import { MetricsApi, MetricsRecorder } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
 import { Objective, ObjectiveRequest, SideEffects } from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
 import { Objective as VirtualFundObjective } from '../../protocols/virtualfund/virtualfund';
 import { Proposal } from '../../channel/consensus-channel/consensus-channel';
 import { Address } from '../../types/types';
+import { Voucher } from '../../payments/vouchers';
+import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
 
 export type PaymentRequest = {
   channelId: string
   amount: bigint
 };
 
-// TODO: Implement
-export class EngineEvent {}
+// EngineEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
+export class EngineEvent {
+  // These are objectives that are now completed
+  completedObjectives?: Objective[];
+
+  // These are objectives that have failed
+  failedObjectives?: Objective[];
+
+  // ReceivedVouchers are vouchers we've received from other participants
+  receivedVouchers?: Voucher[];
+
+  // LedgerChannelUpdates contains channel info for ledger channels that have been updated
+  ledgerChannelUpdates?: LedgerChannelInfo[];
+
+  // PaymentChannelUpdates contains channel info for payment channels that have been updated
+  paymentChannelUpdates?: PaymentChannelInfo[];
+
+  // IsEmpty returns true if the EngineEvent contains no changes
+  // TODO: Implement
+  isEmpty(): boolean {
+    return false;
+  }
+
+  // TODO: Implement
+  merge(other: EngineEvent): void {}
+}
 
 export class Engine {
-  objectiveRequestsFromAPI: ReadWriteChannel<ObjectiveRequest>;
+  objectiveRequestsFromAPI?: ReadWriteChannel<ObjectiveRequest>;
 
-  paymentRequestsFromAPI: ReadWriteChannel<PaymentRequest>;
+  paymentRequestsFromAPI?: ReadWriteChannel<PaymentRequest>;
 
-  private fromChain: ReadChannel<ChainEvent>;
+  private fromChain?: ReadChannel<ChainEvent>;
 
-  private fromMsg: ReadChannel<Message>;
+  private fromMsg?: ReadChannel<Message>;
 
-  private fromLedger: ReadWriteChannel<Proposal>;
+  private fromLedger?: ReadWriteChannel<Proposal>;
 
-  private _toApi: ReadWriteChannel<EngineEvent>;
+  private _toApi?: ReadWriteChannel<EngineEvent>;
 
-  private stop: ReadWriteChannel<void>;
+  private stop?: ReadWriteChannel<void>;
 
-  private msg: MessageService;
+  private msg?: MessageService;
 
-  private chain: ChainService;
+  private chain?: ChainService;
 
   // A Store for persisting and restoring important data
-  private store: Store;
+  private store?: Store;
 
   // A PolicyMaker decides whether to approve or reject objectives
-  private policymaker: PolicyMaker;
+  private policymaker?: PolicyMaker;
 
   // logger zerolog.Logger
 
   private metrics?: MetricsRecorder;
 
-  private vm: VoucherManager;
+  private vm?: VoucherManager;
 
-  constructor(
+  static new(
     vm: VoucherManager,
     msg: MessageService,
     chain: ChainService,
     store: Store,
+    logDestination: WritableStream | undefined,
     policymaker: PolicyMaker,
+    metricsApi?: MetricsApi,
   ) {
-    this.store = store;
+    const e = new Engine();
+    e.store = store;
 
-    this.fromLedger = createChannel<Proposal>(100);
+    e.fromLedger = Channel<Proposal>(100);
     // bind to inbound channels
-    this.objectiveRequestsFromAPI = createChannel<ObjectiveRequest>();
-    this.paymentRequestsFromAPI = createChannel<PaymentRequest>();
-    this.stop = createChannel();
+    e.objectiveRequestsFromAPI = Channel<ObjectiveRequest>();
+    e.paymentRequestsFromAPI = Channel<PaymentRequest>();
+    e.stop = Channel();
 
-    this.fromChain = chain.eventFeed();
-    this.fromMsg = msg.out();
+    e.fromChain = chain.eventFeed();
+    e.fromMsg = msg.out();
 
-    this.chain = chain;
-    this.msg = msg;
+    e.chain = chain;
+    e.msg = msg;
 
-    this._toApi = createChannel<EngineEvent>(100);
+    e._toApi = Channel<EngineEvent>(100);
 
     // logging.ConfigureZeroLogger()
     // e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
 
-    this.policymaker = policymaker;
+    e.policymaker = policymaker;
 
-    this.vm = vm;
+    e.vm = vm;
 
     // e.logger.Print("Constructed Engine")
 
@@ -89,9 +120,12 @@ export class Engine {
     //   metricsApi = &NoOpMetrics{}
     // }
     // e.metrics = NewMetricsRecorder(*e.store.GetAddress(), metricsApi)
+
+    return e;
   }
 
   get toApi(): ReadChannel<EngineEvent> {
+    assert(this._toApi);
     return this._toApi.readOnly();
   }
 
@@ -100,7 +134,71 @@ export class Engine {
 
   // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
   // The loop exits when a struct is received on the stop channel. Engine.Close() sends that signal.
-  run(): void {}
+  async run(): Promise<void> {
+    assert(this.objectiveRequestsFromAPI);
+    assert(this.paymentRequestsFromAPI);
+    assert(this.fromChain);
+    assert(this.fromMsg);
+    assert(this.fromLedger);
+    assert(this.stop);
+    assert(this._toApi);
+
+    while (true) {
+      let res: EngineEvent | undefined;
+
+      try {
+        // TODO: Check switch-case behaviour
+        /* eslint-disable no-await-in-loop */
+        /* eslint-disable default-case */
+        switch (await Channel.select([
+          this.objectiveRequestsFromAPI.shift(),
+          this.paymentRequestsFromAPI.shift(),
+          this.fromChain.shift(),
+          this.fromMsg.shift(),
+          this.fromLedger.shift(),
+          this.stop.shift(),
+        ])) {
+          case this.objectiveRequestsFromAPI:
+            res = this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
+            break;
+
+          case this.paymentRequestsFromAPI:
+            res = this.handlePaymentRequest(this.paymentRequestsFromAPI.value());
+            break;
+
+          case this.fromChain:
+            res = this.handleChainEvent(this.fromChain.value());
+            break;
+
+          case this.fromMsg:
+            res = this.handleMessage(this.fromMsg.value());
+            break;
+
+          case this.fromLedger:
+            res = this.handleProposal(this.fromLedger.value());
+            break;
+
+          case this.stop:
+            return;
+        }
+      } catch (err) {
+        // Handle errors
+        this.checkError(err as Error);
+      }
+
+      assert(res);
+
+      // Only send out an event if there are changes
+      if (!res.isEmpty()) {
+        res.completedObjectives?.forEach((obj) => {
+          // e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
+          // e.metrics.RecordObjectiveCompleted(obj.Id())
+        });
+
+        this._toApi.push(res);
+      }
+    }
+  }
 
   // handleProposal handles a Proposal returned to the engine from
   // a running ledger channel by pulling its corresponding objective
@@ -194,7 +292,8 @@ export class Engine {
 
   // GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
   getConsensusAppAddress(): Address {
-    return ethers.constants.AddressZero;
+    assert(this.chain);
+    return this.chain.getConsensusAppAddress();
   }
 
   // GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp

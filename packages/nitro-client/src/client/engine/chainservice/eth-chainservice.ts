@@ -3,13 +3,15 @@ import debug from 'debug';
 
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import type { Log } from '@ethersproject/abstract-provider';
-import createChannel from '@nodeguy/channel';
-import { ConnectToChain } from '@cerc-io/nitro-util';
+import Channel from '@nodeguy/channel';
+import { connectToChain } from '@cerc-io/nitro-util';
 
 import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
 import { ChainService, ChainEvent } from './chainservice';
 import { ChainTransaction } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
+
+const log = debug('ts-nitro:eth-chain-service');
 
 interface EthChain {
   // TODO: Extend bind.ContractBackend (github.com/ethereum/go-ethereum/accounts/abi/bind)
@@ -76,18 +78,19 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
+    logDestination?: WritableStream,
   ): Promise<EthChainService> {
     if (vpaAddress === caAddress) {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
     }
 
     // TODO: Get txSigner
-    const ethClient = await ConnectToChain(chainUrl);
+    const ethClient = await connectToChain(chainUrl);
 
     // TODO: Initialize NitroAdjudicator
     const na = new NitroAdjudicator();
 
-    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress);
+    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, logDestination);
   }
 
   // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
@@ -98,13 +101,12 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
+    logDestination?: WritableStream,
   ): EthChainService {
-    // TODO: Configure logger
-
     // TODO: Create AbortController
     const cancelFunc = () => {};
 
-    const out = createChannel<ChainEvent>(10);
+    const out = Channel<ChainEvent>(10);
 
     // Use a buffered channel so we don't have to worry about blocking on writing to the channel.
     const ecs = new EthChainService(
@@ -115,7 +117,7 @@ export class EthChainService implements ChainService {
       vpaAddress,
       {} as ethers.Transaction,
       out,
-      {} as debug.Debugger,
+      log,
       {} as AbortController,
       cancelFunc,
     );
@@ -156,9 +158,8 @@ export class EthChainService implements ChainService {
     return this.out.readOnly();
   }
 
-  // TODO: Implement
   getConsensusAppAddress(): Address {
-    return ethers.constants.AddressZero;
+    return this.consensusAppAddress;
   }
 
   // TODO: Implement

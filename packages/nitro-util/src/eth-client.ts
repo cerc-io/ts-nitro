@@ -39,11 +39,11 @@ export class EthClient {
   }
 }
 
-// ConnectToChain connects to the chain at the given url and returns a client and a transactor.
+// connectToChain connects to the chain at the given url and returns a client and a transactor.
 // TODO: Add keyed transactor
 // TODO: Can run into an error
 // TODO: ctx required?
-export async function ConnectToChain(chainUrl: string): Promise<EthClient> {
+export async function connectToChain(chainUrl: string): Promise<EthClient> {
   const client = new EthClient();
   await client.dial(chainUrl);
 

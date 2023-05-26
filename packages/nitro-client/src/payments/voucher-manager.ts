@@ -1,3 +1,4 @@
+import { Address } from '../types/types';
 import { Voucher, VoucherInfo } from './vouchers';
 
 // VoucherStore is an interface for storing voucher information that the voucher manager expects.
@@ -24,6 +25,11 @@ export class VoucherManager {
   constructor(me: string, store: VoucherStore) {
     this.store = store;
     this.me = me;
+  }
+
+  // NewVoucherManager creates a new voucher manager
+  static newVoucherManager(me: Address, store: VoucherStore): VoucherManager {
+    return new VoucherManager(me, store);
   }
 
   // Register registers a channel for use, given the payer, payee and starting balance of the channel

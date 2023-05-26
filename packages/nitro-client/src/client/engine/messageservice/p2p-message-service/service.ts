@@ -22,6 +22,7 @@ import type { PeerInfo as Libp2pPeerInfo } from '@libp2p/interface-peer-info';
 import { SyncMap } from '../../../../internal/safesync/safesync';
 import { Message } from '../../../../protocols/messages';
 import { Address } from '../../../../types/types';
+import { MessageService } from '../messageservice';
 
 const log = debug('ts-nitro:p2p-message-service');
 
@@ -55,7 +56,7 @@ interface ConstructorOptions {
 }
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
-export class P2PMessageService {
+export class P2PMessageService implements MessageService {
   // For forwarding processed messages to the engine
   private toEngine: ReadWriteChannel<Message>;
 
@@ -220,7 +221,9 @@ export class P2PMessageService {
 
   // out returns a channel that can be used to receive messages from the message service
   // TODO: Implement and remove void
-  out(): ReadChannel<Message> | void {}
+  out(): ReadChannel<Message> {
+    return this.toEngine;
+  }
 
   // Closes the P2PMessageService
   // TODO: Implement and remove void
