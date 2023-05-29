@@ -11,7 +11,9 @@ import { Store } from './store/store';
 import { PolicyMaker } from './policy-maker';
 import { MetricsApi, MetricsRecorder, NoOpMetrics } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
-import { Objective, ObjectiveRequest, SideEffects } from '../../protocols/interfaces';
+import {
+  Objective, ObjectiveRequest, SideEffects, WaitingFor,
+} from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
 import { Objective as VirtualFundObjective, ObjectiveRequest as VirtualFundObjectiveRequest } from '../../protocols/virtualfund/virtualfund';
 import { Proposal } from '../../channel/consensus-channel/consensus-channel';
@@ -32,7 +34,7 @@ export type PaymentRequest = {
 // EngineEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
 export class EngineEvent {
   // These are objectives that are now completed
-  completedObjectives?: Objective[];
+  completedObjectives: Objective[] = [];
 
   // These are objectives that have failed
   failedObjectives?: Objective[];
@@ -81,7 +83,7 @@ export class Engine {
   // A PolicyMaker decides whether to approve or reject objectives
   private policymaker?: PolicyMaker;
 
-  private logger?: debug.Debugger;
+  private logger: debug.Debugger = log;
 
   private metrics?: MetricsRecorder;
 
@@ -112,8 +114,6 @@ export class Engine {
     e.msg = msg;
 
     e._toApi = Channel<EngineEvent>(100);
-
-    e.logger = log;
 
     e.policymaker = policymaker;
 
@@ -321,9 +321,49 @@ export class Engine {
   //  3. It commits the cranked objective to the store
   //  4. It executes any side effects that were declared during cranking
   //  5. It updates progress metadata in the store
-  // TODO: Can throw an error
   private attemptProgress(objective: Objective): EngineEvent {
-    return new EngineEvent();
+    const outgoing = new EngineEvent();
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    assert(this.store);
+    const secretKey = this.store.getChannelSecretKey();
+
+    let crankedObjective: Objective;
+    let sideEffects: SideEffects;
+    let waitingFor: WaitingFor;
+
+    try {
+      [crankedObjective, sideEffects, waitingFor] = objective.crank(secretKey);
+    } catch (err) {
+      return new EngineEvent();
+    }
+
+    this.store.setObjective(crankedObjective);
+
+    const notifEvents = this.generateNotifications(crankedObjective);
+
+    outgoing.merge(notifEvents);
+
+    this.logger.log(`Objective ${objective.id()} is ${waitingFor}`);
+
+    // If our protocol is waiting for nothing then we know the objective is complete
+    // TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
+    // Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
+    if (waitingFor === 'WaitingForNothing') {
+      outgoing.completedObjectives = outgoing.completedObjectives.concat(crankedObjective);
+      this.store.releaseChannelFromOwnership(crankedObjective.ownsChannel());
+
+      try {
+        this.spawnConsensusChannelIfDirectFundObjective(crankedObjective);
+      } catch (err) {
+        return new EngineEvent();
+      }
+    }
+
+    this.executeSideEffects(sideEffects);
+
+    return outgoing;
   }
 
   // generateNotifications takes an objective and constructs notifications for any related channels for that objective.

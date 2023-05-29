@@ -5,15 +5,29 @@ import assert from 'assert';
 import { Exit } from '../../channel/state/outcome/exit';
 import { Address } from '../../types/types';
 import { Funds } from '../../types/funds';
-import { ObjectiveId, ObjectivePayload, PayloadType } from '../messages';
+import {
+  Message, ObjectiveId, ObjectivePayload, PayloadType,
+} from '../messages';
 import { FixedPart, State } from '../../channel/state/state';
 import {
-  ObjectiveStatus, ObjectiveRequest as ObjectiveRequestInterface, Objective as ObjectiveInterface, SideEffects, WaitingFor, Storable,
+  ObjectiveStatus, ObjectiveRequest as ObjectiveRequestInterface,
+  Objective as ObjectiveInterface,
+  SideEffects,
+  WaitingFor,
+  Storable,
+  errNotApproved,
+  DepositTransaction,
 } from '../interfaces';
 import * as channel from '../../channel/channel';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
+
+const waitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund';
+const waitingForMyTurnToFund: WaitingFor = 'WaitingForMyTurnToFund';
+const waitingForCompleteFunding: WaitingFor = 'WaitingForCompleteFunding';
+const waitingForCompletePostFund: WaitingFor = 'WaitingForCompletePostFund';
+const waitingForNothing: WaitingFor = 'WaitingForNothing'; // Finished
 
 const signedStatePayload: PayloadType = 'SignedStatePayload';
 
@@ -58,7 +72,7 @@ export class Objective implements ObjectiveInterface {
 
   c?: channel.Channel;
 
-  private myDepositSafetyThreshold: Funds = new Funds();
+  private myDepositSafetyThreshold?: Funds;
 
   private myDepositTarget?: Funds;
 
@@ -211,25 +225,161 @@ export class Objective implements ObjectiveInterface {
     return new Objective({});
   }
 
-  // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  // TODO: Can throw an error
-  // TODO: Implement
+  otherParticipants(): Address[] {
+    const others: Address[] = [];
+    assert(this.c);
+
+    for (let i = 0; i < this.c.participants.length; i += 1) {
+      if (i !== this.c.myIndex) {
+        others.push(this.c.participants[i]);
+      }
+    }
+
+    return others;
+  }
+
+  /**
+   * Crank inspects the extended state and declares a list of Effects to be executed.
+   * It's like a state machine transition function where the finite/enumerable state is returned
+   * (computed from the extended state) rather than being independent of the extended state;
+   * and where there is only one type of event ("the crank") with no data on it at all.
+   */
   crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
-    return [
-      new Objective({}),
-      {
-        messagesToSend: [],
-        proposalsToProcess: [],
-        transactionsToSubmit: [],
-      },
-      '',
-    ];
+    const updated = this.clone();
+    const sideEffects: SideEffects = {
+      messagesToSend: [],
+      transactionsToSubmit: [],
+      proposalsToProcess: [],
+    };
+
+    // Input validation
+    if (updated.status !== ObjectiveStatus.Approved) {
+      throw errNotApproved;
+    }
+
+    // Prefunding
+    assert(updated.c);
+    if (!updated.c.preFundSignedByMe()) {
+      let ss: SignedState;
+      try {
+        ss = updated.c.signAndAddPrefund(secretKey);
+      } catch (err) {
+        throw new Error(`could not sign prefund ${err}`);
+      }
+
+      let messages: Message[];
+      try {
+        messages = Message.createObjectivePayloadMessage(updated.id(), ss, 'SignedStatePayload', ...updated.otherParticipants());
+      } catch (err) {
+        throw new Error(`could not create payload message ${err}`);
+      }
+
+      sideEffects.messagesToSend = sideEffects.messagesToSend.concat(messages);
+    }
+
+    if (!updated.c.preFundComplete()) {
+      return [updated, sideEffects, waitingForCompletePrefund];
+    }
+
+    // Funding
+    const fundingComplete = updated.fundingComplete();
+    const amountToDeposit = updated.amountToDeposit();
+    const safeToDeposit = updated.safeToDeposit();
+
+    if (!fundingComplete && !safeToDeposit) {
+      return [updated, sideEffects, waitingForMyTurnToFund];
+    }
+
+    if (!fundingComplete && safeToDeposit && amountToDeposit.isNonZero() && !updated.transactionSubmitted) {
+      const deposit = DepositTransaction.newDepositTransaction(updated.c.id, amountToDeposit);
+      updated.transactionSubmitted = true;
+      sideEffects.transactionsToSubmit.push(deposit);
+    }
+
+    if (!fundingComplete) {
+      return [updated, sideEffects, waitingForCompleteFunding];
+    }
+
+    // Postfunding
+    if (!updated.c.postFundSignedByMe()) {
+      let ss: SignedState;
+      try {
+        ss = updated.c.signAndAddPostfund(secretKey);
+      } catch (err) {
+        throw new Error(`could not sign postfund ${err}`);
+      }
+
+      let messages: Message[];
+      try {
+        messages = Message.createObjectivePayloadMessage(updated.id(), ss, signedStatePayload, ...updated.otherParticipants());
+      } catch (err) {
+        throw new Error('could not create payload message');
+      }
+
+      sideEffects.messagesToSend = messages;
+    }
+
+    if (!updated.c.postFundComplete()) {
+      return [updated, sideEffects, waitingForCompletePostFund];
+    }
+
+    // Completion
+    updated.status = ObjectiveStatus.Completed;
+    return [updated, sideEffects, waitingForNothing];
   }
 
   // Related returns a slice of related objects that need to be stored along with the objective
   // TODO: Implement
   related(): Storable[] {
     return [];
+  }
+
+  //  Private methods on the DirectFundingObjectiveState
+
+  // fundingComplete returns true if the recorded OnChainHoldings are greater than or equal to the threshold for being fully funded.
+  private fundingComplete(): boolean {
+    for (const [asset, threshold] of this.fullyFundedThreshold!.value) {
+      const chainHolding = this.c!.onChainFunding.value.get(asset);
+
+      if (chainHolding === undefined) {
+        return false;
+      }
+
+      if (threshold > chainHolding) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // safeToDeposit returns true if the recorded OnChainHoldings are greater than or equal to the threshold for safety.
+  private safeToDeposit(): boolean {
+    for (const [asset, safetyThreshold] of this.myDepositSafetyThreshold!.value) {
+      const chainHolding = this.c!.onChainFunding.value.get(asset);
+
+      if (chainHolding === undefined) {
+        return false;
+      }
+
+      if (safetyThreshold > chainHolding) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // amountToDeposit computes the appropriate amount to deposit given the current recorded OnChainHoldings
+  private amountToDeposit(): Funds {
+    const deposits: Funds = new Funds();
+
+    for (const [asset, target] of this.myDepositTarget!.value) {
+      const holding = this.c!.onChainFunding.value.get(asset) ?? BigInt(0);
+      deposits.value.set(asset, target - holding);
+    }
+
+    return deposits;
   }
 
   // OwnsChannel returns the channel the objective exclusively owns.
@@ -253,6 +403,29 @@ export class Objective implements ObjectiveInterface {
   // TODO: Can throw an error
   // TODO: Check interface and implement
   unmarshalJSON(b: Buffer): void {}
+
+  /**
+  * clone returns a deep copy of the receiver.
+  */
+  private clone(): Objective {
+    const clone = new Objective({});
+    clone.status = this.status;
+
+    assert(this.c);
+    const cClone = this.c.clone();
+    clone.c = cClone;
+
+    assert(this.myDepositSafetyThreshold);
+    assert(this.myDepositTarget);
+    assert(this.fullyFundedThreshold);
+    clone.myDepositSafetyThreshold = this.myDepositSafetyThreshold.clone();
+    clone.myDepositTarget = this.myDepositTarget.clone();
+    clone.fullyFundedThreshold = this.fullyFundedThreshold.clone();
+    clone.latestBlockNumber = this.latestBlockNumber;
+    clone.transactionSubmitted = this.transactionSubmitted;
+
+    return clone;
+  }
 }
 
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.

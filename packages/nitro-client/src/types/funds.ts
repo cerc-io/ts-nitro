@@ -11,13 +11,28 @@ export class Funds {
     this.value = value;
   }
 
+  // isNonZero returns true if the Holdings structure has any non-zero asset
+  isNonZero(): boolean {
+    for (const asset in this.value) {
+      if (this.value.has(asset)) {
+        const value = this.value.get(asset);
+
+        if (value !== undefined && value > BigInt(0)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   // Add returns the sum of the receiver and the input Funds objects
   add(...a: Funds[]): Funds {
     a.push(this);
-    return this.sum(...a);
+    return Funds.sum(...a);
   }
 
-  sum(...a: Funds[]): Funds {
+  static sum(...a: Funds[]): Funds {
     const sum = new Funds();
 
     for (const funds of a) {
@@ -35,5 +50,10 @@ export class Funds {
     }
 
     return sum;
+  }
+
+  // clone returns a deep copy of the receiver.
+  clone(): Funds {
+    return Funds.sum(this, new Funds());
   }
 }

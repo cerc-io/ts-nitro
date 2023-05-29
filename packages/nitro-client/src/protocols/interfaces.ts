@@ -1,15 +1,52 @@
 import { Message, ObjectiveId, ObjectivePayload } from './messages';
 import { Proposal } from '../channel/consensus-channel/consensus-channel';
 import { Address } from '../types/types';
+import { Destination } from '../types/destination';
+import { Funds } from '../types/funds';
+
+export const errNotApproved = new Error('objective not approved');
 
 // ChainTransaction defines the interface that every transaction must implement
 export interface ChainTransaction {
-  channelID (): string
+  channelId?: () => Destination
+}
+
+// ChainTransactionBase is a convenience struct that is embedded in other transaction structs.
+// It is exported only to allow cmp.Diff to compare transactions
+class ChainTransactionBase implements ChainTransaction {
+  private _channelId: Destination;
+
+  constructor(channelId: Destination) {
+    this._channelId = channelId;
+  }
+
+  channelId(): Destination {
+    return this._channelId;
+  }
+}
+
+export class DepositTransaction extends ChainTransactionBase implements ChainTransaction {
+  deposit?: Funds;
+
+  constructor(params: {
+    channelId: Destination
+    deposit: Funds
+  }) {
+    super(params.channelId);
+    Object.assign(this, params);
+  }
+
+  static newDepositTransaction(channelId: Destination, deposit: Funds): DepositTransaction {
+    return new DepositTransaction({
+      channelId,
+      deposit,
+    });
+  }
 }
 
 // SideEffects are effects to be executed by an imperative shell
 export type SideEffects = {
-  messagesToSend: Message[]
+  messagesToSend: Message[];
   transactionsToSubmit: ChainTransaction[]
   proposalsToProcess: Proposal[]
 };

@@ -7,7 +7,7 @@ import { Address } from '../../../types/types';
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
 export interface Store extends ConsensusChannelStore, VoucherStore {
   // Get a pointer to a secret key for signing channel updates
-  getChannelSecretKey (): string
+  getChannelSecretKey (): Buffer
 
   // Get the (Ethereum) address associated with the ChannelSecretKey
   getAddress (): Address

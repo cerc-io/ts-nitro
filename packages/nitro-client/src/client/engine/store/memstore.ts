@@ -1,5 +1,6 @@
 import { bytes2Hex } from '@cerc-io/nitro-util';
 
+import { ethers } from 'ethers';
 import { Store } from './store';
 import { Objective } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
@@ -46,9 +47,9 @@ export class MemStore implements Store {
     return this.address;
   }
 
-  // TODO: Implement
-  getChannelSecretKey(): string {
-    return '';
+  getChannelSecretKey(): Buffer {
+    const val = ethers.utils.arrayify(this.key);
+    return Buffer.from(val);
   }
 
   // TODO: Implement
