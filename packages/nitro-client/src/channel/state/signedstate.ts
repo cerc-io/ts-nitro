@@ -8,7 +8,7 @@ export class SignedState {
   private sigs?: Map<number, Signature>; // keyed by participant index
 
   constructor(params: {
-    state: State,
+    state?: State,
     sigs?: Map<number, Signature>
   }) {
     Object.assign(this, params);

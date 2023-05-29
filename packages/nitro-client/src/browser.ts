@@ -4,6 +4,7 @@ export { MemStore } from './client/engine/store/memstore';
 export { PermissivePolicy } from './client/engine/policy-maker';
 export { SingleAssetExit, Exit } from './channel/state/outcome/exit';
 export { Allocation } from './channel/state/outcome/allocation';
+export { Destination } from './types/destination';
 
 export const test = (): string => {
   // eslint-disable-next-line no-console

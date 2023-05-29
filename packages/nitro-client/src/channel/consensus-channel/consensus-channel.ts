@@ -1,9 +1,11 @@
 import { ethers } from 'ethers';
 
 import { Signature } from '../../crypto/signatures';
-import { Address, Funds } from '../../types/types';
+import { Address } from '../../types/types';
+import { Funds } from '../../types/funds';
 import { FixedPart } from '../state/state';
 import { SignedState } from '../state/signedstate';
+import { Destination } from '../../types/destination';
 
 type LedgerIndex = number;
 
@@ -72,7 +74,7 @@ export class SignedVars {
 export class ConsensusChannel {
   // constants
 
-  id: String;
+  id: Destination;
 
   myIndex: LedgerIndex;
 
@@ -111,7 +113,7 @@ export class ConsensusChannel {
     this.fp = fp;
     this.id = cId;
     this.myIndex = myIndex;
-    this.onChainFunding = new Map();
+    this.onChainFunding = new Funds();
     this._proposalQueue = [];
     this.current = current;
   }

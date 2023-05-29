@@ -4,7 +4,8 @@ import { getChannelId as utilGetChannelId } from '@statechannels/nitro-protocol'
 
 import assert from 'assert';
 import { Signature } from '../../crypto/signatures';
-import { Address, Destination } from '../../types/types';
+import { Address } from '../../types/types';
+import { Destination } from '../../types/destination';
 import { Exit } from './outcome/exit';
 
 // FixedPart contains the subset of State data which does not change during a state update.
@@ -32,12 +33,13 @@ export class FixedPart {
   }
 
   // TODO: Implement
-  channelId(): string {
-    return '';
+  channelId(): Destination {
+    // TODO: Find nitro-protocol package util method
+    return new Destination('');
   }
 
   getChannelId(): Destination {
-    return utilGetChannelId(this);
+    return new Destination(utilGetChannelId(this));
   }
 
   // Clone returns a deep copy of the receiver.
@@ -49,7 +51,13 @@ export class FixedPart {
   // Validate checks whether the receiver is malformed and returns an error if it is.
   // TODO: Can throw an error
   // TODO: Implement
-  validate(): void {}
+  validate(): Error | null {
+    if (this.channelId().isExternal()) {
+      return new Error('channelId is an external destination'); // This is extremely unlikely
+    }
+
+    return null;
+  }
 }
 
 // VariablePart contains the subset of State data which can change with each state update.
@@ -76,7 +84,7 @@ export class State {
 
   appData: Buffer = Buffer.alloc(0);
 
-  outcome: Exit = [];
+  outcome: Exit = new Exit([]);
 
   // TODO: unit64 replacement
   turnNum : number = 0;
@@ -120,7 +128,7 @@ export class State {
   // Up to hash collisions, ChannelId distinguishes channels that have different FixedPart
   // values
   // TODO: Implement
-  channelId(): string {
+  channelId(): Destination {
     return this.fixedPart().channelId();
   }
 

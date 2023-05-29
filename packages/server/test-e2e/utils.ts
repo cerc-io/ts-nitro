@@ -1,4 +1,6 @@
-import { Allocation, Exit, SingleAssetExit } from '@cerc-io/nitro-client';
+import {
+  Allocation, Destination, Exit, SingleAssetExit,
+} from '@cerc-io/nitro-client';
 
 /**
  * Left pads a 20 byte address hex string with zeros until it is a 32 byte hex string
@@ -29,7 +31,7 @@ export function createOutcome(
   beta: string,
   amount: number,
 ): Exit {
-  return [
+  return new Exit([
     new SingleAssetExit(
       asset,
       {
@@ -38,18 +40,18 @@ export function createOutcome(
       },
       [
         new Allocation(
-          convertAddressToBytes32(alpha),
+          Destination.addressToDestination(convertAddressToBytes32(alpha)),
           BigInt(amount),
           0,
           Buffer.alloc(0),
         ),
         new Allocation(
-          convertAddressToBytes32(beta),
+          Destination.addressToDestination(convertAddressToBytes32(beta)),
           BigInt(amount),
           0,
           Buffer.alloc(0),
         ),
       ],
     ),
-  ];
+  ]);
 }

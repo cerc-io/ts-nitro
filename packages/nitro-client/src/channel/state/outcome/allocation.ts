@@ -1,3 +1,5 @@
+import { Destination } from '../../../types/destination';
+
 export enum AllocationType {
   NormalAllocationType = 0,
   GuaranteeAllocationType,
@@ -6,10 +8,10 @@ export enum AllocationType {
 // Allocation declares an Amount to be paid to a Destination.
 export class Allocation {
   // Either an ethereum address or an application-specific identifier
-  destination?: string;
+  destination: Destination = new Destination('');
 
   // An amount of a particular asset
-  amount?: bigint;
+  amount: bigint = BigInt(0);
 
   // Directs calling code on how to interpret the allocation
   allocationType?: AllocationType;
@@ -18,7 +20,7 @@ export class Allocation {
   metadata?: Buffer;
 
   constructor(
-    destination: string,
+    destination: Destination,
     amount: bigint,
     allocationType: AllocationType,
     metadata: Buffer,
