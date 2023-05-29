@@ -19,17 +19,39 @@ const signedStatePayload: PayloadType = 'SignedStatePayload';
 
 const objectivePrefix = 'DirectDefunding-';
 
+// GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 interface GetChannelsByParticipantFunction {
   (participant: Address): channel.Channel[];
 }
 
+// GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
+// the calling client and the given counterparty, if such a channel exists.
 interface GetTwoPartyConsensusLedgerFunction {
-  (counterparty: Address): ConsensusChannel;
+  (counterparty: Address): [ConsensusChannel, boolean];
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
 // TODO: Implement unmarshal
 const getSignedStatePayload = (b: Buffer): SignedState => new SignedState({});
+
+// channelsExistWithCounterparty returns true if a channel or consensus_channel exists with the counterparty
+const channelsExistWithCounterparty = (
+  counterparty: Address,
+  getChannels: GetChannelsByParticipantFunction,
+  getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
+): boolean => {
+  const channels = getChannels(counterparty);
+
+  for (const c of channels) {
+    if (c.participants.length === 2) {
+      return true;
+    }
+  }
+
+  const [, ok] = getTwoPartyConsensusLedger(counterparty);
+
+  return ok;
+};
 
 export class Objective implements ObjectiveInterface {
   status: ObjectiveStatus = 0;
@@ -55,7 +77,7 @@ export class Objective implements ObjectiveInterface {
     latestBlockNumber?: number,
     transactionSubmitted?: boolean
   }) {
-    Object.assign(this);
+    Object.assign(this, params);
   }
 
   public static newObjective(
@@ -85,13 +107,11 @@ export class Objective implements ObjectiveInterface {
       type: signedStatePayload,
     };
 
-    // TODO: Implement ConstructFromPayload method
     const objective = Objective.constructFromPayload(preApprove, objectivePayload, myAddress);
 
-    // TODO: Implement channelsExistWithCounterparty method
-    // if (channelsExistWithCounterparty(request.CounterParty, getChannels, getTwoPartyConsensusLedger)) {
-    //   throw new Error(`A channel already exists with counterparty ${request.CounterParty}`);
-    // }
+    if (channelsExistWithCounterparty(request.counterParty, getChannels, getTwoPartyConsensusLedger)) {
+      throw new Error(`A channel already exists with counterparty ${request.counterParty}`);
+    }
 
     return objective;
   }
@@ -278,11 +298,11 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
   // Id returns the objective id for the request.
   id(myAddress: Address, chainId: bigint): ObjectiveId {
-    const fixedPart: FixedPart = new FixedPart(
-      [myAddress, this.counterParty],
-      this.nonce,
-      this.challengeDuration,
-    );
+    const fixedPart: FixedPart = new FixedPart({
+      participants: [myAddress, this.counterParty],
+      channelNonce: this.nonce,
+      challengeDuration: this.challengeDuration,
+    });
 
     const channelId: Destination = fixedPart.channelId();
     return `${objectivePrefix}${channelId.string()}` as ObjectiveId;

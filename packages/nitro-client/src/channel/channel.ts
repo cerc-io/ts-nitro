@@ -5,10 +5,19 @@ import { Funds } from '../types/funds';
 import { MaxTurnNum, PostFundTurnNum, PreFundTurnNum } from './constants';
 import { Allocation } from './state/outcome/allocation';
 import { SignedState } from './state/signedstate';
-import { FixedPart, State } from './state/state';
+import { FixedPart, State, ConstructorOptions as FixedPartConstructorOptions } from './state/state';
+
+interface ConstructorOptions extends FixedPartConstructorOptions {
+  id?: Destination;
+  myIndex?: number;
+  onChainFunding?: Funds;
+  fixedPart?: FixedPart;
+  signedStateForTurnNum?: Map<number, SignedState>;
+  latestSupportedStateTurnNum?: number;
+}
 
 // Channel contains states and metadata and exposes convenience methods.
-export class Channel {
+export class Channel extends FixedPart {
   id: Destination = new Destination('');
 
   // TODO: unit replacement
@@ -28,14 +37,8 @@ export class Channel {
   // TODO: unit64 replacement
   private latestSupportedStateTurnNum: number = 0;
 
-  constructor(params: {
-    id?: Destination,
-    myIndex?: number,
-    onChainFunding?: Funds,
-    fixedPart?: FixedPart,
-    signedStateForTurnNum?: Map<number, SignedState>,
-    latestSupportedStateTurnNum?: number,
-  }) {
+  constructor(params: ConstructorOptions) {
+    super(params);
     Object.assign(this, params);
   }
 

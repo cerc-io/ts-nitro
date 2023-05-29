@@ -8,28 +8,27 @@ import { Address } from '../../types/types';
 import { Destination } from '../../types/destination';
 import { Exit } from './outcome/exit';
 
+export interface ConstructorOptions {
+  participants?: Address[];
+  channelNonce?: string;
+  appDefinition?: Address;
+  challengeDuration?: number;
+}
+
 // FixedPart contains the subset of State data which does not change during a state update.
 export class FixedPart {
-  participants: Address[];
+  participants: Address[] = [];
 
   // TODO: unit64 replacement
-  channelNonce: string;
+  channelNonce: string = '';
 
-  appDefinition: Address;
+  appDefinition: Address = '';
 
   // TODO: unit64 replacement
-  challengeDuration: number;
+  challengeDuration: number = 0;
 
-  constructor(
-    participants: Address[],
-    channelNonce: string,
-    challengeDuration: number,
-    appDefinition: Address = '',
-  ) {
-    this.participants = participants;
-    this.channelNonce = channelNonce;
-    this.challengeDuration = challengeDuration;
-    this.appDefinition = appDefinition;
+  constructor(params: ConstructorOptions) {
+    Object.assign(this, params);
   }
 
   // TODO: Implement
@@ -108,12 +107,12 @@ export class State {
 
   // FixedPart returns the FixedPart of the State
   fixedPart(): FixedPart {
-    return new FixedPart(
-      this.participants,
-      this.channelNonce,
-      this.challengeDuration,
-      this.appDefinition,
-    );
+    return new FixedPart({
+      participants: this.participants,
+      channelNonce: this.channelNonce,
+      challengeDuration: this.challengeDuration,
+      appDefinition: this.appDefinition,
+    });
   }
 
   // VariablePart returns the VariablePart of the State

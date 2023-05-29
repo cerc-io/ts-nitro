@@ -102,8 +102,8 @@ export class MemStore implements Store {
   }
 
   // TODO: Implement
-  getConsensusChannel(counterparty: Address): ConsensusChannel {
-    return {} as ConsensusChannel;
+  getConsensusChannel(counterparty: Address): [ConsensusChannel, boolean] {
+    return [{} as ConsensusChannel, false];
   }
 
   // TODO: Implement
