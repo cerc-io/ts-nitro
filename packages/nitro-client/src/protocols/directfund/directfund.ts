@@ -1,5 +1,6 @@
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
+import JSONbig from 'json-bigint';
 
 import assert from 'assert';
 import { Exit } from '../../channel/state/outcome/exit';
@@ -22,6 +23,8 @@ import * as channel from '../../channel/channel';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
+
+const JSONbigNative = JSONbig({ useNativeBigInt: true });
 
 const waitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund';
 const waitingForMyTurnToFund: WaitingFor = 'WaitingForMyTurnToFund';
@@ -46,7 +49,16 @@ interface GetTwoPartyConsensusLedgerFunction {
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
 // TODO: Implement unmarshal
-const getSignedStatePayload = (b: Buffer): SignedState => new SignedState({});
+const getSignedStatePayload = (b: Buffer): SignedState => {
+  try {
+    // TODO: Implement Go json.Unmarshal
+    // const ss = SignedState.fromJSON(b.toString());
+
+    return new SignedState({});
+  } catch (err) {
+    throw new Error(`could not unmarshal signed state: ${err}`);
+  }
+};
 
 // channelsExistWithCounterparty returns true if a channel or consensus_channel exists with the counterparty
 const channelsExistWithCounterparty = (
@@ -114,7 +126,7 @@ export class Objective implements ObjectiveInterface {
     });
 
     const signedInitial = SignedState.newSignedState(initialState);
-    const b = Buffer.from(JSON.stringify(signedInitial), 'utf-8');
+    const b = Buffer.from(JSONbigNative.stringify(signedInitial), 'utf-8');
     const objectivePayload: ObjectivePayload = {
       objectiveId: request.id(myAddress, chainId),
       payloadData: b,

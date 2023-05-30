@@ -33,7 +33,6 @@ export class SignedState {
   addSignature(sig: Signature): void {}
 
   // State returns the State part of the SignedState.
-  // TODO: Implement
   state(): State | undefined {
     return this._state;
   }

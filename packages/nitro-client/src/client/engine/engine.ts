@@ -1,6 +1,7 @@
 import debug from 'debug';
 import assert from 'assert';
 import { ethers } from 'ethers';
+import JSONbig from 'json-bigint';
 
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
@@ -24,6 +25,7 @@ import { ObjectiveRequest as DirectDefundObjectiveRequest } from '../../protocol
 import { ObjectiveRequest as DirectFundObjectiveRequest, Objective as DirectFundObjective } from '../../protocols/directfund/directfund';
 import { ObjectiveRequest as VirtualDefundObjectiveRequest } from '../../protocols/virtualdefund/virtualdefund';
 
+const JSONbigNative = JSONbig({ useNativeBigInt: true });
 const log = debug('ts-nitro:client');
 
 export type PaymentRequest = {
@@ -306,7 +308,7 @@ export class Engine {
 
           return this.attemptProgress(dfo);
         } catch (err) {
-          throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(or)}: ${err}`);
+          throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(or)}: ${err}`);
         }
         // return this.attemptProgress(dfo);
         break;
