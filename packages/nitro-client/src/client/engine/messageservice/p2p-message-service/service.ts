@@ -19,7 +19,7 @@ import type { IncomingStreamData } from '@libp2p/interface-registrar';
 // @ts-expect-error
 import type { PeerInfo as Libp2pPeerInfo } from '@libp2p/interface-peer-info';
 
-import { SyncMap } from '../../../../internal/safesync/safesync';
+import { SafeSyncMap } from '../../../../internal/safesync/safesync';
 import { Message } from '../../../../protocols/messages';
 import { Address } from '../../../../types/types';
 import { MessageService } from '../messageservice';
@@ -46,7 +46,7 @@ interface PeerInfo {
 
 interface ConstructorOptions {
   toEngine: ReadWriteChannel<Message>;
-  peers: SyncMap<BasicPeerInfo>;
+  peers: SafeSyncMap<BasicPeerInfo>;
   me: Address;
   newPeerInfo: ReadWriteChannel<BasicPeerInfo>;
   logger: debug.Debugger;
@@ -60,7 +60,7 @@ export class P2PMessageService implements MessageService {
   // For forwarding processed messages to the engine
   private toEngine: ReadWriteChannel<Message>;
 
-  private peers: SyncMap<BasicPeerInfo>;
+  private peers: SafeSyncMap<BasicPeerInfo>;
 
   private me: Address;
 
@@ -108,7 +108,7 @@ export class P2PMessageService implements MessageService {
     const ms = new P2PMessageService({
       toEngine: Channel<Message>(BUFFER_SIZE),
       newPeerInfo: Channel<BasicPeerInfo>(BUFFER_SIZE),
-      peers: new SyncMap<BasicPeerInfo>(),
+      peers: new SafeSyncMap<BasicPeerInfo>(),
       me,
       logger: log,
     });

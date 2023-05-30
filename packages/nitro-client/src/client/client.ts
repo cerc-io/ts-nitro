@@ -14,7 +14,7 @@ import { Engine } from './engine/engine';
 import { Address } from '../types/types';
 import { ChannelNotifier } from './notifier/channel-notifier';
 import { ObjectiveId } from '../protocols/messages';
-import { SyncMap } from '../internal/safesync/safesync';
+import { SafeSyncMap } from '../internal/safesync/safesync';
 import { Voucher } from '../payments/vouchers';
 import { MetricsApi, NoOpMetrics } from './engine/metrics';
 import { Exit } from '../channel/state/outcome/exit';
@@ -35,7 +35,7 @@ export class Client {
 
   private completedObjectivesForRPC?: ReadWriteChannel<ObjectiveId>;
 
-  private completedObjectives?: SyncMap<ReadWriteChannel<null>>;
+  private completedObjectives?: SafeSyncMap<ReadWriteChannel<null>>;
 
   private failedObjectives?: ReadWriteChannel<ObjectiveId>;
 
@@ -74,7 +74,7 @@ export class Client {
     c.logger = log;
 
     c.engine = Engine.new(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi);
-    c.completedObjectives = new SyncMap<ReadWriteChannel<null>>();
+    c.completedObjectives = new SafeSyncMap<ReadWriteChannel<null>>();
     c.completedObjectivesForRPC = Channel<ObjectiveId>(100);
 
     c.failedObjectives = Channel<ObjectiveId>(100);

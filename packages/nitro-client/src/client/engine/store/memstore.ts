@@ -2,25 +2,26 @@ import { bytes2Hex } from '@cerc-io/nitro-util';
 
 import { ethers } from 'ethers';
 import { Store } from './store';
-import { Objective } from '../../../protocols/interfaces';
+import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
 import { VoucherInfo } from '../../../payments/vouchers';
-import { SyncMap } from '../../../internal/safesync/safesync';
+import { SafeSyncMap } from '../../../internal/safesync/safesync';
 import { ObjectiveId } from '../../../protocols/messages';
 import { Address } from '../../../types/types';
 import { getAddressFromSecretKeyBytes } from '../../../crypto/keys';
+import { VirtualChannel } from '../../../channel/virtual';
 
 export class MemStore implements Store {
-  obectives: SyncMap<Buffer>;
+  objectives: SafeSyncMap<Buffer>;
 
-  channels: SyncMap<Buffer>;
+  channels: SafeSyncMap<Buffer>;
 
-  consensusChannels: SyncMap<Buffer>;
+  consensusChannels: SafeSyncMap<Buffer>;
 
-  channelToObjective: SyncMap<Objective>;
+  channelToObjective: SafeSyncMap<ObjectiveId>;
 
-  vouchers: SyncMap<Buffer>;
+  vouchers: SafeSyncMap<Buffer>;
 
   // the signing key of the store's engine
   key: string;
@@ -33,11 +34,11 @@ export class MemStore implements Store {
     // TODO: Get address from key bytes
     this.address = getAddressFromSecretKeyBytes(key);
 
-    this.obectives = new SyncMap();
-    this.channels = new SyncMap();
-    this.consensusChannels = new SyncMap();
-    this.channelToObjective = new SyncMap();
-    this.vouchers = new SyncMap();
+    this.objectives = new SafeSyncMap();
+    this.channels = new SafeSyncMap();
+    this.consensusChannels = new SafeSyncMap();
+    this.channelToObjective = new SafeSyncMap();
+    this.vouchers = new SafeSyncMap();
   }
 
   // TODO: Implement
@@ -57,17 +58,91 @@ export class MemStore implements Store {
     return {} as Objective;
   }
 
-  // TODO: Implement
-  setObjective(obj: Objective): void {}
+  public setObjective(obj: Objective): void {
+    // todo: locking
+    let objJSON: Buffer;
+    try {
+      objJSON = Buffer.from(JSON.stringify(obj), 'utf-8');
+    } catch (err) {
+      throw new Error(`error setting objective ${obj.id()}: ${err}`);
+    }
+
+    this.objectives.store(obj.id().toString(), objJSON);
+
+    for (const rel of obj.related()) {
+      switch (rel.constructor) {
+        case VirtualChannel: {
+          const ch = rel as VirtualChannel;
+          try {
+            this.setChannel(ch);
+          } catch (err) {
+            throw new Error(`error setting virtual channel ${ch.id} from objective ${obj.id()}: ${err}`);
+          }
+
+          break;
+        }
+
+        case Channel: {
+          const channel = rel as Channel;
+          try {
+            this.setChannel(channel);
+          } catch (err) {
+            throw new Error(`error setting channel ${channel.id} from objective ${obj.id()}: ${err}`);
+          }
+
+          break;
+        }
+
+        case ConsensusChannel: {
+          const consensusChannel = rel as ConsensusChannel;
+          try {
+            this.setConsensusChannel(consensusChannel);
+          } catch (err) {
+            throw new Error(`error setting consensus channel ${consensusChannel.id} from objective ${obj.id()}: ${err}`);
+          }
+
+          break;
+        }
+
+        default:
+          throw new Error(`unexpected type: ${rel.constructor.name}`);
+      }
+    }
+
+    // Objective ownership can only be transferred if the channel is not owned by another objective
+    const [prevOwner, isOwned] = this.channelToObjective.load(obj.ownsChannel().toString());
+
+    if (obj.getStatus() === ObjectiveStatus.Approved) {
+      if (!prevOwner) {
+        this.channelToObjective.store(obj.ownsChannel().toString(), obj.id());
+      }
+      if (isOwned && prevOwner !== obj.id().toString()) {
+        throw new Error(`cannot transfer ownership of channel from objective ${prevOwner} to ${obj.id()}`);
+      }
+    }
+  }
+
+  public setChannel(ch: Channel): void {
+    const chJSON = Buffer.from(JSON.stringify(ch), 'utf-8');
+
+    this.channels.store(ch.id.toString(), chJSON);
+  }
 
   // TODO: Implement
-  setChannel(ch: Channel): void {}
+  destroyChannel(id: string): void {
+    this.channels.delete(id.toString());
+  }
 
   // TODO: Implement
-  destroyChannel(id: string): void {}
+  setConsensusChannel(ch: ConsensusChannel): void {
+    if (ch.id.isZero()) {
+      throw new Error('cannot store a channel with a zero id');
+    }
 
-  // TODO: Implement
-  setConsensusChannel(ch: ConsensusChannel): void {}
+    const chJSON = Buffer.from(JSON.stringify(ch), 'utf-8');
+
+    this.consensusChannels.store(ch.id.toString(), chJSON);
+  }
 
   // TODO: Implement
   destroyConsensusChannel(id: string): void {}

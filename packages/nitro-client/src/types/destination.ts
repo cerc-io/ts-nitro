@@ -31,6 +31,16 @@ export class Destination {
     return isExternalDestination(this.value);
   }
 
+  isZero(): boolean {
+    for (const b of this.value) {
+      if (b !== '0') {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   string(): string {
     return this.value;
   }
