@@ -22,7 +22,7 @@ export class FixedPart {
   // TODO: unit64 replacement
   channelNonce: string = '';
 
-  appDefinition: Address = '';
+  appDefinition: Address = ethers.constants.AddressZero;
 
   // TODO: unit64 replacement
   challengeDuration: number = 0;
@@ -31,13 +31,7 @@ export class FixedPart {
     Object.assign(this, params);
   }
 
-  // TODO: Implement
   channelId(): Destination {
-    // TODO: Find nitro-protocol package util method
-    return new Destination('');
-  }
-
-  getChannelId(): Destination {
     return new Destination(utilGetChannelId(this));
   }
 
@@ -126,7 +120,6 @@ export class State {
   //
   // Up to hash collisions, ChannelId distinguishes channels that have different FixedPart
   // values
-  // TODO: Implement
   channelId(): Destination {
     return this.fixedPart().channelId();
   }

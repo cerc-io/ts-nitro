@@ -37,26 +37,48 @@ export class EngineEvent {
   completedObjectives: Objective[] = [];
 
   // These are objectives that have failed
-  failedObjectives?: Objective[];
+  failedObjectives: Objective[] = [];
 
   // ReceivedVouchers are vouchers we've received from other participants
-  receivedVouchers?: Voucher[];
+  receivedVouchers: Voucher[] = [];
 
   // LedgerChannelUpdates contains channel info for ledger channels that have been updated
-  ledgerChannelUpdates?: LedgerChannelInfo[];
+  ledgerChannelUpdates: LedgerChannelInfo[] = [];
 
   // PaymentChannelUpdates contains channel info for payment channels that have been updated
-  paymentChannelUpdates?: PaymentChannelInfo[];
+  paymentChannelUpdates: PaymentChannelInfo[] = [];
 
   // IsEmpty returns true if the EngineEvent contains no changes
-  // TODO: Implement
   isEmpty(): boolean {
-    return false;
+    return (
+      this.completedObjectives.length === 0
+      && this.failedObjectives.length === 0
+      && this.receivedVouchers.length === 0
+      && this.ledgerChannelUpdates.length === 0
+      && this.paymentChannelUpdates.length === 0
+    );
   }
 
   // TODO: Implement
   merge(other: EngineEvent): void {}
 }
+
+class ErrGetObjective {
+  wrappedError: Error = new Error();
+
+  objectiveId?: ObjectiveId;
+
+  constructor(params: { wrappedError?: Error, objectiveId?: ObjectiveId }) {
+    Object.assign(this, params);
+  }
+
+  error(): string {
+    return `unexpected error getting/creating objective ${this.objectiveId}: ${this.wrappedError}`;
+  }
+}
+
+// nonFatalErrors is a list of errors for which the engine should not panic
+const nonFatalErrors: ErrGetObjective[] = [];
 
 export class Engine {
   objectiveRequestsFromAPI?: ReadWriteChannel<ObjectiveRequest>;
@@ -152,7 +174,7 @@ export class Engine {
     // TODO: Implement metrics
 
     while (true) {
-      let res: EngineEvent | undefined;
+      let res = new EngineEvent();
 
       try {
         // TODO: Check switch-case behaviour
@@ -193,8 +215,6 @@ export class Engine {
         // Handle errors
         this.checkError(err as Error);
       }
-
-      assert(res);
 
       // Only send out an event if there are changes
       if (!res.isEmpty()) {
@@ -413,7 +433,28 @@ export class Engine {
   private recordMessageMetrics(message: Message): void {}
 
   // eslint-disable-next-line n/handle-callback-err
-  private checkError(err: Error): void {}
+  private async checkError(err: Error): Promise<void> {
+    if (err) {
+      this.logger({
+        error: err,
+        message: `${this.store?.getAddress()}, error in run loop`,
+      });
+
+      // TODO: Implement
+      // for _, nonFatalError := range nonFatalErrors {
+      //   if errors.Is(err, nonFatalError) {
+      //     return
+      //   }
+      // }
+
+      // We wait for a bit so the previous log line has time to complete
+      await new Promise((resolve) => { setTimeout(() => resolve, 1000); });
+
+      // TODO instead of a panic, errors should be sent to the manager of the engine via a channel. At the moment,
+      // the engine manager is the nitro client.
+      throw err;
+    }
+  }
 }
 
 type MessageDirection = string;
