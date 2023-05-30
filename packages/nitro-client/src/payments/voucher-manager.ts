@@ -1,3 +1,4 @@
+import { Destination } from '../types/destination';
 import { Address } from '../types/types';
 import { Voucher, VoucherInfo } from './vouchers';
 
@@ -54,19 +55,19 @@ export class VoucherManager {
   }
 
   // ChannelRegistered returns  whether a channel has been registered with the voucher manager or not
-  channelRegistered(channelId: string): boolean {
+  channelRegistered(channelId: Destination): boolean {
     return false;
   }
 
   // Paid returns the total amount paid so far on a channel
   // TODO: Can throw an error
-  paid(chanId: string): bigint {
+  paid(chanId: Destination): bigint {
     return BigInt(0);
   }
 
   // Remaining returns the remaining amount of funds in the channel
   // TODO: Can throw an error
-  remaining(chanId: string): bigint {
+  remaining(chanId: Destination): bigint {
     return BigInt(0);
   }
 }

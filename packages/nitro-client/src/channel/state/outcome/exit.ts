@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import { Destination } from '../../../types/destination';
 import { Address } from '../../../types/types';
 import { Funds } from '../../../types/funds';
@@ -16,7 +17,7 @@ export type AssetMetadata = {
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
 export class SingleAssetExit {
   // Either the zero address (implying the native token) or the address of an ERC20 contract
-  asset: Address = '';
+  asset: Address = ethers.constants.AddressZero;
 
   // Can be used to encode arbitrary additional information that applies to all allocations.
   assetMetadata?: AssetMetadata;
@@ -24,13 +25,13 @@ export class SingleAssetExit {
   allocations: Allocations = [];
 
   constructor(
-    asset: Address,
-    assetMetadata: AssetMetadata,
-    allocations: Allocations,
+    params: {
+      asset?: Address,
+      assetMetadata?: AssetMetadata,
+      allocations?: Allocations,
+    },
   ) {
-    this.asset = asset;
-    this.assetMetadata = assetMetadata;
-    this.allocations = allocations;
+    Object.assign(this, params);
   }
 
   // Equal returns true if the supplied SingleAssetExit is deeply equal to the receiver.

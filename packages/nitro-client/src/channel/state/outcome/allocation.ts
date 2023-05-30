@@ -14,21 +14,18 @@ export class Allocation {
   amount: bigint = BigInt(0);
 
   // Directs calling code on how to interpret the allocation
-  allocationType?: AllocationType;
+  allocationType: AllocationType = AllocationType.NormalAllocationType;
 
   // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
-  metadata?: Buffer;
+  metadata: Buffer = Buffer.alloc(0);
 
-  constructor(
-    destination: Destination,
-    amount: bigint,
-    allocationType: AllocationType,
-    metadata: Buffer,
-  ) {
-    this.destination = destination;
-    this.amount = amount;
-    this.allocationType = allocationType;
-    this.metadata = metadata;
+  constructor(params: {
+    destination?: Destination,
+    amount?: bigint,
+    allocationType?: AllocationType,
+    metadata?: Buffer,
+  }) {
+    Object.assign(this, params);
   }
 
   // Equal returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.

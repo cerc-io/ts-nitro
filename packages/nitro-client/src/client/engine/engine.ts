@@ -17,13 +17,18 @@ import {
 } from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
 import { Objective as VirtualFundObjective, ObjectiveRequest as VirtualFundObjectiveRequest } from '../../protocols/virtualfund/virtualfund';
-import { Proposal } from '../../channel/consensus-channel/consensus-channel';
+import { ConsensusChannel, Proposal } from '../../channel/consensus-channel/consensus-channel';
 import { Address } from '../../types/types';
 import { Voucher } from '../../payments/vouchers';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
 import { ObjectiveRequest as DirectDefundObjectiveRequest } from '../../protocols/directdefund/directdefund';
 import { ObjectiveRequest as DirectFundObjectiveRequest, Objective as DirectFundObjective } from '../../protocols/directfund/directfund';
 import { ObjectiveRequest as VirtualDefundObjectiveRequest } from '../../protocols/virtualdefund/virtualdefund';
+import * as channel from '../../channel/channel';
+import { VirtualChannel } from '../../channel/virtual';
+import {
+  constructLedgerInfoFromChannel, constructLedgerInfoFromConsensus, constructPaymentInfo, getVoucherBalance,
+} from '../query/query';
 
 const JSONbigNative = JSONbig({ useNativeBigInt: true });
 const log = debug('ts-nitro:client');
@@ -389,9 +394,43 @@ export class Engine {
   }
 
   // generateNotifications takes an objective and constructs notifications for any related channels for that objective.
-  // TODO: Can throw an error
   private generateNotifications(o: Objective): EngineEvent {
-    return new EngineEvent();
+    const outgoing = new EngineEvent();
+
+    for (const rel of o.related()) {
+      switch (rel.constructor) {
+        case VirtualChannel: {
+          const vc = rel as VirtualChannel;
+          const [paid, remaining] = getVoucherBalance(vc.id, this.vm!);
+          const info = constructPaymentInfo(vc, paid, remaining);
+          outgoing.paymentChannelUpdates.push(info);
+
+          break;
+        }
+
+        case channel.Channel: {
+          const c = rel as channel.Channel;
+          const l = constructLedgerInfoFromChannel(c);
+          outgoing.ledgerChannelUpdates.push(l);
+
+          break;
+        }
+
+        case ConsensusChannel: {
+          const cc = rel as ConsensusChannel;
+          const ccInfo = constructLedgerInfoFromConsensus(cc);
+          outgoing.ledgerChannelUpdates.push(ccInfo);
+
+          break;
+        }
+
+        default: {
+          throw new Error(`handleNotifications: Unknown related type ${rel.constructor}`);
+        }
+      }
+    }
+
+    return outgoing;
   }
 
   // TODO: Can throw an error

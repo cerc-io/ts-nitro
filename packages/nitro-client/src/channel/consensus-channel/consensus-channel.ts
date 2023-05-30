@@ -1,11 +1,14 @@
+import assert from 'assert';
 import { ethers } from 'ethers';
 
 import { Signature } from '../../crypto/signatures';
 import { Address } from '../../types/types';
 import { Funds } from '../../types/funds';
-import { FixedPart } from '../state/state';
+import { FixedPart, State } from '../state/state';
 import { SignedState } from '../state/signedstate';
 import { Destination } from '../../types/destination';
+import { Allocation, AllocationType } from '../state/outcome/allocation';
+import { Exit, SingleAssetExit } from '../state/outcome/exit';
 
 type LedgerIndex = number;
 
@@ -16,22 +19,44 @@ const Follower: LedgerIndex = 1;
 // of type 0, ie. a simple allocation.
 // TODO: Implement
 export class Balance {
-  private destination?: string;
+  private destination: Destination = new Destination('');
 
-  private amount?: bigint;
+  private amount: bigint = BigInt(0);
+
+  // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type.
+  asAllocation(): Allocation {
+    const amount = BigInt(this.amount);
+    return new Allocation({
+      destination: this.destination,
+      amount,
+      allocationType: AllocationType.NormalAllocationType,
+    });
+  }
 }
 
 // Guarantee is a convenient, ergonomic representation of a
 // single-asset Allocation of type 1, ie. a guarantee.
 // TODO: Implement
 export class Guarantee {
-  private amount?: bigint;
+  private amount: bigint = BigInt(0);
 
-  private target?: string;
+  private target: Destination = new Destination('');
 
-  private left?: string;
+  private left: Destination = new Destination('');
 
-  private right?: string;
+  private right: Destination = new Destination('');
+
+  // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
+  asAllocation(): Allocation {
+    const amount = BigInt(this.amount);
+
+    return new Allocation({
+      destination: this.target,
+      amount,
+      allocationType: AllocationType.NormalAllocationType,
+      metadata: Buffer.concat([this.left.bytes(), this.right.bytes()]),
+    });
+  }
 }
 
 // LedgerOutcome encodes the outcome of a ledger channel involving a "leader" and "follower"
@@ -51,15 +76,58 @@ export class LedgerOutcome {
   private follower?: Balance;
 
   private guarantees?: Map<string, Guarantee>;
+
+  asOutcome(): Exit {
+    assert(this.leader);
+    assert(this.follower);
+    assert(this.guarantees);
+    // The first items are [leader, follower] balances
+    const allocations = [
+      this.leader.asAllocation(),
+      this.follower.asAllocation(),
+    ];
+
+    // Followed by guarantees, sorted by the target destination
+    const keys = Object.keys(this.guarantees).sort((a, b) => a.localeCompare(b));
+    for (const target of keys) {
+      allocations.push(this.guarantees.get(target)!.asAllocation());
+    }
+
+    return new Exit(
+      [new SingleAssetExit({
+        asset: this.assetAddress,
+        allocations,
+      })],
+    );
+  }
 }
 
 // Vars stores the turn number and outcome for a state in a consensus channel.
 // TODO: Implement
 export class Vars {
   // TODO: uint64 replacement
-  turnNum?: number;
+  turnNum: number = 0;
 
   outcome?: LedgerOutcome;
+
+  asState(fp: FixedPart): State {
+    assert(this.outcome);
+    const outcome = this.outcome.asOutcome();
+
+    return new State({
+      // Variable
+      turnNum: this.turnNum,
+      outcome,
+
+      // Constant
+      participants: fp.participants,
+      channelNonce: fp.channelNonce,
+      challengeDuration: fp.challengeDuration,
+      appData: Buffer.alloc(0),
+      appDefinition: fp.appDefinition,
+      isFinal: false,
+    });
+  }
 }
 
 // SignedVars stores 0-2 signatures for some vars in a consensus channel.
@@ -237,7 +305,7 @@ export class ConsensusChannel {
   // The consensus state is the latest state that has been signed by both parties.
   // TODO: Implement
   consensusVars(): Vars {
-    return {};
+    return new Vars();
   }
 
   // Signatures returns the signatures on the currently supported state.
@@ -258,7 +326,7 @@ export class ConsensusChannel {
   // TODO: Can throw an error
   // TODO: Implement
   private latestProposedVars(): Vars {
-    return {};
+    return new Vars();
   }
 
   // validateProposalID checks that the given proposal's ID matches

@@ -44,4 +44,8 @@ export class Destination {
   string(): string {
     return this.value;
   }
+
+  bytes(): Buffer {
+    return Buffer.from(this.value, 'utf-8');
+  }
 }
