@@ -9,7 +9,7 @@ import { Funds } from '../../types/funds';
 import {
   Message, ObjectiveId, ObjectivePayload, PayloadType,
 } from '../messages';
-import { FixedPart, State } from '../../channel/state/state';
+import { FixedPart, Signature, State } from '../../channel/state/state';
 import {
   ObjectiveStatus, ObjectiveRequest as ObjectiveRequestInterface,
   Objective as ObjectiveInterface,
@@ -20,7 +20,9 @@ import {
   DepositTransaction,
 } from '../interfaces';
 import * as channel from '../../channel/channel';
-import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
+import {
+  ConsensusChannel, Follower, Leader, LedgerOutcome,
+} from '../../channel/consensus-channel/consensus-channel';
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
 
@@ -205,6 +207,51 @@ export class Objective implements ObjectiveInterface {
 
     return init;
   }
+
+  // OwnsChannel returns the channel the objective exclusively owns.
+  ownsChannel(): Destination {
+    assert(this.c);
+    return this.c.id;
+  }
+
+  // GetStatus returns the status of the objective.
+  // TODO: Implement
+  getStatus(): ObjectiveStatus {
+    return this.status;
+  }
+
+  createConsensusChannel(): ConsensusChannel {
+    assert(this.c);
+    const ledger = this.c;
+
+    if (!ledger.postFundComplete()) {
+      throw new Error(`Expected funding for channel ${this.c.id} to be complete`);
+    }
+
+    const signedPostFund = ledger.signedPostFundState();
+    const leaderSig = signedPostFund.getParticipantSignature(Leader);
+    const followerSig = signedPostFund.getParticipantSignature(Follower);
+    const signatures: [Signature, Signature] = [leaderSig, followerSig];
+
+    if (signedPostFund.state().outcome.value.length !== 1) {
+      throw new Error('A consensus channel only supports a single asset');
+    }
+
+    const assetExit = signedPostFund.state().outcome.value[0];
+    const { turnNum } = signedPostFund.state();
+    const outcome = LedgerOutcome.fromExit(assetExit);
+
+    if (ledger.myIndex === Leader) {
+      const con = ConsensusChannel.newLeaderChannel(ledger.fixedPart!, turnNum, outcome, signatures);
+      con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
+      return con;
+    }
+    const con = ConsensusChannel.newFollowerChannel(ledger.fixedPart!, turnNum, outcome, signatures);
+    con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
+    return con;
+  }
+
+  // Public methods on the DirectFundingObjectiveState
 
   // TODO: Implement
   id(): ObjectiveId {
@@ -394,28 +441,6 @@ export class Objective implements ObjectiveInterface {
     return deposits;
   }
 
-  // OwnsChannel returns the channel the objective exclusively owns.
-  // TODO: Implement
-  ownsChannel(): string {
-    return '';
-  }
-
-  // GetStatus returns the status of the objective.
-  // TODO: Implement
-  getStatus(): ObjectiveStatus {
-    return this.status;
-  }
-
-  // TODO: Can throw an error
-  // TODO: Check interface and implement
-  marshalJSON(): Buffer {
-    return Buffer.alloc(0);
-  }
-
-  // TODO: Can throw an error
-  // TODO: Check interface and implement
-  unmarshalJSON(b: Buffer): void {}
-
   /**
   * clone returns a deep copy of the receiver.
   */
@@ -438,6 +463,16 @@ export class Objective implements ObjectiveInterface {
 
     return clone;
   }
+
+  // TODO: Can throw an error
+  // TODO: Check interface and implement
+  marshalJSON(): Buffer {
+    return Buffer.alloc(0);
+  }
+
+  // TODO: Can throw an error
+  // TODO: Check interface and implement
+  unmarshalJSON(b: Buffer): void { }
 }
 
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.
@@ -479,7 +514,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   signalObjectiveStarted(): void { }
 
   // WaitForObjectiveToStart blocks until the objective starts
-  waitForObjectiveToStart(): void {}
+  waitForObjectiveToStart(): void { }
 
   // Id returns the objective id for the request.
   id(myAddress: Address, chainId: bigint): ObjectiveId {

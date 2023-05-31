@@ -2,11 +2,12 @@ import { ethers } from 'ethers';
 
 import { getChannelId as utilGetChannelId } from '@statechannels/nitro-protocol';
 
-import assert from 'assert';
-import { Signature } from '../../crypto/signatures';
+import * as nc from '../../crypto/signatures';
 import { Address } from '../../types/types';
 import { Destination } from '../../types/destination';
 import { Exit } from './outcome/exit';
+
+export type Signature = nc.Signature;
 
 export interface ConstructorOptions {
   participants?: Address[];

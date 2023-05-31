@@ -11,6 +11,7 @@ import { ObjectiveId } from '../../../protocols/messages';
 import { Address } from '../../../types/types';
 import { getAddressFromSecretKeyBytes } from '../../../crypto/keys';
 import { VirtualChannel } from '../../../channel/virtual';
+import { Destination } from '../../../types/destination';
 
 export class MemStore implements Store {
   objectives: SafeSyncMap<Buffer>;
@@ -128,9 +129,9 @@ export class MemStore implements Store {
     this.channels.store(ch.id.toString(), chJSON);
   }
 
-  // TODO: Implement
-  destroyChannel(id: string): void {
-    this.channels.delete(id.toString());
+  // destroyChannel deletes the channel with id id.
+  destroyChannel(id: Destination): void {
+    this.channels.delete(id.string());
   }
 
   // TODO: Implement
@@ -199,8 +200,9 @@ export class MemStore implements Store {
   // TODO: Implement
   populateChannelData(obj: Objective): void {}
 
-  // TODO: Implement
-  releaseChannelFromOwnership(channelId: string): void {}
+  releaseChannelFromOwnership(channelId: Destination): void {
+    this.channelToObjective.delete(channelId.string());
+  }
 
   // TODO: Implement
   setVoucherInfo(channelId: string, v: VoucherInfo): void {}

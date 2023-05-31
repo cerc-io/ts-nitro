@@ -1,3 +1,5 @@
+import assert from 'assert';
+
 import { Signature } from '../../crypto/signatures';
 import { State } from './state';
 
@@ -33,7 +35,8 @@ export class SignedState {
   addSignature(sig: Signature): void {}
 
   // State returns the State part of the SignedState.
-  state(): State | undefined {
+  state(): State {
+    assert(this._state);
     return this._state;
   }
 

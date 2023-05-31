@@ -97,7 +97,7 @@ export interface Objective extends Storable {
   related (): Storable[]
 
   // OwnsChannel returns the channel the objective exclusively owns.
-  ownsChannel (): string
+  ownsChannel (): Destination
 
   // GetStatus returns the status of the objective.
   getStatus (): ObjectiveStatus

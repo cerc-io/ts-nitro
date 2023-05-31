@@ -66,8 +66,13 @@ export class EngineEvent {
     );
   }
 
-  // TODO: Implement
-  merge(other: EngineEvent): void {}
+  merge(other: EngineEvent): void {
+    this.completedObjectives.push(...other.completedObjectives);
+    this.failedObjectives.push(...other.failedObjectives);
+    this.receivedVouchers.push(...other.receivedVouchers);
+    this.ledgerChannelUpdates.push(...other.ledgerChannelUpdates);
+    this.paymentChannelUpdates.push(...other.paymentChannelUpdates);
+  }
 }
 
 class ErrGetObjective {
@@ -384,7 +389,7 @@ export class Engine {
       try {
         this.spawnConsensusChannelIfDirectFundObjective(crankedObjective);
       } catch (err) {
-        return new EngineEvent();
+        return outgoing;
       }
     }
 
@@ -441,7 +446,22 @@ export class Engine {
   //
   // The associated Channel will remain in the store.
   // TODO: Can throw an error
-  private spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): void {}
+  private spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): void {
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    if (crankedObjective instanceof DirectFundObjective) {
+      const dfo = crankedObjective as DirectFundObjective;
+      const c: ConsensusChannel = dfo.createConsensusChannel();
+      try {
+        assert(this.store);
+        this.store.setConsensusChannel(c);
+        this.store.destroyChannel(c.id);
+      } catch (err) {
+        throw new Error(`Could not create, store, or destroy consensus channel for objective ${crankedObjective.id()}: ${err}`);
+      }
+    }
+  }
 
   // getOrCreateObjective retrieves the objective from the store.
   // If the objective does not exist, it creates the objective using the supplied payload and stores it in the store
