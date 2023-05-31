@@ -5,11 +5,14 @@
     "packages": [
       "packages/*"
     ],
-    "nohoist": ["**/mocha", "**/mocha/**"]
+    "nohoist": [
+      "**/mocha",
+      "**/mocha/**"
+    ]
   },
   "devDependencies": {
-    "lerna": "^6.6.2",
-    "husky": "^7.0.2"
+    "husky": "^7.0.2",
+    "lerna": "^6.6.2"
   },
   "scripts": {
     "lint": "lerna run lint --stream --parallel",

@@ -1,30 +1,74 @@
 import { Message, ObjectiveId, ObjectivePayload } from './messages';
 import { Proposal } from '../channel/consensus-channel/consensus-channel';
 import { Address } from '../types/types';
+import { Destination } from '../types/destination';
+import { Funds } from '../types/funds';
+import { SignedState } from '../channel/state/signedstate';
+
+export const errNotApproved = new Error('objective not approved');
 
 // ChainTransaction defines the interface that every transaction must implement
 export interface ChainTransaction {
-  channelID (): string
+  channelId: () => Destination
+}
+
+// ChainTransactionBase is a convenience struct that is embedded in other transaction structs.
+// It is exported only to allow cmp.Diff to compare transactions
+class ChainTransactionBase implements ChainTransaction {
+  private _channelId: Destination;
+
+  constructor(channelId: Destination) {
+    this._channelId = channelId;
+  }
+
+  channelId(): Destination {
+    return this._channelId;
+  }
+}
+
+export class DepositTransaction extends ChainTransactionBase implements ChainTransaction {
+  deposit?: Funds;
+
+  constructor(params: {
+    channelId: Destination
+    deposit: Funds
+  }) {
+    super(params.channelId);
+    Object.assign(this, params);
+  }
+
+  static newDepositTransaction(channelId: Destination, deposit: Funds): DepositTransaction {
+    return new DepositTransaction({
+      channelId,
+      deposit,
+    });
+  }
+}
+
+export class WithdrawAllTransaction extends ChainTransactionBase implements ChainTransaction {
+  signedState?: SignedState;
 }
 
 // SideEffects are effects to be executed by an imperative shell
 export type SideEffects = {
-  messagesToSend: Message[]
+  messagesToSend: Message[];
   transactionsToSubmit: ChainTransaction[]
   proposalsToProcess: Proposal[]
 };
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective.
 // It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
-type WaitingFor = string;
+export type WaitingFor = string;
 
 // Storable is an object that can be stored by the store.
 export interface Storable {
+  // TODO: Implement Go encoding/json
   // TODO: Can throw an error
-  marshalJSON (): Buffer
+  // marshalJSON (): Buffer
 
+  // TODO: Implement Go encoding/json
   // TODO: Can throw an error
-  unmarshalJSON (b: Buffer): void
+  // unmarshalJSON (b: Buffer): void
 }
 
 // Objective is the interface for off-chain protocols.
@@ -58,7 +102,7 @@ export interface Objective extends Storable {
   related (): Storable[]
 
   // OwnsChannel returns the channel the objective exclusively owns.
-  ownsChannel (): string
+  ownsChannel (): Destination
 
   // GetStatus returns the status of the objective.
   getStatus (): ObjectiveStatus

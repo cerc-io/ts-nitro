@@ -1,58 +1,77 @@
 import { Signature } from '../crypto/signatures';
-import { Address, Funds } from '../types/types';
+import { Destination } from '../types/destination';
+import { Address } from '../types/types';
+import { Funds } from '../types/funds';
 import { MaxTurnNum, PostFundTurnNum, PreFundTurnNum } from './constants';
 import { Allocation } from './state/outcome/allocation';
 import { SignedState } from './state/signedstate';
-import { FixedPart, State } from './state/state';
+import { FixedPart, State, ConstructorOptions as FixedPartConstructorOptions } from './state/state';
+
+interface ConstructorOptions extends FixedPartConstructorOptions {
+  id?: Destination;
+  myIndex?: number;
+  onChainFunding?: Funds;
+  fixedPart?: FixedPart;
+  signedStateForTurnNum?: Map<number, SignedState>;
+  latestSupportedStateTurnNum?: number;
+}
 
 // Channel contains states and metadata and exposes convenience methods.
-export class Channel {
-  id: string;
+export class Channel extends FixedPart {
+  id: Destination = new Destination('');
 
   // TODO: unit replacement
-  myIndex: number;
+  myIndex: number = 0;
 
-  onChainFunding: Funds;
+  onChainFunding: Funds = new Funds();
 
-  fixedPart: FixedPart;
+  fixedPart?: FixedPart;
   // Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
   // It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
   // TODO: unit64 replacement
-  signedStateForTurnNum: Map<number, SignedState>;
+  signedStateForTurnNum?: Map<number, SignedState>;
   // Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 
   // largest uint64 value reserved for "no supported state"
   // TODO: unit64 replacement
-  private latestSupportedStateTurnNum: number;
+  private latestSupportedStateTurnNum: number = 0;
 
-  // TODO: unit replacement
-  constructor(s: State, myIndex: number) {
+  constructor(params: ConstructorOptions) {
+    super(params);
+    Object.assign(this, params);
+  }
+
+  // new constructs a new Channel from the supplied state.
+  static new(s: State, myIndex: number): Channel {
+    const c = new Channel({});
     // TODO: Use try-catch
     s.validate();
 
-    this.id = s.channelId();
+    c.id = s.channelId();
 
-    this.myIndex = myIndex;
-    this.onChainFunding = new Map();
-    this.fixedPart = s.fixedPart().clone();
-    this.latestSupportedStateTurnNum = MaxTurnNum; // largest uint64 value reserved for "no supported state"
+    c.myIndex = myIndex;
+    c.onChainFunding = new Funds();
+    c.fixedPart = s.fixedPart().clone();
+    c.latestSupportedStateTurnNum = MaxTurnNum; // largest uint64 value reserved for "no supported state"
     // c.Support =  // TODO
 
     // Store prefund
-    this.signedStateForTurnNum = new Map();
-    this.signedStateForTurnNum.set(PreFundTurnNum, new SignedState(s));
+    c.signedStateForTurnNum = new Map();
+    c.signedStateForTurnNum.set(PreFundTurnNum, new SignedState({ state: s }));
 
     // Store postfund
     const post = s.clone();
     post.turnNum = PostFundTurnNum;
-    this.signedStateForTurnNum.set(PostFundTurnNum, new SignedState(post));
+    c.signedStateForTurnNum.set(PostFundTurnNum, new SignedState({ state: post }));
 
     // TODO: Implement
     // Set on chain holdings to zero for each asset
     // for asset := range s.Outcome.TotalAllocated() {
     //   c.OnChainFunding[asset] = big.NewInt(0)
     // }
+
+    return c;
   }
 
   // MarshalJSON returns a JSON representation of the Channel
@@ -164,7 +183,7 @@ export class Channel {
   // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
   // TODO: Implement
   total(): Funds {
-    return new Map();
+    return new Funds();
   }
 
   // Affords returns true if, for each asset keying the input variables, the channel can afford the allocation given the funding.

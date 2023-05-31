@@ -3,11 +3,12 @@ import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
 import { VoucherStore } from '../../../payments/voucher-manager';
 import { Address } from '../../../types/types';
+import { Destination } from '../../../types/destination';
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
 export interface Store extends ConsensusChannelStore, VoucherStore {
   // Get a pointer to a secret key for signing channel updates
-  getChannelSecretKey (): string
+  getChannelSecretKey (): Buffer
 
   // Get the (Ethereum) address associated with the ChannelSecretKey
   getAddress (): Address
@@ -37,14 +38,14 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
   // TODO: Can throw an error
   setChannel (ch: Channel): void
 
-  destroyChannel (id: string): void
+  destroyChannel (id: Destination): void
 
   // Returns any channels that includes the given app definition
   // TODO: Can throw an error
   getChannelsByAppDefinition (appDef: Address): Channel[]
 
   // Release channel from being owned by any objective
-  releaseChannelFromOwnership (channelId: string): void
+  releaseChannelFromOwnership (channelId: Destination): void
 
   // The behavior of Close after the first call is undefined
   // TODO: Check for io.Closer alternative
@@ -57,7 +58,7 @@ export interface ConsensusChannelStore {
   getAllConsensusChannels (): ConsensusChannel[]
 
   // TODO: Can throw an error
-  getConsensusChannel (counterparty: Address): ConsensusChannel
+  getConsensusChannel (counterparty: Address): [ConsensusChannel, boolean]
 
   // TODO: Can throw an error
   getConsensusChannelById (id: string): ConsensusChannel

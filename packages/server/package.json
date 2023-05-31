@@ -8,6 +8,7 @@
     "@types/mocha": "^10.0.1",
     "@typescript-eslint/eslint-plugin": "^5.13.0",
     "@typescript-eslint/parser": "^5.0.0",
+    "chai": "^4.3.7",
     "eslint": "^7.32.0 || ^8.2.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-airbnb-typescript": "^17.0.0",
@@ -16,22 +17,23 @@
     "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-n": "^15.0.0",
     "eslint-plugin-promise": "^6.0.0",
-    "typescript": "^5.0.4",
-    "chai": "^4.3.7",
-    "mocha": "^10.2.0",
+    "ethers": "^5.7.2",
     "hardhat": "^2.14.0",
+    "mocha": "^10.2.0",
     "ts-node": "^10.9.1",
-    "ethers": "^5.7.2"
+    "typescript": "^5.0.4"
   },
   "scripts": {
     "build": "tsc",
     "start": "DEBUG=ts-nitro:* node --enable-source-maps dist/index.js",
     "lint": "eslint .",
-    "test:e2e": "mocha test-e2e/**/*.test.ts",
+    "test:e2e": "DEBUG=ts-nitro:* mocha test-e2e/**/*.test.ts",
     "chain": "hardhat node"
   },
   "dependencies": {
     "@cerc-io/nitro-client": "^0.1.0",
+    "@cerc-io/nitro-util": "^0.1.0",
+    "assert": "^2.0.0",
     "debug": "^4.3.4",
     "yargs": "^17.7.2"
   }

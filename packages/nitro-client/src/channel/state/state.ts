@@ -1,24 +1,39 @@
 import { ethers } from 'ethers';
 
-import { Signature } from '../../crypto/signatures';
+import { getChannelId as utilGetChannelId } from '@statechannels/nitro-protocol';
+
+import * as nc from '../../crypto/signatures';
 import { Address } from '../../types/types';
+import { Destination } from '../../types/destination';
 import { Exit } from './outcome/exit';
+
+export type Signature = nc.Signature;
+
+export interface ConstructorOptions {
+  participants?: Address[];
+  channelNonce?: string;
+  appDefinition?: Address;
+  challengeDuration?: number;
+}
 
 // FixedPart contains the subset of State data which does not change during a state update.
 export class FixedPart {
-  participants?: Address[];
+  participants: Address[] = [];
 
   // TODO: unit64 replacement
-  channelNonce?: number;
+  channelNonce: string = '';
 
-  appDefinition?: Address;
+  appDefinition: Address = ethers.constants.AddressZero;
 
   // TODO: unit64 replacement
-  challengeDuration?: number;
+  challengeDuration: number = 0;
 
-  // TODO: Implement
-  channelId(): string {
-    return '';
+  constructor(params: ConstructorOptions) {
+    Object.assign(this, params);
+  }
+
+  channelId(): Destination {
+    return new Destination(utilGetChannelId(this));
   }
 
   // Clone returns a deep copy of the receiver.
@@ -30,46 +45,69 @@ export class FixedPart {
   // Validate checks whether the receiver is malformed and returns an error if it is.
   // TODO: Can throw an error
   // TODO: Implement
-  validate(): void {}
+  validate(): Error | null {
+    if (this.channelId().isExternal()) {
+      return new Error('channelId is an external destination'); // This is extremely unlikely
+    }
+
+    return null;
+  }
 }
 
 // VariablePart contains the subset of State data which can change with each state update.
 export class VariablePart {
-  appData?: Buffer;
+  appData: Buffer = Buffer.alloc(0);
 
   outcome?: Exit;
 
   // TODO: unit64 replacement
-  turnNum? : number;
+  turnNum : number = 0;
 
-  isFinal?: boolean;
+  isFinal: boolean = false;
 }
 
 // State holds all of the data describing the state of a channel
 export class State {
-  participants?: Address[];
+  participants: Address[] = [];
+
+  channelNonce: string = '';
+
+  appDefinition: Address = '';
+
+  challengeDuration: number = 0;
+
+  appData: Buffer = Buffer.alloc(0);
+
+  outcome: Exit = new Exit([]);
 
   // TODO: unit64 replacement
-  channelNonce?: number;
+  turnNum : number = 0;
 
-  appDefinition?: Address;
+  isFinal: boolean = false;
 
-  // TODO: unit64 replacement
-  challengeDuration?: number;
-
-  appData?: Buffer;
-
-  outcome?: Exit;
-
-  // TODO: unit64 replacement
-  turnNum? : number;
-
-  isFinal?: boolean;
+  constructor(
+    params: {
+      participants: Address[],
+      channelNonce: string,
+      appDefinition: Address,
+      challengeDuration: number,
+      appData: Buffer,
+      outcome: Exit,
+      turnNum: number,
+      isFinal: boolean
+    },
+  ) {
+    Object.assign(this, params);
+  }
 
   // FixedPart returns the FixedPart of the State
-  // TODO: Implement
   fixedPart(): FixedPart {
-    return new FixedPart();
+    return new FixedPart({
+      participants: this.participants,
+      channelNonce: this.channelNonce,
+      challengeDuration: this.challengeDuration,
+      appDefinition: this.appDefinition,
+    });
   }
 
   // VariablePart returns the VariablePart of the State
@@ -83,8 +121,7 @@ export class State {
   //
   // Up to hash collisions, ChannelId distinguishes channels that have different FixedPart
   // values
-  // TODO: Implement
-  channelId(): string {
+  channelId(): Destination {
     return this.fixedPart().channelId();
   }
 

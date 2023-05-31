@@ -1,22 +1,41 @@
+import debug from 'debug';
 import assert from 'assert';
 import { ethers } from 'ethers';
+import JSONbig from 'json-bigint';
 
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 
+import { go } from '@cerc-io/nitro-util';
 import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent } from './chainservice/chainservice';
 import { Store } from './store/store';
 import { PolicyMaker } from './policy-maker';
-import { MetricsApi, MetricsRecorder } from './metrics';
+import { MetricsApi, MetricsRecorder, NoOpMetrics } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
-import { Objective, ObjectiveRequest, SideEffects } from '../../protocols/interfaces';
+import {
+  Objective, ObjectiveRequest, SideEffects, WaitingFor,
+} from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
-import { Objective as VirtualFundObjective } from '../../protocols/virtualfund/virtualfund';
-import { Proposal } from '../../channel/consensus-channel/consensus-channel';
+import { Objective as VirtualFundObjective, ObjectiveRequest as VirtualFundObjectiveRequest } from '../../protocols/virtualfund/virtualfund';
+import { ConsensusChannel, Proposal } from '../../channel/consensus-channel/consensus-channel';
 import { Address } from '../../types/types';
 import { Voucher } from '../../payments/vouchers';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
+import { ObjectiveRequest as DirectDefundObjectiveRequest } from '../../protocols/directdefund/directdefund';
+import { ObjectiveRequest as DirectFundObjectiveRequest, Objective as DirectFundObjective } from '../../protocols/directfund/directfund';
+import { ObjectiveRequest as VirtualDefundObjectiveRequest } from '../../protocols/virtualdefund/virtualdefund';
+import * as channel from '../../channel/channel';
+import { VirtualChannel } from '../../channel/virtual';
+import {
+  constructLedgerInfoFromChannel, constructLedgerInfoFromConsensus, constructPaymentInfo, getVoucherBalance,
+} from '../query/query';
+
+const JSONbigNative = JSONbig({ useNativeBigInt: true });
+const log = debug('ts-nitro:client');
+
+const Incoming: MessageDirection = 'Incoming';
+const Outgoing: MessageDirection = 'Outgoing';
 
 export type PaymentRequest = {
   channelId: string
@@ -26,29 +45,56 @@ export type PaymentRequest = {
 // EngineEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
 export class EngineEvent {
   // These are objectives that are now completed
-  completedObjectives?: Objective[];
+  completedObjectives: Objective[] = [];
 
   // These are objectives that have failed
-  failedObjectives?: Objective[];
+  failedObjectives: Objective[] = [];
 
   // ReceivedVouchers are vouchers we've received from other participants
-  receivedVouchers?: Voucher[];
+  receivedVouchers: Voucher[] = [];
 
   // LedgerChannelUpdates contains channel info for ledger channels that have been updated
-  ledgerChannelUpdates?: LedgerChannelInfo[];
+  ledgerChannelUpdates: LedgerChannelInfo[] = [];
 
   // PaymentChannelUpdates contains channel info for payment channels that have been updated
-  paymentChannelUpdates?: PaymentChannelInfo[];
+  paymentChannelUpdates: PaymentChannelInfo[] = [];
 
   // IsEmpty returns true if the EngineEvent contains no changes
-  // TODO: Implement
   isEmpty(): boolean {
-    return false;
+    return (
+      this.completedObjectives.length === 0
+      && this.failedObjectives.length === 0
+      && this.receivedVouchers.length === 0
+      && this.ledgerChannelUpdates.length === 0
+      && this.paymentChannelUpdates.length === 0
+    );
   }
 
-  // TODO: Implement
-  merge(other: EngineEvent): void {}
+  merge(other: EngineEvent): void {
+    this.completedObjectives.push(...other.completedObjectives);
+    this.failedObjectives.push(...other.failedObjectives);
+    this.receivedVouchers.push(...other.receivedVouchers);
+    this.ledgerChannelUpdates.push(...other.ledgerChannelUpdates);
+    this.paymentChannelUpdates.push(...other.paymentChannelUpdates);
+  }
 }
+
+class ErrGetObjective {
+  wrappedError: Error = new Error();
+
+  objectiveId?: ObjectiveId;
+
+  constructor(params: { wrappedError?: Error, objectiveId?: ObjectiveId }) {
+    Object.assign(this, params);
+  }
+
+  error(): string {
+    return `unexpected error getting/creating objective ${this.objectiveId}: ${this.wrappedError}`;
+  }
+}
+
+// nonFatalErrors is a list of errors for which the engine should not panic
+const nonFatalErrors: ErrGetObjective[] = [];
 
 export class Engine {
   objectiveRequestsFromAPI?: ReadWriteChannel<ObjectiveRequest>;
@@ -75,7 +121,7 @@ export class Engine {
   // A PolicyMaker decides whether to approve or reject objectives
   private policymaker?: PolicyMaker;
 
-  // logger zerolog.Logger
+  private logger: debug.Debugger = log;
 
   private metrics?: MetricsRecorder;
 
@@ -107,19 +153,17 @@ export class Engine {
 
     e._toApi = Channel<EngineEvent>(100);
 
-    // logging.ConfigureZeroLogger()
-    // e.logger = zerolog.New(logDestination).With().Timestamp().Str("engine", e.store.GetAddress().String()[0:8]).Caller().Logger()
-
     e.policymaker = policymaker;
 
     e.vm = vm;
 
-    // e.logger.Print("Constructed Engine")
+    e.logger('Constructed Engine');
 
-    // if metricsApi == nil {
-    //   metricsApi = &NoOpMetrics{}
-    // }
-    // e.metrics = NewMetricsRecorder(*e.store.GetAddress(), metricsApi)
+    if (!metricsApi) {
+      // eslint-disable-next-line no-param-reassign
+      metricsApi = new NoOpMetrics();
+    }
+    e.metrics = new MetricsRecorder();
 
     return e;
   }
@@ -143,8 +187,10 @@ export class Engine {
     assert(this.stop);
     assert(this._toApi);
 
+    // TODO: Implement metrics
+
     while (true) {
-      let res: EngineEvent | undefined;
+      let res = new EngineEvent();
 
       try {
         // TODO: Check switch-case behaviour
@@ -159,7 +205,7 @@ export class Engine {
           this.stop.shift(),
         ])) {
           case this.objectiveRequestsFromAPI:
-            res = this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
+            res = await this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
             break;
 
           case this.paymentRequestsFromAPI:
@@ -186,12 +232,12 @@ export class Engine {
         this.checkError(err as Error);
       }
 
-      assert(res);
-
       // Only send out an event if there are changes
       if (!res.isEmpty()) {
         res.completedObjectives?.forEach((obj) => {
-          // e.logger.Printf("Objective %s is complete & returned to API", obj.Id())
+          assert(this.logger);
+          this.logger(`Objective ${obj.id()} is complete & returned to API`);
+          // TODO: Implement metrics
           // e.metrics.RecordObjectiveCompleted(obj.Id())
         });
 
@@ -232,7 +278,61 @@ export class Engine {
   // handleObjectiveRequest handles an ObjectiveRequest (triggered by a client API call).
   // It will attempt to spawn a new, approved objective.
   // TODO: Can throw an error
-  private handleObjectiveRequest(or: ObjectiveRequest): EngineEvent {
+  private async handleObjectiveRequest(or: ObjectiveRequest): Promise<EngineEvent> {
+    assert(this.store);
+    assert(this.chain);
+    assert(this.logger);
+
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    const myAddress = this.store.getAddress();
+
+    let chainId: bigint;
+    try {
+      chainId = await this.chain.getChainId();
+    } catch (err) {
+      throw new Error(`could get chain id from chain service: ${err}`);
+    }
+
+    const objectiveId = or.id(myAddress, chainId);
+    this.logger(`handling new objective request for ${objectiveId}`);
+
+    // TODO: Implement metrics
+    // e.metrics.RecordObjectiveStarted(objectiveId);
+
+    switch (true) {
+      case or instanceof VirtualFundObjectiveRequest:
+        // TODO: Implement
+        break;
+      case or instanceof VirtualDefundObjectiveRequest:
+        // TODO: Implement
+        break;
+      case or instanceof DirectFundObjectiveRequest:
+        // TODO: Use try-catch
+        try {
+          const dfo = DirectFundObjective.newObjective(
+            or as DirectFundObjectiveRequest,
+            true,
+            myAddress,
+            chainId,
+            this.store.getChannelsByParticipant,
+            this.store.getConsensusChannel,
+          );
+
+          return await this.attemptProgress(dfo);
+        } catch (err) {
+          throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(or)}: ${err}`);
+        }
+
+      case or instanceof DirectDefundObjectiveRequest:
+        // TODO: Implement
+        break;
+      default:
+        throw new Error(`handleAPIEvent: Unknown objective type ${typeof or}`);
+    }
+
+    or.signalObjectiveStarted();
     return new EngineEvent();
   }
 
@@ -244,10 +344,40 @@ export class Engine {
   }
 
   // sendMessages sends out the messages and records the metrics.
-  private sendMessages(msgs: Message[]): void {}
+  private sendMessages(msgs: Message[]): void {
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    assert(this.store);
+    assert(this.msg);
+    for (const message of msgs) {
+      message.from = this.store.getAddress();
+      this.logMessage(message, Outgoing);
+      this.recordMessageMetrics(message);
+      this.msg.send(message);
+    }
+  }
 
   // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
-  private executeSideEffects(sideEffects: SideEffects): void {}
+  private async executeSideEffects(sideEffects: SideEffects): Promise<void> {
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    // Send messages in a go routine so that we don't block on message delivery
+    go(this.sendMessages.bind(this), sideEffects.messagesToSend);
+
+    assert(this.chain);
+    for (const tx of sideEffects.transactionsToSubmit) {
+      this.logger(`Sending chain transaction for channel ${tx.channelId()}`);
+
+      await this.chain.sendTransaction(tx);
+    }
+
+    assert(this.fromLedger);
+    for (const proposal of sideEffects.proposalsToProcess) {
+      this.fromLedger.push(proposal);
+    }
+  }
 
   // attemptProgress takes a "live" objective in memory and performs the following actions:
   //
@@ -256,15 +386,89 @@ export class Engine {
   //  3. It commits the cranked objective to the store
   //  4. It executes any side effects that were declared during cranking
   //  5. It updates progress metadata in the store
-  // TODO: Can throw an error
-  private attemptProgress(objective: Objective): EngineEvent {
-    return new EngineEvent();
+  private async attemptProgress(objective: Objective): Promise<EngineEvent> {
+    const outgoing = new EngineEvent();
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    assert(this.store);
+    const secretKey = this.store.getChannelSecretKey();
+
+    let crankedObjective: Objective;
+    let sideEffects: SideEffects;
+    let waitingFor: WaitingFor;
+
+    try {
+      [crankedObjective, sideEffects, waitingFor] = objective.crank(secretKey);
+    } catch (err) {
+      return outgoing;
+    }
+
+    this.store.setObjective(crankedObjective);
+
+    const notifEvents = this.generateNotifications(crankedObjective);
+
+    outgoing.merge(notifEvents);
+
+    this.logger.log(`Objective ${objective.id()} is ${waitingFor}`);
+
+    // If our protocol is waiting for nothing then we know the objective is complete
+    // TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
+    // Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
+    if (waitingFor === 'WaitingForNothing') {
+      outgoing.completedObjectives = outgoing.completedObjectives.concat(crankedObjective);
+      this.store.releaseChannelFromOwnership(crankedObjective.ownsChannel());
+
+      try {
+        this.spawnConsensusChannelIfDirectFundObjective(crankedObjective);
+      } catch (err) {
+        return outgoing;
+      }
+    }
+
+    await this.executeSideEffects(sideEffects);
+
+    return outgoing;
   }
 
   // generateNotifications takes an objective and constructs notifications for any related channels for that objective.
-  // TODO: Can throw an error
   private generateNotifications(o: Objective): EngineEvent {
-    return new EngineEvent();
+    const outgoing = new EngineEvent();
+
+    for (const rel of o.related()) {
+      switch (rel.constructor) {
+        case VirtualChannel: {
+          const vc = rel as VirtualChannel;
+          const [paid, remaining] = getVoucherBalance(vc.id, this.vm!);
+          const info = constructPaymentInfo(vc, paid, remaining);
+          outgoing.paymentChannelUpdates.push(info);
+
+          break;
+        }
+
+        case channel.Channel: {
+          const c = rel as channel.Channel;
+          const l = constructLedgerInfoFromChannel(c);
+          outgoing.ledgerChannelUpdates.push(l);
+
+          break;
+        }
+
+        case ConsensusChannel: {
+          const cc = rel as ConsensusChannel;
+          const ccInfo = constructLedgerInfoFromConsensus(cc);
+          outgoing.ledgerChannelUpdates.push(ccInfo);
+
+          break;
+        }
+
+        default: {
+          throw new Error(`handleNotifications: Unknown related type ${rel.constructor}`);
+        }
+      }
+    }
+
+    return outgoing;
   }
 
   // TODO: Can throw an error
@@ -275,7 +479,22 @@ export class Engine {
   //
   // The associated Channel will remain in the store.
   // TODO: Can throw an error
-  private spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): void {}
+  private spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): void {
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    if (crankedObjective instanceof DirectFundObjective) {
+      const dfo = crankedObjective as DirectFundObjective;
+      const c: ConsensusChannel = dfo.createConsensusChannel();
+      try {
+        assert(this.store);
+        this.store.setConsensusChannel(c);
+        this.store.destroyChannel(c.id);
+      } catch (err) {
+        throw new Error(`Could not create, store, or destroy consensus channel for objective ${crankedObjective.id()}: ${err}`);
+      }
+    }
+  }
 
   // getOrCreateObjective retrieves the objective from the store.
   // If the objective does not exist, it creates the objective using the supplied payload and stores it in the store
@@ -302,19 +521,44 @@ export class Engine {
   }
 
   // logMessage logs a message to the engine's logger
-  private logMessage(msg: Message, direction: MessageDirection): void {}
+  private logMessage(msg: Message, direction: MessageDirection): void {
+    if (direction === Incoming) {
+      this.logger(`Received message: ${msg.summarize()}`);
+    } else {
+      this.logger(`Sending message: ${msg.summarize()}`);
+    }
+  }
 
   // recordMessageMetrics records metrics for a message
+  // TODO: Implement
   private recordMessageMetrics(message: Message): void {}
 
   // eslint-disable-next-line n/handle-callback-err
-  private checkError(err: Error): void {}
+  private async checkError(err: Error): Promise<void> {
+    if (err) {
+      this.logger({
+        error: err,
+        message: `${this.store?.getAddress()}, error in run loop`,
+      });
+
+      // TODO: Implement
+      // for _, nonFatalError := range nonFatalErrors {
+      //   if errors.Is(err, nonFatalError) {
+      //     return
+      //   }
+      // }
+
+      // We wait for a bit so the previous log line has time to complete
+      await new Promise((resolve) => { setTimeout(() => resolve, 1000); });
+
+      // TODO instead of a panic, errors should be sent to the manager of the engine via a channel. At the moment,
+      // the engine manager is the nitro client.
+      throw err;
+    }
+  }
 }
 
 type MessageDirection = string;
-
-const Incoming: MessageDirection = 'Incoming';
-const Outgoing: MessageDirection = 'Outgoing';
 
 // fromMsgErr wraps errors from objective construction functions and
 // returns an error bundled with the objectiveID

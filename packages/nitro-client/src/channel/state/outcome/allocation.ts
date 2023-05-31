@@ -1,3 +1,5 @@
+import { Destination } from '../../../types/destination';
+
 export enum AllocationType {
   NormalAllocationType = 0,
   GuaranteeAllocationType,
@@ -6,16 +8,25 @@ export enum AllocationType {
 // Allocation declares an Amount to be paid to a Destination.
 export class Allocation {
   // Either an ethereum address or an application-specific identifier
-  destination?: string;
+  destination: Destination = new Destination('');
 
   // An amount of a particular asset
-  amount?: bigint;
+  amount: bigint = BigInt(0);
 
   // Directs calling code on how to interpret the allocation
-  allocationType?: AllocationType;
+  allocationType: AllocationType = AllocationType.NormalAllocationType;
 
   // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
-  metadata?: Buffer;
+  metadata: Buffer = Buffer.alloc(0);
+
+  constructor(params: {
+    destination?: Destination,
+    amount?: bigint,
+    allocationType?: AllocationType,
+    metadata?: Buffer,
+  }) {
+    Object.assign(this, params);
+  }
 
   // Equal returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.
   // Fields are compared with ==, except for big.Ints which are compared using Cmp

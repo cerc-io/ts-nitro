@@ -4,16 +4,19 @@ import debug from 'debug';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@nodeguy/channel';
-import { connectToChain } from '@cerc-io/nitro-util';
+import { EthClient, connectToChain } from '@cerc-io/nitro-util';
 
-import { NitroAdjudicator } from './adjudicator/nitro-adjudicator';
+import assert from 'assert';
+import { INitroTypesFixedPart, INitroTypesSignedVariablePart, NitroAdjudicator } from './adjudicator/nitro-adjudicator';
+import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 import { ChainService, ChainEvent } from './chainservice';
-import { ChainTransaction } from '../../../protocols/interfaces';
+import { ChainTransaction, DepositTransaction, WithdrawAllTransaction } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
+import { Token } from './erc20/token';
 
 const log = debug('ts-nitro:eth-chain-service');
 
-interface EthChain {
+interface EthChain extends EthClient {
   // TODO: Extend bind.ContractBackend (github.com/ethereum/go-ethereum/accounts/abi/bind)
   // TODO: Extend ethereum.TransactionReader (github.com/ethereum/go-ethereum)
 
@@ -129,11 +132,64 @@ export class EthChainService implements ChainService {
 
   // defaultTxOpts returns transaction options suitable for most transaction submissions
   // TODO: Implement and remove void
-  private defaultTxOpts(): ethers.Transaction | void {}
+  private defaultTxOpts(): ethers.Transaction {
+    return this.txSigner;
+  }
 
   // sendTransaction sends the transaction and blocks until it has been submitted.
   // TODO: Implement and remove void
-  sendTransaction(tx: ChainTransaction): Error | void {}
+  async sendTransaction(tx: ChainTransaction): Promise<void> {
+    switch (tx.constructor) {
+      case DepositTransaction: {
+        const depositTx = tx as DepositTransaction;
+        assert(depositTx.deposit);
+        for (const [tokenAddress, amount] of depositTx.deposit.value.entries()) {
+          const txOpts = this.defaultTxOpts();
+          const ethTokenAddress = ethers.constants.AddressZero;
+
+          if (tokenAddress === ethTokenAddress) {
+            txOpts.value = ethers.BigNumber.from(amount);
+          } else {
+            const tokenTransactor = Token.newTokenTransactor(tokenAddress, this.chain);
+            // eslint-disable-next-line no-await-in-loop
+            await tokenTransactor.approve(this.defaultTxOpts(), this.naAddress, amount);
+          }
+
+          const holdings = this.na.holdings({}, tokenAddress, depositTx.channelId().value);
+          // eslint-disable-next-line no-await-in-loop
+          await this.na.deposit(txOpts, tokenAddress, depositTx.channelId().value, holdings, amount);
+        }
+
+        break;
+      }
+
+      case WithdrawAllTransaction: {
+        const withdrawAllTx = tx as WithdrawAllTransaction;
+        assert(withdrawAllTx.signedState);
+
+        const state = withdrawAllTx.signedState.state();
+        const signatures = withdrawAllTx.signedState.signatures();
+        const nitroFixedPart = NitroAdjudicatorConversions.convertFixedPart(state.fixedPart());
+        const nitroVariablePart = NitroAdjudicatorConversions.convertVariablePart(state.variablePart());
+        const nitroSignatures = [
+          NitroAdjudicatorConversions.convertSignature(signatures[0]),
+          NitroAdjudicatorConversions.convertSignature(signatures[1]),
+        ];
+
+        const candidate: INitroTypesSignedVariablePart = {
+          variablePart: nitroVariablePart,
+          sigs: nitroSignatures,
+        };
+
+        await this.na.concludeAndTransferAllAssets(this.defaultTxOpts(), nitroFixedPart, candidate);
+
+        break;
+      }
+
+      default:
+        throw new Error(`Unexpected transaction type ${tx.constructor}`);
+    }
+  }
 
   // fatalF is called to output a message and then panic, killing the chain service.
   // TODO: Implement

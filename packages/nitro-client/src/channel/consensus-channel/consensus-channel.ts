@@ -1,35 +1,79 @@
+import assert from 'assert';
 import { ethers } from 'ethers';
 
 import { Signature } from '../../crypto/signatures';
-import { Address, Funds } from '../../types/types';
-import { FixedPart } from '../state/state';
+import { Address } from '../../types/types';
+import { Funds } from '../../types/funds';
+import { FixedPart, State } from '../state/state';
 import { SignedState } from '../state/signedstate';
+import { Destination } from '../../types/destination';
+import { Allocation, AllocationType } from '../state/outcome/allocation';
+import { Exit, SingleAssetExit } from '../state/outcome/exit';
+import { GuaranteeMetadata } from '../state/outcome/guarantee';
 
 type LedgerIndex = number;
 
-const Leader: LedgerIndex = 0;
-const Follower: LedgerIndex = 1;
+export const Leader: LedgerIndex = 0;
+export const Follower: LedgerIndex = 1;
 
 // Balance is a convenient, ergonomic representation of a single-asset Allocation
 // of type 0, ie. a simple allocation.
 // TODO: Implement
 export class Balance {
-  private destination?: string;
+  private destination: Destination = new Destination('');
 
-  private amount?: bigint;
+  private amount: bigint = BigInt(0);
+
+  constructor(params: {
+    destination: Destination;
+    amount: bigint;
+  }) {
+    Object.assign(this, params);
+  }
+
+  // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type.
+  asAllocation(): Allocation {
+    const amount = BigInt(this.amount);
+    return new Allocation({
+      destination: this.destination,
+      amount,
+      allocationType: AllocationType.NormalAllocationType,
+    });
+  }
 }
 
 // Guarantee is a convenient, ergonomic representation of a
 // single-asset Allocation of type 1, ie. a guarantee.
 // TODO: Implement
 export class Guarantee {
-  private amount?: bigint;
+  private amount: bigint = BigInt(0);
 
-  private target?: string;
+  private target: Destination = new Destination('');
 
-  private left?: string;
+  private left: Destination = new Destination('');
 
-  private right?: string;
+  private right: Destination = new Destination('');
+
+  constructor(params: {
+    amount: bigint;
+    target: Destination;
+    left: Destination;
+    right: Destination;
+  }) {
+    Object.assign(this, params);
+  }
+
+  // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
+  asAllocation(): Allocation {
+    const amount = BigInt(this.amount);
+
+    return new Allocation({
+      destination: this.target,
+      amount,
+      allocationType: AllocationType.NormalAllocationType,
+      metadata: Buffer.concat([this.left.bytes(), this.right.bytes()]),
+    });
+  }
 }
 
 // LedgerOutcome encodes the outcome of a ledger channel involving a "leader" and "follower"
@@ -48,16 +92,101 @@ export class LedgerOutcome {
   // Balance of participants[1]
   private follower?: Balance;
 
-  private guarantees?: Map<string, Guarantee>;
+  private guarantees?: Map<Destination, Guarantee>;
+
+  constructor(params: {
+    assetAddress?: Address;
+    leader?: Balance;
+    follower?: Balance
+    guarantees?: Map<Destination, Guarantee>;
+  }) {
+    Object.assign(this, params);
+  }
+
+  // FromExit creates a new LedgerOutcome from the given SingleAssetExit.
+  //
+  // It makes the following assumptions about the exit:
+  //   - The first alloction entry is for the ledger leader
+  //   - The second alloction entry is for the ledger follower
+  //   - All other allocations are guarantees
+  static fromExit(sae: SingleAssetExit): LedgerOutcome {
+    const leader = new Balance({ destination: sae.allocations[0].destination, amount: sae.allocations[0].amount });
+    const follower = new Balance({ destination: sae.allocations[1].destination, amount: sae.allocations[1].amount });
+    const guarantees: Map<Destination, Guarantee> = new Map();
+
+    for (const allocation of sae.allocations) {
+      if (allocation.allocationType === AllocationType.GuaranteeAllocationType) {
+        const gM = GuaranteeMetadata.decodeIntoGuaranteeMetadata(allocation.metadata);
+        const guarantee: Guarantee = new Guarantee({
+          amount: allocation.amount,
+          target: allocation.destination,
+          left: gM.left,
+          right: gM.right,
+        });
+
+        guarantees.set(allocation.destination, guarantee);
+      }
+    }
+
+    return new LedgerOutcome({
+      leader,
+      follower,
+      guarantees,
+      assetAddress: sae.asset,
+    });
+  }
+
+  asOutcome(): Exit {
+    assert(this.leader);
+    assert(this.follower);
+    assert(this.guarantees);
+    // The first items are [leader, follower] balances
+    const allocations = [
+      this.leader.asAllocation(),
+      this.follower.asAllocation(),
+    ];
+
+    // Followed by guarantees, sorted by the target destination
+    const keys = Array.from(this.guarantees.keys()).sort((a, b) => a.string().localeCompare(b.string()));
+    for (const target of keys) {
+      allocations.push(this.guarantees.get(target)!.asAllocation());
+    }
+
+    return new Exit(
+      [new SingleAssetExit({
+        asset: this.assetAddress,
+        allocations,
+      })],
+    );
+  }
 }
 
 // Vars stores the turn number and outcome for a state in a consensus channel.
 // TODO: Implement
 export class Vars {
   // TODO: uint64 replacement
-  turnNum?: number;
+  turnNum: number = 0;
 
   outcome?: LedgerOutcome;
+
+  asState(fp: FixedPart): State {
+    assert(this.outcome);
+    const outcome = this.outcome.asOutcome();
+
+    return new State({
+      // Variable
+      turnNum: this.turnNum,
+      outcome,
+
+      // Constant
+      participants: fp.participants,
+      channelNonce: fp.channelNonce,
+      challengeDuration: fp.challengeDuration,
+      appData: Buffer.alloc(0),
+      appDefinition: fp.appDefinition,
+      isFinal: false,
+    });
+  }
 }
 
 // SignedVars stores 0-2 signatures for some vars in a consensus channel.
@@ -72,7 +201,7 @@ export class SignedVars {
 export class ConsensusChannel {
   // constants
 
-  id: String;
+  id: Destination;
 
   myIndex: LedgerIndex;
 
@@ -91,7 +220,7 @@ export class ConsensusChannel {
   // newConsensusChannel constructs a new consensus channel, validating its input by
   // checking that the signatures are as expected for the given fp, initialTurnNum and outcome.
   // TODO: Can throw an error
-  // TODO: Implement
+  // TODO: Refactor to newConsensusChannel static method
   constructor(
     fp: FixedPart,
     myIndex: LedgerIndex,
@@ -111,9 +240,21 @@ export class ConsensusChannel {
     this.fp = fp;
     this.id = cId;
     this.myIndex = myIndex;
-    this.onChainFunding = new Map();
+    this.onChainFunding = new Funds();
     this._proposalQueue = [];
     this.current = current;
+  }
+
+  // NewLeaderChannel constructs a new LeaderChannel
+  // TODO: Refactor to leader-channel file
+  static newLeaderChannel(fp: FixedPart, turnNum: number, outcome: LedgerOutcome, signatures: [Signature, Signature]): ConsensusChannel {
+    return new ConsensusChannel(fp, Leader, turnNum, outcome, signatures);
+  }
+
+  // NewFollowerChannel constructs a new FollowerChannel
+  // TODO: Refactor to follower-channel file
+  static newFollowerChannel(fp: FixedPart, turnNum: number, outcome: LedgerOutcome, signatures: [Signature, Signature]): ConsensusChannel {
+    return new ConsensusChannel(fp, Follower, turnNum, outcome, signatures);
   }
 
   // FixedPart returns the fixed part of the channel.
@@ -235,7 +376,7 @@ export class ConsensusChannel {
   // The consensus state is the latest state that has been signed by both parties.
   // TODO: Implement
   consensusVars(): Vars {
-    return {};
+    return new Vars();
   }
 
   // Signatures returns the signatures on the currently supported state.
@@ -256,7 +397,7 @@ export class ConsensusChannel {
   // TODO: Can throw an error
   // TODO: Implement
   private latestProposedVars(): Vars {
-    return {};
+    return new Vars();
   }
 
   // validateProposalID checks that the given proposal's ID matches

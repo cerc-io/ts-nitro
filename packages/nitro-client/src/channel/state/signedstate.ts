@@ -1,18 +1,28 @@
+import assert from 'assert';
+
 import { Signature } from '../../crypto/signatures';
 import { State } from './state';
 
 export class SignedState {
-  private _state: State;
+  private _state?: State;
 
   // TODO: uint replacement
-  private sigs: Map<number, Signature>; // keyed by participant index
+  private sigs?: Map<number, Signature>; // keyed by participant index
 
-  // Initialize a SignedState struct for the given
+  constructor(params: {
+    state?: State,
+    sigs?: Map<number, Signature>
+  }) {
+    Object.assign(this, params);
+  }
+
+  // newSignedState initializes a SignedState struct for the given
   // The signedState returned will have no signatures.
-  constructor(s: State) {
-    this._state = s;
-    // TODO: Map size?
-    this.sigs = new Map();
+  static newSignedState(s: State): SignedState {
+    return new SignedState({
+      state: s,
+      sigs: new Map(),
+    });
   }
 
   // AddSignature adds a participant's signature to the SignedState.
@@ -25,8 +35,8 @@ export class SignedState {
   addSignature(sig: Signature): void {}
 
   // State returns the State part of the SignedState.
-  // TODO: Implement
   state(): State {
+    assert(this._state);
     return this._state;
   }
 

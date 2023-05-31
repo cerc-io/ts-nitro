@@ -1,6 +1,5 @@
 import debug from 'debug';
 import assert from 'assert';
-import { ethers } from 'ethers';
 
 import type { ReadWriteChannel } from '@nodeguy/channel';
 import Channel from '@nodeguy/channel';
@@ -15,7 +14,7 @@ import { Engine } from './engine/engine';
 import { Address } from '../types/types';
 import { ChannelNotifier } from './notifier/channel-notifier';
 import { ObjectiveId } from '../protocols/messages';
-import { SyncMap } from '../internal/safesync/safesync';
+import { SafeSyncMap } from '../internal/safesync/safesync';
 import { Voucher } from '../payments/vouchers';
 import { MetricsApi, NoOpMetrics } from './engine/metrics';
 import { Exit } from '../channel/state/outcome/exit';
@@ -36,7 +35,7 @@ export class Client {
 
   private completedObjectivesForRPC?: ReadWriteChannel<ObjectiveId>;
 
-  private completedObjectives?: SyncMap<ReadWriteChannel<null>>;
+  private completedObjectives?: SafeSyncMap<ReadWriteChannel<null>>;
 
   private failedObjectives?: ReadWriteChannel<ObjectiveId>;
 
@@ -75,7 +74,7 @@ export class Client {
     c.logger = log;
 
     c.engine = Engine.new(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi);
-    c.completedObjectives = new SyncMap<ReadWriteChannel<null>>();
+    c.completedObjectives = new SafeSyncMap<ReadWriteChannel<null>>();
     c.completedObjectivesForRPC = Channel<ObjectiveId>(100);
 
     c.failedObjectives = Channel<ObjectiveId>(100);
@@ -84,11 +83,11 @@ export class Client {
 
     c.channelNotifier = ChannelNotifier.newChannelNotifier(store, c.vm);
     // Start the engine in a go routine
-    go(c.engine.run);
+    go(c.engine.run.bind(c.engine));
 
     // Start the event handler in a go routine
     // It will listen for events from the engine and dispatch events to client channels
-    go(c.handleEngineEvents);
+    go(c.handleEngineEvents.bind(c));
 
     return c;
   }
@@ -101,13 +100,13 @@ export class Client {
     assert(this.address);
     assert(this.chainId);
 
-    const objectiveRequest = new DirectFundObjectiveRequest(
-      counterparty,
+    const objectiveRequest = new DirectFundObjectiveRequest({
+      counterParty: counterparty,
       challengeDuration,
       outcome,
-      randUint64(),
-      this.engine.getConsensusAppAddress(),
-    );
+      nonce: randUint64(),
+      appDefinition: this.engine.getConsensusAppAddress(),
+    });
 
     assert(this.engine.objectiveRequestsFromAPI);
     // Send the event to the engine

@@ -18,6 +18,7 @@
   "devDependencies": {
     "@types/chai": "^4.3.5",
     "@types/debug": "^4.1.7",
+    "@types/json-bigint": "^1.0.1",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.2.1",
     "@types/webpack": "^5.28.1",
@@ -47,9 +48,11 @@
     "@libp2p/mdns": "^8.0.0",
     "@libp2p/tcp": "^7.0.1",
     "@nodeguy/channel": "^1.0.2",
+    "@statechannels/nitro-protocol": "^2.0.0-alpha.3",
     "assert": "^2.0.0",
     "debug": "^4.3.4",
     "ethers": "^5.7.2",
+    "json-bigint": "^1.0.0",
     "libp2p": "^0.45.3"
   }
 }
