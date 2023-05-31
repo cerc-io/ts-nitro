@@ -494,7 +494,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
   appData: Buffer = Buffer.alloc(0);
 
-  nonce: string = '';
+  nonce: string = '0';
 
   private objectiveStarted?: ReadWriteChannel<void>;
 
@@ -508,6 +508,24 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     objectiveStarted?: ReadWriteChannel<void>
   }) {
     Object.assign(this, params);
+  }
+
+  // newObjectiveRequest creates a new ObjectiveRequest.
+  static newObjectiveRequest(
+    counterparty: Address,
+    challengeDuration: number,
+    outcome: Exit,
+    nonce: string,
+    appDefinition: Address,
+  ): ObjectiveRequest {
+    return new ObjectiveRequest({
+      counterParty: counterparty,
+      challengeDuration,
+      outcome,
+      nonce,
+      appDefinition,
+      objectiveStarted: Channel(),
+    });
   }
 
   // SignalObjectiveStarted is used by the engine to signal the objective has been started.
