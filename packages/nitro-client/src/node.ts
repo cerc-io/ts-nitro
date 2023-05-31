@@ -4,5 +4,5 @@ export { P2PMessageService } from './client/engine/messageservice/p2p-message-se
 export { MemStore } from './client/engine/store/memstore';
 export { PermissivePolicy } from './client/engine/policy-maker';
 export { SingleAssetExit, Exit } from './channel/state/outcome/exit';
-export { Allocation } from './channel/state/outcome/allocation';
+export { Allocation, AllocationType, Allocations } from './channel/state/outcome/allocation';
 export { Destination } from './types/destination';

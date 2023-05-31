@@ -20,7 +20,7 @@ export const Follower: LedgerIndex = 1;
 // of type 0, ie. a simple allocation.
 // TODO: Implement
 export class Balance {
-  private destination: Destination = new Destination('');
+  private destination: Destination = new Destination();
 
   private amount: bigint = BigInt(0);
 
@@ -48,11 +48,11 @@ export class Balance {
 export class Guarantee {
   private amount: bigint = BigInt(0);
 
-  private target: Destination = new Destination('');
+  private target: Destination = new Destination();
 
-  private left: Destination = new Destination('');
+  private left: Destination = new Destination();
 
-  private right: Destination = new Destination('');
+  private right: Destination = new Destination();
 
   constructor(params: {
     amount: bigint;

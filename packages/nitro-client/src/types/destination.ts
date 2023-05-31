@@ -1,4 +1,5 @@
 import { Bytes32, isExternalDestination } from '@statechannels/nitro-protocol';
+import { ethers } from 'ethers';
 import { Address } from './types';
 
 // Destination represents a payable address in go-nitro. In a state channel network,
@@ -10,7 +11,7 @@ export class Destination {
   // Can use prototype.valueOf method if necessary
   value: Bytes32;
 
-  constructor(value: Bytes32) {
+  constructor(value: Bytes32 = ethers.utils.hexZeroPad([], 32)) {
     this.value = value;
   }
 

@@ -40,7 +40,7 @@ export class PaymentChannelBalance {
 
 // PaymentChannelInfo contains balance and status info about a payment channel
 export class PaymentChannelInfo {
-  iD: Destination = new Destination('');
+  iD: Destination = new Destination();
 
   status: ChannelStatus = ChannelStatus.Proposed;
 
@@ -90,7 +90,7 @@ export class LedgerChannelBalance {
 
 // LedgerChannelInfo contains balance and status info about a ledger channel
 export class LedgerChannelInfo {
-  iD = new Destination('');
+  iD = new Destination();
 
   status: ChannelStatus = ChannelStatus.Proposed;
 
