@@ -472,7 +472,9 @@ export class Engine {
   }
 
   // TODO: Can throw an error
-  private registerPaymentChannel(vfo: VirtualFundObjective): void {}
+  private registerPaymentChannel(vfo: VirtualFundObjective): void {
+    // TODO: Implement
+  }
 
   // spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from
   // the supplied Objective if it is a directfund.Objective.

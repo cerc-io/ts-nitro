@@ -1,3 +1,5 @@
+import assert from 'assert';
+
 import { Signature } from '../crypto/signatures';
 import { Destination } from '../types/destination';
 import { Address } from '../types/types';
@@ -112,9 +114,9 @@ export class Channel extends FixedPart {
   }
 
   // PostFundState() returns the post fund setup state for the channel.
-  // TODO: Implement
   postFundState(): State {
-    return {} as State;
+    assert(this.signedStateForTurnNum);
+    return this.signedStateForTurnNum.get(PostFundTurnNum)!.state();
   }
 
   // SignedPostFundState() returns the SIGNED post fund setup state for the channel.
