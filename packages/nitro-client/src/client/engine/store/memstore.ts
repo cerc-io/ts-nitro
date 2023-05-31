@@ -205,15 +205,18 @@ export class MemStore implements Store {
   }
 
   // TODO: Implement
-  setVoucherInfo(channelId: string, v: VoucherInfo): void {}
+  setVoucherInfo(channelId: Destination, v: VoucherInfo): void {
+    // TODO: Implement
+  }
 
   // TODO: Implement
-  getVoucherInfo(channelId: string): VoucherInfo {
+  getVoucherInfo(channelId: Destination): VoucherInfo {
+    // TODO: Implement
     return {} as VoucherInfo;
   }
 
   // TODO: Implement
-  removeVoucherInfo(channelId: string): void {}
+  removeVoucherInfo(channelId: Destination): void {}
 }
 
 // decodeObjective is a helper which encapsulates the deserialization

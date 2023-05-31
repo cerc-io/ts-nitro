@@ -22,6 +22,10 @@ import {
   ObjectiveResponse as DirectFundObjectiveResponse,
   ObjectiveRequest as DirectFundObjectiveRequest,
 } from '../protocols/directfund/directfund';
+import {
+  ObjectiveResponse as VirtualFundObjectiveResponse,
+  ObjectiveRequest as VirtualFundObjectiveRequest,
+} from '../protocols/virtualfund/virtualfund';
 
 const log = debug('ts-nitro:client');
 
@@ -113,6 +117,18 @@ export class Client {
     this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
     objectiveRequest.waitForObjectiveToStart();
     return objectiveRequest.response(this.address, this.chainId);
+  }
+
+  // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
+  // with the supplied intermediaries.
+  // TODO: Implement
+  createVirtualPaymentChannel(
+    intermediaries: Address[],
+    counterParty: Address,
+    challengeDuration: number,
+    outcome: Exit,
+  ): VirtualFundObjectiveResponse {
+    return new VirtualFundObjectiveResponse();
   }
 
   // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.

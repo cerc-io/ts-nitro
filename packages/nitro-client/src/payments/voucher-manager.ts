@@ -6,13 +6,13 @@ import { Voucher, VoucherInfo } from './vouchers';
 // To avoid import cycles, this interface is defined in the payments package, but implemented in the store package.
 export interface VoucherStore {
   // TODO: Can throw an error
-  setVoucherInfo (channelId: string, v: VoucherInfo): void
+  setVoucherInfo (channelId: Destination, v: VoucherInfo): void
 
   // TODO: Can throw an error
-  getVoucherInfo (channelId: string): VoucherInfo
+  getVoucherInfo (channelId: Destination): VoucherInfo
 
   // TODO: Can throw an error
-  removeVoucherInfo (channelId: string): void
+  removeVoucherInfo (channelId: Destination): void
 }
 
 // VoucherInfo stores the status of payments for a given payment channel.
@@ -35,7 +35,9 @@ export class VoucherManager {
 
   // Register registers a channel for use, given the payer, payee and starting balance of the channel
   // TODO: Can throw an error
-  register(channelId: string, payer: string, payee: string, startingBalance: bigint): void {}
+  register(channelId: Destination, payer: string, payee: string, startingBalance: bigint): void {
+    // TODO: Implement
+  }
 
   // Remove deletes the channel's status
   // TODO: Can throw an error
