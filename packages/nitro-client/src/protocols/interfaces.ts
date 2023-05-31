@@ -8,7 +8,7 @@ export const errNotApproved = new Error('objective not approved');
 
 // ChainTransaction defines the interface that every transaction must implement
 export interface ChainTransaction {
-  channelId?: () => Destination
+  channelId: () => Destination
 }
 
 // ChainTransactionBase is a convenience struct that is embedded in other transaction structs.

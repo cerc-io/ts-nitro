@@ -18,6 +18,8 @@ import type { Stream } from '@libp2p/interface-connection';
 import type { IncomingStreamData } from '@libp2p/interface-registrar';
 // @ts-expect-error
 import type { PeerInfo as Libp2pPeerInfo } from '@libp2p/interface-peer-info';
+// @ts-expect-error
+import type { PeerId } from '@libp2p/interface-peer-id';
 
 import { SafeSyncMap } from '../../../../internal/safesync/safesync';
 import { Message } from '../../../../protocols/messages';
@@ -28,11 +30,14 @@ const log = debug('ts-nitro:p2p-message-service');
 
 const PROTOCOL_ID = '/go-nitro/msg/1.0.0';
 const PEER_EXCHANGE_PROTOCOL_ID = '/go-nitro/peerinfo/1.0.0';
+const DELIMITER = '\n';
 const BUFFER_SIZE = 1_000;
+const NUM_CONNECT_ATTEMPTS = 20;
+const RETRY_SLEEP_DURATION = 5 * 1000; // milliseconds
 
 // BasicPeerInfo contains the basic information about a peer
 interface BasicPeerInfo {
-  id: string;
+  id: PeerId;
   address: Address;
 }
 
@@ -212,7 +217,49 @@ export class P2PMessageService implements MessageService {
   // It blocks until the message is sent.
   // It will retry establishing a stream NUM_CONNECT_ATTEMPTS times before giving up
   // TODO: Implement
-  send(msg: Message) {}
+  async send(msg: Message) {
+    let raw: string = '';
+    try {
+      raw = msg.serialize();
+    } catch (err) {
+      this.checkError(err as Error);
+    }
+
+    const [peerInfo, ok] = this.peers.load(msg.to);
+    if (!ok) {
+      throw new Error(`Could not load peer ${msg.to}`);
+    }
+
+    assert(peerInfo);
+    assert(this.p2pHost);
+    const { pipe } = await import('it-pipe');
+    const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
+    for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const s = await this.p2pHost.dialProtocol(peerInfo.id, PROTOCOL_ID);
+
+        // TODO: Implement buffered writer
+        // writer := bufio.NewWriter(s)
+        // // We don't care about the number of bytes written
+        // _, err = writer.WriteString(raw + string(DELIMITER))
+        // ms.checkError(err)
+        // writer.Flush()
+        // s.Close()
+
+        pipe(
+          [uint8ArrayFromString(raw + DELIMITER)],
+          s.sink,
+        );
+
+        return;
+      } catch (err) {
+        this.logger(`Attempt ${i} - Could not open stream to ${msg.to}`);
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
+      }
+    }
+  }
 
   // checkError panics if the message service is running and there is an error, otherwise it just returns
   // TODO: Implement

@@ -6,6 +6,7 @@ import JSONbig from 'json-bigint';
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 
+import { go } from '@cerc-io/nitro-util';
 import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent } from './chainservice/chainservice';
 import { Store } from './store/store';
@@ -32,6 +33,9 @@ import {
 
 const JSONbigNative = JSONbig({ useNativeBigInt: true });
 const log = debug('ts-nitro:client');
+
+const Incoming: MessageDirection = 'Incoming';
+const Outgoing: MessageDirection = 'Outgoing';
 
 export type PaymentRequest = {
   channelId: string
@@ -341,10 +345,40 @@ export class Engine {
   }
 
   // sendMessages sends out the messages and records the metrics.
-  private sendMessages(msgs: Message[]): void {}
+  private sendMessages(msgs: Message[]): void {
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    assert(this.store);
+    assert(this.msg);
+    for (const message of msgs) {
+      message.from = this.store.getAddress();
+      this.logMessage(message, Outgoing);
+      this.recordMessageMetrics(message);
+      this.msg.send(message);
+    }
+  }
 
   // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
-  private executeSideEffects(sideEffects: SideEffects): void {}
+  private executeSideEffects(sideEffects: SideEffects): void {
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    // Send messages in a go routine so that we don't block on message delivery
+    go(this.sendMessages.bind(this), sideEffects.messagesToSend);
+
+    assert(this.chain);
+    for (const tx of sideEffects.transactionsToSubmit) {
+      this.logger(`Sending chain transaction for channel ${tx.channelId()}`);
+
+      this.chain.sendTransaction(tx);
+    }
+
+    assert(this.fromLedger);
+    for (const proposal of sideEffects.proposalsToProcess) {
+      this.fromLedger.push(proposal);
+    }
+  }
 
   // attemptProgress takes a "live" objective in memory and performs the following actions:
   //
@@ -368,7 +402,7 @@ export class Engine {
     try {
       [crankedObjective, sideEffects, waitingFor] = objective.crank(secretKey);
     } catch (err) {
-      return new EngineEvent();
+      return outgoing;
     }
 
     this.store.setObjective(crankedObjective);
@@ -488,9 +522,16 @@ export class Engine {
   }
 
   // logMessage logs a message to the engine's logger
-  private logMessage(msg: Message, direction: MessageDirection): void {}
+  private logMessage(msg: Message, direction: MessageDirection): void {
+    if (direction === Incoming) {
+      this.logger(`Received message: ${msg.summarize()}`);
+    } else {
+      this.logger(`Sending message: ${msg.summarize()}`);
+    }
+  }
 
   // recordMessageMetrics records metrics for a message
+  // TODO: Implement
   private recordMessageMetrics(message: Message): void {}
 
   // eslint-disable-next-line n/handle-callback-err
@@ -519,9 +560,6 @@ export class Engine {
 }
 
 type MessageDirection = string;
-
-const Incoming: MessageDirection = 'Incoming';
-const Outgoing: MessageDirection = 'Outgoing';
 
 // fromMsgErr wraps errors from objective construction functions and
 // returns an error bundled with the objectiveID

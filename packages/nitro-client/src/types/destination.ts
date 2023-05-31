@@ -16,13 +16,9 @@ export class Destination {
 
   // addressToDestinaion left-pads the blockchain address with zeros.
   static addressToDestination(a: Address): Destination {
-    // TODO: Implement direct-fund
-    // d := Destination{0}
-    // for i := range a {
-    //   d[i+12] = a[i]
-    // }
+    const value = '0'.repeat(32 - a.length) + a;
 
-    return new Destination(a);
+    return new Destination(value);
   }
 
   // isExternal returns true if the destination is a blockchain address, and false
