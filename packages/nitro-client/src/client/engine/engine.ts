@@ -320,12 +320,11 @@ export class Engine {
             this.store.getConsensusChannel,
           );
 
-          return this.attemptProgress(dfo);
+          return await this.attemptProgress(dfo);
         } catch (err) {
           throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(or)}: ${err}`);
         }
-        // return this.attemptProgress(dfo);
-        break;
+
       case or instanceof DirectDefundObjectiveRequest:
         // TODO: Implement
         break;
@@ -360,7 +359,7 @@ export class Engine {
   }
 
   // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
-  private executeSideEffects(sideEffects: SideEffects): void {
+  private async executeSideEffects(sideEffects: SideEffects): Promise<void> {
     // TODO: Implement metrics
     // defer e.metrics.RecordFunctionDuration()()
 
@@ -371,7 +370,7 @@ export class Engine {
     for (const tx of sideEffects.transactionsToSubmit) {
       this.logger(`Sending chain transaction for channel ${tx.channelId()}`);
 
-      this.chain.sendTransaction(tx);
+      await this.chain.sendTransaction(tx);
     }
 
     assert(this.fromLedger);
@@ -387,7 +386,7 @@ export class Engine {
   //  3. It commits the cranked objective to the store
   //  4. It executes any side effects that were declared during cranking
   //  5. It updates progress metadata in the store
-  private attemptProgress(objective: Objective): EngineEvent {
+  private async attemptProgress(objective: Objective): Promise<EngineEvent> {
     const outgoing = new EngineEvent();
     // TODO: Implement metrics
     // defer e.metrics.RecordFunctionDuration()()
@@ -427,7 +426,7 @@ export class Engine {
       }
     }
 
-    this.executeSideEffects(sideEffects);
+    await this.executeSideEffects(sideEffects);
 
     return outgoing;
   }

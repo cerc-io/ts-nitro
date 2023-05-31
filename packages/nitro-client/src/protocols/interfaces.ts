@@ -3,6 +3,7 @@ import { Proposal } from '../channel/consensus-channel/consensus-channel';
 import { Address } from '../types/types';
 import { Destination } from '../types/destination';
 import { Funds } from '../types/funds';
+import { SignedState } from '../channel/state/signedstate';
 
 export const errNotApproved = new Error('objective not approved');
 
@@ -42,6 +43,10 @@ export class DepositTransaction extends ChainTransactionBase implements ChainTra
       deposit,
     });
   }
+}
+
+export class WithdrawAllTransaction extends ChainTransactionBase implements ChainTransaction {
+  signedState?: SignedState;
 }
 
 // SideEffects are effects to be executed by an imperative shell

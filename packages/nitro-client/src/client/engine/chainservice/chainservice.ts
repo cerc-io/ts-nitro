@@ -14,7 +14,7 @@ export interface ChainService {
 
   // TODO: Use protocols chain transaction type
   // TODO: Can throw an error
-  sendTransaction (tx: ChainTransaction): void;
+  sendTransaction (tx: ChainTransaction): Promise<void>;
 
   // TODO: Use Address type
   getConsensusAppAddress (): Address;

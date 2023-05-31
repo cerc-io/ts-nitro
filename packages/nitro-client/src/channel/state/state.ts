@@ -56,14 +56,14 @@ export class FixedPart {
 
 // VariablePart contains the subset of State data which can change with each state update.
 export class VariablePart {
-  appData?: Buffer;
+  appData: Buffer = Buffer.alloc(0);
 
   outcome?: Exit;
 
   // TODO: unit64 replacement
-  turnNum? : number;
+  turnNum : number = 0;
 
-  isFinal?: boolean;
+  isFinal: boolean = false;
 }
 
 // State holds all of the data describing the state of a channel
