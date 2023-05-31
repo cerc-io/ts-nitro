@@ -1,11 +1,15 @@
-// Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
+import Channel from '@nodeguy/channel';
+import type { ReadWriteChannel } from '@nodeguy/channel';
 
+import { ethers } from 'ethers';
 import { Destination } from '../../types/destination';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
 import { Exit } from '../../channel/state/outcome/exit';
 import { State } from '../../channel/state/state';
 import { Funds } from '../../types/funds';
 import { Address } from '../../types/types';
+import { ObjectiveRequest as ObjectiveRequestInterface } from '../interfaces';
+import { ObjectiveId } from '../messages';
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
@@ -19,7 +23,7 @@ export class Connection {
   private insertGuaranteeInfo(a0: Funds, b0: Funds, vId: Destination, left: Destination, right: Destination) {}
 }
 
-// TODO: Implement
+// Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
 export class Objective {
   // NewObjective creates a new virtual funding objective from a given request.
   // TODO: Implement
@@ -46,9 +50,39 @@ export class Objective {
   }
 }
 
+// ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.
+// TODO: Implement
+export class ObjectiveResponse {}
+
 // ObjectiveRequest represents a request to create a new virtual funding objective.
 // TODO: Implement
-export class ObjectiveRequest {
+export class ObjectiveRequest implements ObjectiveRequestInterface {
+  intermediaries: Address[] = [];
+
+  counterParty: Address = ethers.constants.AddressZero;
+
+  challengeDuration: number = 0;
+
+  outcome?: Exit;
+
+  nonce: string = '0';
+
+  appDefinition: Address = ethers.constants.AddressZero;
+
+  private objectiveStarted?: ReadWriteChannel<null>;
+
+  constructor(params: {
+    intermediaries: Address[];
+    counterParty: Address;
+    challengeDuration: number;
+    outcome?: Exit;
+    nonce: string;
+    appDefinition: Address;
+    objectiveStarted?: ReadWriteChannel<null>;
+  }) {
+    Object.assign(this, params);
+  }
+
   // NewObjectiveRequest creates a new ObjectiveRequest.
   static newObjectiveRequest(
     intermediaries: Address[],
@@ -58,10 +92,33 @@ export class ObjectiveRequest {
     nonce: string,
     appDefinition: Address,
   ): ObjectiveRequest {
-    return new ObjectiveRequest();
+    return new ObjectiveRequest({
+      intermediaries,
+      counterParty: counterparty,
+      challengeDuration,
+      outcome,
+      nonce,
+      appDefinition,
+      objectiveStarted: Channel(),
+    });
+  }
+
+  id(address: Address, chainId: bigint): ObjectiveId {
+    // TODO: Implement
+    return '';
+  }
+
+  waitForObjectiveToStart(): void {
+    // TODO: Implement
+  }
+
+  signalObjectiveStarted(): void {
+    // TODO: Implement
+  }
+
+  // response computes and returns the appropriate response from the request.
+  response(myAddress: Address): ObjectiveResponse {
+    // TODO: Implement
+    return new ObjectiveResponse();
   }
 }
-
-// ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.
-// TODO: Implement
-export class ObjectiveResponse {}

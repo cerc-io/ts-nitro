@@ -1,5 +1,6 @@
 import debug from 'debug';
 import assert from 'assert';
+import { ethers } from 'ethers';
 
 import type { ReadWriteChannel } from '@nodeguy/channel';
 import Channel from '@nodeguy/channel';
@@ -33,7 +34,7 @@ export class Client {
   // The core business logic of the client
   private engine?: Engine;
 
-  address?: Address;
+  address: Address = ethers.constants.AddressZero;
 
   private channelNotifier?: ChannelNotifier;
 
@@ -104,13 +105,13 @@ export class Client {
     assert(this.address);
     assert(this.chainId);
 
-    const objectiveRequest = new DirectFundObjectiveRequest({
-      counterParty: counterparty,
+    const objectiveRequest = DirectFundObjectiveRequest.newObjectiveRequest(
+      counterparty,
       challengeDuration,
       outcome,
-      nonce: randUint64(),
-      appDefinition: this.engine.getConsensusAppAddress(),
-    });
+      randUint64(),
+      this.engine.getConsensusAppAddress(),
+    );
 
     assert(this.engine.objectiveRequestsFromAPI);
     // Send the event to the engine
@@ -128,7 +129,23 @@ export class Client {
     challengeDuration: number,
     outcome: Exit,
   ): VirtualFundObjectiveResponse {
-    return new VirtualFundObjectiveResponse();
+    assert(this.engine);
+
+    const objectiveRequest = VirtualFundObjectiveRequest.newObjectiveRequest(
+      intermediaries,
+      counterParty,
+      challengeDuration,
+      outcome,
+      randUint64(),
+      this.engine.getVirtualPaymentAppAddress(),
+    );
+
+    // Send the event to the engine
+    assert(this.engine.objectiveRequestsFromAPI);
+    this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
+
+    objectiveRequest.waitForObjectiveToStart();
+    return objectiveRequest.response(this.address);
   }
 
   // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.

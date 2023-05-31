@@ -510,6 +510,24 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     Object.assign(this, params);
   }
 
+  // newObjectiveRequest creates a new ObjectiveRequest.
+  static newObjectiveRequest(
+    counterparty: Address,
+    challengeDuration: number,
+    outcome: Exit,
+    nonce: string,
+    appDefinition: Address,
+  ): ObjectiveRequest {
+    return new ObjectiveRequest({
+      counterParty: counterparty,
+      challengeDuration,
+      outcome,
+      nonce,
+      appDefinition,
+      objectiveStarted: Channel(),
+    });
+  }
+
   // SignalObjectiveStarted is used by the engine to signal the objective has been started.
   signalObjectiveStarted(): void { }
 
