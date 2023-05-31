@@ -8,7 +8,7 @@ export enum AllocationType {
 // Allocation declares an Amount to be paid to a Destination.
 export class Allocation {
   // Either an ethereum address or an application-specific identifier
-  destination: Destination = new Destination('');
+  destination: Destination = new Destination();
 
   // An amount of a particular asset
   amount: bigint = BigInt(0);

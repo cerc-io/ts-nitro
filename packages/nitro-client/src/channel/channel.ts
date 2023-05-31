@@ -18,7 +18,7 @@ interface ConstructorOptions extends FixedPartConstructorOptions {
 
 // Channel contains states and metadata and exposes convenience methods.
 export class Channel extends FixedPart {
-  id: Destination = new Destination('');
+  id: Destination = new Destination();
 
   // TODO: unit replacement
   myIndex: number = 0;

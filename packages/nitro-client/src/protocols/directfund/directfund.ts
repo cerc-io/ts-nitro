@@ -478,7 +478,7 @@ export class Objective implements ObjectiveInterface {
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.
 export type ObjectiveResponse = {
   id: ObjectiveId
-  channelId: string
+  channelId: Destination
 };
 
 // ObjectiveRequest represents a request to create a new direct funding objective.
@@ -514,7 +514,10 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   signalObjectiveStarted(): void { }
 
   // WaitForObjectiveToStart blocks until the objective starts
-  waitForObjectiveToStart(): void { }
+  async waitForObjectiveToStart(): Promise<void> {
+    assert(this.objectiveStarted);
+    await this.objectiveStarted.shift();
+  }
 
   // Id returns the objective id for the request.
   id(myAddress: Address, chainId: bigint): ObjectiveId {
@@ -530,6 +533,18 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
   // Response computes and returns the appropriate response from the request.
   response(myAddress: Address, chainId: bigint): ObjectiveResponse {
-    return {} as ObjectiveResponse;
+    const fixedPart = new FixedPart({
+      participants: [myAddress, this.counterParty],
+      channelNonce: this.nonce,
+      challengeDuration: this.challengeDuration,
+      appDefinition: this.appDefinition,
+    });
+
+    const channelId = fixedPart.channelId();
+
+    return {
+      id: `${objectivePrefix}${channelId.string()}`,
+      channelId,
+    };
   }
 }
