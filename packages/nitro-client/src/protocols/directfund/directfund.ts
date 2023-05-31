@@ -494,7 +494,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
   appData: Buffer = Buffer.alloc(0);
 
-  nonce: string = '';
+  nonce: string = '0';
 
   private objectiveStarted?: ReadWriteChannel<void>;
 

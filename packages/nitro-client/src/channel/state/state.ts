@@ -21,7 +21,7 @@ export class FixedPart {
   participants: Address[] = [];
 
   // TODO: unit64 replacement
-  channelNonce: string = '';
+  channelNonce: string = '0';
 
   appDefinition: Address = ethers.constants.AddressZero;
 
@@ -70,7 +70,7 @@ export class VariablePart {
 export class State {
   participants: Address[] = [];
 
-  channelNonce: string = '';
+  channelNonce: string = '0';
 
   appDefinition: Address = '';
 
