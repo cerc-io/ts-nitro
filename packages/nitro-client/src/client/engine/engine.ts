@@ -30,7 +30,7 @@ import { VirtualChannel } from '../../channel/virtual';
 import {
   constructLedgerInfoFromChannel, constructLedgerInfoFromConsensus, constructPaymentInfo, getVoucherBalance,
 } from '../query/query';
-import { PAYER_INDEX } from '../../payments/helpers';
+import { PAYER_INDEX, getPayee, getPayer } from '../../payments/helpers';
 
 const JSONbigNative = JSONbig({ useNativeBigInt: true });
 const log = debug('ts-nitro:client');
@@ -495,9 +495,21 @@ export class Engine {
     return outgoing;
   }
 
-  // TODO: Can throw an error
   private registerPaymentChannel(vfo: VirtualFundObjective): void {
-    // TODO: Implement
+    assert(vfo.v);
+    const postfund = vfo.v.postFundState();
+
+    // TODO: Assumes one asset for now
+    const startingBalance = BigInt(postfund.outcome.value[0].allocations[0].amount);
+
+    assert(this.vm);
+
+    return this.vm.register(
+      vfo.v.id,
+      getPayer(postfund.participants),
+      getPayee(postfund.participants),
+      startingBalance,
+    );
   }
 
   // spawnConsensusChannelIfDirectFundObjective will attempt to create and store a ConsensusChannel derived from

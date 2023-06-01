@@ -6,4 +6,4 @@ export const PAYER_INDEX = 0;
 export const getPayer = (participants: Address[]): Address => participants[PAYER_INDEX];
 
 // GetPayee returns the payee on a payment channel
-const getPayee = (participants: Address[]): Address => participants[participants.length - 1];
+export const getPayee = (participants: Address[]): Address => participants[participants.length - 1];

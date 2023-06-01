@@ -9,15 +9,25 @@
 //     {alice: 80, bob: 20}
 
 import { ethers } from 'ethers';
-import { Signature } from '../crypto/signatures';
+
+import { Signature } from '../channel/state/state';
 import { Address } from '../types/types';
+import { Destination } from '../types/destination';
 
 export class Voucher {
-  channelId?: string;
+  channelId: Destination = new Destination();
 
   amount?: bigint;
 
-  signature?: Signature;
+  signature: Signature = {};
+
+  constructor(params: {
+    channelId?: Destination;
+    amount?: bigint;
+    signature?: Signature;
+  }) {
+    Object.assign(this, params);
+  }
 
   // TODO: Can throw an error
   // TODO: Implement
@@ -46,13 +56,22 @@ export class Voucher {
 // As well as details about the balance and who the payee/payer is.
 // TODO: Implement
 export class VoucherInfo {
-  channelPayer?: string;
+  channelPayer: Address = ethers.constants.AddressZero;
 
-  channelPayee?: string;
+  channelPayee: Address = ethers.constants.AddressZero;
 
   startingBalance?: bigint;
 
-  largestVoucher?: Voucher;
+  largestVoucher: Voucher = new Voucher({});
+
+  constructor(params: {
+    channelPayer: Address
+    channelPayee: Address
+    startingBalance?: bigint
+    largestVoucher: Voucher
+  }) {
+    Object.assign(this, params);
+  }
 
   // Paid is the amount of funds that already have been used as payments
   paid(): bigint {
