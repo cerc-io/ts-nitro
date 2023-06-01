@@ -1,6 +1,7 @@
 import { bytes2Hex } from '@cerc-io/nitro-util';
 
 import { ethers } from 'ethers';
+import assert from 'assert';
 import { Store } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
@@ -204,15 +205,29 @@ export class MemStore implements Store {
     this.channelToObjective.delete(channelId.string());
   }
 
-  // TODO: Implement
   setVoucherInfo(channelId: Destination, v: VoucherInfo): void {
-    // TODO: Implement
+    // Implement json.Marshal
+    const jsonData = Buffer.from(JSON.stringify(v));
+
+    this.vouchers.store(channelId.string(), jsonData);
   }
 
   // TODO: Implement
-  getVoucherInfo(channelId: Destination): VoucherInfo {
-    // TODO: Implement
-    return {} as VoucherInfo;
+  getVoucherInfo(channelId: Destination): [VoucherInfo | undefined, boolean] {
+    const [data, ok] = this.vouchers.load(channelId.string());
+    if (!ok) {
+      return [undefined, false];
+    }
+
+    assert(data);
+
+    try {
+      // TODO: Implement json.Unmarshal
+      const v = new VoucherInfo(JSON.parse(data.toString()));
+      return [v, true];
+    } catch (err) {
+      return [undefined, false];
+    }
   }
 
   // TODO: Implement
