@@ -69,7 +69,6 @@ export class Connection {
       right: guaranteeInfo.right,
     });
 
-    // TODO: Implement
     metadata.encode();
 
     // The metadata can be encoded, so update the connection's guarantee
