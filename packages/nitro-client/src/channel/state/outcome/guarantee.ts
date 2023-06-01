@@ -5,6 +5,13 @@ export class GuaranteeMetadata {
 
   right: Destination = new Destination();
 
+  constructor(params: {
+    left?: Destination,
+    right?: Destination,
+  }) {
+    Object.assign(this, params);
+  }
+
   // encode returns the abi.encoded GuaranteeMetadata (suitable for packing in an Allocation.Metadata field)
   // TODO: Implement
   encode(): Buffer {
@@ -15,6 +22,6 @@ export class GuaranteeMetadata {
   static decodeIntoGuaranteeMetadata(m: Buffer): GuaranteeMetadata {
     //   TODO: Implement and check util method from nitro-protocol
 
-    return new GuaranteeMetadata();
+    return new GuaranteeMetadata({});
   }
 }

@@ -18,6 +18,7 @@ import {
 } from '../interfaces';
 import { ObjectiveId, ObjectivePayload } from '../messages';
 import { VirtualChannel } from '../../channel/virtual';
+import { GuaranteeMetadata } from '../../channel/state/outcome/guarantee';
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
@@ -25,13 +26,54 @@ interface GetTwoPartyConsensusLedgerFunction {
   (counterparty: Address): [ConsensusChannel, boolean]
 }
 
+class GuaranteeInfo {
+  public left: Destination = new Destination();
+
+  public right: Destination = new Destination();
+
+  public leftAmount?: Funds;
+
+  public rightAmount?: Funds;
+
+  public guaranteeDestination: Destination = new Destination();
+
+  constructor(params: {
+    left?: Destination,
+    right?: Destination,
+    leftAmount?: Funds,
+    rightAmount?: Funds,
+    guaranteeDestination?: Destination
+  }) {
+    Object.assign(this, params);
+  }
+}
+
 // TODO: Implement
 export class Connection {
   channel?: ConsensusChannel;
 
+  guaranteeInfo: GuaranteeInfo = new GuaranteeInfo({});
+
   // insertGuaranteeInfo mutates the receiver Connection struct.
   insertGuaranteeInfo(a0: Funds, b0: Funds, vId: Destination, left: Destination, right: Destination) {
+    const guaranteeInfo = new GuaranteeInfo({
+      left,
+      right,
+      leftAmount: a0,
+      rightAmount: b0,
+      guaranteeDestination: vId,
+    });
+
+    const metadata = new GuaranteeMetadata({
+      left: guaranteeInfo.left,
+      right: guaranteeInfo.right,
+    });
+
     // TODO: Implement
+    metadata.encode();
+
+    // The metadata can be encoded, so update the connection's guarantee
+    this.guaranteeInfo = guaranteeInfo;
   }
 }
 
@@ -176,7 +218,6 @@ export class Objective implements ObjectiveInterface {
       }
 
       init.toMyLeft.channel = consensusChannelToMyLeft;
-      // TODO: Implement
       init.toMyLeft.insertGuaranteeInfo(
         init.a0,
         init.b0,
@@ -189,15 +230,11 @@ export class Objective implements ObjectiveInterface {
     if (!init.isBob()) {
       init.toMyRight = new Connection();
 
-      // TODO: Assign undefined in newObjective
       if (!consensusChannelToMyRight) {
         throw new Error('Non-Bob virtualfund objective requires non-null right ledger channel');
       }
 
       init.toMyRight.channel = consensusChannelToMyRight;
-      const left = initialStateOfV.participants[init.myRole];
-      const right = initialStateOfV.participants[init.myRole + 1];
-      // TODO: Implement
       init.toMyRight.insertGuaranteeInfo(
         init.a0,
         init.b0,
