@@ -87,14 +87,14 @@ export class State {
 
   constructor(
     params: {
-      participants: Address[],
-      channelNonce: string,
-      appDefinition: Address,
-      challengeDuration: number,
-      appData: Buffer,
-      outcome: Exit,
-      turnNum: number,
-      isFinal: boolean
+      participants?: Address[],
+      channelNonce?: string,
+      appDefinition?: Address,
+      challengeDuration?: number,
+      appData?: Buffer,
+      outcome?: Exit,
+      turnNum?: number,
+      isFinal?: boolean
     },
   ) {
     Object.assign(this, params);

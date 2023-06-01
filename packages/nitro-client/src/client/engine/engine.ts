@@ -30,6 +30,7 @@ import { VirtualChannel } from '../../channel/virtual';
 import {
   constructLedgerInfoFromChannel, constructLedgerInfoFromConsensus, constructPaymentInfo, getVoucherBalance,
 } from '../query/query';
+import { PAYER_INDEX } from '../../payments/helpers';
 
 const JSONbigNative = JSONbig({ useNativeBigInt: true });
 const log = debug('ts-nitro:client');
@@ -302,14 +303,37 @@ export class Engine {
     // e.metrics.RecordObjectiveStarted(objectiveId);
 
     switch (true) {
-      case or instanceof VirtualFundObjectiveRequest:
-        // TODO: Implement
-        break;
+      case or instanceof VirtualFundObjectiveRequest: {
+        let vfo: VirtualFundObjective;
+        try {
+          vfo = VirtualFundObjective.newObjective(
+            or as VirtualFundObjectiveRequest,
+            true,
+            myAddress,
+            chainId,
+            this.store.getConsensusChannel,
+          );
+        } catch (err) {
+          throw new Error(`handleAPIEvent: Could not create objective for ${or}: ${err}`);
+        }
+
+        // Only Alice or Bob care about registering the objective and keeping track of vouchers
+        const lastParticipant = vfo.v!.participants.length - 1;
+        if (vfo.myRole === lastParticipant || vfo.myRole === PAYER_INDEX) {
+          try {
+            this.registerPaymentChannel(vfo);
+          } catch (err) {
+            throw new Error(`could not register channel with payment/receipt manager: ${err}`);
+          }
+        }
+
+        return this.attemptProgress(vfo);
+      }
+
       case or instanceof VirtualDefundObjectiveRequest:
         // TODO: Implement
         break;
       case or instanceof DirectFundObjectiveRequest:
-        // TODO: Use try-catch
         try {
           const dfo = DirectFundObjective.newObjective(
             or as DirectFundObjectiveRequest,
