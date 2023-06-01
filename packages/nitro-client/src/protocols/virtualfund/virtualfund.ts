@@ -144,7 +144,6 @@ export class Objective implements ObjectiveInterface {
   }
 
   // constructFromState initiates an Objective from an initial state and set of ledgers.
-  // TODO: Implement
   static constructFromState(
     preApprove: boolean,
     initialStateOfV: State,
@@ -173,7 +172,6 @@ export class Objective implements ObjectiveInterface {
       throw new Error('Not a participant in V');
     }
 
-    // TODO: Implement newVirtualChannel
     const v: VirtualChannel = VirtualChannel.newVirtualChannel(initialStateOfV, init.myRole);
     init.v = v;
 

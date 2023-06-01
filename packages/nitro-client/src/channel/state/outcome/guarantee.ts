@@ -26,8 +26,6 @@ export class GuaranteeMetadata {
 
   // Decode returns a GuaranteeMetaData from an abi encoding
   static decodeIntoGuaranteeMetadata(m: Buffer): GuaranteeMetadata {
-    //   TODO: Implement and check util method from nitro-protocol
-
     const { left, right } = decodeGuaranteeData(m.toString());
     return new GuaranteeMetadata({
       left: new Destination(left),
