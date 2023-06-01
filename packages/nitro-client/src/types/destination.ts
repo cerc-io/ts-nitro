@@ -17,9 +17,10 @@ export class Destination {
 
   // addressToDestinaion left-pads the blockchain address with zeros.
   static addressToDestination(a: Address): Destination {
-    const value = '0'.repeat(32 - a.length) + a;
+    const paddedAddress = ethers.utils.hexZeroPad(ethers.utils.hexlify(a), 32);
+    const destination = ethers.utils.hexDataSlice(paddedAddress, 12);
 
-    return new Destination(value);
+    return new Destination(ethers.utils.hexlify(destination));
   }
 
   // isExternal returns true if the destination is a blockchain address, and false
