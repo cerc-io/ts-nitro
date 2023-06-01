@@ -81,6 +81,12 @@ export class Message {
     return messages;
   }
 
+  // CreateVoucherMessage returns a signed voucher message for each of the recipients provided.
+  static createVoucherMessage(voucher: Voucher, ...recipients: Address[]): Message[] {
+    // TODO: Implement
+    return [];
+  }
+
   // Serialize serializes the message into a string.
   // TODO: Can throw an error
   // TODO: Implement

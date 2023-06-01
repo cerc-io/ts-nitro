@@ -30,7 +30,7 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
   getChannelsByIds (ids: string[]): Channel[]
 
   // TODO: Can throw an error
-  getChannelById (id: string): Channel
+  getChannelById (id: Destination): [Channel, boolean]
 
   // Returns any channels that includes the given participant
   getChannelsByParticipant (participant: Address): Channel[]

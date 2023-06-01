@@ -30,14 +30,15 @@ export class Voucher {
   }
 
   // TODO: Can throw an error
-  // TODO: Implement
   hash(): Buffer {
+    // TODO: Implement
     return Buffer.from('');
   }
 
   // TODO: Can throw an error
-  // TODO: Implement
-  sign(pk: Buffer): void {}
+  sign(pk: Buffer): void {
+    // TODO: Implement
+  }
 
   // TODO: Can throw an error
   // TODO: Implement

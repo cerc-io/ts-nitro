@@ -8,6 +8,7 @@ import {
   ChannelStatus, LedgerChannelBalance, LedgerChannelInfo, PaymentChannelInfo, PaymentChannelBalance,
 } from './types';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
+import { Store } from '../engine/store/store';
 
 const getStatusFromChannel = (c: Channel): ChannelStatus => {
   if (c.finalSignedByMe()) {
@@ -66,6 +67,11 @@ const getLatestSupportedOrPreFund = (channel: Channel): State => {
 
   return channel.preFundState();
 };
+
+// GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
+// It does this by querying the provided store and voucher manager
+// TODO: Implement
+export const getPaymentChannelInfo = (id: Destination, store: Store, vm: VoucherManager): PaymentChannelInfo => new PaymentChannelInfo({});
 
 export const getVoucherBalance = (id: Destination, vm: VoucherManager): [bigint, bigint] => {
   let paid: bigint = BigInt(0);

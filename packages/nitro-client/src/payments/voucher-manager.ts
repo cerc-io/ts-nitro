@@ -43,7 +43,6 @@ export class VoucherManager {
       largestVoucher: voucher,
     });
 
-    // TODO: Implement
     const [v] = this.store.getVoucherInfo(channelId);
     if (!v) {
       throw new Error('Channel already registered');
@@ -60,6 +59,7 @@ export class VoucherManager {
   // total amount paid.
   // TODO: Can throw an error
   pay(channelId: string, amount: bigint, pk: string): Voucher {
+    // TODO: Implement
     return new Voucher({});
   }
 

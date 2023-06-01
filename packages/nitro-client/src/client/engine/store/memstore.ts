@@ -149,13 +149,13 @@ export class MemStore implements Store {
   // TODO: Implement
   destroyConsensusChannel(id: string): void {}
 
-  // TODO: Implement
-  getChannelById(id: string): Channel {
-    return {} as Channel;
+  getChannelById(id: Destination): [Channel, boolean] {
+    // TODO: Implement
+    return [{} as Channel, false];
   }
 
-  // TODO: Implement
-  private _getChannelById(id: string): Channel {
+  private _getChannelById(id: Destination): Channel {
+    // TODO: Implement
     return {} as Channel;
   }
 
