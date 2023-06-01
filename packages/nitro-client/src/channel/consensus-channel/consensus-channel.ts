@@ -20,9 +20,9 @@ export const Follower: LedgerIndex = 1;
 // of type 0, ie. a simple allocation.
 // TODO: Implement
 export class Balance {
-  private destination: Destination = new Destination();
+  destination: Destination = new Destination();
 
-  private amount: bigint = BigInt(0);
+  amount: bigint = BigInt(0);
 
   constructor(params: {
     destination: Destination;
@@ -46,7 +46,7 @@ export class Balance {
 // single-asset Allocation of type 1, ie. a guarantee.
 // TODO: Implement
 export class Guarantee {
-  private amount: bigint = BigInt(0);
+  amount: bigint = BigInt(0);
 
   private target: Destination = new Destination();
 
@@ -159,6 +159,34 @@ export class LedgerOutcome {
       })],
     );
   }
+
+  clone(): LedgerOutcome {
+    const { assetAddress } = this;
+
+    const leader = new Balance({
+      destination: this.leader!.destination,
+      amount: BigInt(this.leader!.amount), // Create a new BigInt instance
+    });
+
+    const follower = new Balance({
+      destination: this.follower!.destination,
+      amount: BigInt(this.follower!.amount), // Create a new BigInt instance
+    });
+
+    const guarantees = new Map<Destination, Guarantee>();
+    for (const [d, g] of this.guarantees!.entries()) {
+      const g2 = g;
+      g2.amount = BigInt(g.amount);
+      guarantees.set(d, g2);
+    }
+
+    return new LedgerOutcome({
+      assetAddress,
+      leader,
+      follower,
+      guarantees,
+    });
+  }
 }
 
 // Vars stores the turn number and outcome for a state in a consensus channel.
@@ -168,6 +196,13 @@ export class Vars {
   turnNum: number = 0;
 
   outcome?: LedgerOutcome;
+
+  constructor(params: {
+    turnNum?: number;
+    outcome?: LedgerOutcome;
+  }) {
+    Object.assign(this, params);
+  }
 
   asState(fp: FixedPart): State {
     assert(this.outcome);
@@ -194,67 +229,111 @@ export class Vars {
 export class SignedVars {
   vars?: Vars;
 
-  signatures?: [Signature, Signature];
+  signatures: [Signature, Signature] = [{}, {}];
+
+  constructor(params: {
+    vars?: Vars;
+    signatures?: [Signature, Signature];
+  }) {
+    Object.assign(this, params);
+  }
 }
 
 // ConsensusChannel is used to manage states in a running ledger channel.
 export class ConsensusChannel {
   // constants
 
-  id: Destination;
+  id: Destination = new Destination();
 
-  myIndex: LedgerIndex;
+  myIndex: LedgerIndex = 0;
 
-  onChainFunding: Funds;
+  onChainFunding?: Funds;
 
-  private fp: FixedPart;
+  private fp?: FixedPart;
 
   // variables
 
   // current represents the "consensus state", signed by both parties
-  private current: SignedVars;
+  private current?: SignedVars;
 
   // a queue of proposed changes which can be applied to the current state, ordered by TurnNum.
-  private _proposalQueue: SignedProposal[];
+  private _proposalQueue: SignedProposal[] = [];
+
+  constructor(params: {
+    id?: Destination;
+    myIndex?: LedgerIndex;
+    onChainFunding?: Funds;
+    fp?: FixedPart;
+    current?: SignedVars;
+    _proposalQueue?: SignedProposal[];
+  }) {
+    Object.assign(this, params);
+  }
 
   // newConsensusChannel constructs a new consensus channel, validating its input by
   // checking that the signatures are as expected for the given fp, initialTurnNum and outcome.
   // TODO: Can throw an error
   // TODO: Refactor to newConsensusChannel static method
-  constructor(
+  static newConsensusChannel(
     fp: FixedPart,
     myIndex: LedgerIndex,
     initialTurnNum: number,
     outcome: LedgerOutcome,
     signatures: [Signature, Signature],
-  ) {
-    // TODO: Use try-catch
-    fp.validate();
+  ): ConsensusChannel {
+    const error = fp.validate();
+    if (error) {
+      throw error;
+    }
 
     const cId = fp.channelId();
 
-    const vars = new Vars();
+    const vars: Vars = new Vars({ turnNum: initialTurnNum, outcome: outcome.clone() });
 
-    const current = new SignedVars();
+    let leaderAddr; let
+      followerAddr: string;
 
-    this.fp = fp;
-    this.id = cId;
-    this.myIndex = myIndex;
-    this.onChainFunding = new Funds();
-    this._proposalQueue = [];
-    this.current = current;
+    try {
+      leaderAddr = vars.asState(fp).recoverSigner(signatures[Leader]);
+
+      if (leaderAddr !== fp.participants[Leader]) {
+        throw new Error(`Leader did not sign initial state: ${leaderAddr}, ${fp.participants[Leader]}`);
+      }
+
+      followerAddr = vars.asState(fp).recoverSigner(signatures[Follower]);
+
+      if (followerAddr !== fp.participants[Follower]) {
+        throw new Error(`Follower did not sign initial state: ${followerAddr}, ${fp.participants[Follower]}`);
+      }
+    } catch (err) {
+      throw new Error(`could not verify sig: ${err}`);
+    }
+
+    const current = new SignedVars({
+      vars,
+      signatures,
+    });
+
+    return new ConsensusChannel({
+      fp,
+      id: cId,
+      myIndex,
+      onChainFunding: new Funds(),
+      _proposalQueue: [],
+      current,
+    });
   }
 
   // NewLeaderChannel constructs a new LeaderChannel
   // TODO: Refactor to leader-channel file
   static newLeaderChannel(fp: FixedPart, turnNum: number, outcome: LedgerOutcome, signatures: [Signature, Signature]): ConsensusChannel {
-    return new ConsensusChannel(fp, Leader, turnNum, outcome, signatures);
+    return ConsensusChannel.newConsensusChannel(fp, Leader, turnNum, outcome, signatures);
   }
 
   // NewFollowerChannel constructs a new FollowerChannel
   // TODO: Refactor to follower-channel file
   static newFollowerChannel(fp: FixedPart, turnNum: number, outcome: LedgerOutcome, signatures: [Signature, Signature]): ConsensusChannel {
-    return new ConsensusChannel(fp, Follower, turnNum, outcome, signatures);
+    return ConsensusChannel.newConsensusChannel(fp, Follower, turnNum, outcome, signatures);
   }
 
   // FixedPart returns the fixed part of the channel.
@@ -376,7 +455,7 @@ export class ConsensusChannel {
   // The consensus state is the latest state that has been signed by both parties.
   // TODO: Implement
   consensusVars(): Vars {
-    return new Vars();
+    return new Vars({});
   }
 
   // Signatures returns the signatures on the currently supported state.
@@ -397,7 +476,7 @@ export class ConsensusChannel {
   // TODO: Can throw an error
   // TODO: Implement
   private latestProposedVars(): Vars {
-    return new Vars();
+    return new Vars({});
   }
 
   // validateProposalID checks that the given proposal's ID matches
