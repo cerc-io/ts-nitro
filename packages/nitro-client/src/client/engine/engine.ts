@@ -31,6 +31,7 @@ import {
   constructLedgerInfoFromChannel, constructLedgerInfoFromConsensus, constructPaymentInfo, getVoucherBalance,
 } from '../query/query';
 import { PAYER_INDEX, getPayee, getPayer } from '../../payments/helpers';
+import { Destination } from '../../types/destination';
 
 const JSONbigNative = JSONbig({ useNativeBigInt: true });
 const log = debug('ts-nitro:client');
@@ -39,7 +40,7 @@ const Incoming: MessageDirection = 'Incoming';
 const Outgoing: MessageDirection = 'Outgoing';
 
 export type PaymentRequest = {
-  channelId: string
+  channelId: Destination
   amount: bigint
 };
 
@@ -364,6 +365,7 @@ export class Engine {
   // It prepares and dispatches a payment message to the counterparty.
   // TODO: Can throw an error
   private handlePaymentRequest(request: PaymentRequest): EngineEvent {
+    // TODO: Implement
     return new EngineEvent();
   }
 

@@ -27,12 +27,15 @@ import {
   ObjectiveResponse as VirtualFundObjectiveResponse,
   ObjectiveRequest as VirtualFundObjectiveRequest,
 } from '../protocols/virtualfund/virtualfund';
+import { Destination } from '../types/destination';
+import { PaymentChannelInfo } from './query/types';
+import { getPaymentChannelInfo } from './query/query';
 
 const log = debug('ts-nitro:client');
 
 export class Client {
   // The core business logic of the client
-  private engine?: Engine;
+  private engine: Engine = new Engine();
 
   address: Address = ethers.constants.AddressZero;
 
@@ -122,7 +125,6 @@ export class Client {
 
   // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
   // with the supplied intermediaries.
-  // TODO: Implement
   createVirtualPaymentChannel(
     intermediaries: Address[],
     counterParty: Address,
@@ -146,6 +148,21 @@ export class Client {
 
     objectiveRequest.waitForObjectiveToStart();
     return objectiveRequest.response(this.address);
+  }
+
+  // Pay will send a signed voucher to the payee that they can redeem for the given amount.
+  pay(channelId: Destination, amount: bigint) {
+    assert(this.engine.paymentRequestsFromAPI);
+    // Send the event to the engine
+    this.engine.paymentRequestsFromAPI.push({ channelId, amount });
+  }
+
+  // GetPaymentChannel returns the payment channel with the given id.
+  // If no ledger channel exists with the given id an error is returned.
+  getPaymentChannel(id: Destination): PaymentChannelInfo {
+    assert(this.store);
+    assert(this.vm);
+    return getPaymentChannelInfo(id, this.store, this.vm);
   }
 
   // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
