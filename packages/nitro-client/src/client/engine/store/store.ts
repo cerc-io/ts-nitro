@@ -5,6 +5,8 @@ import { VoucherStore } from '../../../payments/voucher-manager';
 import { Address } from '../../../types/types';
 import { Destination } from '../../../types/destination';
 
+export const ErrNoSuchChannel = new Error('store: failed to find required channel data');
+
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
 export interface Store extends ConsensusChannelStore, VoucherStore {
   // Get a pointer to a secret key for signing channel updates
