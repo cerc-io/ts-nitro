@@ -68,11 +68,6 @@ const getLatestSupportedOrPreFund = (channel: Channel): State => {
   return channel.preFundState();
 };
 
-// GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
-// It does this by querying the provided store and voucher manager
-// TODO: Implement
-export const getPaymentChannelInfo = (id: Destination, store: Store, vm: VoucherManager): PaymentChannelInfo => new PaymentChannelInfo({});
-
 export const getVoucherBalance = (id: Destination, vm: VoucherManager): [bigint, bigint] => {
   let paid: bigint = BigInt(0);
   let remaining: bigint = BigInt(0);
@@ -85,25 +80,6 @@ export const getVoucherBalance = (id: Destination, vm: VoucherManager): [bigint,
   remaining = vm.remaining(id);
 
   return [paid, remaining];
-};
-
-export const constructLedgerInfoFromConsensus = (con: ConsensusChannel): LedgerChannelInfo => {
-  const latest = con.consensusVars().asState(con.fixedPart());
-  return new LedgerChannelInfo({
-    iD: con.id,
-    status: ChannelStatus.Open,
-    balance: getLedgerBalanceFromState(latest),
-  });
-};
-
-export const constructLedgerInfoFromChannel = (c: Channel): LedgerChannelInfo => {
-  const latest = getLatestSupportedOrPreFund(c);
-
-  return new LedgerChannelInfo({
-    iD: c.id,
-    status: getStatusFromChannel(c),
-    balance: getLedgerBalanceFromState(latest),
-  });
 };
 
 export const constructPaymentInfo = (c: Channel, paid: bigint, remaining: bigint): PaymentChannelInfo => {
@@ -127,5 +103,38 @@ export const constructPaymentInfo = (c: Channel, paid: bigint, remaining: bigint
     iD: c.id,
     status,
     balance,
+  });
+};
+
+// GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
+// It does this by querying the provided store and voucher manager
+export const getPaymentChannelInfo = (id: Destination, store: Store, vm: VoucherManager): PaymentChannelInfo => {
+  const [c, channelFound] = store.getChannelById(id);
+
+  if (channelFound) {
+    const [paid, remaining] = getVoucherBalance(id, vm);
+
+    return constructPaymentInfo(c, paid, remaining);
+  }
+
+  throw new Error(`Could not find channel with id ${id}`);
+};
+
+export const constructLedgerInfoFromConsensus = (con: ConsensusChannel): LedgerChannelInfo => {
+  const latest = con.consensusVars().asState(con.fixedPart());
+  return new LedgerChannelInfo({
+    iD: con.id,
+    status: ChannelStatus.Open,
+    balance: getLedgerBalanceFromState(latest),
+  });
+};
+
+export const constructLedgerInfoFromChannel = (c: Channel): LedgerChannelInfo => {
+  const latest = getLatestSupportedOrPreFund(c);
+
+  return new LedgerChannelInfo({
+    iD: c.id,
+    status: getStatusFromChannel(c),
+    balance: getLedgerBalanceFromState(latest),
   });
 };

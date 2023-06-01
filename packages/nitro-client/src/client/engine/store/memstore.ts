@@ -2,7 +2,7 @@ import { bytes2Hex } from '@cerc-io/nitro-util';
 
 import { ethers } from 'ethers';
 import assert from 'assert';
-import { Store } from './store';
+import { ErrNoSuchChannel, Store } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
@@ -150,13 +150,33 @@ export class MemStore implements Store {
   destroyConsensusChannel(id: string): void {}
 
   getChannelById(id: Destination): [Channel, boolean] {
-    // TODO: Implement
-    return [{} as Channel, false];
+    try {
+      const ch = this._getChannelById(id);
+
+      return [ch, true];
+    } catch (err) {
+      return [new Channel({}), false];
+    }
   }
 
   private _getChannelById(id: Destination): Channel {
-    // TODO: Implement
-    return {} as Channel;
+    const [chJSON, ok] = this.channels.load(id.toString());
+
+    if (!ok) {
+      throw ErrNoSuchChannel;
+    }
+
+    assert(chJSON);
+
+    const ch = new Channel({});
+
+    try {
+      ch.unmarshalJSON(chJSON);
+
+      return ch;
+    } catch (err) {
+      throw new Error(`error unmarshaling channel ${ch.id}`);
+    }
   }
 
   // TODO: Implement
