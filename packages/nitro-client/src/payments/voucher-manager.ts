@@ -9,7 +9,7 @@ export interface VoucherStore {
   setVoucherInfo (channelId: Destination, v: VoucherInfo): void
 
   // TODO: Can throw an error
-  getVoucherInfo (channelId: Destination): VoucherInfo
+  getVoucherInfo (channelId: Destination): [VoucherInfo | undefined, boolean]
 
   // TODO: Can throw an error
   removeVoucherInfo (channelId: Destination): void
@@ -34,9 +34,22 @@ export class VoucherManager {
   }
 
   // Register registers a channel for use, given the payer, payee and starting balance of the channel
-  // TODO: Can throw an error
   register(channelId: Destination, payer: string, payee: string, startingBalance: bigint): void {
+    const voucher = new Voucher({ channelId, amount: BigInt(0) });
+    const data = new VoucherInfo({
+      channelPayer: payer,
+      channelPayee: payee,
+      startingBalance: BigInt(startingBalance),
+      largestVoucher: voucher,
+    });
+
     // TODO: Implement
+    const [v] = this.store.getVoucherInfo(channelId);
+    if (!v) {
+      throw new Error('Channel already registered');
+    }
+
+    this.store.setVoucherInfo(channelId, data);
   }
 
   // Remove deletes the channel's status
@@ -47,7 +60,7 @@ export class VoucherManager {
   // total amount paid.
   // TODO: Can throw an error
   pay(channelId: string, amount: bigint, pk: string): Voucher {
-    return new Voucher();
+    return new Voucher({});
   }
 
   // Receive validates the incoming voucher, and returns the total amount received so far
