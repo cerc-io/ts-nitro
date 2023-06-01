@@ -18,6 +18,7 @@ import {
 } from '../interfaces';
 import { ObjectiveId, ObjectivePayload } from '../messages';
 import { VirtualChannel } from '../../channel/virtual';
+import { GuaranteeMetadata } from '../../channel/state/outcome/guarantee';
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
@@ -25,10 +26,54 @@ interface GetTwoPartyConsensusLedgerFunction {
   (counterparty: Address): [ConsensusChannel, boolean]
 }
 
+class GuaranteeInfo {
+  public left: Destination = new Destination();
+
+  public right: Destination = new Destination();
+
+  public leftAmount?: Funds;
+
+  public rightAmount?: Funds;
+
+  public guaranteeDestination: Destination = new Destination();
+
+  constructor(params: {
+    left?: Destination,
+    right?: Destination,
+    leftAmount?: Funds,
+    rightAmount?: Funds,
+    guaranteeDestination?: Destination
+  }) {
+    Object.assign(this, params);
+  }
+}
+
 // TODO: Implement
 export class Connection {
+  channel?: ConsensusChannel;
+
+  guaranteeInfo: GuaranteeInfo = new GuaranteeInfo({});
+
   // insertGuaranteeInfo mutates the receiver Connection struct.
-  private insertGuaranteeInfo(a0: Funds, b0: Funds, vId: Destination, left: Destination, right: Destination) {}
+  insertGuaranteeInfo(a0: Funds, b0: Funds, vId: Destination, left: Destination, right: Destination) {
+    const guaranteeInfo = new GuaranteeInfo({
+      left,
+      right,
+      leftAmount: a0,
+      rightAmount: b0,
+      guaranteeDestination: vId,
+    });
+
+    const metadata = new GuaranteeMetadata({
+      left: guaranteeInfo.left,
+      right: guaranteeInfo.right,
+    });
+
+    metadata.encode();
+
+    // The metadata can be encoded, so update the connection's guarantee
+    this.guaranteeInfo = guaranteeInfo;
+  }
 }
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
@@ -57,7 +102,7 @@ export class Objective implements ObjectiveInterface {
     chainId: bigint,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
   ): Objective {
-    let rightCC: ConsensusChannel;
+    let rightCC: ConsensusChannel | undefined;
     let ok: boolean = false;
 
     if (request.intermediaries.length > 0) {
@@ -70,7 +115,7 @@ export class Objective implements ObjectiveInterface {
       throw new Error(`Could not find ledger for ${myAddress} and ${request.intermediaries[0]}`);
     }
 
-    const leftCC: ConsensusChannel = new ConsensusChannel({});
+    let leftCC: ConsensusChannel | undefined;
 
     const participants: Address[] = [myAddress, ...request.intermediaries, request.counterParty];
 
@@ -99,15 +144,104 @@ export class Objective implements ObjectiveInterface {
   }
 
   // constructFromState initiates an Objective from an initial state and set of ledgers.
-  // TODO: Implement
   static constructFromState(
     preApprove: boolean,
     initialStateOfV: State,
     myAddress: Address,
-    consensusChannelToMyLeft: ConsensusChannel,
-    consensusChannelToMyRight: ConsensusChannel,
+    consensusChannelToMyLeft?: ConsensusChannel,
+    consensusChannelToMyRight?: ConsensusChannel,
   ): Objective {
-    return new Objective();
+    const init: Objective = new Objective();
+
+    if (preApprove) {
+      init.status = ObjectiveStatus.Approved;
+    } else {
+      init.status = ObjectiveStatus.Unapproved;
+    }
+
+    // Infer MyRole
+    let found = false;
+    for (let i = 0; i < initialStateOfV.participants.length; i += 1) {
+      const addr = initialStateOfV.participants[i];
+      if (addr === myAddress) {
+        init.myRole = i;
+        found = true;
+      }
+    }
+    if (!found) {
+      throw new Error('Not a participant in V');
+    }
+
+    const v: VirtualChannel = VirtualChannel.newVirtualChannel(initialStateOfV, init.myRole);
+    init.v = v;
+
+    // NewSingleHopVirtualChannel will error unless there are at least 3 participants
+    init.n = initialStateOfV.participants.length - 2;
+
+    init.a0 = new Funds(new Map<Address, bigint>());
+    init.b0 = new Funds(new Map<Address, bigint>());
+
+    for (const outcome of initialStateOfV.outcome.value) {
+      const { asset } = outcome;
+
+      if (outcome.allocations[0].destination !== Destination.addressToDestination(initialStateOfV.participants[0])) {
+        throw new Error('Allocation in slot 0 does not correspond to participant 0');
+      }
+      const amount0 = outcome.allocations[0].amount;
+
+      if (outcome.allocations[1].destination !== Destination.addressToDestination(initialStateOfV.participants[init.n + 1])) {
+        throw new Error(`Allocation in slot 1 does not correspond to participant ${init.n + 1}`);
+      }
+      const amount1 = outcome.allocations[1].amount;
+
+      if (!init.a0.value.has(asset)) {
+        init.a0.value.set(asset, BigInt(0));
+      }
+      if (!init.b0.value.has(asset)) {
+        init.b0.value.set(asset, BigInt(0));
+      }
+      init.a0.value.set(asset, init.a0.value.get(asset)! + amount0);
+      init.b0.value.set(asset, init.b0.value.get(asset)! + amount1);
+    }
+
+    // Setup Ledger Channel Connections and expected guarantees
+
+    // everyone other than Alice has a left-channel
+    if (!init.isAlice()) {
+      init.toMyLeft = new Connection();
+
+      if (!consensusChannelToMyLeft) {
+        throw new Error('Non-Alice virtualfund objective requires non-null left ledger channel');
+      }
+
+      init.toMyLeft.channel = consensusChannelToMyLeft;
+      init.toMyLeft.insertGuaranteeInfo(
+        init.a0,
+        init.b0,
+        v.id,
+        Destination.addressToDestination(init.v.participants[init.myRole - 1]),
+        Destination.addressToDestination(init.v.participants[init.myRole]),
+      );
+    }
+
+    if (!init.isBob()) {
+      init.toMyRight = new Connection();
+
+      if (!consensusChannelToMyRight) {
+        throw new Error('Non-Bob virtualfund objective requires non-null right ledger channel');
+      }
+
+      init.toMyRight.channel = consensusChannelToMyRight;
+      init.toMyRight.insertGuaranteeInfo(
+        init.a0,
+        init.b0,
+        init.v.id,
+        Destination.addressToDestination(init.v.participants[init.myRole]),
+        Destination.addressToDestination(init.v.participants[init.myRole + 1]),
+      );
+    }
+
+    return init;
   }
 
   // TODO: Implement
@@ -171,6 +305,16 @@ export class Objective implements ObjectiveInterface {
   // GetStatus returns the status of the objective.
   getStatus(): ObjectiveStatus {
     return this.status;
+  }
+
+  // isAlice returns true if the receiver represents participant 0 in the virtualfund protocol.
+  private isAlice(): boolean {
+    return this.myRole === 0;
+  }
+
+  // isBob returns true if the receiver represents participant n+1 in the virtualfund protocol.
+  private isBob(): boolean {
+    return this.myRole === this.n + 1;
   }
 }
 

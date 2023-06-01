@@ -8,8 +8,19 @@ export class VirtualChannel extends Channel {
   // Virtual channel protocol currently presumes exactly two "active" participants,
   // Alice and Bob (p[0] and p[last]). They should be the only destinations allocated
   // to in the supplied state's Outcome.
-  // TODO: Implement
   static newVirtualChannel(s: State, myIndex: number): VirtualChannel {
-    return new VirtualChannel({});
+    if (myIndex >= s.participants.length) {
+      throw new Error('myIndex not in range of the supplied participants');
+    }
+
+    for (const assetExit of s.outcome.value) {
+      if (assetExit.allocations.length !== 2) {
+        throw new Error("a virtual channel's initial state should only have two allocations");
+      }
+    }
+
+    const c = Channel.new(s, myIndex);
+
+    return new VirtualChannel({ ...c });
   }
 }
