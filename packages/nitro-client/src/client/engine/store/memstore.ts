@@ -232,7 +232,6 @@ export class MemStore implements Store {
     this.vouchers.store(channelId.string(), jsonData);
   }
 
-  // TODO: Implement
   getVoucherInfo(channelId: Destination): [VoucherInfo | undefined, boolean] {
     const [data, ok] = this.vouchers.load(channelId.string());
     if (!ok) {
