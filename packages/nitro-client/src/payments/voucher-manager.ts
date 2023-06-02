@@ -81,7 +81,6 @@ export class VoucherManager {
 
     vInfo.largestVoucher = voucher;
 
-    // TODO: Implement
     voucher.sign(pk);
 
     this.store.setVoucherInfo(channelId, vInfo);

@@ -1,6 +1,8 @@
 import assert from 'assert';
 import { ethers } from 'ethers';
 
+import { zeroValueSignature } from '@cerc-io/nitro-util';
+
 import { Signature } from '../../crypto/signatures';
 import { Address } from '../../types/types';
 import { Funds } from '../../types/funds';
@@ -229,7 +231,10 @@ export class Vars {
 export class SignedVars {
   vars?: Vars;
 
-  signatures: [Signature, Signature] = [{}, {}];
+  signatures: [Signature, Signature] = [
+    zeroValueSignature,
+    zeroValueSignature,
+  ];
 
   constructor(params: {
     vars?: Vars;
@@ -441,7 +446,7 @@ export class ConsensusChannel {
   // TODO: Can throw an error
   // TODO: Implement
   private sign(vars: Vars, sk: Buffer): Signature {
-    return {};
+    return zeroValueSignature;
   }
 
   // recoverSigner returns the signer of the vars using the given signature.
@@ -461,7 +466,10 @@ export class ConsensusChannel {
   // Signatures returns the signatures on the currently supported state.
   // TODO: Implement
   signatures(): [Signature, Signature] {
-    return [{}, {}];
+    return [
+      zeroValueSignature,
+      zeroValueSignature,
+    ];
   }
 
   // ProposalQueue returns the current queue of proposals, ordered by TurnNum.

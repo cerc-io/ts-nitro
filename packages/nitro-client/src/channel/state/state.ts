@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 
 import { getChannelId as utilGetChannelId } from '@statechannels/nitro-protocol';
+import { zeroValueSignature } from '@cerc-io/nitro-util';
 
 import * as nc from '../../crypto/signatures';
 import { Address } from '../../types/types';
@@ -143,9 +144,9 @@ export class State {
   // The state hash is prepended with \x19Ethereum Signed Message:\n32 and then rehashed
   // to create a digest to sign
   // TODO: Can throw an error
-  // TODO: Implement
   sign(secretKey: Buffer): Signature {
-    return {};
+    // TODO: Implement
+    return zeroValueSignature;
   }
 
   // RecoverSigner computes the Ethereum address which generated Signature sig on State state
