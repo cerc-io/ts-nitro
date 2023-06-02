@@ -10,6 +10,9 @@
 
 import { ethers } from 'ethers';
 
+import { signVoucher } from '@statechannels/nitro-protocol';
+import { zeroValueSignature } from '@cerc-io/nitro-util';
+
 import { Signature } from '../channel/state/state';
 import { Address } from '../types/types';
 import { Destination } from '../types/destination';
@@ -19,7 +22,7 @@ export class Voucher {
 
   amount?: bigint;
 
-  signature: Signature = {};
+  signature: Signature = zeroValueSignature;
 
   constructor(params: {
     channelId?: Destination;
@@ -35,9 +38,17 @@ export class Voucher {
     return Buffer.from('');
   }
 
-  // TODO: Can throw an error
-  sign(pk: Buffer): void {
-    // TODO: Implement
+  async sign(pk: Buffer): Promise<void> {
+    const wallet = new ethers.Wallet(pk);
+
+    // Using util method from nitro-protocol instead of go-nitro port
+    this.signature = await signVoucher(
+      {
+        amount: this.amount!.toString(),
+        channelId: this.channelId.string(),
+      },
+      wallet,
+    );
   }
 
   // TODO: Can throw an error

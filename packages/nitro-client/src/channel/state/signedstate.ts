@@ -1,5 +1,7 @@
 import assert from 'assert';
 
+import { zeroValueSignature } from '@cerc-io/nitro-util';
+
 import { Signature } from '../../crypto/signatures';
 import { State } from './state';
 
@@ -65,7 +67,7 @@ export class SignedState {
   // TODO: Can throw an error
   // TODO: Implement
   getParticipantSignature(participantIndex: number): Signature {
-    return false;
+    return zeroValueSignature;
   }
 
   // Merge checks the passed SignedState's state and the receiver's state for equality, and adds each signature from the former to the latter.
