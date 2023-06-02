@@ -401,7 +401,6 @@ export class Engine {
     ee.paymentChannelUpdates = [...ee.paymentChannelUpdates, info];
 
     const se = new SideEffects({
-      // TODO: Implement
       messagesToSend: Message.createVoucherMessage(voucher, payee),
     });
 

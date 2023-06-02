@@ -83,8 +83,17 @@ export class Message {
 
   // CreateVoucherMessage returns a signed voucher message for each of the recipients provided.
   static createVoucherMessage(voucher: Voucher, ...recipients: Address[]): Message[] {
-    // TODO: Implement
-    return [];
+    const messages: Message[] = [];
+    for (const recipient of recipients) {
+      messages.push(
+        new Message({
+          to: recipient,
+          payments: [voucher],
+        }),
+      );
+    }
+
+    return messages;
   }
 
   // Serialize serializes the message into a string.
