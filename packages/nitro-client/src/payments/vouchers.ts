@@ -76,11 +76,11 @@ export class VoucherInfo {
 
   // Paid is the amount of funds that already have been used as payments
   paid(): bigint {
-    return BigInt(0);
+    return this.largestVoucher.amount!;
   }
 
   // Remaining returns the amount of funds left to be used as payments
   remaining(): bigint {
-    return BigInt(0);
+    return this.startingBalance! - this.paid();
   }
 }

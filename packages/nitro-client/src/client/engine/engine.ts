@@ -28,7 +28,7 @@ import { ObjectiveRequest as VirtualDefundObjectiveRequest } from '../../protoco
 import * as channel from '../../channel/channel';
 import { VirtualChannel } from '../../channel/virtual';
 import {
-  constructLedgerInfoFromChannel, constructLedgerInfoFromConsensus, constructPaymentInfo, getVoucherBalance,
+  constructLedgerInfoFromChannel, constructLedgerInfoFromConsensus, constructPaymentInfo, getPaymentChannelInfo, getVoucherBalance,
 } from '../query/query';
 import { PAYER_INDEX, getPayee, getPayer } from '../../payments/helpers';
 import { Destination } from '../../types/destination';
@@ -211,7 +211,7 @@ export class Engine {
             break;
 
           case this.paymentRequestsFromAPI:
-            res = this.handlePaymentRequest(this.paymentRequestsFromAPI.value());
+            res = await this.handlePaymentRequest(this.paymentRequestsFromAPI.value());
             break;
 
           case this.fromChain:
@@ -363,10 +363,51 @@ export class Engine {
 
   // handlePaymentRequest handles an PaymentRequest (triggered by a client API call).
   // It prepares and dispatches a payment message to the counterparty.
-  // TODO: Can throw an error
-  private handlePaymentRequest(request: PaymentRequest): EngineEvent {
-    // TODO: Implement
-    return new EngineEvent();
+  private async handlePaymentRequest(request: PaymentRequest): Promise<EngineEvent> {
+    const ee = new EngineEvent();
+
+    if (request === {} as PaymentRequest) {
+      throw new Error('handleAPIEvent: Empty payment request');
+    }
+
+    const cId = request.channelId;
+    let voucher: Voucher;
+    try {
+      // TODO: Implement
+      voucher = this.vm!.pay(cId, request.amount, this.store!.getChannelSecretKey());
+    } catch (err) {
+      throw new Error(`handleAPIEvent: Error making payment: ${err}`);
+    }
+
+    const [c, ok] = this.store!.getChannelById(cId);
+
+    if (!ok) {
+      throw new Error(`handleAPIEvent: Could not get channel from the store ${cId}`);
+    }
+
+    const payer = getPayer(c.participants);
+    const payee = getPayee(c.participants);
+
+    if (payer !== this.store!.getAddress()) {
+      throw new Error(`handleAPIEvent: Not the sender in channel ${cId}`);
+    }
+
+    let info: PaymentChannelInfo;
+    try {
+      info = getPaymentChannelInfo(cId, this.store!, this.vm!);
+    } catch (err) {
+      throw new Error(`handleAPIEvent: Error querying channel info: ${err}`);
+    }
+
+    ee.paymentChannelUpdates = [...ee.paymentChannelUpdates, info];
+
+    const se = new SideEffects({
+      // TODO: Implement
+      messagesToSend: Message.createVoucherMessage(voucher, payee),
+    });
+
+    await this.executeSideEffects(se);
+    return ee;
   }
 
   // sendMessages sends out the messages and records the metrics.

@@ -50,11 +50,21 @@ export class WithdrawAllTransaction extends ChainTransactionBase implements Chai
 }
 
 // SideEffects are effects to be executed by an imperative shell
-export type SideEffects = {
-  messagesToSend: Message[];
-  transactionsToSubmit: ChainTransaction[]
-  proposalsToProcess: Proposal[]
-};
+export class SideEffects {
+  messagesToSend: Message[] = [];
+
+  transactionsToSubmit: ChainTransaction[] = [];
+
+  proposalsToProcess: Proposal[] = [];
+
+  constructor(params: {
+    messagesToSend?: Message[],
+    transactionsToSubmit?: ChainTransaction[],
+    proposalsToProcess?: Proposal[],
+  }) {
+    Object.assign(this, params);
+  }
+}
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective.
 // It describes how the objective is blocked on actions by third parties (i.e. co-participants or the blockchain).
