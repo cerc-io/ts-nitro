@@ -1,3 +1,5 @@
+import assert from 'assert';
+
 import { Destination } from '../types/destination';
 import { Address } from '../types/types';
 import { Voucher, VoucherInfo } from './vouchers';
@@ -57,10 +59,34 @@ export class VoucherManager {
 
   // Pay will deduct amount from balance and add it to paid, returning a signed voucher for the
   // total amount paid.
-  // TODO: Can throw an error
-  pay(channelId: string, amount: bigint, pk: string): Voucher {
+  pay(channelId: Destination, amount: bigint, pk: Buffer): Voucher {
+    const [vInfo, ok] = this.store.getVoucherInfo(channelId);
+
+    if (!ok) {
+      throw new Error('channel not found');
+    }
+
+    assert(vInfo);
+
+    if (amount > vInfo.remaining()) {
+      throw new Error('unable to pay amount: insufficient funds');
+    }
+
+    if (vInfo.channelPayer !== this.me) {
+      throw new Error("can only sign vouchers if we're the payer");
+    }
+
+    const newAmount: bigint = vInfo.largestVoucher.amount! + amount;
+    const voucher = new Voucher({ amount: newAmount, channelId });
+
+    vInfo.largestVoucher = voucher;
+
     // TODO: Implement
-    return new Voucher({});
+    voucher.sign(pk);
+
+    this.store.setVoucherInfo(channelId, vInfo);
+
+    return voucher;
   }
 
   // Receive validates the incoming voucher, and returns the total amount received so far
