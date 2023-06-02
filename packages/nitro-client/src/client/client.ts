@@ -150,6 +150,12 @@ export class Client {
     return objectiveRequest.response(this.address);
   }
 
+  // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
+  closeVirtualChannel(channelId: Destination): ObjectiveId {
+    // TODO: Implement
+    return '';
+  }
+
   // Pay will send a signed voucher to the payee that they can redeem for the given amount.
   pay(channelId: Destination, amount: bigint) {
     assert(this.engine.paymentRequestsFromAPI);

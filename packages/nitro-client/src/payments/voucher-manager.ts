@@ -96,12 +96,14 @@ export class VoucherManager {
 
   // ChannelRegistered returns  whether a channel has been registered with the voucher manager or not
   channelRegistered(channelId: Destination): boolean {
+    // TODO: Implement
     return false;
   }
 
   // Paid returns the total amount paid so far on a channel
   // TODO: Can throw an error
   paid(chanId: Destination): bigint {
+    // TODO: Implement
     return BigInt(0);
   }
 
