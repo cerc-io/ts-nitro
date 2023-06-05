@@ -68,5 +68,5 @@ export interface ConsensusChannelStore {
   // TODO: Can throw an error
   setConsensusChannel (ch: ConsensusChannel): void
 
-  destroyConsensusChannel (id: string): void
+  destroyConsensusChannel (id: Destination): void
 }

@@ -104,8 +104,8 @@ export class Channel extends FixedPart {
   }
 
   // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
-  // TODO: Implement
   clone(): Channel {
+    // TODO: Implement
     return {} as Channel;
   }
 
@@ -178,15 +178,15 @@ export class Channel extends FixedPart {
   // LatestSupportedState returns the latest supported state. A state is supported if it is signed
   // by all participants.
   // TODO: Can throw an error
-  // TODO: Implement
   latestSupportedState(): State {
+    // TODO: Implement
     return {} as State;
   }
 
   // LatestSignedState fetches the state with the largest turn number signed by at least one participant.
   // TODO: Can throw an error
-  // TODO: Implement
   latestSignedState(): SignedState {
+    // TODO: Implement
     return {} as SignedState;
   }
 

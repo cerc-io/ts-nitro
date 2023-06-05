@@ -33,8 +33,9 @@ export class SignedState {
   //   - the signer is not a participant, or
   //   - OR the signature was already stored
   // TODO: Can throw an error
-  // TODO: Implement
-  addSignature(sig: Signature): void {}
+  addSignature(sig: Signature): void {
+    // TODO: Implement
+  }
 
   // State returns the State part of the SignedState.
   state(): State {
