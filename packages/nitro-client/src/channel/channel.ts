@@ -1,5 +1,7 @@
 import assert from 'assert';
 
+import { fromJSON } from '@cerc-io/nitro-util';
+
 import { Signature } from '../crypto/signatures';
 import { Destination } from '../types/destination';
 import { Address } from '../types/types';
@@ -86,56 +88,22 @@ export class Channel extends FixedPart {
     return c;
   }
 
-  // TODO: Refactor into an util method
   static fromJSON(data: string): Channel {
     const jsonValue = JSON.parse(data);
-    const props: any = {};
-
-    for (const fieldKey in this.jsonEncodingMap) {
-      const fieldType = this.jsonEncodingMap[fieldKey];
-      props[fieldKey] = this.decodeValue(fieldType, jsonValue[fieldKey]);
-    }
+    const props = fromJSON(this.jsonEncodingMap, jsonValue);
 
     return new Channel(props);
   }
 
-  static decodeValue(fieldType: any, fieldJsonValue: any): any {
-    switch (fieldType.type) {
-      case 'class': {
-        return fieldType.value.fromJSON(fieldJsonValue);
-      }
-
-      case 'number': {
-        return fieldJsonValue;
-      }
-
-      case 'map': {
-        const jsonMapValue = fieldJsonValue;
-        const mapFieldvalue = new Map();
-
-        for (const mapKey in jsonMapValue) {
-          mapFieldvalue.set(
-            this.decodeValue(fieldType.key, mapKey),
-            this.decodeValue(fieldType.value, jsonMapValue[mapKey]),
-          );
-        }
-
-        return mapFieldvalue;
-      }
-
-      default:
-        throw new Error(`Unknown field type ${fieldType.type}`);
-    }
-  }
-
-  toJSON(): string {
-    assert(this.signedStateForTurnNum);
+  // To be called by JSON.stringify()
+  toJSON(): any {
+    assert(this.signedStateForTurnNum, 'signedStateForTurnNum field not assigned');
     const jsonObj: any = { ...this };
 
-    // TODO: Generalize using jsonEncodingMap
+    // TODO: Generalize using jsonEncodingMap?
     jsonObj.signedStateForTurnNum = Object.fromEntries(this.signedStateForTurnNum);
 
-    return JSON.stringify(jsonObj);
+    return jsonObj;
   }
 
   // MarshalJSON returns a JSON representation of the Channel
