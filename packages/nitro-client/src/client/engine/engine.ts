@@ -24,7 +24,7 @@ import { Voucher } from '../../payments/vouchers';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
 import { ObjectiveRequest as DirectDefundObjectiveRequest } from '../../protocols/directdefund/directdefund';
 import { ObjectiveRequest as DirectFundObjectiveRequest, Objective as DirectFundObjective } from '../../protocols/directfund/directfund';
-import { ObjectiveRequest as VirtualDefundObjectiveRequest } from '../../protocols/virtualdefund/virtualdefund';
+import { ObjectiveRequest as VirtualDefundObjectiveRequest, Objective as VirtualDefundObjective } from '../../protocols/virtualdefund/virtualdefund';
 import * as channel from '../../channel/channel';
 import { VirtualChannel } from '../../channel/virtual';
 import {
@@ -331,9 +331,36 @@ export class Engine {
         return this.attemptProgress(vfo);
       }
 
-      case or instanceof VirtualDefundObjectiveRequest:
-        // TODO: Implement
-        break;
+      case or instanceof VirtualDefundObjectiveRequest: {
+        let minAmount = BigInt(0);
+        const virtualDefundOR = or as VirtualDefundObjectiveRequest;
+
+        if (this.vm!.channelRegistered(virtualDefundOR.channelId)) {
+          try {
+            const paid = this.vm!.paid(virtualDefundOR.channelId);
+
+            minAmount = paid;
+          } catch (err) {
+            throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(virtualDefundOR)}: ${err}`);
+          }
+        }
+
+        try {
+          const vdfo = VirtualDefundObjective.newObjective(
+            virtualDefundOR,
+            true,
+            myAddress,
+            minAmount,
+            this.store.getChannelById,
+            this.store.getConsensusChannel,
+          );
+
+          return await this.attemptProgress(vdfo);
+        } catch (err) {
+          throw new Error(`handleAPIEvent: Could not create objective for ${virtualDefundOR}: ${err}`);
+        }
+      }
+
       case or instanceof DirectFundObjectiveRequest:
         try {
           const dfo = DirectFundObjective.newObjective(
@@ -401,7 +428,6 @@ export class Engine {
     ee.paymentChannelUpdates = [...ee.paymentChannelUpdates, info];
 
     const se = new SideEffects({
-      // TODO: Implement
       messagesToSend: Message.createVoucherMessage(voucher, payee),
     });
 
