@@ -16,6 +16,8 @@ import {
 } from '../interfaces';
 import { ObjectiveId, ObjectivePayload } from '../messages';
 
+const objectivePrefix = 'VirtualDefund-';
+
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 type GetChannelByIdFunction = (id: Destination) => [ channel.Channel | undefined, boolean ];
 
@@ -123,17 +125,17 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     });
   }
 
-  // TODO: Implement
   id(address: Address, chainId?: bigint): ObjectiveId {
-    return '';
+    return objectivePrefix + this.channelId.string();
   }
 
-  // TODO: Implement
   async waitForObjectiveToStart(): Promise<void> {
     assert(this.objectiveStarted);
     await this.objectiveStarted.shift();
   }
 
-  // TODO: Implement
-  signalObjectiveStarted(): void {}
+  signalObjectiveStarted(): void {
+    assert(this.objectiveStarted);
+    this.objectiveStarted.close();
+  }
 }

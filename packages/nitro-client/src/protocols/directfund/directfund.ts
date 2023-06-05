@@ -36,7 +36,7 @@ const waitingForNothing: WaitingFor = 'WaitingForNothing'; // Finished
 
 const signedStatePayload: PayloadType = 'SignedStatePayload';
 
-const objectivePrefix = 'DirectDefunding-';
+const objectivePrefix = 'DirectFunding-';
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 interface GetChannelsByParticipantFunction {
