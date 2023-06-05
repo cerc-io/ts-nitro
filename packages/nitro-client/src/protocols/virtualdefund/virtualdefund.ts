@@ -1,3 +1,5 @@
+import assert from 'assert';
+
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
 
 import { Destination } from '../../types/destination';
@@ -127,7 +129,10 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   // TODO: Implement
-  waitForObjectiveToStart(): void {}
+  async waitForObjectiveToStart(): Promise<void> {
+    assert(this.objectiveStarted);
+    await this.objectiveStarted.shift();
+  }
 
   // TODO: Implement
   signalObjectiveStarted(): void {}
