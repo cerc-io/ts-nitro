@@ -1,8 +1,8 @@
-import { ReadWriteChannel } from '@nodeguy/channel';
+import Channel, { ReadWriteChannel } from '@nodeguy/channel';
 
 import { Destination } from '../../types/destination';
 import { Address } from '../../types/types';
-import { Channel } from '../../channel/channel';
+import * as channel from '../../channel/channel';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
 import {
   ObjectiveRequest as ObjectiveRequestInterface,
@@ -15,7 +15,7 @@ import {
 import { ObjectiveId, ObjectivePayload } from '../messages';
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
-type GetChannelByIdFunction = (id: Destination) => [ Channel | undefined, boolean ];
+type GetChannelByIdFunction = (id: Destination) => [ channel.Channel | undefined, boolean ];
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
@@ -106,14 +106,23 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
   private objectiveStarted?: ReadWriteChannel<void>;
 
+  constructor(params: {
+    channelId?: Destination;
+    objectiveStarted?: ReadWriteChannel<void>;
+  }) {
+    Object.assign(this, params);
+  }
+
   // NewObjectiveRequest creates a new ObjectiveRequest.
   static newObjectiveRequest(channelId: Destination): ObjectiveRequest {
-    // TODO: Implement
-    return new ObjectiveRequest();
+    return new ObjectiveRequest({
+      channelId,
+      objectiveStarted: Channel(), // Initialize as an unresolved promise
+    });
   }
 
   // TODO: Implement
-  id(address: Address, chainId: bigint): ObjectiveId {
+  id(address: Address, chainId?: bigint): ObjectiveId {
     return '';
   }
 

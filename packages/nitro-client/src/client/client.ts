@@ -27,6 +27,10 @@ import {
   ObjectiveResponse as VirtualFundObjectiveResponse,
   ObjectiveRequest as VirtualFundObjectiveRequest,
 } from '../protocols/virtualfund/virtualfund';
+import {
+  Objective as VirtualDefundObjective,
+  ObjectiveRequest as VirtualDefundObjectiveRequest,
+} from '../protocols/virtualdefund/virtualdefund';
 import { Destination } from '../types/destination';
 import { PaymentChannelInfo } from './query/types';
 import { getPaymentChannelInfo } from './query/query';
@@ -152,8 +156,13 @@ export class Client {
 
   // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
   closeVirtualChannel(channelId: Destination): ObjectiveId {
-    // TODO: Implement
-    return '';
+    const objectiveRequest = VirtualDefundObjectiveRequest.newObjectiveRequest(channelId);
+
+    // Send the event to the engine
+    assert(this.engine.objectiveRequestsFromAPI);
+    this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
+    objectiveRequest.waitForObjectiveToStart();
+    return objectiveRequest.id(this.address, this.chainId);
   }
 
   // Pay will send a signed voucher to the payee that they can redeem for the given amount.
