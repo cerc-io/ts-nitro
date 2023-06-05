@@ -74,12 +74,17 @@ describe('test Client', () => {
       Nonce: Date.now(),
     };
 
-    const response = client.createLedgerChannel(
+    const response = await client.createLedgerChannel(
       params.CounterParty,
       params.ChallengeDuration,
       params.Outcome,
     );
-    expect(response).to.be.empty;
+
+    expect(response).to.have.property('id');
+    expect(response).to.have.property('channelId');
+
+    // Check that channelId value is present as a substring in id
+    expect(response.id).to.contain(response.channelId.value);
 
     // TODO: Implement and close services
     // client.close();

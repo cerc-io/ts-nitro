@@ -1,4 +1,3 @@
-import { Bytes32, isExternalDestination } from '@statechannels/nitro-protocol';
 import { Address } from './types';
 
 // A {tokenAddress: amount} map. Address 0 represents a chain's native token (ETH, FIL, etc)

@@ -74,7 +74,6 @@ export class Client {
     metricsApi?: MetricsApi,
   ): Promise<Client> {
     const c = new Client();
-    // TODO: Implement memstore.getAddress
     c.address = store.getAddress();
 
     // If a metrics API is not provided we used the no-op version which does nothing.
