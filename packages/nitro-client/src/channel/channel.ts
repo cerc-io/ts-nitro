@@ -39,6 +39,16 @@ export class Channel extends FixedPart {
   // TODO: unit64 replacement
   private latestSupportedStateTurnNum: number = 0;
 
+  // TODO: Add interface for record value type
+  static jsonEncodingMap: Record<string, any> = {
+    id: { type: 'class', value: Destination },
+    myIndex: { type: 'number' },
+    onChainFunding: { type: 'class', value: Funds },
+    fixedPart: { type: 'class', value: FixedPart },
+    signedStateForTurnNum: { type: 'map', key: { type: 'number' }, value: { type: 'class', value: SignedState } },
+    latestSupportedStateTurnNum: { type: 'number' },
+  };
+
   constructor(params: ConstructorOptions) {
     super(params);
     Object.assign(this, params);
@@ -74,6 +84,58 @@ export class Channel extends FixedPart {
     }
 
     return c;
+  }
+
+  // TODO: Refactor into an util method
+  static fromJSON(data: string): Channel {
+    const jsonValue = JSON.parse(data);
+    const props: any = {};
+
+    for (const fieldKey in this.jsonEncodingMap) {
+      const fieldType = this.jsonEncodingMap[fieldKey];
+      props[fieldKey] = this.decodeValue(fieldType, jsonValue[fieldKey]);
+    }
+
+    return new Channel(props);
+  }
+
+  static decodeValue(fieldType: any, fieldJsonValue: any): any {
+    switch (fieldType.type) {
+      case 'class': {
+        return fieldType.value.fromJSON(fieldJsonValue);
+      }
+
+      case 'number': {
+        return fieldJsonValue;
+      }
+
+      case 'map': {
+        const jsonMapValue = fieldJsonValue;
+        const mapFieldvalue = new Map();
+
+        for (const mapKey in jsonMapValue) {
+          mapFieldvalue.set(
+            this.decodeValue(fieldType.key, mapKey),
+            this.decodeValue(fieldType.value, jsonMapValue[mapKey]),
+          );
+        }
+
+        return mapFieldvalue;
+      }
+
+      default:
+        throw new Error(`Unknown field type ${fieldType.type}`);
+    }
+  }
+
+  toJSON(): string {
+    assert(this.signedStateForTurnNum);
+    const jsonObj: any = { ...this };
+
+    // TODO: Generalize using jsonEncodingMap
+    jsonObj.signedStateForTurnNum = Object.fromEntries(this.signedStateForTurnNum);
+
+    return JSON.stringify(jsonObj);
   }
 
   // MarshalJSON returns a JSON representation of the Channel
