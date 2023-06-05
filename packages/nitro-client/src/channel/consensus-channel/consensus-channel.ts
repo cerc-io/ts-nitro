@@ -189,6 +189,17 @@ export class LedgerOutcome {
       guarantees,
     });
   }
+
+  // FundingTargets returns a list of channels funded by the LedgerOutcome
+  fundingTargets(): Destination[] {
+    // TODO: Implement
+    return [];
+  }
+}
+
+interface VarsConstructorOptions {
+  turnNum?: number;
+  outcome?: LedgerOutcome;
 }
 
 // Vars stores the turn number and outcome for a state in a consensus channel.
@@ -197,12 +208,9 @@ export class Vars {
   // TODO: uint64 replacement
   turnNum: number = 0;
 
-  outcome?: LedgerOutcome;
+  outcome: LedgerOutcome = new LedgerOutcome({});
 
-  constructor(params: {
-    turnNum?: number;
-    outcome?: LedgerOutcome;
-  }) {
+  constructor(params: VarsConstructorOptions) {
     Object.assign(this, params);
   }
 
@@ -226,20 +234,20 @@ export class Vars {
   }
 }
 
+interface SignedVarsConstructorOptions extends VarsConstructorOptions {
+  signatures?: [Signature, Signature];
+}
+
 // SignedVars stores 0-2 signatures for some vars in a consensus channel.
 // TODO: Implement
-export class SignedVars {
-  vars?: Vars;
-
+export class SignedVars extends Vars {
   signatures: [Signature, Signature] = [
     zeroValueSignature,
     zeroValueSignature,
   ];
 
-  constructor(params: {
-    vars?: Vars;
-    signatures?: [Signature, Signature];
-  }) {
+  constructor(params: SignedVarsConstructorOptions) {
+    super(params);
     Object.assign(this, params);
   }
 }
@@ -259,7 +267,7 @@ export class ConsensusChannel {
   // variables
 
   // current represents the "consensus state", signed by both parties
-  private current?: SignedVars;
+  private current: SignedVars = new SignedVars({});
 
   // a queue of proposed changes which can be applied to the current state, ordered by TurnNum.
   private _proposalQueue: SignedProposal[] = [];
@@ -315,7 +323,7 @@ export class ConsensusChannel {
     }
 
     const current = new SignedVars({
-      vars,
+      ...vars,
       signatures,
     });
 
@@ -430,9 +438,8 @@ export class ConsensusChannel {
   }
 
   // FundingTargets returns a list of channels funded by the ConsensusChannel
-  // TODO: Implement
-  fundingTargets(): string[] {
-    return [];
+  fundingTargets(): Destination[] {
+    return this.current.outcome.fundingTargets();
   }
 
   // TODO: Can throw an error
@@ -458,9 +465,8 @@ export class ConsensusChannel {
 
   // ConsensusVars returns the vars of the consensus state
   // The consensus state is the latest state that has been signed by both parties.
-  // TODO: Implement
   consensusVars(): Vars {
-    return new Vars({});
+    return this.current;
   }
 
   // Signatures returns the signatures on the currently supported state.
@@ -506,8 +512,8 @@ export class ConsensusChannel {
   }
 
   // SupportedSignedState returns the latest supported signed state.
-  // TODO: Implement
   supportedSignedState(): SignedState {
+    // TODO: Implement
     return {} as SignedState;
   }
 }

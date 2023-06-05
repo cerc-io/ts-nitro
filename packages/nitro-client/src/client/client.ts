@@ -127,6 +127,12 @@ export class Client {
     return objectiveRequest.response(this.address, this.chainId);
   }
 
+  // CloseLedgerChannel attempts to close and defund the given directly funded channel.
+  closeLedgerChannel(channelId: Destination): ObjectiveId {
+    // TODO: Implement
+    return '';
+  }
+
   // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
   // with the supplied intermediaries.
   createVirtualPaymentChannel(

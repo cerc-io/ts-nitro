@@ -151,8 +151,8 @@ export class State {
 
   // RecoverSigner computes the Ethereum address which generated Signature sig on State state
   // TODO: Can throw an error
-  // TODO: Implement
   recoverSigner(sig: Signature): Address {
+    // TODO: Implement
     return ethers.constants.AddressZero;
   }
 

@@ -146,8 +146,10 @@ export class MemStore implements Store {
     this.consensusChannels.store(ch.id.toString(), chJSON);
   }
 
-  // TODO: Implement
-  destroyConsensusChannel(id: string): void {}
+  // DestroyChannel deletes the channel with id id.
+  destroyConsensusChannel(id: Destination): void {
+    this.consensusChannels.delete(id.string());
+  }
 
   getChannelById(id: Destination): [Channel, boolean] {
     try {
