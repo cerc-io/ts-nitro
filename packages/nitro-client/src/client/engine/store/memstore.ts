@@ -199,9 +199,34 @@ export class MemStore implements Store {
     return {} as ConsensusChannel;
   }
 
-  // TODO: Implement
-  getConsensusChannel(counterparty: Address): [ConsensusChannel, boolean] {
-    return [{} as ConsensusChannel, false];
+  // getConsensusChannel returns a ConsensusChannel between the calling client and
+  // the supplied counterparty, if such channel exists
+  getConsensusChannel(counterparty: Address): [ConsensusChannel | undefined, boolean] {
+    let channel: ConsensusChannel | undefined;
+    let ok = false;
+
+    this.consensusChannels.range((key: string, chJSON: Buffer): boolean => {
+      let ch = new ConsensusChannel({});
+      try {
+        // TODO: Implement json.Unmarshal
+        ch = JSON.parse(chJSON.toString());
+      } catch (error) {
+        return true; // channel not found, continue looking
+      }
+
+      const participants = ch.participants();
+      if (participants.length === 2) {
+        if (participants[0] === counterparty || participants[1] === counterparty) {
+          channel = ch;
+          ok = true;
+          return false; // we have found the target channel: break the forEach loop
+        }
+      }
+
+      return true; // channel not found: continue looking
+    });
+
+    return [channel, ok];
   }
 
   // TODO: Implement

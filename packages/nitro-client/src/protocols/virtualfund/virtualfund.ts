@@ -25,7 +25,7 @@ import { GuaranteeMetadata } from '../../channel/state/outcome/guarantee';
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
 interface GetTwoPartyConsensusLedgerFunction {
-  (counterparty: Address): [ConsensusChannel, boolean]
+  (counterparty: Address): [ConsensusChannel | undefined, boolean]
 }
 
 class GuaranteeInfo {

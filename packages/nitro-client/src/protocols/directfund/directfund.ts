@@ -46,7 +46,7 @@ interface GetChannelsByParticipantFunction {
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
 interface GetTwoPartyConsensusLedgerFunction {
-  (counterparty: Address): [ConsensusChannel, boolean];
+  (counterparty: Address): [ConsensusChannel | undefined, boolean];
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
