@@ -1,11 +1,14 @@
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
 
+import assert from 'assert';
 import { Destination } from '../../types/destination';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
 import * as channel from '../../channel/channel';
 import { ObjectiveRequest as ObjectiveRequestInterface } from '../interfaces';
 import { ObjectiveId } from '../messages';
 import { Address } from '../../types/types';
+
+const ObjectivePrefix = 'DirectDefunding-';
 
 // GetConsensusChannel describes functions which return a ConsensusChannel ledger channel for a channel id.
 type GetConsensusChannel = (channelId: Destination) => [ConsensusChannel | undefined, Error];
@@ -33,7 +36,7 @@ const createChannelFromConsensusChannel = (cc: ConsensusChannel): channel.Channe
 // ObjectiveRequest represents a request to create a new direct defund objective.
 // TODO: Implement
 export class ObjectiveRequest implements ObjectiveRequestInterface {
-  channelId?: Destination;
+  channelId: Destination = new Destination();
 
   private objectiveStarted?: ReadWriteChannel<void>;
 
@@ -53,10 +56,13 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   id(address: Address, chainId?: bigint): ObjectiveId {
-    return '';
+    return ObjectivePrefix + this.channelId.string();
   }
 
-  waitForObjectiveToStart(): void {}
+  async waitForObjectiveToStart(): Promise<void> {
+    assert(this.objectiveStarted);
+    await this.objectiveStarted.shift();
+  }
 
   signalObjectiveStarted(): void {}
 }

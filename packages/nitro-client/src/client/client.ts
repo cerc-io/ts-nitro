@@ -140,7 +140,6 @@ export class Client {
     this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
     objectiveRequest.waitForObjectiveToStart();
     return objectiveRequest.id(this.address, this.chainId);
-    return '';
   }
 
   // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
