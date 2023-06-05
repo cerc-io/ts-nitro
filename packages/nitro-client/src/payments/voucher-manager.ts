@@ -101,10 +101,14 @@ export class VoucherManager {
   }
 
   // Paid returns the total amount paid so far on a channel
-  // TODO: Can throw an error
   paid(chanId: Destination): bigint {
-    // TODO: Implement
-    return BigInt(0);
+    const [v, ok] = this.store.getVoucherInfo(chanId);
+    if (!ok) {
+      throw new Error('channel not registered');
+    }
+    assert(v);
+
+    return BigInt(v.largestVoucher.amount!);
   }
 
   // Remaining returns the remaining amount of funds in the channel
