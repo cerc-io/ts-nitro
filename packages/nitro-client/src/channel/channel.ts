@@ -213,8 +213,8 @@ export class Channel extends FixedPart {
 
   // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
   // Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant.
-  // TODO: Implement
   addSignedState(ss: SignedState): boolean {
+    // TODO: Implement
     return false;
   }
 
