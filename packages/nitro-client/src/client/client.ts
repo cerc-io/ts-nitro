@@ -110,7 +110,7 @@ export class Client {
   // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
   // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
   // TODO: uint32 replacement
-  createLedgerChannel(counterparty: Address, challengeDuration: number, outcome: Exit): DirectFundObjectiveResponse {
+  async createLedgerChannel(counterparty: Address, challengeDuration: number, outcome: Exit): Promise<DirectFundObjectiveResponse> {
     assert(this.engine);
     assert(this.address);
     assert(this.chainId);
@@ -126,7 +126,7 @@ export class Client {
     assert(this.engine.objectiveRequestsFromAPI);
     // Send the event to the engine
     this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
-    objectiveRequest.waitForObjectiveToStart();
+    await objectiveRequest.waitForObjectiveToStart();
     return objectiveRequest.response(this.address, this.chainId);
   }
 

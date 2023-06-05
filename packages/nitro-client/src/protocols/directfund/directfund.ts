@@ -527,7 +527,10 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   // SignalObjectiveStarted is used by the engine to signal the objective has been started.
-  signalObjectiveStarted(): void { }
+  signalObjectiveStarted(): void {
+    assert(this.objectiveStarted);
+    this.objectiveStarted.close();
+  }
 
   // WaitForObjectiveToStart blocks until the objective starts
   async waitForObjectiveToStart(): Promise<void> {
