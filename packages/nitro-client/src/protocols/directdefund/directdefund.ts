@@ -1,15 +1,18 @@
-import { ReadWriteChannel } from '@nodeguy/channel';
+import Channel, { ReadWriteChannel } from '@nodeguy/channel';
 
 import { Destination } from '../../types/destination';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
-import { Channel } from '../../channel/channel';
+import * as channel from '../../channel/channel';
+import { ObjectiveRequest as ObjectiveRequestInterface } from '../interfaces';
+import { ObjectiveId } from '../messages';
+import { Address } from '../../types/types';
 
 // GetConsensusChannel describes functions which return a ConsensusChannel ledger channel for a channel id.
 type GetConsensusChannel = (channelId: Destination) => [ConsensusChannel | undefined, Error];
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
 // TODO: Implement
-const isInConsensusOrFinalState = (c: Channel): boolean => false;
+const isInConsensusOrFinalState = (c: channel.Channel): boolean => false;
 
 export class Objective {
   // NewObjective initiates an Objective with the supplied channel
@@ -25,17 +28,35 @@ export class Objective {
 
 // createChannelFromConsensusChannel creates a Channel with (an appropriate latest supported state) from the supplied ConsensusChannel.
 // TODO: Implement
-const createChannelFromConsensusChannel = (cc: ConsensusChannel): Channel => new Channel({});
+const createChannelFromConsensusChannel = (cc: ConsensusChannel): channel.Channel => new channel.Channel({});
 
 // ObjectiveRequest represents a request to create a new direct defund objective.
 // TODO: Implement
-export class ObjectiveRequest {
-  channelId?: string;
+export class ObjectiveRequest implements ObjectiveRequestInterface {
+  channelId?: Destination;
 
   private objectiveStarted?: ReadWriteChannel<void>;
 
+  constructor(params: {
+    channelId?: Destination,
+    objectiveStarted: ReadWriteChannel<void>
+  }) {
+    Object.assign(this, params);
+  }
+
   // NewObjectiveRequest creates a new ObjectiveRequest.
   static newObjectiveRequest(channelId: Destination): ObjectiveRequest {
-    return new ObjectiveRequest();
+    return new ObjectiveRequest({
+      channelId,
+      objectiveStarted: Channel(),
+    });
   }
+
+  id(address: Address, chainId?: bigint): ObjectiveId {
+    return '';
+  }
+
+  waitForObjectiveToStart(): void {}
+
+  signalObjectiveStarted(): void {}
 }

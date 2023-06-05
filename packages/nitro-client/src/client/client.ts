@@ -24,6 +24,10 @@ import {
   ObjectiveRequest as DirectFundObjectiveRequest,
 } from '../protocols/directfund/directfund';
 import {
+  Objective as DirectDefundObjective,
+  ObjectiveRequest as DirectDefundObjectiveRequest,
+} from '../protocols/directdefund/directdefund';
+import {
   ObjectiveResponse as VirtualFundObjectiveResponse,
   ObjectiveRequest as VirtualFundObjectiveRequest,
 } from '../protocols/virtualfund/virtualfund';
@@ -129,7 +133,13 @@ export class Client {
 
   // CloseLedgerChannel attempts to close and defund the given directly funded channel.
   closeLedgerChannel(channelId: Destination): ObjectiveId {
-    // TODO: Implement
+    const objectiveRequest = DirectDefundObjectiveRequest.newObjectiveRequest(channelId);
+
+    assert(this.engine.objectiveRequestsFromAPI);
+    // Send the event to the engine
+    this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
+    objectiveRequest.waitForObjectiveToStart();
+    return objectiveRequest.id(this.address, this.chainId);
     return '';
   }
 
