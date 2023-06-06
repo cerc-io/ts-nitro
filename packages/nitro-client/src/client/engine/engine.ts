@@ -284,27 +284,27 @@ export class Engine {
     let deferredSignalObjectiveStarted;
 
     try {
-    assert(this.store);
-    assert(this.chain);
-    assert(this.logger);
+      assert(this.store);
+      assert(this.chain);
+      assert(this.logger);
 
-    // TODO: Implement metrics
-    // defer e.metrics.RecordFunctionDuration()()
+      // TODO: Implement metrics
+      // defer e.metrics.RecordFunctionDuration()()
 
-    const myAddress = this.store.getAddress();
+      const myAddress = this.store.getAddress();
 
-    let chainId: bigint;
-    try {
-      chainId = await this.chain.getChainId();
-    } catch (err) {
-      throw new Error(`could get chain id from chain service: ${err}`);
-    }
+      let chainId: bigint;
+      try {
+        chainId = await this.chain.getChainId();
+      } catch (err) {
+        throw new Error(`could get chain id from chain service: ${err}`);
+      }
 
-    const objectiveId = or.id(myAddress, chainId);
-    this.logger(`handling new objective request for ${objectiveId}`);
+      const objectiveId = or.id(myAddress, chainId);
+      this.logger(`handling new objective request for ${objectiveId}`);
 
-    // TODO: Implement metrics
-    // e.metrics.RecordObjectiveStarted(objectiveId);
+      // TODO: Implement metrics
+      // e.metrics.RecordObjectiveStarted(objectiveId);
 
       deferredSignalObjectiveStarted = () => or.signalObjectiveStarted();
 
