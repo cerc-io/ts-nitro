@@ -1,9 +1,10 @@
 function decodeValue(fieldType: any, fieldJsonValue: any): any {
   switch (fieldType.type) {
     case 'class': {
-      return fieldType.value.fromJSON(fieldJsonValue);
+      return fieldType.value.fromJSON(JSON.stringify(fieldJsonValue));
     }
 
+    case 'string':
     case 'number': {
       return fieldJsonValue;
     }
@@ -23,9 +24,7 @@ function decodeValue(fieldType: any, fieldJsonValue: any): any {
     }
 
     case 'array': {
-      const jsonArrayValue = fieldJsonValue;
-
-      return Array.from(jsonArrayValue).map((value) => decodeValue(fieldType.value, value));
+      return Array.from(fieldJsonValue).map((value) => decodeValue(fieldType.value, value));
     }
 
     default:

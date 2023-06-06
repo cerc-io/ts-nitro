@@ -29,7 +29,6 @@ export class Channel extends FixedPart {
 
   onChainFunding: Funds = new Funds();
 
-  fixedPart?: FixedPart;
   // Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
   // It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
@@ -43,10 +42,10 @@ export class Channel extends FixedPart {
 
   // TODO: Add interface for record value type
   static jsonEncodingMap: Record<string, any> = {
+    ...super.jsonEncodingMap,
     id: { type: 'class', value: Destination },
     myIndex: { type: 'number' },
     onChainFunding: { type: 'class', value: Funds },
-    fixedPart: { type: 'class', value: FixedPart },
     signedStateForTurnNum: { type: 'map', key: { type: 'number' }, value: { type: 'class', value: SignedState } },
     latestSupportedStateTurnNum: { type: 'number' },
   };
@@ -65,7 +64,7 @@ export class Channel extends FixedPart {
 
     c.myIndex = myIndex;
     c.onChainFunding = new Funds();
-    c.fixedPart = s.fixedPart().clone();
+    Object.assign(c, s.fixedPart().clone());
     c.latestSupportedStateTurnNum = MaxTurnNum; // largest uint64 value reserved for "no supported state"
     // c.Support =  // TODO
 
