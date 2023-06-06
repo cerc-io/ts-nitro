@@ -63,7 +63,7 @@ export class Client {
 
   private vm?: VoucherManager;
 
-  private logger?: debug.Debugger;
+  private logger: debug.Debugger = log;
 
   static async new(
     messageService: MessageService,
@@ -197,6 +197,66 @@ export class Client {
 
   // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
   // It parses events from the ToApi chan and then dispatches events to the necessary client chan.
-  // TODO: Implement
-  private handleEngineEvents() {}
+  private async handleEngineEvents() {
+    for (const update = await this.engine.toApi.shift(); update !== undefined;) {
+      for (const completed of update.completedObjectives) {
+        const [d] = this.completedObjectives!.loadOrStore(String(completed.id()), Channel());
+        d.close();
+
+        // use a nonblocking send to the RPC Client in case no one is listening
+        this.completedObjectivesForRPC!.push(completed.id());
+      }
+
+      for (const erred of update.failedObjectives) {
+        // eslint-disable-next-line no-await-in-loop
+        await this.failedObjectives!.push(erred);
+      }
+
+      for (const payment of update.receivedVouchers) {
+        // eslint-disable-next-line no-await-in-loop
+        await this.receivedVouchers!.push(payment);
+      }
+
+      for (const updated of update.ledgerChannelUpdates) {
+        try {
+          // TODO: Implement
+          this.channelNotifier!.notifyLedgerUpdated(updated);
+        } catch (err) {
+          this.handleError(err as Error);
+        }
+      }
+
+      for (const updated of update.paymentChannelUpdates) {
+        try {
+          // TODO: Implement
+          this.channelNotifier!.notifyPaymentUpdated(updated);
+        } catch (err) {
+          this.handleError(err as Error);
+        }
+      }
+    }
+
+    // At this point, the engine ToApi channel has been closed.
+    // If there are blocking consumers (for or select channel statements) on any channel for which the client is a producer,
+    // those channels need to be closed.
+    assert(this.completedObjectivesForRPC);
+    this.completedObjectivesForRPC.close();
+  }
+
+  // handleError logs the error and panics
+  // Eventually it should return the error to the caller
+  async handleError(err: Error) {
+    if (err) {
+      this.logger({
+        error: err,
+        message: `${this.address}, error in API client`,
+      });
+
+      // We wait for a bit so the previous log line has time to complete
+      await new Promise((resolve) => { setTimeout(() => resolve, 1000); });
+
+      // TODO instead of a panic, errors should be returned to the caller.
+      throw err;
+    }
+  }
 }

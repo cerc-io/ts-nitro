@@ -50,7 +50,7 @@ export class EngineEvent {
   completedObjectives: Objective[] = [];
 
   // These are objectives that have failed
-  failedObjectives: Objective[] = [];
+  failedObjectives: ObjectiveId[] = [];
 
   // ReceivedVouchers are vouchers we've received from other participants
   receivedVouchers: Voucher[] = [];
