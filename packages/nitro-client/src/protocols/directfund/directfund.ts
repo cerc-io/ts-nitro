@@ -240,11 +240,11 @@ export class Objective implements ObjectiveInterface {
     const outcome = LedgerOutcome.fromExit(assetExit);
 
     if (ledger.myIndex === Leader) {
-      const con = ConsensusChannel.newLeaderChannel(ledger.fixedPart!, turnNum, outcome, signatures);
+      const con = ConsensusChannel.newLeaderChannel(ledger, turnNum, outcome, signatures);
       con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
       return con;
     }
-    const con = ConsensusChannel.newFollowerChannel(ledger.fixedPart!, turnNum, outcome, signatures);
+    const con = ConsensusChannel.newFollowerChannel(ledger, turnNum, outcome, signatures);
     con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
     return con;
   }

@@ -24,7 +24,7 @@ function decodeValue(fieldType: any, fieldJsonValue: any): any {
     }
 
     case 'array': {
-      return Array.from(fieldJsonValue).map((value) => decodeValue(fieldType.value, value));
+      return fieldJsonValue.map((value: any) => decodeValue(fieldType.value, value));
     }
 
     default:
