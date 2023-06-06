@@ -22,7 +22,7 @@ import { ConsensusChannel, Proposal } from '../../channel/consensus-channel/cons
 import { Address } from '../../types/types';
 import { Voucher } from '../../payments/vouchers';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
-import { ObjectiveRequest as DirectDefundObjectiveRequest } from '../../protocols/directdefund/directdefund';
+import { ObjectiveRequest as DirectDefundObjectiveRequest, Objective as DirectDefundObjective } from '../../protocols/directdefund/directdefund';
 import { ObjectiveRequest as DirectFundObjectiveRequest, Objective as DirectFundObjective } from '../../protocols/directfund/directfund';
 import { ObjectiveRequest as VirtualDefundObjectiveRequest, Objective as VirtualDefundObjective } from '../../protocols/virtualdefund/virtualdefund';
 import * as channel from '../../channel/channel';
@@ -303,6 +303,8 @@ export class Engine {
     // TODO: Implement metrics
     // e.metrics.RecordObjectiveStarted(objectiveId);
 
+    let engineEvent: EngineEvent;
+
     switch (true) {
       case or instanceof VirtualFundObjectiveRequest: {
         let vfo: VirtualFundObjective;
@@ -328,26 +330,28 @@ export class Engine {
           }
         }
 
-        return this.attemptProgress(vfo);
+        engineEvent = await this.attemptProgress(vfo);
+
+        break;
       }
 
       case or instanceof VirtualDefundObjectiveRequest: {
         let minAmount = BigInt(0);
-        const virtualDefundOR = or as VirtualDefundObjectiveRequest;
+        const request = or as VirtualDefundObjectiveRequest;
 
-        if (this.vm!.channelRegistered(virtualDefundOR.channelId)) {
+        if (this.vm!.channelRegistered(request.channelId)) {
           try {
-            const paid = this.vm!.paid(virtualDefundOR.channelId);
+            const paid = this.vm!.paid(request.channelId);
 
             minAmount = paid;
           } catch (err) {
-            throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(virtualDefundOR)}: ${err}`);
+            throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(request)}: ${err}`);
           }
         }
 
         try {
           const vdfo = VirtualDefundObjective.newObjective(
-            virtualDefundOR,
+            request,
             true,
             myAddress,
             minAmount,
@@ -355,10 +359,12 @@ export class Engine {
             this.store.getConsensusChannel,
           );
 
-          return await this.attemptProgress(vdfo);
+          engineEvent = await this.attemptProgress(vdfo);
         } catch (err) {
-          throw new Error(`handleAPIEvent: Could not create objective for ${virtualDefundOR}: ${err}`);
+          throw new Error(`handleAPIEvent: Could not create objective for ${request}: ${err}`);
         }
+
+        break;
       }
 
       case or instanceof DirectFundObjectiveRequest:
@@ -372,20 +378,36 @@ export class Engine {
             this.store.getConsensusChannel,
           );
 
-          return await this.attemptProgress(dfo);
+          engineEvent = await this.attemptProgress(dfo);
         } catch (err) {
           throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(or)}: ${err}`);
         }
 
-      case or instanceof DirectDefundObjectiveRequest:
-        // TODO: Implement
         break;
+
+      case or instanceof DirectDefundObjectiveRequest: {
+        const request = or as DirectDefundObjectiveRequest;
+        let ddfo: DirectDefundObjective;
+        try {
+          // TODO: Implement
+          ddfo = DirectDefundObjective.newObjective(request, true, this.store.getConsensusChannelById);
+        } catch (err) {
+          throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(request)}: ${err}`);
+        }
+        // If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
+        this.store.destroyConsensusChannel(request.channelId);
+        engineEvent = await this.attemptProgress(ddfo);
+
+        break;
+      }
+
       default:
         throw new Error(`handleAPIEvent: Unknown objective type ${typeof or}`);
     }
 
+    // TODO: Implement Go defer
     or.signalObjectiveStarted();
-    return new EngineEvent();
+    return engineEvent;
   }
 
   // handlePaymentRequest handles an PaymentRequest (triggered by a client API call).

@@ -197,7 +197,7 @@ export class MemStore implements Store {
   }
 
   // TODO: Implement
-  getConsensusChannelById(id: string): ConsensusChannel {
+  getConsensusChannelById(id: Destination): ConsensusChannel {
     return {} as ConsensusChannel;
   }
 
