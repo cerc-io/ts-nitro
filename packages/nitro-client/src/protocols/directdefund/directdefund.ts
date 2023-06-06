@@ -45,7 +45,6 @@ export class Objective implements ObjectiveInterface {
     let cc: ConsensusChannel;
 
     try {
-      // TODO: Implement MemStore.getConsensusChannelById
       cc = getConsensusChannel(request.channelId) as ConsensusChannel;
     } catch (err) {
       throw new Error(`could not find channel ${request.channelId}; ${err}`);

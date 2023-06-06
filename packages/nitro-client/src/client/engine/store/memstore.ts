@@ -196,9 +196,23 @@ export class MemStore implements Store {
     return [];
   }
 
-  // TODO: Implement
+  // GetConsensusChannelById returns a ConsensusChannel with the given channel id
   getConsensusChannelById(id: Destination): ConsensusChannel {
-    return {} as ConsensusChannel;
+    const [chJSON, ok] = this.consensusChannels.load(id.string());
+
+    if (!ok) {
+      throw ErrNoSuchChannel;
+    }
+    assert(chJSON);
+
+    const ch = new ConsensusChannel({});
+    try {
+      ch.unmarshalJSON(chJSON);
+    } catch (err) {
+      throw new Error(`error unmarshaling channel ${ch.id}`);
+    }
+
+    return ch;
   }
 
   // getConsensusChannel returns a ConsensusChannel between the calling client and
