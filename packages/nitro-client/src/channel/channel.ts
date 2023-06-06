@@ -1,6 +1,6 @@
 import assert from 'assert';
 
-import { fromJSON } from '@cerc-io/nitro-util';
+import { fromJSON, toJSON } from '@cerc-io/nitro-util';
 
 import { Signature } from '../crypto/signatures';
 import { Destination } from '../types/destination';
@@ -94,15 +94,8 @@ export class Channel extends FixedPart {
     return new Channel(props);
   }
 
-  // To be called by JSON.stringify()
   toJSON(): any {
-    assert(this.signedStateForTurnNum, 'signedStateForTurnNum field not assigned');
-    const jsonObj: any = { ...this };
-
-    // TODO: Generalize using jsonEncodingMap?
-    jsonObj.signedStateForTurnNum = Object.fromEntries(this.signedStateForTurnNum);
-
-    return jsonObj;
+    return toJSON(Channel.jsonEncodingMap, this);
   }
 
   // MarshalJSON returns a JSON representation of the Channel
