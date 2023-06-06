@@ -192,8 +192,13 @@ export class LedgerOutcome {
 
   // FundingTargets returns a list of channels funded by the LedgerOutcome
   fundingTargets(): Destination[] {
-    // TODO: Implement
-    return [];
+    const targets: Destination[] = [];
+
+    for (const [dest] of this.guarantees!) {
+      targets.push(dest);
+    }
+
+    return targets;
   }
 }
 
@@ -262,7 +267,7 @@ export class ConsensusChannel {
 
   onChainFunding?: Funds;
 
-  private fp?: FixedPart;
+  private fp: FixedPart = new FixedPart({});
 
   // variables
 
@@ -500,9 +505,8 @@ export class ConsensusChannel {
   private validateProposalID(propsal: Proposal): void {}
 
   // Participants returns the channel participants.
-  // TODO: Implement
   participants(): Address[] {
-    return [];
+    return this.fp.participants;
   }
 
   // Clone returns a deep copy of the receiver.
@@ -515,6 +519,18 @@ export class ConsensusChannel {
   supportedSignedState(): SignedState {
     // TODO: Implement
     return {} as SignedState;
+  }
+
+  // UnmarshalJSON populates the receiver with the
+  // json-encoded data
+  unmarshalJSON(data: Buffer) {
+    try {
+      // TODO: Implement json.Unmarshal
+      const jsonCh = JSON.parse(data.toString());
+      Object.assign(this, jsonCh);
+    } catch (err) {
+      throw new Error(`error unmarshaling channel data: ${err}`);
+    }
   }
 }
 
