@@ -63,7 +63,7 @@ export interface ConsensusChannelStore {
   getConsensusChannel (counterparty: Address): [ConsensusChannel | undefined, boolean]
 
   // TODO: Can throw an error
-  getConsensusChannelById (id: string): ConsensusChannel
+  getConsensusChannelById (id: Destination): ConsensusChannel | undefined
 
   // TODO: Can throw an error
   setConsensusChannel (ch: ConsensusChannel): void
