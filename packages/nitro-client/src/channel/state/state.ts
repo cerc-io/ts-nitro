@@ -33,6 +33,13 @@ export class FixedPart {
     Object.assign(this, params);
   }
 
+  static jsonEncodingMap: Record<string, any> = {
+    participants: { type: 'array', value: { type: 'string' } },
+    channelNonce: { type: 'string' },
+    appDefinition: { type: 'string' },
+    challengeDuration: { type: 'number' },
+  };
+
   channelId(): Destination {
     return new Destination(utilGetChannelId(this));
   }
