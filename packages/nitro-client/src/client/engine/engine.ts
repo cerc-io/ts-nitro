@@ -281,6 +281,9 @@ export class Engine {
   // It will attempt to spawn a new, approved objective.
   // TODO: Can throw an error
   private async handleObjectiveRequest(or: ObjectiveRequest): Promise<EngineEvent> {
+    let deferredSignalObjectiveStarted;
+
+    try {
     assert(this.store);
     assert(this.chain);
     assert(this.logger);
@@ -303,7 +306,8 @@ export class Engine {
     // TODO: Implement metrics
     // e.metrics.RecordObjectiveStarted(objectiveId);
 
-    try {
+      deferredSignalObjectiveStarted = () => or.signalObjectiveStarted();
+
       switch (true) {
         case or instanceof VirtualFundObjectiveRequest: {
           let vfo: VirtualFundObjective;
@@ -396,7 +400,9 @@ export class Engine {
           throw new Error(`handleAPIEvent: Unknown objective type ${typeof or}`);
       }
     } finally {
-      or.signalObjectiveStarted();
+      if (deferredSignalObjectiveStarted) {
+        deferredSignalObjectiveStarted();
+      }
     }
   }
 
