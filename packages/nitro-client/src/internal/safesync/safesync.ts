@@ -41,4 +41,15 @@ export class SafeSyncMap<T> {
       }
     }
   }
+
+  // LoadOrStore returns the existing value for the key if present.
+  // Otherwise, it stores and returns the given value.
+  // The loaded result is true if the value was loaded, false if stored.
+  loadOrStore(key: string, value: T): [T, boolean] {
+    if (this.m.has(key)) {
+      return [this.m.get(key)!, true];
+    }
+    this.m.set(key, value);
+    return [value, false];
+  }
 }
