@@ -386,7 +386,6 @@ export class Engine {
           const request = or as DirectDefundObjectiveRequest;
           let ddfo: DirectDefundObjective;
           try {
-            // TODO: Implement
             ddfo = DirectDefundObjective.newObjective(request, true, this.store.getConsensusChannelById);
           } catch (err) {
             throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(request)}: ${err}`);

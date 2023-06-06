@@ -12,6 +12,10 @@ import { Address } from '../../types/types';
 
 const ObjectivePrefix = 'DirectDefunding-';
 
+const ErrChannelUpdateInProgress = new Error('can only defund a channel when the latest state is supported or when the channel has a final state');
+const ErrNoFinalState = new Error('cannot spawn direct defund objective without a final state');
+const ErrNotEmpty = new Error('ledger channel has running guarantees');
+
 // GetConsensusChannel describes functions which return a ConsensusChannel ledger channel for a channel id.
 type GetConsensusChannel = (channelId: Destination) => ConsensusChannel | undefined;
 
@@ -19,15 +23,71 @@ type GetConsensusChannel = (channelId: Destination) => ConsensusChannel | undefi
 // TODO: Implement
 const isInConsensusOrFinalState = (c: channel.Channel): boolean => false;
 
+// createChannelFromConsensusChannel creates a Channel with (an appropriate latest supported state) from the supplied ConsensusChannel.
+// TODO: Implement
+const createChannelFromConsensusChannel = (cc: ConsensusChannel): channel.Channel => new channel.Channel({});
+
 export class Objective implements ObjectiveInterface {
+  status: ObjectiveStatus = ObjectiveStatus.Unapproved;
+
+  c?: channel.Channel;
+
+  private finalTurnNum: number = 0;
+
+  private transactionSubmitted: boolean = false; // whether a transition for the objective has been submitted or not
+
   // NewObjective initiates an Objective with the supplied channel
   static newObjective(
     request: ObjectiveRequest,
     preApprove: boolean,
     getConsensusChannel: GetConsensusChannel,
   ): Objective {
+    let cc: ConsensusChannel;
+
+    try {
+      // TODO: Implement MemStore.getConsensusChannelById
+      cc = getConsensusChannel(request.channelId) as ConsensusChannel;
+    } catch (err) {
+      throw new Error(`could not find channel ${request.channelId}; ${err}`);
+    }
+
+    if (cc.fundingTargets().length !== 0) {
+      throw ErrNotEmpty;
+    }
+
     // TODO: Implement
-    return new Objective();
+    const c = createChannelFromConsensusChannel(cc);
+
+    // We choose to disallow creating an objective if the channel has an in-progress update.
+    // We allow the creation of of an objective if the channel has some final states.
+    // In the future, we can add a restriction that only defund objectives can add final states to the channel.
+    const canCreateObjective = isInConsensusOrFinalState(c);
+
+    if (!canCreateObjective) {
+      throw ErrChannelUpdateInProgress;
+    }
+
+    const init = new Objective();
+
+    if (preApprove) {
+      init.status = ObjectiveStatus.Approved;
+    } else {
+      init.status = ObjectiveStatus.Unapproved;
+    }
+
+    // TODO: Implement
+    init.c = c.clone();
+
+    // TODO: Implement
+    const latestSS = c.latestSupportedState();
+
+    if (!latestSS.isFinal) {
+      init.finalTurnNum = latestSS.turnNum + 1;
+    } else {
+      init.finalTurnNum = latestSS.turnNum;
+    }
+
+    return init;
   }
 
   // TODO: Implement
@@ -92,10 +152,6 @@ export class Objective implements ObjectiveInterface {
     return ObjectiveStatus.Unapproved;
   }
 }
-
-// createChannelFromConsensusChannel creates a Channel with (an appropriate latest supported state) from the supplied ConsensusChannel.
-// TODO: Implement
-const createChannelFromConsensusChannel = (cc: ConsensusChannel): channel.Channel => new channel.Channel({});
 
 // ObjectiveRequest represents a request to create a new direct defund objective.
 // TODO: Implement
