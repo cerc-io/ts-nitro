@@ -303,111 +303,101 @@ export class Engine {
     // TODO: Implement metrics
     // e.metrics.RecordObjectiveStarted(objectiveId);
 
-    let engineEvent: EngineEvent;
+    try {
+      switch (true) {
+        case or instanceof VirtualFundObjectiveRequest: {
+          let vfo: VirtualFundObjective;
+          try {
+            vfo = VirtualFundObjective.newObjective(
+              or as VirtualFundObjectiveRequest,
+              true,
+              myAddress,
+              chainId,
+              this.store.getConsensusChannel,
+            );
+          } catch (err) {
+            throw new Error(`handleAPIEvent: Could not create objective for ${or}: ${err}`);
+          }
 
-    switch (true) {
-      case or instanceof VirtualFundObjectiveRequest: {
-        let vfo: VirtualFundObjective;
-        try {
-          vfo = VirtualFundObjective.newObjective(
-            or as VirtualFundObjectiveRequest,
-            true,
-            myAddress,
-            chainId,
-            this.store.getConsensusChannel,
-          );
-        } catch (err) {
-          throw new Error(`handleAPIEvent: Could not create objective for ${or}: ${err}`);
+          // Only Alice or Bob care about registering the objective and keeping track of vouchers
+          const lastParticipant = vfo.v!.participants.length - 1;
+          if (vfo.myRole === lastParticipant || vfo.myRole === PAYER_INDEX) {
+            try {
+              this.registerPaymentChannel(vfo);
+            } catch (err) {
+              throw new Error(`could not register channel with payment/receipt manager: ${err}`);
+            }
+          }
+
+          return await this.attemptProgress(vfo);
         }
 
-        // Only Alice or Bob care about registering the objective and keeping track of vouchers
-        const lastParticipant = vfo.v!.participants.length - 1;
-        if (vfo.myRole === lastParticipant || vfo.myRole === PAYER_INDEX) {
+        case or instanceof VirtualDefundObjectiveRequest: {
+          let minAmount = BigInt(0);
+          const request = or as VirtualDefundObjectiveRequest;
+
+          if (this.vm!.channelRegistered(request.channelId)) {
+            try {
+              const paid = this.vm!.paid(request.channelId);
+
+              minAmount = paid;
+            } catch (err) {
+              throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(request)}: ${err}`);
+            }
+          }
+
           try {
-            this.registerPaymentChannel(vfo);
+            const vdfo = VirtualDefundObjective.newObjective(
+              request,
+              true,
+              myAddress,
+              minAmount,
+              this.store.getChannelById,
+              this.store.getConsensusChannel,
+            );
+
+            return await this.attemptProgress(vdfo);
           } catch (err) {
-            throw new Error(`could not register channel with payment/receipt manager: ${err}`);
+            throw new Error(`handleAPIEvent: Could not create objective for ${request}: ${err}`);
           }
         }
 
-        engineEvent = await this.attemptProgress(vfo);
-
-        break;
-      }
-
-      case or instanceof VirtualDefundObjectiveRequest: {
-        let minAmount = BigInt(0);
-        const request = or as VirtualDefundObjectiveRequest;
-
-        if (this.vm!.channelRegistered(request.channelId)) {
+        case or instanceof DirectFundObjectiveRequest:
           try {
-            const paid = this.vm!.paid(request.channelId);
+            const dfo = DirectFundObjective.newObjective(
+              or as DirectFundObjectiveRequest,
+              true,
+              myAddress,
+              chainId,
+              this.store.getChannelsByParticipant,
+              this.store.getConsensusChannel,
+            );
 
-            minAmount = paid;
+            return await this.attemptProgress(dfo);
+          } catch (err) {
+            throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(or)}: ${err}`);
+          }
+
+        case or instanceof DirectDefundObjectiveRequest: {
+          const request = or as DirectDefundObjectiveRequest;
+          let ddfo: DirectDefundObjective;
+          try {
+            // TODO: Implement
+            ddfo = DirectDefundObjective.newObjective(request, true, this.store.getConsensusChannelById);
           } catch (err) {
             throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(request)}: ${err}`);
           }
+          // If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
+          this.store.destroyConsensusChannel(request.channelId);
+          return await this.attemptProgress(ddfo);
         }
 
-        try {
-          const vdfo = VirtualDefundObjective.newObjective(
-            request,
-            true,
-            myAddress,
-            minAmount,
-            this.store.getChannelById,
-            this.store.getConsensusChannel,
-          );
-
-          engineEvent = await this.attemptProgress(vdfo);
-        } catch (err) {
-          throw new Error(`handleAPIEvent: Could not create objective for ${request}: ${err}`);
-        }
-
-        break;
+        default:
+          throw new Error(`handleAPIEvent: Unknown objective type ${typeof or}`);
       }
-
-      case or instanceof DirectFundObjectiveRequest:
-        try {
-          const dfo = DirectFundObjective.newObjective(
-            or as DirectFundObjectiveRequest,
-            true,
-            myAddress,
-            chainId,
-            this.store.getChannelsByParticipant,
-            this.store.getConsensusChannel,
-          );
-
-          engineEvent = await this.attemptProgress(dfo);
-        } catch (err) {
-          throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(or)}: ${err}`);
-        }
-
-        break;
-
-      case or instanceof DirectDefundObjectiveRequest: {
-        const request = or as DirectDefundObjectiveRequest;
-        let ddfo: DirectDefundObjective;
-        try {
-          // TODO: Implement
-          ddfo = DirectDefundObjective.newObjective(request, true, this.store.getConsensusChannelById);
-        } catch (err) {
-          throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(request)}: ${err}`);
-        }
-        // If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-        this.store.destroyConsensusChannel(request.channelId);
-        engineEvent = await this.attemptProgress(ddfo);
-
-        break;
-      }
-
-      default:
-        throw new Error(`handleAPIEvent: Unknown objective type ${typeof or}`);
+    } finally {
+      or.signalObjectiveStarted();
     }
-
-    // TODO: Implement Go defer
-    or.signalObjectiveStarted();
-    return engineEvent;
   }
 
   // handlePaymentRequest handles an PaymentRequest (triggered by a client API call).
