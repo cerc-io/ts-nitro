@@ -160,10 +160,8 @@ export class Objective implements ObjectiveInterface {
 
     const initialState = initialSignedState.state();
     assert(initialState);
-    const error = initialState.fixedPart().validate();
-    if (error) {
-      throw error;
-    }
+    initialState.fixedPart().validate();
+
     if (initialState.turnNum !== 0) {
       throw new Error('cannot construct direct fund objective without prefund state');
     }

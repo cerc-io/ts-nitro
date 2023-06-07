@@ -36,6 +36,7 @@ export class SignedState {
   addSignature(sig: Signature): void {
     let signer: Address;
     try {
+      // TODO: Implement
       signer = this.state().recoverSigner(sig);
     } catch (err) {
       throw new Error('AddSignature failed to recover signer');
@@ -80,8 +81,11 @@ export class SignedState {
   }
 
   // HasAllSignatures returns true if every participant has a valid signature.
-  // TODO: Implement
   hasAllSignatures(): boolean {
+    // Since signatures are validated
+    if (this.sigs.size === this.state().participants.length) {
+      return true;
+    }
     return false;
   }
 

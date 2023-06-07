@@ -73,6 +73,17 @@ export class Exit {
     this.value = value;
   }
 
+  // Clone returns a deep clone of the receiver.
+  clone(): Exit {
+    const clone = new Exit([]);
+
+    for (const [i, sae] of this.value.entries()) {
+      clone.value[i] = sae.clone();
+    }
+
+    return clone;
+  }
+
   // totalAllocated returns the sum of all Funds that are allocated by the outcome.
   //
   // NOTE that these Funds are potentially different from a channel's capacity to
@@ -81,6 +92,7 @@ export class Exit {
     const fullValue = new Funds();
 
     for (const assetExit of this.value) {
+      // TODO: Implement
       fullValue.value.set(assetExit.asset, assetExit.totalAllocated());
     }
 

@@ -299,10 +299,7 @@ export class ConsensusChannel {
     outcome: LedgerOutcome,
     signatures: [Signature, Signature],
   ): ConsensusChannel {
-    const error = fp.validate();
-    if (error) {
-      throw error;
-    }
+    fp.validate();
 
     const cId = fp.channelId();
 

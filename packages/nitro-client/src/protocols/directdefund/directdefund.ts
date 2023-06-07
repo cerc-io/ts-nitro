@@ -31,7 +31,6 @@ const createChannelFromConsensusChannel = (cc: ConsensusChannel): channel.Channe
   );
 
   c.onChainFunding = cc.onChainFunding.clone();
-  // TODO: Implement methods
   c.addSignedState(cc.supportedSignedState());
 
   return c;
