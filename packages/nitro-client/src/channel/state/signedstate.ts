@@ -10,7 +10,7 @@ export class SignedState {
   private _state?: State;
 
   // TODO: uint replacement
-  private sigs?: Map<number, Signature>; // keyed by participant index
+  private sigs: Map<number, Signature> = new Map(); // keyed by participant index
 
   constructor(params: {
     state?: State,

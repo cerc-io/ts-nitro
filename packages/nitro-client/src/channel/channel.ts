@@ -32,7 +32,7 @@ export class Channel extends FixedPart {
   // It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
   // TODO: unit64 replacement
-  signedStateForTurnNum?: Map<number, SignedState>;
+  signedStateForTurnNum: Map<number, SignedState> = new Map();
   // Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 
   // largest uint64 value reserved for "no supported state"

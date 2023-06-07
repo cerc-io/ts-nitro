@@ -94,7 +94,7 @@ export class LedgerOutcome {
   // Balance of participants[1]
   private follower?: Balance;
 
-  private guarantees?: Map<Destination, Guarantee>;
+  private guarantees: Map<Destination, Guarantee> = new Map();
 
   constructor(params: {
     assetAddress?: Address;
@@ -265,7 +265,7 @@ export class ConsensusChannel {
 
   myIndex: LedgerIndex = 0;
 
-  onChainFunding?: Funds;
+  onChainFunding: Funds = new Funds();
 
   private fp: FixedPart = new FixedPart({});
 
