@@ -95,10 +95,6 @@ export class Exit {
   // Can use prototype.valueOf method if necessary
   value: SingleAssetExit[] = [];
 
-  static jsonEncodingMap: Record<string, FieldDescription> = {
-    value: { type: 'array', value: { type: 'class', value: SingleAssetExit } },
-  };
-
   static fromJSON(data: string): Exit {
     // jsonValue is a JSON array of SingleAssetExit
     // Call fromJSON on individual elements of the array

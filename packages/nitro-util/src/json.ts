@@ -44,20 +44,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
       assert(fieldType.key);
       assert(fieldType.value);
 
-      const mapKeyType = fieldType.key;
-      const mapValueType = fieldType.value as FieldDescription;
-
-      const jsonMapValue = fieldJsonValue;
-      const mapFieldvalue = new Map();
-
-      Object.keys(jsonMapValue).forEach((mapKey) => {
-        mapFieldvalue.set(
-          decodeValue(mapKeyType, mapKey),
-          decodeValue(mapValueType, jsonMapValue[mapKey]),
-        );
-      });
-
-      return mapFieldvalue;
+      return decodeMap(fieldType.key as FieldDescription, fieldType.value as FieldDescription, fieldJsonValue);
     }
 
     case 'array': {
@@ -91,14 +78,7 @@ export function toJSON(jsonEncodingMap: Record<string, any>, obj: any): any {
 
     // Create a custom object if field is of a map type
     if (fieldType.type === 'map') {
-      const mapObject: any = {};
-
-      obj[fieldKey].forEach((value: any, key: any) => {
-        // Use .toString() for keys (key type should have .toString() method)
-        mapObject[key.toString()] = value;
-      });
-
-      jsonObj[fieldKey] = mapObject;
+      jsonObj[fieldKey] = encodeMap(obj[fieldKey]);
     }
 
     // Marshall bigint as a string
@@ -108,4 +88,32 @@ export function toJSON(jsonEncodingMap: Record<string, any>, obj: any): any {
   });
 
   return jsonObj;
+}
+
+export function encodeMap(mapValue: Map<any, any>): any {
+  const mapObject: any = {};
+
+  mapValue.forEach((value: any, key: any) => {
+    // Use .toString() for keys (key type should have .toString() method)
+    mapObject[key.toString()] = value;
+  });
+
+  return mapObject;
+}
+
+export function decodeMap(
+  keyDescription: FieldDescription,
+  valueDescription: FieldDescription,
+  jsonMapValue: any,
+): Map<any, any> {
+  const mapFieldvalue = new Map();
+
+  Object.keys(jsonMapValue).forEach((mapKey) => {
+    mapFieldvalue.set(
+      decodeValue(keyDescription, mapKey),
+      decodeValue(valueDescription, jsonMapValue[mapKey]),
+    );
+  });
+
+  return mapFieldvalue;
 }
