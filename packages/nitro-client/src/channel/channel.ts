@@ -201,10 +201,17 @@ export class Channel extends FixedPart {
   }
 
   // LatestSignedState fetches the state with the largest turn number signed by at least one participant.
-  // TODO: Can throw an error
   latestSignedState(): SignedState {
-    // TODO: Implement
-    return {} as SignedState;
+    if (this.signedStateForTurnNum.size === 0) {
+      throw new Error('no states are signed');
+    }
+    let latestTurn = 0;
+    for (const [k] of this.signedStateForTurnNum) {
+      if (k > latestTurn) {
+        latestTurn = k;
+      }
+    }
+    return this.signedStateForTurnNum.get(latestTurn)!;
   }
 
   // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
