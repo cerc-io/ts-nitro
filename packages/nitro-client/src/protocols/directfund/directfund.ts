@@ -1,6 +1,5 @@
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
-import JSONbig from 'json-bigint';
 
 import assert from 'assert';
 import { Exit } from '../../channel/state/outcome/exit';
@@ -25,8 +24,6 @@ import {
 } from '../../channel/consensus-channel/consensus-channel';
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
-
-const JSONbigNative = JSONbig({ useNativeBigInt: true });
 
 const waitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund';
 const waitingForMyTurnToFund: WaitingFor = 'WaitingForMyTurnToFund';
@@ -124,7 +121,7 @@ export class Objective implements ObjectiveInterface {
     });
 
     const signedInitial = SignedState.newSignedState(initialState);
-    const b = Buffer.from(JSONbigNative.stringify(signedInitial), 'utf-8');
+    const b = Buffer.from(JSON.stringify(signedInitial), 'utf-8');
     const objectivePayload: ObjectivePayload = {
       objectiveId: request.id(myAddress, chainId),
       payloadData: b,

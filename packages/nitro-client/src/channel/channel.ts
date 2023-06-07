@@ -80,12 +80,12 @@ export class Channel extends FixedPart {
 
     // Store prefund
     c.signedStateForTurnNum = new Map();
-    c.signedStateForTurnNum.set(PreFundTurnNum, new SignedState({ state: s }));
+    c.signedStateForTurnNum.set(PreFundTurnNum, new SignedState({ _state: s }));
 
     // Store postfund
     const post = s.clone();
     post.turnNum = PostFundTurnNum;
-    c.signedStateForTurnNum.set(PostFundTurnNum, new SignedState({ state: post }));
+    c.signedStateForTurnNum.set(PostFundTurnNum, new SignedState({ _state: post }));
 
     // Set on chain holdings to zero for each asset
     for (const [asset] of s.outcome.totalAllocated().value) {

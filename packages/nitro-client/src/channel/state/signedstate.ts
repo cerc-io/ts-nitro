@@ -31,7 +31,7 @@ export class SignedState {
   }
 
   constructor(params: {
-    state?: State,
+    _state?: State,
     sigs?: Map<number, Signature>
   }) {
     Object.assign(this, params);
@@ -41,7 +41,7 @@ export class SignedState {
   // The signedState returned will have no signatures.
   static newSignedState(s: State): SignedState {
     return new SignedState({
-      state: s,
+      _state: s,
       sigs: new Map(),
     });
   }
