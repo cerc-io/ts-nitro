@@ -16,7 +16,7 @@ export class SignedState {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     _state: { type: 'class', value: State },
-    sigs: { type: 'map', key: { type: 'number' }, value: { type: 'class', value: signatureJsonEncodingMap } },
+    sigs: { type: 'map', key: { type: 'number' }, value: { type: 'object', value: signatureJsonEncodingMap } },
   };
 
   static fromJSON(data: string): SignedState {

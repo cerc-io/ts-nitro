@@ -24,6 +24,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
     }
 
     case 'buffer': {
+      // TODO: Make buffer JSON marshalling similar to that in Go
       return Buffer.from(fieldJsonValue);
     }
 
