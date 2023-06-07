@@ -1,6 +1,8 @@
+import assert from 'assert';
+import isEqual from 'lodash/isEqual';
+
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
 
-import assert from 'assert';
 import { Destination } from '../../types/destination';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
 import * as channel from '../../channel/channel';
@@ -9,6 +11,7 @@ import {
 } from '../interfaces';
 import { ObjectiveId, ObjectivePayload } from '../messages';
 import { Address } from '../../types/types';
+import { SignedState } from '../../channel/state/signedstate';
 
 const ObjectivePrefix = 'DirectDefunding-';
 
@@ -20,8 +23,32 @@ const ErrNotEmpty = new Error('ledger channel has running guarantees');
 type GetConsensusChannel = (channelId: Destination) => ConsensusChannel | undefined;
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
-// TODO: Implement
-const isInConsensusOrFinalState = (c: channel.Channel): boolean => false;
+const isInConsensusOrFinalState = (c: channel.Channel): boolean => {
+  let latestSS = new SignedState({});
+
+  try {
+    // TODO: Implement
+    latestSS = c.latestSignedState();
+  } catch (err) {
+    // There are no signed states. We consider this as consensus
+    if (err instanceof Error && err.message === 'No states are signed') {
+      return true;
+    }
+  }
+
+  if (latestSS.state().isFinal) {
+    return true;
+  }
+
+  try {
+    // TODO: Implement
+    const latestSupportedState = c.latestSupportedState();
+
+    return isEqual(latestSS.state(), latestSupportedState);
+  } catch (err) {
+    return false;
+  }
+};
 
 // createChannelFromConsensusChannel creates a Channel with (an appropriate latest supported state) from the supplied ConsensusChannel.
 const createChannelFromConsensusChannel = (cc: ConsensusChannel): channel.Channel => {

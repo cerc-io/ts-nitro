@@ -19,6 +19,7 @@
     "@types/chai": "^4.3.5",
     "@types/debug": "^4.1.7",
     "@types/json-bigint": "^1.0.1",
+    "@types/lodash": "^4.14.195",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.2.1",
     "@types/webpack": "^5.28.1",
@@ -53,6 +54,7 @@
     "debug": "^4.3.4",
     "ethers": "^5.7.2",
     "json-bigint": "^1.0.0",
-    "libp2p": "^0.45.3"
+    "libp2p": "^0.45.3",
+    "lodash": "^4.17.21"
   }
 }
