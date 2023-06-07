@@ -1,4 +1,5 @@
-import { Bytes32, isExternalDestination } from '@statechannels/nitro-protocol';
+import { FieldDescription, decodeMap, encodeMap } from '@cerc-io/nitro-util';
+
 import { Address } from './types';
 
 // A {tokenAddress: amount} map. Address 0 represents a chain's native token (ETH, FIL, etc)
@@ -6,6 +7,23 @@ export class Funds {
   // Access using value property
   // Can use prototype.valueOf method if necessary
   value: Map<Address, bigint>;
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    value: { type: 'map', key: { type: 'string' }, value: { type: 'bigint' } },
+  };
+
+  static fromJSON(data: string): Funds {
+    // jsonValue has the value for 'value' map
+    const jsonValue = JSON.parse(data);
+    const value = decodeMap(Funds.jsonEncodingMap.key, Funds.jsonEncodingMap.value, jsonValue);
+    return new Funds(value);
+  }
+
+  toJSON(): any {
+    // Return serialized map value
+    // (Funds is a map in go-nitro)
+    return encodeMap(this.value);
+  }
 
   constructor(value: Map<Address, bigint> = new Map()) {
     this.value = value;

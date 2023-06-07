@@ -1,19 +1,37 @@
 import assert from 'assert';
 
-import { zeroValueSignature } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+} from '@cerc-io/nitro-util';
 
-import { Signature } from '../../crypto/signatures';
+import { Signature, signatureJsonEncodingMap } from '../../crypto/signatures';
 import { State } from './state';
 import { Address } from '../../types/types';
 
 export class SignedState {
-  private _state?: State;
+  private _state: State = new State({});
 
   // TODO: uint replacement
   private sigs: Map<number, Signature> = new Map(); // keyed by participant index
 
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    _state: { type: 'class', value: State },
+    sigs: { type: 'map', key: { type: 'number' }, value: { type: 'object', value: signatureJsonEncodingMap } },
+  };
+
+  static fromJSON(data: string): SignedState {
+    const jsonValue = JSON.parse(data);
+    const props = fromJSON(this.jsonEncodingMap, jsonValue);
+
+    return new SignedState(props);
+  }
+
+  toJSON(): any {
+    return toJSON(SignedState.jsonEncodingMap, this);
+  }
+
   constructor(params: {
-    state?: State,
+    _state?: State,
     sigs?: Map<number, Signature>
   }) {
     Object.assign(this, params);
@@ -23,7 +41,7 @@ export class SignedState {
   // The signedState returned will have no signatures.
   static newSignedState(s: State): SignedState {
     return new SignedState({
-      state: s,
+      _state: s,
       sigs: new Map(),
     });
   }
@@ -61,7 +79,6 @@ export class SignedState {
 
   // State returns the State part of the SignedState.
   state(): State {
-    assert(this._state);
     return this._state;
   }
 

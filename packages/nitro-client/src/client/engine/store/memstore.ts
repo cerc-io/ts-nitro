@@ -191,9 +191,29 @@ export class MemStore implements Store {
     return [];
   }
 
-  // TODO: Implement
+  // GetChannelsByParticipant returns any channels that include the given participant
   getChannelsByParticipant(participant: Address): Channel[] {
-    return [];
+    const toReturn: Channel[] = [];
+
+    this.channels.range((key: string, chJSON: Buffer) => {
+      let ch: Channel;
+      try {
+        ch = Channel.fromJSON(chJSON.toString());
+      } catch (err) {
+        return true; // channel not found, continue looking
+      }
+
+      const { participants } = ch;
+      for (const p of participants) {
+        if (p === participant) {
+          toReturn.push(ch);
+        }
+      }
+
+      return true; // channel not found: continue looking
+    });
+
+    return toReturn;
   }
 
   // GetConsensusChannelById returns a ConsensusChannel with the given channel id

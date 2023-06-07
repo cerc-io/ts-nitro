@@ -1,3 +1,5 @@
+import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+
 import { Destination } from '../../../types/destination';
 
 export enum AllocationType {
@@ -18,6 +20,24 @@ export class Allocation {
 
   // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
   metadata: Buffer = Buffer.alloc(0);
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    destination: { type: 'class', value: Destination },
+    amount: { type: 'bigint' },
+    allocationType: { type: 'number' },
+    metadata: { type: 'buffer' },
+  };
+
+  static fromJSON(data: string): Allocation {
+    const jsonValue = JSON.parse(data);
+    const props = fromJSON(this.jsonEncodingMap, jsonValue);
+
+    return new Allocation(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Allocation.jsonEncodingMap, this);
+  }
 
   constructor(params: {
     destination?: Destination,

@@ -1,6 +1,5 @@
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
-import JSONbig from 'json-bigint';
 
 import assert from 'assert';
 import { Exit } from '../../channel/state/outcome/exit';
@@ -26,8 +25,6 @@ import {
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
 
-const JSONbigNative = JSONbig({ useNativeBigInt: true });
-
 const waitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund';
 const waitingForMyTurnToFund: WaitingFor = 'WaitingForMyTurnToFund';
 const waitingForCompleteFunding: WaitingFor = 'WaitingForCompleteFunding';
@@ -50,13 +47,9 @@ interface GetTwoPartyConsensusLedgerFunction {
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
-// TODO: Implement unmarshal
 const getSignedStatePayload = (b: Buffer): SignedState => {
   try {
-    // TODO: Implement Go json.Unmarshal
-    // const ss = SignedState.fromJSON(b.toString());
-
-    return new SignedState({});
+    return SignedState.fromJSON(b.toString());
   } catch (err) {
     throw new Error(`could not unmarshal signed state: ${err}`);
   }
@@ -128,7 +121,7 @@ export class Objective implements ObjectiveInterface {
     });
 
     const signedInitial = SignedState.newSignedState(initialState);
-    const b = Buffer.from(JSONbigNative.stringify(signedInitial), 'utf-8');
+    const b = Buffer.from(JSON.stringify(signedInitial), 'utf-8');
     const objectivePayload: ObjectivePayload = {
       objectiveId: request.id(myAddress, chainId),
       payloadData: b,
@@ -159,7 +152,6 @@ export class Objective implements ObjectiveInterface {
     }
 
     const initialState = initialSignedState.state();
-    assert(initialState);
     initialState.fixedPart().validate();
 
     if (initialState.turnNum !== 0) {
@@ -240,11 +232,11 @@ export class Objective implements ObjectiveInterface {
     const outcome = LedgerOutcome.fromExit(assetExit);
 
     if (ledger.myIndex === Leader) {
-      const con = ConsensusChannel.newLeaderChannel(ledger.fixedPart!, turnNum, outcome, signatures);
+      const con = ConsensusChannel.newLeaderChannel(ledger, turnNum, outcome, signatures);
       con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
       return con;
     }
-    const con = ConsensusChannel.newFollowerChannel(ledger.fixedPart!, turnNum, outcome, signatures);
+    const con = ConsensusChannel.newFollowerChannel(ledger, turnNum, outcome, signatures);
     con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
     return con;
   }
@@ -527,7 +519,10 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   // SignalObjectiveStarted is used by the engine to signal the objective has been started.
-  signalObjectiveStarted(): void { }
+  signalObjectiveStarted(): void {
+    assert(this.objectiveStarted);
+    this.objectiveStarted.close();
+  }
 
   // WaitForObjectiveToStart blocks until the objective starts
   async waitForObjectiveToStart(): Promise<void> {

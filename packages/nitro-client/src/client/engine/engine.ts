@@ -5,8 +5,8 @@ import JSONbig from 'json-bigint';
 
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
-
 import { go } from '@cerc-io/nitro-util';
+
 import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent } from './chainservice/chainservice';
 import { Store } from './store/store';
@@ -34,7 +34,7 @@ import { PAYER_INDEX, getPayee, getPayer } from '../../payments/helpers';
 import { Destination } from '../../types/destination';
 
 const JSONbigNative = JSONbig({ useNativeBigInt: true });
-const log = debug('ts-nitro:client');
+const log = debug('ts-nitro:engine');
 
 const Incoming: MessageDirection = 'Incoming';
 const Outgoing: MessageDirection = 'Outgoing';
