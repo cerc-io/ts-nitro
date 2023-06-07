@@ -14,7 +14,7 @@ export function convertAssetMetadata(am: AssetMetadata): ExitFormatAssetMetadata
 }
 
 export function convertAllocations(as: Allocations): ExitFormatAllocation[] {
-  return as.map((a): ExitFormatAllocation => ({
+  return as.value.map((a): ExitFormatAllocation => ({
     destination: a.destination.value,
     amount: a.amount,
     allocationType: a.allocationType,

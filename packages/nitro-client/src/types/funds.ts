@@ -5,7 +5,6 @@ import { Address } from './types';
 // A {tokenAddress: amount} map. Address 0 represents a chain's native token (ETH, FIL, etc)
 export class Funds {
   // Access using value property
-  // Can use prototype.valueOf method if necessary
   value: Map<Address, bigint>;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {

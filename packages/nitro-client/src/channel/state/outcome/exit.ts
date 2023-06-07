@@ -31,7 +31,7 @@ export class SingleAssetExit {
   // Can be used to encode arbitrary additional information that applies to all allocations.
   assetMetadata?: AssetMetadata;
 
-  allocations: Allocations = [];
+  allocations: Allocations = new Allocations([]);
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     asset: { type: 'string' },
@@ -40,9 +40,7 @@ export class SingleAssetExit {
   };
 
   static fromJSON(data: string): SingleAssetExit {
-    const jsonValue = JSON.parse(data);
-    const props = fromJSON(this.jsonEncodingMap, jsonValue);
-
+    const props = fromJSON(this.jsonEncodingMap, data);
     return new SingleAssetExit(props);
   }
 
@@ -96,8 +94,7 @@ export class SingleAssetExit {
 // Exit is an ordered list of SingleAssetExits
 export class Exit {
   // Access using value property
-  // Can use prototype.valueOf method if necessary
-  value: SingleAssetExit[] = [];
+  value: SingleAssetExit[];
 
   static fromJSON(data: string): Exit {
     // jsonValue is a JSON array of SingleAssetExit

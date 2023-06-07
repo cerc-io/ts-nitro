@@ -50,9 +50,7 @@ export class Channel extends FixedPart {
   };
 
   static fromJSON(data: string): Channel {
-    const jsonValue = JSON.parse(data);
-    const props = fromJSON(this.jsonEncodingMap, jsonValue);
-
+    const props = fromJSON(this.jsonEncodingMap, data);
     return new Channel(props);
   }
 

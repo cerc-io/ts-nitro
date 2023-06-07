@@ -58,12 +58,15 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
 }
 
 // Go compatible JSON unmarshalling utility method
-export function fromJSON(jsonEncodingMap: Record<string, any>, data: any): any {
+export function fromJSON(jsonEncodingMap: Record<string, any>, data: string): any {
+  // Parse the JSON data string
+  const jsonValue = JSON.parse(data);
+
   const props: any = {};
 
   Object.keys(jsonEncodingMap).forEach((fieldKey) => {
     const fieldType = jsonEncodingMap[fieldKey];
-    props[fieldKey] = decodeValue(fieldType, data[fieldKey]);
+    props[fieldKey] = decodeValue(fieldType, jsonValue[fieldKey]);
   });
 
   return props;

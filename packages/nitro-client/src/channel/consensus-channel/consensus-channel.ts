@@ -9,7 +9,7 @@ import { Funds } from '../../types/funds';
 import { FixedPart, State } from '../state/state';
 import { SignedState } from '../state/signedstate';
 import { Destination } from '../../types/destination';
-import { Allocation, AllocationType } from '../state/outcome/allocation';
+import { Allocation, AllocationType, Allocations } from '../state/outcome/allocation';
 import { Exit, SingleAssetExit } from '../state/outcome/exit';
 import { GuaranteeMetadata } from '../state/outcome/guarantee';
 
@@ -112,11 +112,11 @@ export class LedgerOutcome {
   //   - The second alloction entry is for the ledger follower
   //   - All other allocations are guarantees
   static fromExit(sae: SingleAssetExit): LedgerOutcome {
-    const leader = new Balance({ destination: sae.allocations[0].destination, amount: sae.allocations[0].amount });
-    const follower = new Balance({ destination: sae.allocations[1].destination, amount: sae.allocations[1].amount });
+    const leader = new Balance({ destination: sae.allocations.value[0].destination, amount: sae.allocations.value[0].amount });
+    const follower = new Balance({ destination: sae.allocations.value[1].destination, amount: sae.allocations.value[1].amount });
     const guarantees: Map<Destination, Guarantee> = new Map();
 
-    for (const allocation of sae.allocations) {
+    for (const allocation of sae.allocations.value) {
       if (allocation.allocationType === AllocationType.GuaranteeAllocationType) {
         const gM = GuaranteeMetadata.decodeIntoGuaranteeMetadata(allocation.metadata);
         const guarantee: Guarantee = new Guarantee({
@@ -157,7 +157,7 @@ export class LedgerOutcome {
     return new Exit(
       [new SingleAssetExit({
         asset: this.assetAddress,
-        allocations,
+        allocations: new Allocations(allocations),
       })],
     );
   }
