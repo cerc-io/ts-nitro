@@ -20,9 +20,7 @@ export class SignedState {
   };
 
   static fromJSON(data: string): SignedState {
-    const jsonValue = JSON.parse(data);
-    const props = fromJSON(this.jsonEncodingMap, jsonValue);
-
+    const props = fromJSON(this.jsonEncodingMap, data);
     return new SignedState(props);
   }
 

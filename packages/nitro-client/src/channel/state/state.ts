@@ -108,9 +108,7 @@ export class State {
   };
 
   static fromJSON(data: string): State {
-    const jsonValue = JSON.parse(data);
-    const props = fromJSON(this.jsonEncodingMap, jsonValue);
-
+    const props = fromJSON(this.jsonEncodingMap, data);
     return new State(props);
   }
 

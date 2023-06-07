@@ -32,9 +32,7 @@ export class Allocation {
   };
 
   static fromJSON(data: string): Allocation {
-    const jsonValue = JSON.parse(data);
-    const props = fromJSON(this.jsonEncodingMap, jsonValue);
-
+    const props = fromJSON(this.jsonEncodingMap, data);
     return new Allocation(props);
   }
 

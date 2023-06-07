@@ -585,7 +585,7 @@ export class Engine {
     const postfund = vfo.v.postFundState();
 
     // TODO: Assumes one asset for now
-    const startingBalance = BigInt(postfund.outcome.value[0].allocations[0].amount);
+    const startingBalance = BigInt(postfund.outcome.value[0].allocations.value[0].amount);
 
     assert(this.vm);
 

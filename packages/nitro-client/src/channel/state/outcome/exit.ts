@@ -40,9 +40,7 @@ export class SingleAssetExit {
   };
 
   static fromJSON(data: string): SingleAssetExit {
-    const jsonValue = JSON.parse(data);
-    const props = fromJSON(this.jsonEncodingMap, jsonValue);
-
+    const props = fromJSON(this.jsonEncodingMap, data);
     return new SingleAssetExit(props);
   }
 
