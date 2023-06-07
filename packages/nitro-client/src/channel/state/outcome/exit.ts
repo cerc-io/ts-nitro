@@ -59,9 +59,11 @@ export class SingleAssetExit {
   }
 
   // Equal returns true if the supplied SingleAssetExit is deeply equal to the receiver.
-  // TODO: Implement
   equal(r: SingleAssetExit): boolean {
-    return false;
+    return this.assetMetadata?.metadata === r.assetMetadata?.metadata
+    && this.assetMetadata?.assetType === r.assetMetadata?.assetType
+    && this.asset === r.asset
+    && this.allocations.equal(r.allocations);
   }
 
   // Clone returns a deep clone of the receiver.
@@ -69,21 +71,18 @@ export class SingleAssetExit {
     return new SingleAssetExit({
       asset: this.asset,
       assetMetadata: this.assetMetadata,
-      // TODO: Use allocations.clone()
-      allocations: this.allocations,
+      allocations: this.allocations.clone(),
     });
   }
 
   // TotalAllocated returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
-  // TODO: Implement
   totalAllocated(): bigint {
-    return BigInt(0);
+    return this.allocations.total();
   }
 
   // TotalAllocatedFor returns the total amount allocated for the specific destination
-  // TODO: Implement
   totalAllocatedFor(dest: Destination): bigint {
-    return BigInt(0);
+    return this.allocations.totalFor(dest);
   }
 
   depositSafetyThreshold(interest: Destination): bigint {
@@ -140,7 +139,6 @@ export class Exit {
     const fullValue = new Funds();
 
     for (const assetExit of this.value) {
-      // TODO: Implement
       fullValue.value.set(assetExit.asset, assetExit.totalAllocated());
     }
 
