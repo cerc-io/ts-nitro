@@ -24,8 +24,17 @@ type GetConsensusChannel = (channelId: Destination) => ConsensusChannel | undefi
 const isInConsensusOrFinalState = (c: channel.Channel): boolean => false;
 
 // createChannelFromConsensusChannel creates a Channel with (an appropriate latest supported state) from the supplied ConsensusChannel.
-// TODO: Implement
-const createChannelFromConsensusChannel = (cc: ConsensusChannel): channel.Channel => new channel.Channel({});
+const createChannelFromConsensusChannel = (cc: ConsensusChannel): channel.Channel => {
+  const c = channel.Channel.new(
+    cc.consensusVars().asState(cc.supportedSignedState().state().fixedPart()),
+    Number(cc.myIndex),
+  );
+
+  c.onChainFunding = cc.onChainFunding.clone();
+  c.addSignedState(cc.supportedSignedState());
+
+  return c;
+};
 
 export class Objective implements ObjectiveInterface {
   status: ObjectiveStatus = ObjectiveStatus.Unapproved;
@@ -54,12 +63,12 @@ export class Objective implements ObjectiveInterface {
       throw ErrNotEmpty;
     }
 
-    // TODO: Implement
     const c = createChannelFromConsensusChannel(cc);
 
     // We choose to disallow creating an objective if the channel has an in-progress update.
     // We allow the creation of of an objective if the channel has some final states.
     // In the future, we can add a restriction that only defund objectives can add final states to the channel.
+    // TODO: Implement
     const canCreateObjective = isInConsensusOrFinalState(c);
 
     if (!canCreateObjective) {

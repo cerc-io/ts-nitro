@@ -44,14 +44,10 @@ export class FixedPart {
   }
 
   // Validate checks whether the receiver is malformed and returns an error if it is.
-  // TODO: Can throw an error
-  // TODO: Implement
-  validate(): Error | null {
+  validate(): void {
     if (this.channelId().isExternal()) {
-      return new Error('channelId is an external destination'); // This is extremely unlikely
+      throw new Error('channelId is an external destination'); // This is extremely unlikely
     }
-
-    return null;
   }
 }
 
@@ -150,10 +146,9 @@ export class State {
   }
 
   // RecoverSigner computes the Ethereum address which generated Signature sig on State state
-  // TODO: Can throw an error
   recoverSigner(sig: Signature): Address {
-    // TODO: Implement
-    return ethers.constants.AddressZero;
+    const stateHash = this.hash();
+    return nc.recoverEthereumMessageSigner(Buffer.from(stateHash), sig);
   }
 
   // Equal returns true if the given State is deeply equal to the receiever.
@@ -163,14 +158,31 @@ export class State {
   }
 
   // Validate checks whether the state is malformed and returns an error if it is.
-  // TODO: Can throw an error
-  // TODO: Implement
-  validate(): void {}
+  validate(): void {
+    return this.fixedPart().validate();
+  }
 
   // Clone returns a deep copy of the receiver.
-  // TODO: Implement
   clone(): State {
-    return {} as State;
+    const clone = new State({});
+
+    // Fixed part
+    const cloneFixedPart = this.fixedPart().clone();
+    clone.participants = cloneFixedPart.participants;
+    clone.channelNonce = cloneFixedPart.channelNonce;
+    clone.appDefinition = cloneFixedPart.appDefinition;
+    clone.challengeDuration = cloneFixedPart.challengeDuration;
+
+    // Variable part
+    if (this.appData) {
+      clone.appData = Buffer.alloc(this.appData.length);
+      clone.appData = Buffer.from(this.appData);
+    }
+    clone.outcome = this.outcome.clone();
+    clone.turnNum = this.turnNum;
+    clone.isFinal = this.isFinal;
+
+    return clone;
   }
 }
 

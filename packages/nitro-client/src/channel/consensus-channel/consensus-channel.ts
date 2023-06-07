@@ -94,7 +94,7 @@ export class LedgerOutcome {
   // Balance of participants[1]
   private follower?: Balance;
 
-  private guarantees?: Map<Destination, Guarantee>;
+  private guarantees: Map<Destination, Guarantee> = new Map();
 
   constructor(params: {
     assetAddress?: Address;
@@ -265,7 +265,7 @@ export class ConsensusChannel {
 
   myIndex: LedgerIndex = 0;
 
-  onChainFunding?: Funds;
+  onChainFunding: Funds = new Funds();
 
   private fp: FixedPart = new FixedPart({});
 
@@ -299,10 +299,7 @@ export class ConsensusChannel {
     outcome: LedgerOutcome,
     signatures: [Signature, Signature],
   ): ConsensusChannel {
-    const error = fp.validate();
-    if (error) {
-      throw error;
-    }
+    fp.validate();
 
     const cId = fp.channelId();
 
@@ -517,8 +514,13 @@ export class ConsensusChannel {
 
   // SupportedSignedState returns the latest supported signed state.
   supportedSignedState(): SignedState {
-    // TODO: Implement
-    return {} as SignedState;
+    const s = this.consensusVars().asState(this.fp);
+    const sigs = this.current.signatures;
+    const ss: SignedState = SignedState.newSignedState(s);
+    ss.addSignature(sigs[0]);
+    ss.addSignature(sigs[1]);
+
+    return ss;
   }
 
   // UnmarshalJSON populates the receiver with the

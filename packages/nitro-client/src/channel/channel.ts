@@ -32,7 +32,7 @@ export class Channel extends FixedPart {
   // It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
   // TODO: unit64 replacement
-  signedStateForTurnNum?: Map<number, SignedState>;
+  signedStateForTurnNum: Map<number, SignedState> = new Map();
   // Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 
   // largest uint64 value reserved for "no supported state"
@@ -47,7 +47,6 @@ export class Channel extends FixedPart {
   // new constructs a new Channel from the supplied state.
   static new(s: State, myIndex: number): Channel {
     const c = new Channel({});
-    // TODO: Use try-catch
     s.validate();
 
     c.id = s.channelId();
@@ -67,11 +66,12 @@ export class Channel extends FixedPart {
     post.turnNum = PostFundTurnNum;
     c.signedStateForTurnNum.set(PostFundTurnNum, new SignedState({ state: post }));
 
-    // TODO: Implement
     // Set on chain holdings to zero for each asset
-    // for asset := range s.Outcome.TotalAllocated() {
-    //   c.OnChainFunding[asset] = big.NewInt(0)
-    // }
+    for (const asset in s.outcome.totalAllocated().value) {
+      if (s.outcome.totalAllocated().value.has(asset)) {
+        c.onChainFunding.value.set(asset, BigInt(0));
+      }
+    }
 
     return c;
   }
@@ -214,8 +214,41 @@ export class Channel extends FixedPart {
   // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
   // Returns false and does not alter the channel if the state is "stale", belongs to a different channel, or is signed by a non participant.
   addSignedState(ss: SignedState): boolean {
-    // TODO: Implement
-    return false;
+    const s = ss.state();
+
+    if (s.channelId() !== this.id) {
+      // Channel mismatch
+      return false;
+    }
+
+    if (this.latestSupportedStateTurnNum !== MaxTurnNum && s.turnNum < this.latestSupportedStateTurnNum) {
+      // Stale state
+      return false;
+    }
+
+    // Store the signatures. If we have no record yet, add one.
+
+    const signedState = this.signedStateForTurnNum.get(s.turnNum);
+
+    if (!signedState) {
+      this.signedStateForTurnNum.set(s.turnNum, ss);
+    } else {
+      try {
+        // TODO: Implement
+        signedState.merge(ss);
+      } catch (err) {
+        return false;
+      }
+    }
+
+    // Update latest supported state
+    if (this.signedStateForTurnNum.get(s.turnNum)!.hasAllSignatures()) {
+      this.latestSupportedStateTurnNum = s.turnNum;
+    }
+
+    // TODO: update support
+
+    return true;
   }
 
   // SignAndAddPrefund signs and adds the prefund state for the channel, returning a state.SignedState suitable for sending to peers.
