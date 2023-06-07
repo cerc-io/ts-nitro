@@ -9,7 +9,7 @@ import { State } from './state';
 import { Address } from '../../types/types';
 
 export class SignedState {
-  private _state?: State;
+  private _state: State = new State({});
 
   // TODO: uint replacement
   private sigs: Map<number, Signature> = new Map(); // keyed by participant index
@@ -79,7 +79,6 @@ export class SignedState {
 
   // State returns the State part of the SignedState.
   state(): State {
-    assert(this._state);
     return this._state;
   }
 

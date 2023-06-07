@@ -47,9 +47,14 @@ export class FixedPart {
   }
 
   // Clone returns a deep copy of the receiver.
-  // TODO: Implement
   clone(): FixedPart {
-    return {} as FixedPart;
+    const clone = new FixedPart({});
+    clone.participants = this.participants;
+    clone.channelNonce = this.channelNonce;
+    clone.appDefinition = this.appDefinition;
+    clone.challengeDuration = this.challengeDuration;
+
+    return clone;
   }
 
   // Validate checks whether the receiver is malformed and returns an error if it is.

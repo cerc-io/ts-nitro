@@ -50,13 +50,9 @@ interface GetTwoPartyConsensusLedgerFunction {
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
-// TODO: Implement unmarshal
 const getSignedStatePayload = (b: Buffer): SignedState => {
   try {
-    // TODO: Implement Go json.Unmarshal
-    // const ss = SignedState.fromJSON(b.toString());
-
-    return new SignedState({});
+    return SignedState.fromJSON(b.toString());
   } catch (err) {
     throw new Error(`could not unmarshal signed state: ${err}`);
   }
@@ -159,7 +155,6 @@ export class Objective implements ObjectiveInterface {
     }
 
     const initialState = initialSignedState.state();
-    assert(initialState);
     initialState.fixedPart().validate();
 
     if (initialState.turnNum !== 0) {
