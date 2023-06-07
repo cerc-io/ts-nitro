@@ -88,10 +88,8 @@ export class Channel extends FixedPart {
     c.signedStateForTurnNum.set(PostFundTurnNum, new SignedState({ state: post }));
 
     // Set on chain holdings to zero for each asset
-    for (const asset in s.outcome.totalAllocated().value) {
-      if (s.outcome.totalAllocated().value.has(asset)) {
-        c.onChainFunding.value.set(asset, BigInt(0));
-      }
+    for (const [asset] of s.outcome.totalAllocated().value) {
+      c.onChainFunding.value.set(asset, BigInt(0));
     }
 
     return c;
