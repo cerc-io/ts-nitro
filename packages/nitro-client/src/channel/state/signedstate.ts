@@ -4,6 +4,7 @@ import { zeroValueSignature } from '@cerc-io/nitro-util';
 
 import { Signature } from '../../crypto/signatures';
 import { State } from './state';
+import { Address } from '../../types/types';
 
 export class SignedState {
   private _state?: State;
@@ -32,9 +33,29 @@ export class SignedState {
   // An error is returned if
   //   - the signer is not a participant, or
   //   - OR the signature was already stored
-  // TODO: Can throw an error
   addSignature(sig: Signature): void {
-    // TODO: Implement
+    let signer: Address;
+    try {
+      signer = this.state().recoverSigner(sig);
+    } catch (err) {
+      throw new Error('AddSignature failed to recover signer');
+    }
+
+    for (let i = 0; i < this.state().participants.length; i += 1) {
+      const p = this.state().participants[i];
+
+      if (p === signer) {
+        const found = this.sigs!.has(i);
+        if (found) {
+          throw new Error('Signature already exists for participant');
+        } else {
+          this.sigs!.set(i, sig);
+          return;
+        }
+      }
+    }
+
+    throw new Error('Signature does not match any participant');
   }
 
   // State returns the State part of the SignedState.

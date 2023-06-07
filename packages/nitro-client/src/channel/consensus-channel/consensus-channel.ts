@@ -517,8 +517,13 @@ export class ConsensusChannel {
 
   // SupportedSignedState returns the latest supported signed state.
   supportedSignedState(): SignedState {
-    // TODO: Implement
-    return {} as SignedState;
+    const s = this.consensusVars().asState(this.fp);
+    const sigs = this.current.signatures;
+    const ss: SignedState = SignedState.newSignedState(s);
+    ss.addSignature(sigs[0]);
+    ss.addSignature(sigs[1]);
+
+    return ss;
   }
 
   // UnmarshalJSON populates the receiver with the
