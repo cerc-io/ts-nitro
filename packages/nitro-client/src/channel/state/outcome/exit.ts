@@ -67,9 +67,13 @@ export class SingleAssetExit {
   }
 
   // Clone returns a deep clone of the receiver.
-  // TODO: Implement
   clone(): SingleAssetExit {
-    return {} as SingleAssetExit;
+    return new SingleAssetExit({
+      asset: this.asset,
+      assetMetadata: this.assetMetadata,
+      // TODO: Use allocations.clone()
+      allocations: this.allocations,
+    });
   }
 
   // TotalAllocated returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
