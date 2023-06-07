@@ -27,7 +27,6 @@ const isInConsensusOrFinalState = (c: channel.Channel): boolean => {
   let latestSS = new SignedState({});
 
   try {
-    // TODO: Implement
     latestSS = c.latestSignedState();
   } catch (err) {
     // There are no signed states. We consider this as consensus
