@@ -100,6 +100,11 @@ export function toJSON(jsonEncodingMap: Record<string, any>, obj: any): any {
 
       jsonObj[fieldKey] = mapObject;
     }
+
+    // Marshall bigint as a string
+    if (fieldType.type === 'bigint') {
+      jsonObj[fieldKey] = (obj[fieldKey] as bigint).toString();
+    }
   });
 
   return jsonObj;
