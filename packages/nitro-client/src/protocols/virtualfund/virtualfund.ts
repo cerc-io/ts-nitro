@@ -186,15 +186,15 @@ export class Objective implements ObjectiveInterface {
     for (const outcome of initialStateOfV.outcome.value) {
       const { asset } = outcome;
 
-      if (outcome.allocations[0].destination !== Destination.addressToDestination(initialStateOfV.participants[0])) {
+      if (outcome.allocations.value[0].destination !== Destination.addressToDestination(initialStateOfV.participants[0])) {
         throw new Error('Allocation in slot 0 does not correspond to participant 0');
       }
-      const amount0 = outcome.allocations[0].amount;
+      const amount0 = outcome.allocations.value[0].amount;
 
-      if (outcome.allocations[1].destination !== Destination.addressToDestination(initialStateOfV.participants[init.n + 1])) {
+      if (outcome.allocations.value[1].destination !== Destination.addressToDestination(initialStateOfV.participants[init.n + 1])) {
         throw new Error(`Allocation in slot 1 does not correspond to participant ${init.n + 1}`);
       }
-      const amount1 = outcome.allocations[1].amount;
+      const amount1 = outcome.allocations.value[1].amount;
 
       if (!init.a0.value.has(asset)) {
         init.a0.value.set(asset, BigInt(0));

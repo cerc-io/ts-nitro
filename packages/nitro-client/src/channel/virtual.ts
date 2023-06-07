@@ -14,7 +14,7 @@ export class VirtualChannel extends Channel {
     }
 
     for (const assetExit of s.outcome.value) {
-      if (assetExit.allocations.length !== 2) {
+      if (assetExit.allocations.value.length !== 2) {
         throw new Error("a virtual channel's initial state should only have two allocations");
       }
     }

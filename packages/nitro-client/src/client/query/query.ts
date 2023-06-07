@@ -31,8 +31,8 @@ const getPaymentChannelBalance = (participants: Address[], outcome: Exit): Payme
   const { asset } = sao;
   const payer = participants[0];
   const payee = participants[numParticipants - 1];
-  const paidSoFar = BigInt(sao.allocations[1].amount);
-  const remaining = BigInt(sao.allocations[0].amount);
+  const paidSoFar = BigInt(sao.allocations.value[1].amount);
+  const remaining = BigInt(sao.allocations.value[0].amount);
   return new PaymentChannelBalance({
     assetAddress: asset,
     payer,
@@ -47,9 +47,9 @@ const getLedgerBalanceFromState = (latest: State): LedgerChannelBalance => {
   const outcome = latest.outcome.value[0];
   const { asset } = outcome;
   const client = latest.participants[0];
-  const clientBalance = BigInt(outcome.allocations[0].amount);
+  const clientBalance = BigInt(outcome.allocations.value[0].amount);
   const hub = latest.participants[1];
-  const hubBalance = BigInt(outcome.allocations[1].amount);
+  const hubBalance = BigInt(outcome.allocations.value[1].amount);
 
   return new LedgerChannelBalance({
     assetAddress: asset,

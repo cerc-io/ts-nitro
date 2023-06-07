@@ -10,7 +10,6 @@ import { Address } from './types';
 //   - External: a blockchain account or contract address, left-padded with 0s
 export class Destination {
   // Access using value property
-  // Can use prototype.valueOf method if necessary
   value: Bytes32 = ethers.utils.hexZeroPad([], 32);
 
   static fromJSON(data: string): Destination {

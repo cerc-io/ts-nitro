@@ -9,7 +9,7 @@ import { Exit, SingleAssetExit } from './exit';
 export const singleAssetExitDepositSafetyThreshold = (singleAssetExit: SingleAssetExit, interest: Destination): bigint => {
   let sum: bigint = BigInt(0);
 
-  for (const allocation of singleAssetExit.allocations) {
+  for (const allocation of singleAssetExit.allocations.value) {
     if (allocation.destination === interest) {
       // We have 'hit' the destination whose balances we are interested in protecting
       return sum;
