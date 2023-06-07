@@ -1,22 +1,59 @@
-function decodeValue(fieldType: any, fieldJsonValue: any): any {
+/* eslint-disable @typescript-eslint/no-use-before-define */
+import assert from 'assert';
+
+export interface FieldDescription {
+  type: 'class' | 'string' | 'number' | 'bigint' | 'boolean' | 'buffer' | 'object' | 'array' | 'map';
+  key?: FieldDescription;
+  value?: FieldDescription | Record<string, FieldDescription> | any;
+}
+
+function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
   switch (fieldType.type) {
     case 'class': {
       return fieldType.value.fromJSON(JSON.stringify(fieldJsonValue));
     }
 
     case 'string':
-    case 'number': {
+    case 'number':
+    case 'boolean': {
       return fieldJsonValue;
     }
 
+    case 'bigint': {
+      return BigInt(fieldJsonValue);
+    }
+
+    case 'buffer': {
+      return Buffer.from(fieldJsonValue);
+    }
+
+    case 'object': {
+      assert(fieldType.value);
+      const mapValueTypeEncodingMap = fieldType.value as Record<string, FieldDescription>;
+
+      const objFieldValue: any = {};
+
+      Object.keys(fieldJsonValue).forEach((key) => {
+        objFieldValue[key] = decodeValue(mapValueTypeEncodingMap[key], fieldJsonValue[key]);
+      });
+
+      return objFieldValue;
+    }
+
     case 'map': {
+      assert(fieldType.key);
+      assert(fieldType.value);
+
+      const mapKeyType = fieldType.key;
+      const mapValueType = fieldType.value as FieldDescription;
+
       const jsonMapValue = fieldJsonValue;
       const mapFieldvalue = new Map();
 
       Object.keys(jsonMapValue).forEach((mapKey) => {
         mapFieldvalue.set(
-          decodeValue(fieldType.key, mapKey),
-          decodeValue(fieldType.value, jsonMapValue[mapKey]),
+          decodeValue(mapKeyType, mapKey),
+          decodeValue(mapValueType, jsonMapValue[mapKey]),
         );
       });
 
@@ -24,7 +61,8 @@ function decodeValue(fieldType: any, fieldJsonValue: any): any {
     }
 
     case 'array': {
-      return fieldJsonValue.map((value: any) => decodeValue(fieldType.value, value));
+      assert(fieldType.value);
+      return fieldJsonValue.map((value: any) => decodeValue(fieldType.value as FieldDescription, value));
     }
 
     default:

@@ -1,6 +1,6 @@
 import assert from 'assert';
 
-import { fromJSON, toJSON } from '@cerc-io/nitro-util';
+import { fromJSON, toJSON, FieldDescription } from '@cerc-io/nitro-util';
 
 import { Signature } from '../crypto/signatures';
 import { Destination } from '../types/destination';
@@ -40,8 +40,7 @@ export class Channel extends FixedPart {
   // TODO: unit64 replacement
   private latestSupportedStateTurnNum: number = 0;
 
-  // TODO: Add interface for record value type
-  static jsonEncodingMap: Record<string, any> = {
+  static jsonEncodingMap: Record<string, FieldDescription> = {
     ...super.jsonEncodingMap,
     id: { type: 'class', value: Destination },
     myIndex: { type: 'number' },
