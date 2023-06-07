@@ -1,8 +1,10 @@
 import assert from 'assert';
 
-import { zeroValueSignature } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+} from '@cerc-io/nitro-util';
 
-import { Signature } from '../../crypto/signatures';
+import { Signature, signatureJsonEncodingMap } from '../../crypto/signatures';
 import { State } from './state';
 import { Address } from '../../types/types';
 
@@ -11,6 +13,22 @@ export class SignedState {
 
   // TODO: uint replacement
   private sigs: Map<number, Signature> = new Map(); // keyed by participant index
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    _state: { type: 'class', value: State },
+    sigs: { type: 'map', key: { type: 'number' }, value: { type: 'class', value: signatureJsonEncodingMap } },
+  };
+
+  static fromJSON(data: string): SignedState {
+    const jsonValue = JSON.parse(data);
+    const props = fromJSON(this.jsonEncodingMap, jsonValue);
+
+    return new SignedState(props);
+  }
+
+  toJSON(): any {
+    return toJSON(SignedState.jsonEncodingMap, this);
+  }
 
   constructor(params: {
     state?: State,

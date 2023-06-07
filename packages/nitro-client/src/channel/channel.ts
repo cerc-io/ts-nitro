@@ -49,6 +49,17 @@ export class Channel extends FixedPart {
     latestSupportedStateTurnNum: { type: 'number' },
   };
 
+  static fromJSON(data: string): Channel {
+    const jsonValue = JSON.parse(data);
+    const props = fromJSON(this.jsonEncodingMap, jsonValue);
+
+    return new Channel(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Channel.jsonEncodingMap, this);
+  }
+
   constructor(params: ConstructorOptions) {
     super(params);
     Object.assign(this, params);
@@ -84,17 +95,6 @@ export class Channel extends FixedPart {
     }
 
     return c;
-  }
-
-  static fromJSON(data: string): Channel {
-    const jsonValue = JSON.parse(data);
-    const props = fromJSON(this.jsonEncodingMap, jsonValue);
-
-    return new Channel(props);
-  }
-
-  toJSON(): any {
-    return toJSON(Channel.jsonEncodingMap, this);
   }
 
   // MarshalJSON returns a JSON representation of the Channel

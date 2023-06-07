@@ -1,7 +1,9 @@
 import { ethers } from 'ethers';
 
 import { getChannelId as utilGetChannelId } from '@statechannels/nitro-protocol';
-import { zeroValueSignature } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+} from '@cerc-io/nitro-util';
 
 import * as nc from '../../crypto/signatures';
 import { Address } from '../../types/types';
@@ -33,7 +35,7 @@ export class FixedPart {
     Object.assign(this, params);
   }
 
-  static jsonEncodingMap: Record<string, any> = {
+  static jsonEncodingMap: Record<string, FieldDescription> = {
     participants: { type: 'array', value: { type: 'string' } },
     channelNonce: { type: 'string' },
     appDefinition: { type: 'string' },
@@ -88,6 +90,28 @@ export class State {
   turnNum : number = 0;
 
   isFinal: boolean = false;
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    participants: { type: 'array', value: { type: 'string' } },
+    channelNonce: { type: 'string' },
+    appDefinition: { type: 'string' },
+    challengeDuration: { type: 'number' },
+    appData: { type: 'buffer' },
+    outcome: { type: 'class', value: Exit },
+    turnNum: { type: 'number' },
+    isFinal: { type: 'boolean' },
+  };
+
+  static fromJSON(data: string): State {
+    const jsonValue = JSON.parse(data);
+    const props = fromJSON(this.jsonEncodingMap, jsonValue);
+
+    return new State(props);
+  }
+
+  toJSON(): any {
+    return toJSON(State.jsonEncodingMap, this);
+  }
 
   constructor(
     params: {

@@ -29,12 +29,11 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
 
     case 'object': {
       assert(fieldType.value);
-      const mapValueTypeEncodingMap = fieldType.value as Record<string, FieldDescription>;
+      const objectTypeEncodingMap = fieldType.value as Record<string, FieldDescription>;
 
       const objFieldValue: any = {};
-
       Object.keys(fieldJsonValue).forEach((key) => {
-        objFieldValue[key] = decodeValue(mapValueTypeEncodingMap[key], fieldJsonValue[key]);
+        objFieldValue[key] = decodeValue(objectTypeEncodingMap[key], fieldJsonValue[key]);
       });
 
       return objFieldValue;

@@ -1,5 +1,7 @@
-import { Bytes32, isExternalDestination } from '@statechannels/nitro-protocol';
 import { ethers } from 'ethers';
+
+import { Bytes32, isExternalDestination } from '@statechannels/nitro-protocol';
+
 import { Address } from './types';
 
 // Destination represents a payable address in go-nitro. In a state channel network,
@@ -9,7 +11,19 @@ import { Address } from './types';
 export class Destination {
   // Access using value property
   // Can use prototype.valueOf method if necessary
-  value: Bytes32;
+  value: Bytes32 = ethers.utils.hexZeroPad([], 32);
+
+  static fromJSON(data: string): Destination {
+    // jsonValue is value for the 'value' field, no need to use fromJSON util method
+    const jsonValue = JSON.parse(data);
+    return new Destination(jsonValue);
+  }
+
+  toJSON(): any {
+    // Return value directly
+    // (Destination is just an alias in go-nitro)
+    return this.value;
+  }
 
   constructor(value: Bytes32 = ethers.utils.hexZeroPad([], 32)) {
     this.value = value;

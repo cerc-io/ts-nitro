@@ -1,8 +1,12 @@
+import assert from 'assert';
 import { ethers } from 'ethers';
+
+import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+
 import { Destination } from '../../../types/destination';
 import { Address } from '../../../types/types';
 import { Funds } from '../../../types/funds';
-import { Allocations } from './allocation';
+import { Allocation, Allocations } from './allocation';
 // eslint-disable-next-line import/no-cycle
 import { exitDepositSafetyThreshold, singleAssetExitDepositSafetyThreshold } from './deposit-safety';
 
@@ -14,6 +18,11 @@ export type AssetMetadata = {
   metadata: Buffer;
 };
 
+const assetMetadataJsonEncodingMap: Record<string, FieldDescription> = {
+  assetType: { type: 'number' },
+  metadata: { type: 'buffer' },
+};
+
 // SingleAssetExit declares an ordered list of Allocations for a single asset.
 export class SingleAssetExit {
   // Either the zero address (implying the native token) or the address of an ERC20 contract
@@ -23,6 +32,23 @@ export class SingleAssetExit {
   assetMetadata?: AssetMetadata;
 
   allocations: Allocations = [];
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    asset: { type: 'string' },
+    assetMetadata: { type: 'object', value: assetMetadataJsonEncodingMap },
+    allocations: { type: 'array', value: { type: 'class', value: Allocation } },
+  };
+
+  static fromJSON(data: string): SingleAssetExit {
+    const jsonValue = JSON.parse(data);
+    const props = fromJSON(this.jsonEncodingMap, jsonValue);
+
+    return new SingleAssetExit(props);
+  }
+
+  toJSON(): any {
+    return toJSON(SingleAssetExit.jsonEncodingMap, this);
+  }
 
   constructor(
     params: {
@@ -67,7 +93,32 @@ export class SingleAssetExit {
 export class Exit {
   // Access using value property
   // Can use prototype.valueOf method if necessary
-  value: SingleAssetExit[];
+  value: SingleAssetExit[] = [];
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    value: { type: 'array', value: { type: 'class', value: SingleAssetExit } },
+  };
+
+  static fromJSON(data: string): Exit {
+    // jsonValue is a JSON array of SingleAssetExit
+    // Call fromJSON on individual elements of the array
+    const jsonValue = JSON.parse(data);
+    assert(Array.isArray(jsonValue));
+
+    const value = jsonValue.map((singleAssetExitValue): SingleAssetExit => {
+      return SingleAssetExit.fromJSON(JSON.stringify(singleAssetExitValue));
+    });
+
+    return new Exit(value);
+  }
+
+  toJSON(): any {
+    // Return the array of SingleAssetExit JSON directly
+    // (Exit is not a struct in go-nitro, just an array of SingleAssetExit)
+    return this.value.map((singleAssetExit) => {
+      return toJSON(SingleAssetExit.jsonEncodingMap, singleAssetExit);
+    });
+  }
 
   constructor(value: SingleAssetExit[]) {
     this.value = value;
