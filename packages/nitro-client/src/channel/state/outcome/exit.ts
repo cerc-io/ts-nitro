@@ -29,7 +29,7 @@ export class SingleAssetExit {
   asset: Address = ethers.constants.AddressZero;
 
   // Can be used to encode arbitrary additional information that applies to all allocations.
-  assetMetadata?: AssetMetadata;
+  assetMetadata: AssetMetadata = { assetType: 0, metadata: Buffer.alloc(0) };
 
   allocations: Allocations = new Allocations([]);
 

@@ -1,8 +1,11 @@
 import { ethers } from 'ethers';
+import _ from 'lodash';
 
-import { getChannelId as utilGetChannelId } from '@statechannels/nitro-protocol';
+import * as ExitFormat from '@statechannels/exit-format';
+import { getChannelId as utilGetChannelId, State as NitroState } from '@statechannels/nitro-protocol';
+import { signState } from '@statechannels/nitro-protocol/dist/src/signatures';
 import {
-  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+  FieldDescription, bytes2Hex, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import * as nc from '../../crypto/signatures';
@@ -69,12 +72,23 @@ export class FixedPart {
 export class VariablePart {
   appData: Buffer = Buffer.alloc(0);
 
-  outcome?: Exit;
+  outcome: Exit = new Exit([]);
 
   // TODO: unit64 replacement
-  turnNum : number = 0;
+  turnNum: number = 0;
 
   isFinal: boolean = false;
+
+  constructor(
+    params: {
+      appData?: Buffer,
+      outcome?: Exit,
+      turnNum?: number,
+      isFinal?: boolean
+    },
+  ) {
+    Object.assign(this, params);
+  }
 }
 
 // State holds all of the data describing the state of a channel
@@ -142,9 +156,13 @@ export class State {
   }
 
   // VariablePart returns the VariablePart of the State
-  // TODO: Implement
   variablePart(): VariablePart {
-    return new VariablePart();
+    return new VariablePart({
+      appData: Buffer.from(this.appData),
+      outcome: _.cloneDeep(this.outcome),
+      turnNum: this.turnNum,
+      isFinal: this.isFinal,
+    });
   }
 
   // ChannelId computes and returns the channel id corresponding to the State,
@@ -158,14 +176,14 @@ export class State {
 
   // encodes the state into a []bytes value
   // TODO: Can throw an error
-  // TODO: Implement
+  // TODO: Implement (only if required)
   encode(): Buffer {
     return Buffer.from('');
   }
 
   // Hash returns the keccak256 hash of the State
   // TODO: Can throw an error
-  // TODO: Implement
+  // TODO: Implement (only if required)
   hash(): string {
     return '';
   }
@@ -173,10 +191,58 @@ export class State {
   // Sign generates an ECDSA signature on the state using the supplied private key
   // The state hash is prepended with \x19Ethereum Signed Message:\n32 and then rehashed
   // to create a digest to sign
-  // TODO: Can throw an error
   sign(secretKey: Buffer): Signature {
-    // TODO: Implement
-    return zeroValueSignature;
+    // Use signState method from @statechannels/nitro-protocol
+    // Create NitroState instance from State
+
+    const stateOutcome: ExitFormat.Exit = this.outcome.value.map((singleAssetExit): ExitFormat.SingleAssetExit => {
+      // Use 0x00 if empty as ethersjs doesn't accept '' as valid value
+      // @statechannels/nitro-protocol uses string for Bytes
+      let exitMetadata = bytes2Hex(singleAssetExit.assetMetadata!.metadata);
+      exitMetadata = exitMetadata === '' ? '0x00' : exitMetadata;
+
+      return {
+        asset: singleAssetExit.asset,
+        allocations: singleAssetExit.allocations.value.map((allocation) => {
+          let allocationMetadata = bytes2Hex(allocation.metadata);
+          allocationMetadata = allocationMetadata === '' ? '0x00' : allocationMetadata;
+
+          return {
+            destination: allocation.destination.value,
+            amount: allocation.amount.toString(),
+            allocationType: allocation.allocationType,
+            metadata: allocationMetadata,
+          };
+        }),
+        assetMetadata: {
+          assetType: singleAssetExit.assetMetadata.assetType,
+          metadata: exitMetadata,
+        },
+      };
+    });
+
+    let stateAppData = bytes2Hex(this.appData);
+    stateAppData = stateAppData === '' ? '0x00' : stateAppData;
+
+    const state: NitroState = {
+      participants: this.participants,
+      channelNonce: this.channelNonce,
+      appDefinition: this.appDefinition,
+      challengeDuration: this.challengeDuration,
+      outcome: stateOutcome,
+      appData: stateAppData,
+      turnNum: this.turnNum,
+      isFinal: this.isFinal,
+    };
+
+    // TODO: Can avoid 0x prefix?
+    const { signature } = signState(state, `0x${bytes2Hex(secretKey)}`);
+
+    return {
+      r: signature.r,
+      s: signature.s,
+      v: signature.v,
+    };
   }
 
   // RecoverSigner computes the Ethereum address which generated Signature sig on State state

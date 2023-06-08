@@ -25,7 +25,7 @@ export class Destination {
   }
 
   constructor(value: Bytes32 = ethers.utils.hexZeroPad([], 32)) {
-    this.value = value;
+    this.value = ethers.utils.hexZeroPad(value, 32);
   }
 
   // addressToDestinaion left-pads the blockchain address with zeros.

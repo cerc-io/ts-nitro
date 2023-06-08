@@ -1,7 +1,7 @@
-import { bytes2Hex } from '@cerc-io/nitro-util';
-
-import { ethers } from 'ethers';
 import assert from 'assert';
+
+import { bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
+
 import { ErrNoSuchChannel, Store } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
@@ -50,8 +50,8 @@ export class MemStore implements Store {
   }
 
   getChannelSecretKey(): Buffer {
-    const val = ethers.utils.arrayify(this.key, { allowMissingPrefix: true });
-    return Buffer.from(val);
+    const val = hex2Bytes(this.key);
+    return val;
   }
 
   // TODO: Implement
