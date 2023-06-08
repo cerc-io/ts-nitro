@@ -50,7 +50,7 @@ export class MemStore implements Store {
   }
 
   getChannelSecretKey(): Buffer {
-    const val = ethers.utils.arrayify(this.key);
+    const val = ethers.utils.arrayify(this.key, { allowMissingPrefix: true });
     return Buffer.from(val);
   }
 
