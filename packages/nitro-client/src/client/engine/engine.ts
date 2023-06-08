@@ -317,7 +317,7 @@ export class Engine {
               true,
               myAddress,
               chainId,
-              this.store.getConsensusChannel,
+              this.store.getConsensusChannel.bind(this.store),
             );
           } catch (err) {
             throw new Error(`handleAPIEvent: Could not create objective for ${or}: ${err}`);
@@ -356,8 +356,8 @@ export class Engine {
               true,
               myAddress,
               minAmount,
-              this.store.getChannelById,
-              this.store.getConsensusChannel,
+              this.store.getChannelById.bind(this.store),
+              this.store.getConsensusChannel.bind(this.store),
             );
 
             return await this.attemptProgress(vdfo);
@@ -373,8 +373,8 @@ export class Engine {
               true,
               myAddress,
               chainId,
-              this.store.getChannelsByParticipant,
-              this.store.getConsensusChannel,
+              this.store.getChannelsByParticipant.bind(this.store),
+              this.store.getConsensusChannel.bind(this.store),
             );
 
             return await this.attemptProgress(dfo);
@@ -386,7 +386,11 @@ export class Engine {
           const request = or as DirectDefundObjectiveRequest;
           let ddfo: DirectDefundObjective;
           try {
-            ddfo = DirectDefundObjective.newObjective(request, true, this.store.getConsensusChannelById);
+            ddfo = DirectDefundObjective.newObjective(
+              request,
+              true,
+              this.store.getConsensusChannelById.bind(this.store),
+            );
           } catch (err) {
             throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(request)}: ${err}`);
           }

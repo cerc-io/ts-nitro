@@ -33,7 +33,6 @@ export class MemStore implements Store {
 
   constructor(key: Buffer) {
     this.key = bytes2Hex(key);
-    // TODO: Get address from key bytes
     this.address = getAddressFromSecretKeyBytes(key);
 
     this.objectives = new SafeSyncMap();
