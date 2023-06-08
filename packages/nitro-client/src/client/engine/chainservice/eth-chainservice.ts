@@ -124,7 +124,6 @@ export class EthChainService implements ChainService {
       cancelFunc,
     );
 
-    // TODO: Implement
     ecs.subscribeForLogs();
 
     return ecs;
@@ -171,6 +170,7 @@ export class EthChainService implements ChainService {
         const signatures = withdrawAllTx.signedState.signatures();
         const nitroFixedPart = NitroAdjudicatorConversions.convertFixedPart(state.fixedPart());
         const nitroVariablePart = NitroAdjudicatorConversions.convertVariablePart(state.variablePart());
+        // TODO: Implement
         const nitroSignatures = [
           NitroAdjudicatorConversions.convertSignature(signatures[0]),
           NitroAdjudicatorConversions.convertSignature(signatures[1]),

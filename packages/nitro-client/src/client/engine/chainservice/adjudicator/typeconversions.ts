@@ -3,18 +3,18 @@ import { AssetMetadata, Exit } from '../../../../channel/state/outcome/exit';
 import { FixedPart, VariablePart } from '../../../../channel/state/state';
 import { Signature } from '../../../../crypto/signatures';
 import {
-  ExitFormatAllocation, ExitFormatAssetMetadata, ExitFormatSingleAssetExit, INitroTypesFixedPart, INitroTypesSignature, INitroTypesVariablePart,
+  ExitFormat, INitroTypes,
 } from './nitro-adjudicator';
 
-export function convertAssetMetadata(am: AssetMetadata): ExitFormatAssetMetadata {
+export function convertAssetMetadata(am: AssetMetadata): ExitFormat.AssetMetadataStruct {
   return {
     assetType: am.assetType,
     metadata: am.metadata,
   };
 }
 
-export function convertAllocations(as: Allocations): ExitFormatAllocation[] {
-  return as.value.map((a): ExitFormatAllocation => ({
+export function convertAllocations(as: Allocations): ExitFormat.AllocationStruct[] {
+  return as.value.map((a): ExitFormat.AllocationStruct => ({
     destination: a.destination.value,
     amount: a.amount,
     allocationType: a.allocationType,
@@ -22,7 +22,7 @@ export function convertAllocations(as: Allocations): ExitFormatAllocation[] {
   }));
 }
 
-export function convertOutcome(o: Exit): ExitFormatSingleAssetExit[] {
+export function convertOutcome(o: Exit): ExitFormat.SingleAssetExitStruct[] {
   return o.value.map((sae) => ({
     asset: sae.asset,
     assetMetadata: convertAssetMetadata(sae.assetMetadata!),
@@ -30,7 +30,7 @@ export function convertOutcome(o: Exit): ExitFormatSingleAssetExit[] {
   }));
 }
 
-export function convertFixedPart(fp: FixedPart): INitroTypesFixedPart {
+export function convertFixedPart(fp: FixedPart): INitroTypes.FixedPartStruct {
   return {
     participants: fp.participants,
     channelNonce: fp.channelNonce,
@@ -39,7 +39,7 @@ export function convertFixedPart(fp: FixedPart): INitroTypesFixedPart {
   };
 }
 
-export function convertVariablePart(vp: VariablePart): INitroTypesVariablePart {
+export function convertVariablePart(vp: VariablePart): INitroTypes.VariablePartStruct {
   return {
     appData: vp.appData,
     turnNum: BigInt(vp.turnNum),
@@ -48,7 +48,7 @@ export function convertVariablePart(vp: VariablePart): INitroTypesVariablePart {
   };
 }
 
-export function convertSignature(s: Signature): INitroTypesSignature {
+export function convertSignature(s: Signature): INitroTypes.SignatureStruct {
   // TODO: Implement
   return s;
 }
