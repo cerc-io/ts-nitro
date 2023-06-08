@@ -16,6 +16,7 @@
     "test": "mocha"
   },
   "devDependencies": {
+    "@typechain/ethers-v5": "^11.0.0",
     "@types/chai": "^4.3.5",
     "@types/debug": "^4.1.7",
     "@types/json-bigint": "^1.0.1",
@@ -37,6 +38,7 @@
     "mocha": "^10.2.0",
     "ts-loader": "^9.4.2",
     "ts-node": "^10.9.1",
+    "typechain": "^8.2.0",
     "typescript": "^5.0.4",
     "webpack": "^5.83.1",
     "webpack-cli": "^5.1.1",
