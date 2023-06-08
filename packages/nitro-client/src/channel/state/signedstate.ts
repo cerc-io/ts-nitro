@@ -40,7 +40,7 @@ export class SignedState {
   // The signedState returned will have no signatures.
   static newSignedState(s: State): SignedState {
     return new SignedState({
-      _state: s,
+      _state: _.cloneDeep(s),
       sigs: new Map(),
     });
   }
