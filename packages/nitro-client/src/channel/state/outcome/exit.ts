@@ -36,7 +36,7 @@ export class SingleAssetExit {
   static jsonEncodingMap: Record<string, FieldDescription> = {
     asset: { type: 'string' },
     assetMetadata: { type: 'object', value: assetMetadataJsonEncodingMap },
-    allocations: { type: 'array', value: { type: 'class', value: Allocation } },
+    allocations: { type: 'class', value: Allocations },
   };
 
   static fromJSON(data: string): SingleAssetExit {
