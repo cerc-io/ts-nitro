@@ -36,8 +36,8 @@ import {
   ObjectiveRequest as VirtualDefundObjectiveRequest,
 } from '../protocols/virtualdefund/virtualdefund';
 import { Destination } from '../types/destination';
-import { PaymentChannelInfo } from './query/types';
-import { getPaymentChannelInfo } from './query/query';
+import { PaymentChannelInfo, LedgerChannelInfo } from './query/types';
+import { getPaymentChannelInfo, getLedgerChannelInfo } from './query/query';
 
 const log = debug('ts-nitro:client');
 
@@ -240,6 +240,12 @@ export class Client {
     // those channels need to be closed.
     assert(this.completedObjectivesForRPC);
     this.completedObjectivesForRPC.close();
+  }
+
+  // GetLedgerChannel returns the ledger channel with the given id.
+  // If no ledger channel exists with the given id an error is returned.
+  getLedgerChannel(id: Destination): LedgerChannelInfo {
+    return getLedgerChannelInfo(id, this.store!);
   }
 
   // handleError logs the error and panics

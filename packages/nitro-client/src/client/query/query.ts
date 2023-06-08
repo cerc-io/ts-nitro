@@ -138,3 +138,15 @@ export const constructLedgerInfoFromChannel = (c: Channel): LedgerChannelInfo =>
     balance: getLedgerBalanceFromState(latest),
   });
 };
+
+// GetLedgerChannelInfo returns the LedgerChannelInfo for the given channel
+// It does this by querying the provided store
+export const getLedgerChannelInfo = (id: Destination, store: Store): LedgerChannelInfo => {
+  const [c, ok] = store.getChannelById(id);
+  if (ok) {
+    return constructLedgerInfoFromChannel(c);
+  }
+
+  const con = store.getConsensusChannelById(id)!;
+  return constructLedgerInfoFromConsensus(con);
+};
