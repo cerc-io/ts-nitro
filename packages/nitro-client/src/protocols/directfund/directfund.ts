@@ -378,9 +378,9 @@ export class Objective implements ObjectiveInterface {
   }
 
   // Related returns a slice of related objects that need to be stored along with the objective
-  // TODO: Implement
   related(): Storable[] {
-    return [];
+    assert(this.c);
+    return [this.c];
   }
 
   //  Private methods on the DirectFundingObjectiveState
