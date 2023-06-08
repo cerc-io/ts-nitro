@@ -161,4 +161,12 @@ export class Exit {
   depositSafetyThreshold(interest: Destination): Funds {
     return exitDepositSafetyThreshold(this, interest);
   }
+
+  // Affords returns true if every allocation in the allocationMap can be afforded by the Exit, given the funds
+  //
+  // Both arguments are maps keyed by the same assets
+  // TODO: Implement
+  affords(allocationMap: Map<Address, Allocation>, fundingMap: Funds): boolean {
+    return false;
+  }
 }

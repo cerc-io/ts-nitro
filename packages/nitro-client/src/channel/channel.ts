@@ -115,27 +115,32 @@ export class Channel extends FixedPart {
   }
 
   // MyDestination returns the client's destination
-  // TODO: Implement
-  MyDestination(): string {
-    return '';
+  myDestination(): Destination {
+    return Destination.addressToDestination(this.participants[this.myIndex]);
   }
 
   // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
   clone(): Channel {
-    // TODO: Implement
-    return {} as Channel;
+    const d = Channel.new(this.preFundState().clone(), this.myIndex);
+    d.latestSupportedStateTurnNum = this.latestSupportedStateTurnNum;
+
+    this.signedStateForTurnNum.forEach((value, key) => {
+      d.signedStateForTurnNum.set(key, value);
+    });
+    d.onChainFunding = this.onChainFunding.clone();
+    Object.assign(d, super.clone());
+
+    return d;
   }
 
   // PreFundState() returns the pre fund setup state for the channel.
-  // TODO: Implement
   preFundState(): State {
-    return {} as State;
+    return this.signedStateForTurnNum.get(PreFundTurnNum)!.state();
   }
 
   // SignedPreFundState returns the signed pre fund setup state for the channel.
-  // TODO: Implement
-  signedPreFundState(): State {
-    return {} as State;
+  signedPreFundState(): SignedState {
+    return this.signedStateForTurnNum.get(PreFundTurnNum)!;
   }
 
   // PostFundState() returns the post fund setup state for the channel.
@@ -145,59 +150,73 @@ export class Channel extends FixedPart {
   }
 
   // SignedPostFundState() returns the SIGNED post fund setup state for the channel.
-  // TODO: Implement
   signedPostFundState(): SignedState {
-    return {} as SignedState;
+    return this.signedStateForTurnNum.get(PostFundTurnNum)!;
   }
 
   // PreFundSignedByMe returns true if the calling client has signed the pre fund setup state, false otherwise.
-  // TODO: Implement
   preFundSignedByMe(): boolean {
+    if (this.signedStateForTurnNum.has(PreFundTurnNum)) {
+      if (this.signedStateForTurnNum.get(PreFundTurnNum)!.hasSignatureForParticipant(this.myIndex)) {
+        return true;
+      }
+    }
     return false;
   }
 
   // PostFundSignedByMe returns true if the calling client has signed the post fund setup state, false otherwise.
-  // TODO: Implement
   postFundSignedByMe(): boolean {
+    if (this.signedStateForTurnNum.has(PostFundTurnNum)) {
+      if (this.signedStateForTurnNum.get(PostFundTurnNum)!.hasSignatureForParticipant(this.myIndex)) {
+        return true;
+      }
+    }
     return false;
   }
 
   // PreFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
-  // TODO: Implement
   preFundComplete(): boolean {
-    return false;
+    return this.signedStateForTurnNum.get(PreFundTurnNum)!.hasAllSignatures();
   }
 
   // PostFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
-  // TODO: Implement
   postFundComplete(): boolean {
-    return false;
+    return this.signedStateForTurnNum.get(PostFundTurnNum)!.hasAllSignatures();
   }
 
   // FinalSignedByMe returns true if the calling client has signed a final state, false otherwise.
-  // TODO: Implement
   finalSignedByMe(): boolean {
+    for (const [, ss] of this.signedStateForTurnNum) {
+      if (ss.hasSignatureForParticipant(this.myIndex) && ss.state().isFinal) {
+        return true;
+      }
+    }
+
     return false;
   }
 
   // FinalCompleted returns true if I have a complete set of signatures on a final state, false otherwise.
-  // TODO: Implement
   finalCompleted(): boolean {
-    return false;
+    if (this.latestSupportedStateTurnNum === MaxTurnNum) {
+      return false;
+    }
+
+    return this.signedStateForTurnNum.get(this.latestSupportedStateTurnNum)!.state().isFinal;
   }
 
   // HasSupportedState returns true if the channel has a supported state, false otherwise.
-  // TODO: Implement
   hasSupportedState(): boolean {
-    return false;
+    return this.latestSupportedStateTurnNum !== MaxTurnNum;
   }
 
   // LatestSupportedState returns the latest supported state. A state is supported if it is signed
   // by all participants.
-  // TODO: Can throw an error
   latestSupportedState(): State {
-    // TODO: Implement
-    return {} as State;
+    if (this.latestSupportedStateTurnNum === MaxTurnNum) {
+      throw new Error('no state is yet supported');
+    }
+
+    return this.signedStateForTurnNum.get(this.latestSupportedStateTurnNum)!.state();
   }
 
   // LatestSignedState fetches the state with the largest turn number signed by at least one participant.
@@ -205,7 +224,7 @@ export class Channel extends FixedPart {
     if (this.signedStateForTurnNum.size === 0) {
       throw new Error('no states are signed');
     }
-    let latestTurn = 0;
+    let latestTurn: number = 0;
     for (const [k] of this.signedStateForTurnNum) {
       if (k > latestTurn) {
         latestTurn = k;
@@ -215,24 +234,32 @@ export class Channel extends FixedPart {
   }
 
   // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
-  // TODO: Implement
   total(): Funds {
-    return new Funds();
+    return this.preFundState().outcome.totalAllocated();
   }
 
   // Affords returns true if, for each asset keying the input variables, the channel can afford the allocation given the funding.
   // The decision is made based on the latest supported state of the channel.
   //
   // Both arguments are maps keyed by the same asset
-  // TODO: Implement
   affords(allocationMap: Map<Address, Allocation>, fundingMap: Funds): boolean {
-    return false;
+    try {
+      const lss = this.latestSupportedState();
+      return lss.outcome.affords(allocationMap, fundingMap);
+    } catch (err) {
+      return false;
+    }
   }
 
   // AddStateWithSignature constructs a SignedState from the passed state and signature, and calls s.AddSignedState with it.
-  // TODO: Implement
   addStateWithSignature(s: State, sig: Signature): boolean {
-    return false;
+    const ss = SignedState.newSignedState(s);
+    try {
+      ss.addSignature(sig);
+    } catch (err) {
+      return false;
+    }
+    return this.addSignedState(ss);
   }
 
   // AddSignedState adds a signed state to the Channel, updating the LatestSupportedState and Support if appropriate.
@@ -276,23 +303,36 @@ export class Channel extends FixedPart {
   }
 
   // SignAndAddPrefund signs and adds the prefund state for the channel, returning a state.SignedState suitable for sending to peers.
-  // TODO: Can throw an error
-  // TODO: Implement
   signAndAddPrefund(sk: Buffer): SignedState {
-    return {} as SignedState;
+    return this.signAndAddState(this.preFundState(), sk);
   }
 
   // SignAndAddPrefund signs and adds the postfund state for the channel, returning a state.SignedState suitable for sending to peers.
-  // TODO: Can throw an error
-  // TODO: Implement
   signAndAddPostfund(sk: Buffer): SignedState {
-    return {} as SignedState;
+    return this.signAndAddState(this.postFundState(), sk);
   }
 
   // SignAndAddState signs and adds the state to the channel, returning a state.SignedState suitable for sending to peers.
-  // TODO: Can throw an error
-  // TODO: Implement
   signAndAddState(s: State, sk: Buffer): SignedState {
-    return {} as SignedState;
+    let sig: Signature;
+    try {
+      sig = s.sign(sk);
+    } catch (err) {
+      throw new Error(`Could not sign prefund ${err}`);
+    }
+
+    const ss = SignedState.newSignedState(s);
+    try {
+      ss.addSignature(sig);
+    } catch (err) {
+      throw new Error(`could not add own signature ${err}`);
+    }
+
+    const ok = this.addSignedState(ss);
+    if (!ok) {
+      throw new Error('could not add signed state to channel');
+    }
+
+    return ss;
   }
 }

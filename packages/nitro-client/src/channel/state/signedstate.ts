@@ -1,7 +1,5 @@
-import assert from 'assert';
-
 import {
-  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+  FieldDescription, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Signature, signatureJsonEncodingMap } from '../../crypto/signatures';
@@ -62,11 +60,11 @@ export class SignedState {
       const p = this.state().participants[i];
 
       if (p === signer) {
-        const found = this.sigs!.has(i);
+        const found = this.sigs.has(i);
         if (found) {
           throw new Error('Signature already exists for participant');
         } else {
-          this.sigs!.set(i, sig);
+          this.sigs.set(i, sig);
           return;
         }
       }
@@ -89,10 +87,9 @@ export class SignedState {
   }
 
   // HasSignatureForParticipant returns true if the participant (at participantIndex) has a valid signature.
-  // TODO: unit replacement
-  // TODO: Implement
   hasSignatureForParticipant(participantIndex: number): boolean {
-    return false;
+    const found = this.sigs.has(participantIndex);
+    return found;
   }
 
   // HasAllSignatures returns true if every participant has a valid signature.
@@ -105,10 +102,13 @@ export class SignedState {
   }
 
   // GetParticipantSignature returns the signature for the participant specified by participantIndex
-  // TODO: Can throw an error
-  // TODO: Implement
   getParticipantSignature(participantIndex: number): Signature {
-    return zeroValueSignature;
+    const found = this.sigs.has(participantIndex);
+    if (!found) {
+      throw new Error(`participant ${participantIndex} does not have a signature`);
+    } else {
+      return this.sigs.get(participantIndex)!;
+    }
   }
 
   // Merge checks the passed SignedState's state and the receiver's state for equality, and adds each signature from the former to the latter.
