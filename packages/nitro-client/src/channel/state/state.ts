@@ -201,6 +201,7 @@ export class State {
       let exitMetadata = bytes2Hex(singleAssetExit.assetMetadata!.metadata);
       exitMetadata = exitMetadata === '' ? '0x00' : exitMetadata;
 
+      // TODO: Remove "as any" after using a published package for @statechannels/nitro-protocol / @statechannels/exit-format
       return {
         asset: singleAssetExit.asset,
         allocations: singleAssetExit.allocations.value.map((allocation) => {
@@ -218,7 +219,7 @@ export class State {
           assetType: singleAssetExit.assetMetadata.assetType,
           metadata: exitMetadata,
         },
-      };
+      } as any;
     });
 
     let stateAppData = bytes2Hex(this.appData);
