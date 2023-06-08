@@ -94,7 +94,6 @@ export class Objective implements ObjectiveInterface {
     // We choose to disallow creating an objective if the channel has an in-progress update.
     // We allow the creation of of an objective if the channel has some final states.
     // In the future, we can add a restriction that only defund objectives can add final states to the channel.
-    // TODO: Implement
     const canCreateObjective = isInConsensusOrFinalState(c);
 
     if (!canCreateObjective) {
