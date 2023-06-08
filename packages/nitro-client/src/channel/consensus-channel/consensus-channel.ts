@@ -224,6 +224,11 @@ export class LedgerOutcome {
   includes(g: Guarantee): boolean {
     return false;
   }
+
+  // IncludesTarget returns true when the receiver includes a guarantee that targets the given destination.
+  includesTarget(target: Destination): boolean {
+    return false;
+  }
 }
 
 interface VarsConstructorOptions {
@@ -420,16 +425,14 @@ export class ConsensusChannel {
   }
 
   // Includes returns whether or not the consensus state includes the given guarantee.
-  // TODO: Implement
   includes(g: Guarantee): boolean {
-    return false;
+    return this.current.outcome.includes(g);
   }
 
   // IncludesTarget returns whether or not the consensus state includes a guarantee
   // addressed to the given target.
-  // TODO: Implement
-  includesTarget(target: string): boolean {
-    return false;
+  includesTarget(target: Destination): boolean {
+    return this.current.outcome.includesTarget(target);
   }
 
   // HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
@@ -446,9 +449,8 @@ export class ConsensusChannel {
 
   // IsLeader returns true if the calling client is the leader of the channel,
   // and false otherwise.
-  // TODO: Implement
   isLeader(): boolean {
-    return false;
+    return this.myIndex === Leader;
   }
 
   // IsFollower returns true if the calling client is the follower of the channel,
