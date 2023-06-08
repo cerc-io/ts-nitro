@@ -55,3 +55,7 @@ export const signEthereumMessage = async (message: Buffer, secretKey: Buffer): P
 
   return sig;
 };
+
+export const equal = (s1: Signature, s2 :Signature): boolean => {
+  return s1.r === s2.r && s1.s === s2.s && s1.v === s2.v;
+};

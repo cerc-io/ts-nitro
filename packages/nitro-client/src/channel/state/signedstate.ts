@@ -1,10 +1,13 @@
+import _ from 'lodash';
+
 import {
   FieldDescription, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
-import { Signature, signatureJsonEncodingMap } from '../../crypto/signatures';
+import { Signature, signatureJsonEncodingMap, equal } from '../../crypto/signatures';
 import { State } from './state';
 import { Address } from '../../types/types';
+import { Destination } from '../../types/destination';
 
 export class SignedState {
   private _state: State = new State({});
@@ -81,9 +84,12 @@ export class SignedState {
   // Signatures returns a slice of the signatures stored in the SignedState.
   // There will be one signature per participant, in order of channel's Participants.
   // Returned signatures are expected either to be valid or zero-valued.
-  // TODO: Implement
   signatures(): Signature[] {
-    return [];
+    const sigs: Signature[] = [];
+    for (let i = 0; i < this._state.participants.length; i += 1) {
+      sigs.push(this.sigs.get(i)!);
+    }
+    return sigs;
   }
 
   // HasSignatureForParticipant returns true if the participant (at participantIndex) has a valid signature.
@@ -112,14 +118,30 @@ export class SignedState {
   }
 
   // Merge checks the passed SignedState's state and the receiver's state for equality, and adds each signature from the former to the latter.
-  // TODO: Can throw an error
-  // TODO: Implement
-  merge(ss2: SignedState): void {}
+  merge(ss2: SignedState): void {
+    if (!this._state.equal(ss2._state)) {
+      throw new Error('cannot merge signed states with distinct state hashes');
+    }
+
+    for (const [i, sig] of ss2.sigs) {
+      const existing = this.sigs.get(i);
+      if (existing) { // if the signature is already present, check that it is the same
+        if (!equal(existing, sig)) {
+          throw new Error('cannot merge signed states with conflicting signatures');
+        }
+      } else { // otherwise add the signature
+        this.addSignature(sig);
+      }
+    }
+  }
 
   // Clone returns a deep copy of the receiver.
-  // TODO: Implement
   clone(): SignedState {
-    return {} as SignedState;
+    const clonedSigs: Map<number, Signature> = new Map<number, Signature>();
+    for (const [i, ss] of this.sigs) {
+      clonedSigs.set(i, _.cloneDeep(ss));
+    }
+    return new SignedState({ _state: this._state.clone(), sigs: clonedSigs });
   }
 
   // MarshalJSON marshals the SignedState into JSON, implementing the Marshaler interface.
@@ -132,18 +154,18 @@ export class SignedState {
   // UnmarshalJSON unmarshals the passed JSON into a SignedState, implementing the Unmarshaler interface.
   // TODO: Can throw an error
   // TODO: Implement
-  unmarshalJSON(j: Buffer): void {}
+  unmarshalJSON(j: Buffer): void { }
 
   // ChannelId returns the channel id of the state.
-  // TODO: Implement
-  channelId(): string {
-    return '';
+  channelId(): Destination {
+    const cId = this._state.channelId();
+    return cId;
   }
 
   // SortInfo returns the channel id and turn number of the state, so the state can be easily sorted.
-  // TODO: unit64 replacement
-  // TODO: Implement
-  sortInfo(): [string, number] {
-    return ['', 0];
+  sortInfo(): [Destination, number] {
+    const cId = this._state.channelId();
+    const { turnNum } = this._state;
+    return [cId, turnNum];
   }
 }

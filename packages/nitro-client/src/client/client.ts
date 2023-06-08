@@ -245,7 +245,8 @@ export class Client {
   // GetLedgerChannel returns the ledger channel with the given id.
   // If no ledger channel exists with the given id an error is returned.
   getLedgerChannel(id: Destination): LedgerChannelInfo {
-    return getLedgerChannelInfo(id, this.store!);
+    assert(this.store);
+    return getLedgerChannelInfo(id, this.store);
   }
 
   // handleError logs the error and panics
