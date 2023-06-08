@@ -218,6 +218,12 @@ export class LedgerOutcome {
 
     return targets;
   }
+
+  // includes returns true when the receiver includes g in its list of guarantees.
+  // TODO: Implement
+  includes(g: Guarantee): boolean {
+    return false;
+  }
 }
 
 interface VarsConstructorOptions {
@@ -378,17 +384,27 @@ export class ConsensusChannel {
   // Receive accepts a proposal signed by the ConsensusChannel counterparty,
   // validates its signature, and performs updates to the proposal queue and
   // consensus state.
-  // TODO: Can throw an error
-  // TODO: Implement
-  receive(sp: SignedProposal): void {}
+  receive(sp: SignedProposal): void {
+    if (this.isFollower()) {
+      return this.followerReceive(sp);
+    }
+    if (this.isLeader()) {
+      return this.leaderReceive(sp);
+    }
+
+    throw new Error('ConsensusChannel is malformed');
+  }
 
   // IsProposed returns true if a proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
   //
   // Specific clarification: If the current outcome already includes g, IsProposed returns false.
-  // TODO: Can throw an error
-  // TODO: Implement
   isProposed(g: Guarantee): boolean {
-    return false;
+    try {
+      const latest = this.latestProposedVars();
+      return latest.outcome.includes(g) && !this.includes(g);
+    } catch (err) {
+      return false;
+    }
   }
 
   // IsProposedNext returns true if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
@@ -399,10 +415,8 @@ export class ConsensusChannel {
   }
 
   // ConsensusTurnNum returns the turn number of the current consensus state.
-  // TODO: uint64 replacement
-  // TODO: Implement
   consensusTurnNum(): number {
-    return 0;
+    return this.current.turnNum;
   }
 
   // Includes returns whether or not the consensus state includes the given guarantee.
@@ -517,7 +531,7 @@ export class ConsensusChannel {
   // the channel's ID.
   // TODO: Can throw an error
   // TODO: Implement
-  private validateProposalID(propsal: Proposal): void {}
+  private validateProposalID(propsal: Proposal): void { }
 
   // Participants returns the channel participants.
   participants(): Address[] {
@@ -552,6 +566,28 @@ export class ConsensusChannel {
       throw new Error(`error unmarshaling channel data: ${err}`);
     }
   }
+
+  // from channel/consensus_channel/follower_channel.go
+  // followerReceive is called by the follower to validate a proposal from the leader and add it to the proposal queue
+  // TODO: Implement
+  followerReceive(p: SignedProposal): void { }
+
+  // from channel/consensus_channel/leader_channel.go
+  // leaderReceive is called by the Leader and iterates through
+  // the proposal queue until it finds the countersigned proposal.
+  //
+  // If this proposal was signed by the Follower:
+  //   - the consensus state is updated with the supplied proposal
+  //   - the proposal queue is trimmed
+  //
+  // If the countersupplied is stale (ie. proposal.TurnNum <= c.current.TurnNum) then
+  // their proposal is ignored.
+  //
+  // An error is returned if:
+  //   - the countersupplied proposal is not found
+  //   - or if it is found but not correctly signed by the Follower
+  // TODO: Implement
+  leaderReceive(countersigned: SignedProposal): void { }
 }
 
 type AddParams = {
