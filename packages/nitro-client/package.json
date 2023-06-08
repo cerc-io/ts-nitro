@@ -50,6 +50,7 @@
     "@libp2p/tcp": "^7.0.1",
     "@nodeguy/channel": "^1.0.2",
     "@statechannels/nitro-protocol": "^2.0.0-alpha.3",
+    "@statechannels/exit-format": "^0.0.6",
     "assert": "^2.0.0",
     "debug": "^4.3.4",
     "ethers": "^5.7.2",
