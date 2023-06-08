@@ -1,3 +1,4 @@
+import assert from 'assert';
 import { ethers } from 'ethers';
 import debug from 'debug';
 
@@ -6,13 +7,12 @@ import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@nodeguy/channel';
 import { EthClient, connectToChain } from '@cerc-io/nitro-util';
 
-import assert from 'assert';
-import { INitroTypesFixedPart, INitroTypesSignedVariablePart, NitroAdjudicator } from './adjudicator/nitro-adjudicator';
-import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 import { ChainService, ChainEvent } from './chainservice';
 import { ChainTransaction, DepositTransaction, WithdrawAllTransaction } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
-import { Token } from './erc20/token';
+import { Token__factory } from './erc20/token';
+import { INitroTypes, NitroAdjudicator__factory, NitroAdjudicator } from './adjudicator/nitro-adjudicator';
+import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 
 const log = debug('ts-nitro:eth-chain-service');
 
@@ -40,7 +40,7 @@ export class EthChainService implements ChainService {
 
   private virtualPaymentAppAddress: string;
 
-  private txSigner: ethers.Transaction;
+  private txSigner: ethers.Signer;
 
   private out: ReadWriteChannel<ChainEvent>;
 
@@ -56,7 +56,7 @@ export class EthChainService implements ChainService {
     naAddress: string,
     consensusAppAddress: string,
     virtualPaymentAppAddress: string,
-    txSigner: ethers.Transaction,
+    txSigner: ethers.Signer,
     out: ReadWriteChannel<ChainEvent>,
     logger: debug.Debugger,
     ctx: AbortController,
@@ -87,13 +87,11 @@ export class EthChainService implements ChainService {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
     }
 
-    // TODO: Get txSigner
-    const ethClient = await connectToChain(chainUrl);
+    const [ethClient, txSigner] = await connectToChain(chainUrl, Buffer.from(chainPk));
 
-    // TODO: Initialize NitroAdjudicator
-    const na = new NitroAdjudicator();
+    const na = NitroAdjudicator__factory.connect(naAddress, txSigner);
 
-    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, logDestination);
+    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination);
   }
 
   // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
@@ -104,6 +102,7 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
+    txSigner: ethers.Signer,
     logDestination?: WritableStream,
   ): EthChainService {
     // TODO: Create AbortController
@@ -118,23 +117,22 @@ export class EthChainService implements ChainService {
       naAddress,
       caAddress,
       vpaAddress,
-      {} as ethers.Transaction,
+      txSigner,
       out,
       log,
       {} as AbortController,
       cancelFunc,
     );
 
+    // TODO: Implement
     ecs.subscribeForLogs();
 
     return ecs;
   }
 
   // defaultTxOpts returns transaction options suitable for most transaction submissions
-  // TODO: Implement and remove void
-  private defaultTxOpts(): ethers.Transaction {
-    return this.txSigner;
-  }
+  // TODO: Implement (if required)
+  private defaultTxOpts(): void {}
 
   // sendTransaction sends the transaction and blocks until it has been submitted.
   // TODO: Implement and remove void
@@ -144,20 +142,22 @@ export class EthChainService implements ChainService {
         const depositTx = tx as DepositTransaction;
         assert(depositTx.deposit);
         for (const [tokenAddress, amount] of depositTx.deposit.value.entries()) {
-          const txOpts = this.defaultTxOpts();
+          const txOpts: ethers.PayableOverrides = {};
           const ethTokenAddress = ethers.constants.AddressZero;
 
           if (tokenAddress === ethTokenAddress) {
             txOpts.value = ethers.BigNumber.from(amount);
           } else {
-            const tokenTransactor = Token.newTokenTransactor(tokenAddress, this.chain);
+            const tokenTransactor = Token__factory.connect(tokenAddress, this.txSigner);
             // eslint-disable-next-line no-await-in-loop
-            await tokenTransactor.approve(this.defaultTxOpts(), this.naAddress, amount);
+            await tokenTransactor.approve(this.naAddress, amount);
           }
 
-          const holdings = this.na.holdings({}, tokenAddress, depositTx.channelId().value);
           // eslint-disable-next-line no-await-in-loop
-          await this.na.deposit(txOpts, tokenAddress, depositTx.channelId().value, holdings, amount);
+          const holdings = await this.na.holdings(tokenAddress, depositTx.channelId().value);
+
+          // eslint-disable-next-line no-await-in-loop
+          await this.na.deposit(tokenAddress, depositTx.channelId().value, holdings, amount, txOpts);
         }
 
         break;
@@ -176,12 +176,12 @@ export class EthChainService implements ChainService {
           NitroAdjudicatorConversions.convertSignature(signatures[1]),
         ];
 
-        const candidate: INitroTypesSignedVariablePart = {
+        const candidate: INitroTypes.SignedVariablePartStruct = {
           variablePart: nitroVariablePart,
           sigs: nitroSignatures,
         };
 
-        await this.na.concludeAndTransferAllAssets(this.defaultTxOpts(), nitroFixedPart, candidate);
+        await this.na.concludeAndTransferAllAssets(nitroFixedPart, candidate);
 
         break;
       }
