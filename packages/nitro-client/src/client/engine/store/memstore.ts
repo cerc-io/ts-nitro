@@ -270,8 +270,8 @@ export class MemStore implements Store {
   }
 
   // TODO: Implement
-  getObjectiveByChannelId(channelId: string): Objective {
-    return {} as Objective;
+  getObjectiveByChannelId(channelId: Destination): [Objective, boolean] {
+    return [{} as Objective, false];
   }
 
   // populateChannelData fetches stored Channel data relevant to the given

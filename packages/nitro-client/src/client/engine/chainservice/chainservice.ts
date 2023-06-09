@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 
 import type { ReadChannel } from '@nodeguy/channel';
 
-import { ChainTransaction } from '../../../protocols/interfaces';
+import { ChainTransaction, Objective } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
 import { Destination } from '../../../types/destination';
 
@@ -77,6 +77,11 @@ export class DepositedEvent extends CommonEvent {
       },
     );
   }
+}
+
+// ChainEventHandler describes an objective that can handle chain events
+export interface ChainEventHandler {
+  updateWithChainEvent(event: ChainEvent): Objective
 }
 
 // TODO: Add eth chainservice implementation

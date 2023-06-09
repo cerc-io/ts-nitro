@@ -21,7 +21,7 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 
   // Get the objective that currently owns the channel with the supplied ChannelId
   // TODO: Can throw an error
-  getObjectiveByChannelId (channelId: string): Objective
+  getObjectiveByChannelId (channelId: Destination): [Objective, boolean]
 
   // Write an objective
   // TODO: Can throw an error
