@@ -13,5 +13,6 @@ export function bytes2Hex(d: Buffer): string {
 
 // Hex2Bytes returns the bytes represented by the hexadecimal string str.
 export function hex2Bytes(str: string): Buffer {
-  return Buffer.from(str, 'hex');
+  const hexString = str.startsWith('0x') ? str.substring(2) : str;
+  return Buffer.from(hexString, 'hex');
 }

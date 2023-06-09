@@ -2,10 +2,14 @@ import { ethers } from 'ethers';
 import _ from 'lodash';
 
 import * as ExitFormat from '@statechannels/exit-format';
-import { getChannelId as utilGetChannelId, State as NitroState } from '@statechannels/nitro-protocol';
-import { signState } from '@statechannels/nitro-protocol/dist/src/signatures';
 import {
-  FieldDescription, bytes2Hex, fromJSON, toJSON,
+  getChannelId as utilGetChannelId,
+  State as NitroState,
+  hashState as utilHashState
+} from '@statechannels/nitro-protocol';
+import { signState as utilSignState } from '@statechannels/nitro-protocol/dist/src/signatures';
+import {
+  FieldDescription, bytes2Hex, fromJSON, hex2Bytes, toJSON,
 } from '@cerc-io/nitro-util';
 
 import * as nc from '../../crypto/signatures';
@@ -182,10 +186,9 @@ export class State {
   }
 
   // Hash returns the keccak256 hash of the State
-  // TODO: Can throw an error
-  // TODO: Implement (only if required)
   hash(): string {
-    return '';
+    const state: NitroState = this._getNitroState();
+    return utilHashState(state);
   }
 
   // Sign generates an ECDSA signature on the state using the supplied private key
@@ -194,50 +197,10 @@ export class State {
   sign(secretKey: Buffer): Signature {
     // Use signState method from @statechannels/nitro-protocol
     // Create NitroState instance from State
-
-    const stateOutcome: ExitFormat.Exit = this.outcome.value.map((singleAssetExit): ExitFormat.SingleAssetExit => {
-      // Use 0x00 if empty as ethersjs doesn't accept '' as valid value
-      // @statechannels/nitro-protocol uses string for Bytes
-      let exitMetadata = bytes2Hex(singleAssetExit.assetMetadata!.metadata);
-      exitMetadata = exitMetadata === '' ? '0x00' : exitMetadata;
-
-      // TODO: Remove "as any" after using a published package for @statechannels/nitro-protocol / @statechannels/exit-format
-      return {
-        asset: singleAssetExit.asset,
-        allocations: singleAssetExit.allocations.value.map((allocation) => {
-          let allocationMetadata = bytes2Hex(allocation.metadata);
-          allocationMetadata = allocationMetadata === '' ? '0x00' : allocationMetadata;
-
-          return {
-            destination: allocation.destination.value,
-            amount: allocation.amount.toString(),
-            allocationType: allocation.allocationType,
-            metadata: allocationMetadata,
-          };
-        }),
-        assetMetadata: {
-          assetType: singleAssetExit.assetMetadata.assetType,
-          metadata: exitMetadata,
-        },
-      } as any;
-    });
-
-    let stateAppData = bytes2Hex(this.appData);
-    stateAppData = stateAppData === '' ? '0x00' : stateAppData;
-
-    const state: NitroState = {
-      participants: this.participants,
-      channelNonce: this.channelNonce,
-      appDefinition: this.appDefinition,
-      challengeDuration: this.challengeDuration,
-      outcome: stateOutcome,
-      appData: stateAppData,
-      turnNum: this.turnNum,
-      isFinal: this.isFinal,
-    };
+    const state: NitroState = this._getNitroState();
 
     // TODO: Can avoid 0x prefix?
-    const { signature } = signState(state, `0x${bytes2Hex(secretKey)}`);
+    const { signature } = utilSignState(state, `0x${bytes2Hex(secretKey)}`);
 
     return {
       r: signature.r,
@@ -249,7 +212,7 @@ export class State {
   // RecoverSigner computes the Ethereum address which generated Signature sig on State state
   recoverSigner(sig: Signature): Address {
     const stateHash = this.hash();
-    return nc.recoverEthereumMessageSigner(Buffer.from(stateHash), sig);
+    return nc.recoverEthereumMessageSigner(hex2Bytes(stateHash), sig);
   }
 
   // Equal returns true if the given State is deeply equal to the receiever.
@@ -284,6 +247,50 @@ export class State {
     clone.isFinal = this.isFinal;
 
     return clone;
+  }
+
+  // Custom method to create NitroState instance from state
+  _getNitroState(): NitroState {
+    const stateOutcome: ExitFormat.Exit = this.outcome.value.map((singleAssetExit): ExitFormat.SingleAssetExit => {
+      // Use 0x00 if empty as ethersjs doesn't accept '' as valid value
+      // @statechannels/nitro-protocol uses string for Bytes
+      let exitMetadata = bytes2Hex(singleAssetExit.assetMetadata!.metadata);
+      exitMetadata = exitMetadata === '' ? '0x00' : exitMetadata;
+
+      // TODO: Remove "as any" after using a published package for @statechannels/nitro-protocol / @statechannels/exit-format
+      return {
+        asset: singleAssetExit.asset,
+        allocations: singleAssetExit.allocations.value.map((allocation) => {
+          let allocationMetadata = bytes2Hex(allocation.metadata);
+          allocationMetadata = allocationMetadata === '' ? '0x00' : allocationMetadata;
+
+          return {
+            destination: allocation.destination.value,
+            amount: allocation.amount.toString(),
+            allocationType: allocation.allocationType,
+            metadata: allocationMetadata,
+          };
+        }),
+        assetMetadata: {
+          assetType: singleAssetExit.assetMetadata.assetType,
+          metadata: exitMetadata,
+        },
+      } as any;
+    });
+
+    let stateAppData = bytes2Hex(this.appData);
+    stateAppData = stateAppData === '' ? '0x00' : stateAppData;
+
+    return {
+      participants: this.participants,
+      channelNonce: this.channelNonce,
+      appDefinition: this.appDefinition,
+      challengeDuration: this.challengeDuration,
+      outcome: stateOutcome,
+      appData: stateAppData,
+      turnNum: this.turnNum,
+      isFinal: this.isFinal,
+    };
   }
 }
 

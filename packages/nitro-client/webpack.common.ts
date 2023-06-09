@@ -28,6 +28,7 @@ const baseConfig: webpack.Configuration = {
   },
   externals: {
     '@nodeguy/channel': '@nodeguy/channel',
+    '@cerc-io/nitro-util': '@cerc-io/nitro-util',
     assert: 'assert',
     debug: 'debug',
     ethers: 'ethers',

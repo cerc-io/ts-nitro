@@ -21,10 +21,11 @@ export const signatureJsonEncodingMap: Record<string, FieldDescription> = {
 // "\x19Ethereum Signed Message:\n" + len(message).
 const computeEthereumSignedMessageDigest = (message: Buffer): Buffer => {
   const prefix = `\x19Ethereum Signed Message:\n${message.length}`;
-  const prefixBytes = ethers.utils.toUtf8Bytes(prefix);
-  const messageBytes = ethers.utils.arrayify(message);
-  const formattedMessage = ethers.utils.concat([prefixBytes, messageBytes]);
-  return Buffer.from(ethers.utils.keccak256(formattedMessage));
+  const messageBytes = ethers.utils.concat([
+    Buffer.from(prefix),
+    message,
+  ]);
+  return Buffer.from(ethers.utils.keccak256(messageBytes));
 };
 
 // splitSignature takes a 65 bytes signature in the [R||S||V] format and returns the individual components
@@ -61,9 +62,8 @@ export const recoverEthereumMessageSigner = (message: Buffer, signature: Signatu
   }
 
   const digest = computeEthereumSignedMessageDigest(message);
-  const pubKey = ethers.utils.recoverPublicKey(digest, ethers.utils.joinSignature(sig));
-  const ecdsaPubKey = ethers.utils.computePublicKey(pubKey);
-  return ethers.utils.computeAddress(ecdsaPubKey);
+
+  return ethers.utils.recoverAddress(digest.toString(), sig);
 };
 
 export const equal = (s1: Signature, s2 :Signature): boolean => {
