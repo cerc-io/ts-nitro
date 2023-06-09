@@ -11,7 +11,7 @@ import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import { go } from '@cerc-io/nitro-util';
 
 import { MessageService } from './messageservice/messageservice';
-import { ChainService, ChainEvent } from './chainservice/chainservice';
+import { ChainService, ChainEvent, ChainEventHandler } from './chainservice/chainservice';
 import { ErrNoSuchObjective, Store } from './store/store';
 import { PolicyMaker } from './policy-maker';
 import { MetricsApi, MetricsRecorder, NoOpMetrics } from './metrics';
@@ -57,6 +57,22 @@ import { Destination } from '../../types/destination';
 
 const JSONbigNative = JSONbig({ useNativeBigInt: true });
 const log = debug('ts-nitro:engine');
+
+class ErrUnhandledChainEvent extends Error {
+  event?: ChainEvent;
+
+  objective?: Objective;
+
+  reason: string = '';
+
+  constructor(params: {
+    event?: ChainEvent,
+    objective?: Objective,
+    reason?: string }) {
+    super(`Chain event ${params.event} could not be handled by objective ${params.objective} due to: ${params.reason ?? ''}`);
+    Object.assign(this);
+  }
+}
 
 const Incoming: MessageDirection = 'Incoming';
 const Outgoing: MessageDirection = 'Outgoing';
@@ -236,7 +252,7 @@ export class Engine {
             break;
 
           case this.fromChain:
-            res = this.handleChainEvent(this.fromChain.value());
+            res = await this.handleChainEvent(this.fromChain.value());
             break;
 
           case this.fromMsg: {
@@ -484,10 +500,36 @@ export class Engine {
   //   - reads an objective from the store,
   //   - generates an updated objective, and
   //   - attempts progress.
-  // TODO: Can throw an error
-  private handleChainEvent(chainEvent: ChainEvent): EngineEvent {
-    // TODO: Implement
-    return new EngineEvent();
+  private async handleChainEvent(chainEvent: ChainEvent): Promise<EngineEvent> {
+    // TODO: Implement metrics
+    this.logger(`handling chain event: ${chainEvent}`);
+    // eslint-disable-next-line prefer-const
+    let [objective, ok] = this.store!.getObjectiveByChannelId(chainEvent.channelID());
+
+    if (!ok) {
+      // TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
+      // for now we can ignore channels we aren't involved in
+      // in the future the chain service should allow us to register for specific channels
+      return new EngineEvent();
+    }
+
+    // Workaround for Go type assertion syntax
+    assert(objective);
+    // TODO: Check if this works
+    ok = 'updateWithChainEvent' in objective && typeof objective.updateWithChainEvent === 'function';
+    const eventHandler = objective as unknown as ChainEventHandler;
+    if (!ok) {
+      throw new ErrUnhandledChainEvent({
+        event: chainEvent,
+        objective,
+        reason: 'objective does not handle chain events',
+      });
+    }
+
+    // TODO: Implement updateWithChainEvent method in different protocol Objectives to satisfy ChainEventHandler interface
+    const updatedEventHandler = eventHandler.updateWithChainEvent(chainEvent);
+
+    return this.attemptProgress(updatedEventHandler);
   }
 
   // handleObjectiveRequest handles an ObjectiveRequest (triggered by a client API call).
