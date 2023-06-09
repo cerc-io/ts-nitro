@@ -16,6 +16,10 @@ import { Exit, SingleAssetExit } from '../state/outcome/exit';
 import { GuaranteeMetadata } from '../state/outcome/guarantee';
 
 type LedgerIndex = number;
+enum ProposalType {
+  AddProposal = 'AddProposal',
+  RemoveProposal = 'RemoveProposal',
+}
 
 export const Leader: LedgerIndex = 0;
 export const Follower: LedgerIndex = 1;
@@ -219,7 +223,7 @@ export class LedgerOutcome {
     return targets;
   }
 
-  // includes returns true when the receiver includes g in its list of guarantees.
+  // Includes returns true when the receiver includes g in its list of guarantees.
   // TODO: Implement
   includes(g: Guarantee): boolean {
     return false;
@@ -420,6 +424,7 @@ export class ConsensusChannel {
   }
 
   // ConsensusTurnNum returns the turn number of the current consensus state.
+  // TODO: uint64 replacement
   consensusTurnNum(): number {
     return this.current.turnNum;
   }
@@ -442,9 +447,12 @@ export class ConsensusChannel {
   }
 
   // HasRemovalBeenProposedNext returns whether or not the next proposal in the queue is a remove proposal for the given target
-  // TODO: Implement
-  hasRemovalBeenProposedNext(target: string): boolean {
-    return false;
+  hasRemovalBeenProposedNext(target: Destination): boolean {
+    if (this.proposalQueue().length === 0) {
+      return false;
+    }
+    const p = this._proposalQueue[0];
+    return p.proposal?.Type() === ProposalType.RemoveProposal && p.proposal?.toRemove?.target === target;
   }
 
   // IsLeader returns true if the calling client is the leader of the channel,
@@ -455,22 +463,19 @@ export class ConsensusChannel {
 
   // IsFollower returns true if the calling client is the follower of the channel,
   // and false otherwise.
-  // TODO: Implement
   isFollower(): boolean {
-    return false;
+    return this.myIndex === Follower;
   }
 
   // Leader returns the address of the participant responsible for proposing.
-  // TODO: Implement
   leader(): Address {
-    return ethers.constants.AddressZero;
+    return this.fp.participants[Leader];
   }
 
   // Follower returns the address of the participant who receives and contersigns
   // proposals.
-  // TODO: Implement
   follower(): Address {
-    return ethers.constants.AddressZero;
+    return this.fp.participants[Follower];
   }
 
   // FundingTargets returns a list of channels funded by the ConsensusChannel
@@ -572,7 +577,7 @@ export class ConsensusChannel {
   // from channel/consensus_channel/follower_channel.go
   // followerReceive is called by the follower to validate a proposal from the leader and add it to the proposal queue
   // TODO: Implement
-  followerReceive(p: SignedProposal): void { }
+  followerReceive(p: SignedProposal): void {}
 
   // from channel/consensus_channel/leader_channel.go
   // leaderReceive is called by the Leader and iterates through
@@ -589,7 +594,7 @@ export class ConsensusChannel {
   //   - the countersupplied proposal is not found
   //   - or if it is found but not correctly signed by the Follower
   // TODO: Implement
-  leaderReceive(countersigned: SignedProposal): void { }
+  leaderReceive(countersigned: SignedProposal): void {}
 }
 
 type AddParams = {
@@ -702,6 +707,12 @@ export class Proposal {
     toRemove?: Remove;
   }) {
     Object.assign(this, params);
+  }
+
+  // Type returns the type of the proposal based on whether it contains an Add or a Remove proposal.
+  // TODO: Implement
+  type(): ProposalType {
+    return ProposalType.RemoveProposal;
   }
 }
 
