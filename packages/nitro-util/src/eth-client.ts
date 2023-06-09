@@ -2,11 +2,16 @@ import assert from 'assert';
 import { ethers, providers, EventFilter } from 'ethers';
 
 export class EthClient {
-  provider?: providers.JsonRpcProvider;
+  provider: providers.JsonRpcProvider;
 
-  async dial(chainUrl: string): Promise<void> {
+  constructor(provider: providers.JsonRpcProvider) {
+    this.provider = provider;
+  }
+
+  static async dial(chainUrl: string): Promise<EthClient> {
     // Connect to the Ethereum provider
-    this.provider = new ethers.providers.JsonRpcProvider(chainUrl);
+    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
+    return new EthClient(provider);
   }
 
   async transactionByHash(transactionHash: string): Promise<providers.TransactionResponse> {
@@ -44,9 +49,7 @@ export class EthClient {
 // TODO: Can run into an error
 // TODO: ctx required?
 export async function connectToChain(chainUrl: string, chainPK: Buffer): Promise<[EthClient, ethers.Signer]> {
-  const client = new EthClient();
-  await client.dial(chainUrl);
-
+  const client = await EthClient.dial(chainUrl);
   const txSigner = new ethers.Wallet(chainPK, client.provider);
 
   return [client, txSigner];
