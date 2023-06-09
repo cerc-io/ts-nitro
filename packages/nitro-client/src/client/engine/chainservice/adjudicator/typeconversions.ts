@@ -49,6 +49,11 @@ export function convertVariablePart(vp: VariablePart): INitroTypes.VariablePartS
 }
 
 export function convertSignature(s: Signature): INitroTypes.SignatureStruct {
-  // TODO: Implement
-  return s;
+  const sig = {
+    v: s.v,
+    r: s.r.slice(0, 32),
+    s: s.s.slice(0, 32), // TODO we should just use 32 byte types, which would remove the need for this function
+  };
+
+  return sig;
 }
