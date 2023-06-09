@@ -16,11 +16,12 @@ import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 
 const log = debug('ts-nitro:eth-chain-service');
 
-interface EthChain extends EthClient {
-  // TODO: Extend bind.ContractBackend (github.com/ethereum/go-ethereum/accounts/abi/bind)
-  // TODO: Extend ethereum.TransactionReader (github.com/ethereum/go-ethereum)
+interface EthChain {
+  // Following Interfaces in Go have been implemented using EthClient.provider (ethers Provider)
+  //  bind.ContractBackend (github.com/ethereum/go-ethereum/accounts/abi/bind)
+  //  ethereum.TransactionReader (github.com/ethereum/go-ethereum)
+  provider: ethers.providers.JsonRpcProvider
 
-  // TODO: Can throw an error
   chainID (): Promise<bigint>;
 }
 
@@ -134,7 +135,6 @@ export class EthChainService implements ChainService {
   private defaultTxOpts(): void {}
 
   // sendTransaction sends the transaction and blocks until it has been submitted.
-  // TODO: Implement and remove void
   async sendTransaction(tx: ChainTransaction): Promise<void> {
     switch (tx.constructor) {
       case DepositTransaction: {
@@ -201,7 +201,6 @@ export class EthChainService implements ChainService {
   // subscribeForLogs subscribes for logs and pushes them to the out channel.
   // It relies on notifications being supported by the chain node.
   private subscribeForLogs() {
-    assert(this.chain.provider);
     // Subscribe to Adjudicator events
     const query: ethers.providers.EventType = {
       address: this.naAddress,
@@ -222,7 +221,6 @@ export class EthChainService implements ChainService {
 
     // Method to implement sub.Unsubscribe
     const subUnsubscribe = () => {
-      assert(this.chain.provider);
       this.chain.provider.off(query, listener);
       this.chain.provider.off('error', subErrListener);
 
@@ -237,7 +235,6 @@ export class EthChainService implements ChainService {
     // Must be in a goroutine to not block chain service constructor
     go(async () => {
       while (true) {
-        // TODO: Check switch-case behaviour
         /* eslint-disable no-await-in-loop */
         /* eslint-disable default-case */
         switch (await Channel.select([
@@ -257,7 +254,6 @@ export class EthChainService implements ChainService {
 
             // If the error is nil then the subscription was closed and we need to re-subscribe.
             // This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
-            assert(this.chain.provider);
             try {
               this.chain.provider.on(query, listener);
             } catch (sErr) {
