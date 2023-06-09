@@ -19,12 +19,22 @@ import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 
 const log = debug('ts-nitro:eth-chain-service');
 
-const allocationUpdatedTopic = ethers.utils.keccak256('AllocationUpdated(bytes32,uint256,uint256)');
-const concludedTopic = ethers.utils.keccak256('Concluded(bytes32,uint48)');
-const depositedTopic = ethers.utils.keccak256('Deposited(bytes32,address,uint256,uint256)');
-// eslint-disable-next-line max-len
-const challengeRegisteredTopic = ethers.utils.keccak256('ChallengeRegistered(bytes32 indexed channelId, uint48 turnNumRecord, uint48 finalizesAt, bool isFinal, (address[],uint64,address,uint48) fixedPart, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[] proof, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]) candidate)');
-const challengeClearedTopic = ethers.utils.keccak256('ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)');
+const allocationUpdatedTopic = ethers.utils.keccak256(
+  ethers.utils.toUtf8Bytes('AllocationUpdated(bytes32,uint256,uint256)'),
+);
+const concludedTopic = ethers.utils.keccak256(
+  ethers.utils.toUtf8Bytes('Concluded(bytes32,uint48)'),
+);
+const depositedTopic = ethers.utils.keccak256(
+  ethers.utils.toUtf8Bytes('Deposited(bytes32,address,uint256,uint256)'),
+);
+const challengeRegisteredTopic = ethers.utils.keccak256(
+  // eslint-disable-next-line max-len
+  ethers.utils.toUtf8Bytes('ChallengeRegistered(bytes32 indexed channelId, uint48 turnNumRecord, uint48 finalizesAt, bool isFinal, (address[],uint64,address,uint48) fixedPart, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[] proof, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]) candidate)'),
+);
+const challengeClearedTopic = ethers.utils.keccak256(
+  ethers.utils.toUtf8Bytes('ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)'),
+);
 
 interface EthChain {
   // Following Interfaces in Go have been implemented using EthClient.provider (ethers Provider)
