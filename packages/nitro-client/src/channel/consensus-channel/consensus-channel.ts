@@ -17,6 +17,15 @@ import { Exit, SingleAssetExit } from '../state/outcome/exit';
 import { GuaranteeMetadata } from '../state/outcome/guarantee';
 
 type LedgerIndex = number;
+
+const ErrIncorrectChannelID = new Error('proposal ID and channel ID do not match');
+const ErrIncorrectTurnNum = new Error('incorrect turn number');
+const ErrInvalidDeposit = new Error('unable to divert to guarantee: invalid deposit');
+const ErrInsufficientFunds = new Error('insufficient funds');
+const ErrDuplicateGuarantee = new Error('duplicate guarantee detected');
+const ErrGuaranteeNotFound = new Error('guarantee not found');
+const ErrInvalidAmount = new Error('left amount is greater than the guarantee amount');
+
 enum ProposalType {
   AddProposal = 'AddProposal',
   RemoveProposal = 'RemoveProposal',
@@ -271,6 +280,11 @@ export class Vars {
       isFinal: false,
     });
   }
+
+  // HandleProposal handles a proposal to add or remove a guarantee.
+  // It will mutate Vars by calling Add or Remove for the proposal.
+  // TODO: Implement
+  handleProposal(p: Proposal): void {}
 }
 
 interface SignedVarsConstructorOptions extends VarsConstructorOptions {
@@ -522,16 +536,11 @@ export class ConsensusChannel {
   }
 
   // Signatures returns the signatures on the currently supported state.
-  // TODO: Implement
   signatures(): [Signature, Signature] {
-    return [
-      zeroValueSignature,
-      zeroValueSignature,
-    ];
+    return this.current.signatures;
   }
 
   // ProposalQueue returns the current queue of proposals, ordered by TurnNum.
-  // TODO: Implement
   proposalQueue(): SignedProposal[] {
     // Since c.proposalQueue is already ordered by TurnNum, we can simply return it.
     return this._proposalQueue!;
@@ -539,17 +548,22 @@ export class ConsensusChannel {
 
   // latestProposedVars returns the latest proposed vars in a consensus channel
   // by cloning its current vars and applying each proposal in the queue.
-  // TODO: Can throw an error
-  // TODO: Implement
   private latestProposedVars(): Vars {
-    return new Vars({});
+    const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome.clone() });
+    for (const p of this._proposalQueue) {
+      vars.handleProposal(p.proposal!);
+    }
+
+    return vars;
   }
 
   // validateProposalID checks that the given proposal's ID matches
   // the channel's ID.
-  // TODO: Can throw an error
-  // TODO: Implement
-  private validateProposalID(propsal: Proposal): void { }
+  private validateProposalID(propsal: Proposal): void {
+    if (propsal.ledgerID !== this.id) {
+      throw ErrIncorrectChannelID;
+    }
+  }
 
   // Participants returns the channel participants.
   participants(): Address[] {
