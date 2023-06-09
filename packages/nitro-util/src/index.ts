@@ -5,4 +5,4 @@ export * from './hex-utils';
 export * from './json';
 export * from './contract-bindings';
 
-export { INitroTypes, ExitFormat } from './contract-bindings/NitroAdjudicator';
+export { INitroTypes, ExitFormat, DepositedEventObject } from './contract-bindings/NitroAdjudicator';

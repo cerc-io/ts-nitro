@@ -5,16 +5,26 @@ import debug from 'debug';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@nodeguy/channel';
-import { EthClient, connectToChain, go } from '@cerc-io/nitro-util';
+import { connectToChain, go } from '@cerc-io/nitro-util';
 
-import { ChainService, ChainEvent } from './chainservice';
+import { ChainService, ChainEvent, DepositedEvent } from './chainservice';
 import { ChainTransaction, DepositTransaction, WithdrawAllTransaction } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
 import { Token__factory } from './erc20/token';
-import { INitroTypes, NitroAdjudicator__factory, NitroAdjudicator } from './adjudicator/nitro-adjudicator';
+import { Destination } from '../../../types/destination';
+import {
+  INitroTypes, NitroAdjudicator__factory, NitroAdjudicator, DepositedEventObject,
+} from './adjudicator/nitro-adjudicator';
 import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 
 const log = debug('ts-nitro:eth-chain-service');
+
+const allocationUpdatedTopic = ethers.utils.keccak256('AllocationUpdated(bytes32,uint256,uint256)');
+const concludedTopic = ethers.utils.keccak256('Concluded(bytes32,uint48)');
+const depositedTopic = ethers.utils.keccak256('Deposited(bytes32,address,uint256,uint256)');
+// eslint-disable-next-line max-len
+const challengeRegisteredTopic = ethers.utils.keccak256('ChallengeRegistered(bytes32 indexed channelId, uint48 turnNumRecord, uint48 finalizesAt, bool isFinal, (address[],uint64,address,uint48) fixedPart, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[] proof, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]) candidate)');
+const challengeClearedTopic = ethers.utils.keccak256('ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)');
 
 interface EthChain {
   // Following Interfaces in Go have been implemented using EthClient.provider (ethers Provider)
@@ -191,12 +201,59 @@ export class EthChainService implements ChainService {
   }
 
   // fatalF is called to output a message and then panic, killing the chain service.
-  // TODO: Implement
-  private fatalF(format: string, ...v: any[]) {}
+  private fatalF(message: string) {
+    // Print to STDOUT in case we're using a noop logger
+    // eslint-disable-next-line no-console
+    console.log(message);
+
+    this.logger(message);
+
+    // Manually panic in case we're using a logger that doesn't call exit(1)
+    throw new Error(message);
+  }
 
   // dispatchChainEvents takes in a collection of event logs from the chain
-  // TODO: Implement
-  private dispatchChainEvents(logs: Log[]) {}
+  private dispatchChainEvents(logs: Log[]) {
+    for (const l of logs) {
+      switch (l.topics[0]) {
+        case depositedTopic:
+          try {
+            const nad = this.na.interface.parseLog(l).args as unknown as DepositedEventObject;
+            const event = DepositedEvent.newDepositedEvent(
+              new Destination(nad.destination),
+              String(l.blockNumber),
+              nad.asset,
+              nad.amountDeposited.toBigInt(),
+              nad.destinationHoldings.toBigInt(),
+            );
+            this.out.push(event);
+          } catch (err) {
+            this.fatalF(`error in ParseDeposited: ${err}`);
+          }
+          break;
+
+        case allocationUpdatedTopic:
+          // TODO: Implement
+          break;
+
+        case concludedTopic:
+          // TODO: Implement
+          break;
+
+        case challengeRegisteredTopic:
+          this.logger('Ignoring Challenge Registered event');
+          break;
+
+        case challengeClearedTopic:
+          this.logger('Ignoring Challenge Cleared event');
+          break;
+
+        default:
+          this.logger(`Ignoring unknown chain event topic: ${l.topics[0].toString()}`);
+          break;
+      }
+    }
+  }
 
   // subscribeForLogs subscribes for logs and pushes them to the out channel.
   // It relies on notifications being supported by the chain node.
@@ -211,7 +268,7 @@ export class EthChainService implements ChainService {
       this.chain.provider.on(query, listener);
     } catch (err) {
       // TODO: Implement
-      this.fatalF('subscribeFilterLogs failed: %w', err);
+      this.fatalF(`subscribeFilterLogs failed: ${err}`);
     }
 
     // Channel to implement sub.Err()
@@ -249,7 +306,7 @@ export class EthChainService implements ChainService {
           case subErr: {
             const err = subErr.value();
             if (err) {
-              this.fatalF('received error from the subscription channel: %w', err);
+              this.fatalF(`received error from the subscription channel: ${err}`);
             }
 
             // If the error is nil then the subscription was closed and we need to re-subscribe.
@@ -257,7 +314,7 @@ export class EthChainService implements ChainService {
             try {
               this.chain.provider.on(query, listener);
             } catch (sErr) {
-              this.fatalF('subscribeFilterLogs failed on resubscribe: %w', sErr);
+              this.fatalF(`subscribeFilterLogs failed on resubscribe: ${err}`);
             }
             this.logger('resubscribed to filtered logs');
             break;
@@ -283,7 +340,6 @@ export class EthChainService implements ChainService {
   private splitBlockRange(total: BlockRange, maxInterval: bigint): BlockRange[] | void {}
 
   // eventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
-  // TODO: Implement
   eventFeed(): ReadChannel<ChainEvent> {
     return this.out.readOnly();
   }
@@ -292,9 +348,8 @@ export class EthChainService implements ChainService {
     return this.consensusAppAddress;
   }
 
-  // TODO: Implement
   getVirtualPaymentAppAddress(): Address {
-    return ethers.constants.AddressZero;
+    return this.virtualPaymentAppAddress;
   }
 
   getChainId(): Promise<bigint> {

@@ -486,6 +486,7 @@ export class Engine {
   //   - attempts progress.
   // TODO: Can throw an error
   private handleChainEvent(chainEvent: ChainEvent): EngineEvent {
+    // TODO: Implement
     return new EngineEvent();
   }
 
