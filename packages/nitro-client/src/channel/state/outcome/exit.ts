@@ -60,8 +60,8 @@ export class SingleAssetExit {
 
   // Equal returns true if the supplied SingleAssetExit is deeply equal to the receiver.
   equal(r: SingleAssetExit): boolean {
-    return this.assetMetadata?.metadata === r.assetMetadata?.metadata
-    && this.assetMetadata?.assetType === r.assetMetadata?.assetType
+    return this.assetMetadata.metadata.compare(r.assetMetadata.metadata) === 0
+    && this.assetMetadata.assetType === r.assetMetadata.assetType
     && this.asset === r.asset
     && this.allocations.equal(r.allocations);
   }
@@ -118,6 +118,21 @@ export class Exit {
 
   constructor(value: SingleAssetExit[]) {
     this.value = value;
+  }
+
+  // Equal returns true if the supplied Exit is deeply equal to the receiver.
+  equal(b: Exit): boolean {
+    if (this.value.length !== b.value.length) {
+      return false;
+    }
+
+    for (const [i, sae] of this.value.entries()) {
+      if (!sae.equal(b.value[i])) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   // Clone returns a deep clone of the receiver.

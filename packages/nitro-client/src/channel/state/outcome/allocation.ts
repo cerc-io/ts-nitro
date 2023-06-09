@@ -56,7 +56,7 @@ export class Allocation {
     return _.isEqual(this.destination, b.destination)
     && this.allocationType === b.allocationType
     && this.amount === b.amount
-    && Buffer.compare(this.metadata, b.metadata) === 0;
+    && this.metadata.compare(b.metadata) === 0;
   }
 
   // Clone returns a deep copy of the receiver.

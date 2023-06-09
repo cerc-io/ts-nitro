@@ -5,8 +5,9 @@ import * as ExitFormat from '@statechannels/exit-format';
 import {
   getChannelId as utilGetChannelId,
   State as NitroState,
-  hashState as utilHashState
+  hashState as utilHashState,
 } from '@statechannels/nitro-protocol';
+// TODO: Use forked @statechannels/nitro-protocol
 import { signState as utilSignState } from '@statechannels/nitro-protocol/dist/src/signatures';
 import {
   FieldDescription, bytes2Hex, fromJSON, hex2Bytes, toJSON,
@@ -216,9 +217,16 @@ export class State {
   }
 
   // Equal returns true if the given State is deeply equal to the receiever.
-  // TODO: Implement
   equal(r: State): boolean {
-    return false;
+    /* eslint-disable @typescript-eslint/no-use-before-define */
+    return equalParticipants(this.participants, r.participants)
+    && this.channelNonce === r.channelNonce
+    && this.appDefinition === r.appDefinition
+    && this.challengeDuration === r.challengeDuration
+    && this.appData.compare(r.appData) === 0
+    && this.outcome.equal(r.outcome)
+    && this.turnNum === r.turnNum
+    && this.isFinal === r.isFinal;
   }
 
   // Validate checks whether the state is malformed and returns an error if it is.
@@ -295,9 +303,18 @@ export class State {
 }
 
 // equalParticipants returns true if the given arrays contain equal addresses (in the same order).
-// TODO: Implement
 function equalParticipants(p: Address[], q: Address[]): boolean {
-  return false;
+  if (p.length !== q.length) {
+    return false;
+  }
+
+  for (let i = 0; i < p.length; i += 1) {
+    if (p[i] !== q[i]) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 // StateFromFixedAndVariablePart constructs a State from a FixedPart and a VariablePart
