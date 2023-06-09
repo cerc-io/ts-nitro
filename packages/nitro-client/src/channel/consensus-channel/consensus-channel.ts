@@ -432,10 +432,26 @@ export class ConsensusChannel {
   }
 
   // IsProposedNext returns true if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
-  // TODO: Can throw an error
-  // TODO: Implement
   isProposedNext(g: Guarantee): boolean {
-    return false;
+    const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome.clone() });
+
+    if (this._proposalQueue.length === 0) {
+      return false;
+    }
+
+    const p = this._proposalQueue[0];
+
+    try {
+      vars.handleProposal(p.proposal!);
+    } catch (err) {
+      if (vars.turnNum !== p.turnNum) {
+        throw new Error(`proposal turn number ${p.turnNum} does not match vars ${vars.turnNum}`);
+      }
+
+      throw err;
+    }
+
+    return vars.outcome.includes(g) && !this.includes(g);
   }
 
   // ConsensusTurnNum returns the turn number of the current consensus state.
