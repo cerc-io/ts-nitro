@@ -5,7 +5,7 @@ import debug from 'debug';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@nodeguy/channel';
-import { EthClient, connectToChain } from '@cerc-io/nitro-util';
+import { EthClient, connectToChain, go } from '@cerc-io/nitro-util';
 
 import { ChainService, ChainEvent } from './chainservice';
 import { ChainTransaction, DepositTransaction, WithdrawAllTransaction } from '../../../protocols/interfaces';
@@ -105,8 +105,8 @@ export class EthChainService implements ChainService {
     txSigner: ethers.Signer,
     logDestination?: WritableStream,
   ): EthChainService {
-    // TODO: Create AbortController
-    const cancelFunc = () => {};
+    const ctx = new AbortController();
+    const cancelCtx = ctx.abort.bind(ctx);
 
     const out = Channel<ChainEvent>(10);
 
@@ -120,8 +120,8 @@ export class EthChainService implements ChainService {
       txSigner,
       out,
       log,
-      {} as AbortController,
-      cancelFunc,
+      ctx,
+      cancelCtx,
     );
 
     ecs.subscribeForLogs();
@@ -170,7 +170,6 @@ export class EthChainService implements ChainService {
         const signatures = withdrawAllTx.signedState.signatures();
         const nitroFixedPart = NitroAdjudicatorConversions.convertFixedPart(state.fixedPart());
         const nitroVariablePart = NitroAdjudicatorConversions.convertVariablePart(state.variablePart());
-        // TODO: Implement
         const nitroSignatures = [
           NitroAdjudicatorConversions.convertSignature(signatures[0]),
           NitroAdjudicatorConversions.convertSignature(signatures[1]),
@@ -201,8 +200,87 @@ export class EthChainService implements ChainService {
 
   // subscribeForLogs subscribes for logs and pushes them to the out channel.
   // It relies on notifications being supported by the chain node.
-  // TODO: Implement
-  private subscribeForLogs() {}
+  private subscribeForLogs() {
+    assert(this.chain.provider);
+    // Subscribe to Adjudicator events
+    const query: ethers.providers.EventType = {
+      address: this.naAddress,
+    };
+    const logs = Channel<Log>();
+    const listener = (eventLog: Log) => logs.push(eventLog);
+    try {
+      this.chain.provider.on(query, listener);
+    } catch (err) {
+      // TODO: Implement
+      this.fatalF('subscribeFilterLogs failed: %w', err);
+    }
+
+    // Channel to implement sub.Err()
+    const subErr = Channel<Error>();
+    const subErrListener = (err: Error) => subErr.push(err);
+    this.chain.provider.on('error', subErrListener);
+
+    // Method to implement sub.Unsubscribe
+    const subUnsubscribe = () => {
+      assert(this.chain.provider);
+      this.chain.provider.off(query, listener);
+      this.chain.provider.off('error', subErrListener);
+
+      // Implement sub.Unsubscribe behaviour to close sub.Err() channel
+      subErr.close();
+    };
+
+    // Channel to implement ctx.Done()
+    const ctxDone = Channel();
+    this.ctx.signal.onabort = () => { ctxDone.close(); };
+
+    // Must be in a goroutine to not block chain service constructor
+    go(async () => {
+      while (true) {
+        // TODO: Check switch-case behaviour
+        /* eslint-disable no-await-in-loop */
+        /* eslint-disable default-case */
+        switch (await Channel.select([
+          ctxDone.shift(),
+          subErr.shift(),
+          logs.shift(),
+        ])) {
+          case ctxDone:
+            subUnsubscribe();
+            return;
+
+          case subErr: {
+            const err = subErr.value();
+            if (err) {
+              this.fatalF('received error from the subscription channel: %w', err);
+            }
+
+            // If the error is nil then the subscription was closed and we need to re-subscribe.
+            // This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
+            assert(this.chain.provider);
+            try {
+              this.chain.provider.on(query, listener);
+            } catch (sErr) {
+              this.fatalF('subscribeFilterLogs failed on resubscribe: %w', sErr);
+            }
+            this.logger('resubscribed to filtered logs');
+            break;
+          }
+
+          // // TODO: Check if recreating subscription after interval is required
+          // case <-time.After(RESUB_INTERVAL):
+          //   // Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
+          //   // We unsub here and recreate the subscription in the next iteration of the select.
+          //   sub.Unsubscribe()
+
+          case logs:
+            // TODO: Implement
+            this.dispatchChainEvents([logs.value()]);
+            break;
+        }
+      }
+    });
+  }
 
   // splitBlockRange takes a BlockRange and chunks it into a slice of BlockRanges, each having an interval no larger than the passed interval.
   // TODO: Implement and remove void
