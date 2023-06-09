@@ -6,6 +6,7 @@ import {
 } from '@cerc-io/nitro-util';
 
 import { Signature } from '../../crypto/signatures';
+import { getAddressFromSecretKeyBytes } from '../../crypto/keys';
 import { Address } from '../../types/types';
 import { Funds } from '../../types/funds';
 import { FixedPart, State } from '../state/state';
@@ -441,14 +442,21 @@ export class ConsensusChannel {
   }
 
   // HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
-  // TODO: Implement
-  hasRemovalBeenProposed(target: string): boolean {
+  hasRemovalBeenProposed(target: Destination): boolean {
+    for (const p of this._proposalQueue) {
+      if (p.proposal?.Type() === ProposalType.RemoveProposal) {
+        const remove = p.proposal.toRemove;
+        if (remove?.target === target) {
+          return true;
+        }
+      }
+    }
     return false;
   }
 
   // HasRemovalBeenProposedNext returns whether or not the next proposal in the queue is a remove proposal for the given target
   hasRemovalBeenProposedNext(target: Destination): boolean {
-    if (this.proposalQueue().length === 0) {
+    if (this._proposalQueue.length === 0) {
       return false;
     }
     const p = this._proposalQueue[0];
@@ -491,17 +499,20 @@ export class ConsensusChannel {
 
   // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
   // values. It signs the resulting state using sk.
-  // TODO: Can throw an error
-  // TODO: Implement
   private sign(vars: Vars, sk: Buffer): Signature {
-    return zeroValueSignature;
+    const signer = getAddressFromSecretKeyBytes(sk);
+    if (this.fp.participants[this.myIndex] !== signer) {
+      throw new Error(`attempting to sign from wrong address: ${signer}`);
+    }
+
+    const state = vars.asState(this.fp);
+    return state.sign(sk);
   }
 
   // recoverSigner returns the signer of the vars using the given signature.
-  // TODO: Can throw an error
-  // TODO: Implement
   private recoverSigner(vars: Vars, sig: Signature): Address {
-    return ethers.constants.AddressZero;
+    const state = vars.asState(this.fp);
+    return state.recoverSigner(sig);
   }
 
   // ConsensusVars returns the vars of the consensus state
