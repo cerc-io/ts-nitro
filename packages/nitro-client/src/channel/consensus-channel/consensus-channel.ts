@@ -16,8 +16,6 @@ import { Allocation, AllocationType, Allocations } from '../state/outcome/alloca
 import { Exit, SingleAssetExit } from '../state/outcome/exit';
 import { GuaranteeMetadata } from '../state/outcome/guarantee';
 
-type LedgerIndex = number;
-
 const ErrIncorrectChannelID = new Error('proposal ID and channel ID do not match');
 const ErrIncorrectTurnNum = new Error('incorrect turn number');
 const ErrInvalidDeposit = new Error('unable to divert to guarantee: invalid deposit');
@@ -26,10 +24,21 @@ const ErrDuplicateGuarantee = new Error('duplicate guarantee detected');
 const ErrGuaranteeNotFound = new Error('guarantee not found');
 const ErrInvalidAmount = new Error('left amount is greater than the guarantee amount');
 
+// From channel/consensus_channel/follower_channel.go
+const ErrNotFollower = new Error('method may only be called by channel follower');
+const ErrNoProposals = new Error('no proposals in the queue');
+const ErrUnsupportedQueuedProposal = new Error('only Add proposal is supported for queued proposals');
+const ErrUnsupportedExpectedProposal = new Error('only Add proposal is supported for expected update');
+const ErrNonMatchingProposals = new Error('expected proposal does not match first proposal in the queue');
+const ErrInvalidProposalSignature = new Error('invalid signature for proposal');
+const ErrInvalidTurnNum = new Error('the proposal turn number is not the next turn number');
+
 enum ProposalType {
   AddProposal = 'AddProposal',
   RemoveProposal = 'RemoveProposal',
 }
+
+type LedgerIndex = number;
 
 export const Leader: LedgerIndex = 0;
 export const Follower: LedgerIndex = 1;
@@ -636,8 +645,47 @@ export class ConsensusChannel {
 
   // from channel/consensus_channel/follower_channel.go
   // followerReceive is called by the follower to validate a proposal from the leader and add it to the proposal queue
-  // TODO: Implement
-  followerReceive(p: SignedProposal): void {}
+  followerReceive(p: SignedProposal): void {
+    if (this.myIndex !== Follower) {
+      throw ErrNotFollower;
+    }
+
+    this.validateProposalID(p.proposal!);
+
+    let vars: Vars;
+    try {
+      // Get the latest proposal vars we have
+      vars = this.latestProposedVars();
+    } catch (err) {
+      throw new Error(`could not generate the current proposal: ${err}`);
+    }
+
+    if (p.turnNum !== vars.turnNum + 1) {
+      throw ErrInvalidTurnNum;
+    }
+
+    // Add the incoming proposal to the vars
+    try {
+      vars.handleProposal(p.proposal!);
+    } catch (err) {
+      throw new Error(`receive could not add new state vars: ${err}`);
+    }
+
+    // Validate the signature
+    let signer: Address;
+    try {
+      signer = this.recoverSigner(vars, p.signature!);
+    } catch (err) {
+      throw new Error(`receive could not recover signature: ${err}`);
+    }
+
+    if (signer !== this.leader()) {
+      throw ErrInvalidProposalSignature;
+    }
+
+    // Update the proposal queue
+    this._proposalQueue.push(p);
+  }
 
   // from channel/consensus_channel/leader_channel.go
   // leaderReceive is called by the Leader and iterates through
