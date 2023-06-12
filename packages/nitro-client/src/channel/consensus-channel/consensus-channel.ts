@@ -649,50 +649,6 @@ export class ConsensusChannel {
     }
   }
 
-  // from channel/consensus_channel/follower_channel.go
-  // followerReceive is called by the follower to validate a proposal from the leader and add it to the proposal queue
-  followerReceive(p: SignedProposal): void {
-    if (this.myIndex !== Follower) {
-      throw ErrNotFollower;
-    }
-
-    this.validateProposalID(p.proposal!);
-
-    let vars: Vars;
-    try {
-      // Get the latest proposal vars we have
-      vars = this.latestProposedVars();
-    } catch (err) {
-      throw new Error(`could not generate the current proposal: ${err}`);
-    }
-
-    if (p.turnNum !== vars.turnNum + 1) {
-      throw ErrInvalidTurnNum;
-    }
-
-    // Add the incoming proposal to the vars
-    try {
-      vars.handleProposal(p.proposal!);
-    } catch (err) {
-      throw new Error(`receive could not add new state vars: ${err}`);
-    }
-
-    // Validate the signature
-    let signer: Address;
-    try {
-      signer = this.recoverSigner(vars, p.signature!);
-    } catch (err) {
-      throw new Error(`receive could not recover signature: ${err}`);
-    }
-
-    if (signer !== this.leader()) {
-      throw ErrInvalidProposalSignature;
-    }
-
-    // Update the proposal queue
-    this._proposalQueue.push(p);
-  }
-
   // from channel/consensus_channel/leader_channel.go
   // leaderReceive is called by the Leader and iterates through
   // the proposal queue until it finds the countersigned proposal.
@@ -750,6 +706,99 @@ export class ConsensusChannel {
       }
     }
     throw ErrProposalQueueExhausted;
+  }
+
+  // from channel/consensus_channel/leader_channel.go
+  // Propose is called by the Leader and receives a proposal to add or remove a guarantee,
+  // and generates and stores a SignedProposal in the queue, returning the
+  // resulting SignedProposal
+  propose(proposal: Proposal, sk: Buffer): SignedProposal {
+    if (this.myIndex !== Leader) {
+      throw ErrNotLeader;
+    }
+
+    if (proposal.ledgerID !== this.id) {
+      throw ErrIncorrectChannelID;
+    }
+
+    let vars: Vars;
+    try {
+      vars = this.latestProposedVars();
+    } catch (err) {
+      throw new Error(`unable to construct latest proposed vars: ${err}`);
+    }
+
+    try {
+      vars.handleProposal(proposal);
+    } catch (err) {
+      throw new Error(`propose could not add new state vars: ${err}`);
+    }
+
+    let signature: Signature;
+
+    try {
+      signature = this.sign(vars, sk);
+    } catch (err) {
+      throw new Error(`unable to sign state update: ${err}`);
+    }
+
+    const signed = new SignedProposal({ proposal, signature, turnNum: vars.turnNum });
+    this.appendToProposalQueue(signed);
+    return signed;
+  }
+
+  // from channel/consensus_channel/leader_channel.go
+  // appendToProposalQueue safely appends the given SignedProposal to the proposal queue of the receiver.
+  // It will panic if the turn number of the signedproposal is not consecutive with the existing queue.
+  appendToProposalQueue(signed: SignedProposal) {
+    if (this._proposalQueue.length > 0 && this._proposalQueue[this._proposalQueue.length - 1].turnNum! + 1 !== signed.turnNum) {
+      throw new Error('Appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum');
+    }
+    this._proposalQueue.push(signed);
+  }
+
+  // from channel/consensus_channel/follower_channel.go
+  // followerReceive is called by the follower to validate a proposal from the leader and add it to the proposal queue
+  followerReceive(p: SignedProposal): void {
+    if (this.myIndex !== Follower) {
+      throw ErrNotFollower;
+    }
+
+    this.validateProposalID(p.proposal!);
+
+    let vars: Vars;
+    try {
+      // Get the latest proposal vars we have
+      vars = this.latestProposedVars();
+    } catch (err) {
+      throw new Error(`could not generate the current proposal: ${err}`);
+    }
+
+    if (p.turnNum !== vars.turnNum + 1) {
+      throw ErrInvalidTurnNum;
+    }
+
+    // Add the incoming proposal to the vars
+    try {
+      vars.handleProposal(p.proposal!);
+    } catch (err) {
+      throw new Error(`receive could not add new state vars: ${err}`);
+    }
+
+    // Validate the signature
+    let signer: Address;
+    try {
+      signer = this.recoverSigner(vars, p.signature!);
+    } catch (err) {
+      throw new Error(`receive could not recover signature: ${err}`);
+    }
+
+    if (signer !== this.leader()) {
+      throw ErrInvalidProposalSignature;
+    }
+
+    // Update the proposal queue
+    this._proposalQueue.push(p);
   }
 
   // From channel/consensus_channel/follower_channel.go
