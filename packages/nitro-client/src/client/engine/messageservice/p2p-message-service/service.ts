@@ -262,9 +262,10 @@ export class P2PMessageService implements MessageService {
   }
 
   // checkError panics if the message service is running and there is an error, otherwise it just returns
-  // TODO: Implement
   // eslint-disable-next-line n/handle-callback-err
-  private checkError(err: Error) {}
+  private checkError(err: Error) {
+    throw err;
+  }
 
   // out returns a channel that can be used to receive messages from the message service
   // TODO: Implement and remove void
