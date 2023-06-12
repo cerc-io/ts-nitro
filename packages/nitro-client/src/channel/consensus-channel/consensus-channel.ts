@@ -33,6 +33,11 @@ const ErrNonMatchingProposals = new Error('expected proposal does not match firs
 const ErrInvalidProposalSignature = new Error('invalid signature for proposal');
 const ErrInvalidTurnNum = new Error('the proposal turn number is not the next turn number');
 
+// From channel/consensus_channel/leader_channel.go
+const ErrNotLeader = new Error('method may only be called by the channel leader');
+const ErrProposalQueueExhausted = new Error('proposal queue exhausted');
+const ErrWrongSigner = new Error('proposal incorrectly signed');
+
 enum ProposalType {
   AddProposal = 'AddProposal',
   RemoveProposal = 'RemoveProposal',
@@ -701,8 +706,50 @@ export class ConsensusChannel {
   // An error is returned if:
   //   - the countersupplied proposal is not found
   //   - or if it is found but not correctly signed by the Follower
-  // TODO: Implement
-  leaderReceive(countersigned: SignedProposal): void {}
+  leaderReceive(countersigned: SignedProposal): void {
+    if (this.myIndex !== Leader) {
+      throw ErrNotLeader;
+    }
+
+    this.validateProposalID(countersigned.proposal!);
+
+    const consensusCandidate = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome.clone() });
+    const consensusTurnNum = countersigned.turnNum;
+
+    if (consensusTurnNum! <= consensusCandidate.turnNum) {
+      // We've already seen this proposal; return early
+      return;
+    }
+
+    for (let i = 0; i < this._proposalQueue.length; i += 1) {
+      const ourP = this._proposalQueue[i];
+
+      consensusCandidate.handleProposal(ourP.proposal!);
+
+      if (consensusCandidate.turnNum === consensusTurnNum) {
+        let signer: Address;
+        try {
+          signer = consensusCandidate.asState(this.fp).recoverSigner(countersigned.signature!);
+        } catch (err) {
+          throw new Error(`unable to recover signer: ${err}`);
+        }
+
+        if (signer !== this.fp.participants[Follower]) {
+          throw ErrWrongSigner;
+        }
+
+        const mySig = ourP.signature;
+        this.current = new SignedVars({
+          outcome: consensusCandidate.outcome,
+          turnNum: consensusCandidate.turnNum,
+          signatures: [mySig!, countersigned.signature!],
+        });
+        this._proposalQueue = this._proposalQueue.slice(i + 1);
+        return;
+      }
+    }
+    throw ErrProposalQueueExhausted;
+  }
 }
 
 type AddParams = {
