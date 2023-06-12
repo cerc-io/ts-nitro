@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
 import assert from 'assert';
+import _ from 'lodash';
 
 import {
   FieldDescription, fromJSON, toJSON, zeroValueSignature,
@@ -81,7 +82,7 @@ export class Balance {
 export class Guarantee {
   amount: bigint = BigInt(0);
 
-  private target: Destination = new Destination();
+  private _target: Destination = new Destination();
 
   private left: Destination = new Destination();
 
@@ -117,11 +118,16 @@ export class Guarantee {
     const amount = BigInt(this.amount);
 
     return new Allocation({
-      destination: this.target,
+      destination: this._target,
       amount,
       allocationType: AllocationType.NormalAllocationType,
       metadata: Buffer.concat([this.left.bytes(), this.right.bytes()]),
     });
+  }
+
+  // Target returns the target of the guarantee.
+  target(): Destination {
+    return this._target;
   }
 }
 
@@ -298,8 +304,44 @@ export class Vars {
 
   // HandleProposal handles a proposal to add or remove a guarantee.
   // It will mutate Vars by calling Add or Remove for the proposal.
+  handleProposal(p: Proposal): void {
+    switch (p.type()) {
+      case ProposalType.AddProposal:
+        return this.add(p.toAdd!);
+      case ProposalType.RemoveProposal:
+        return this.remove(p.toRemove!);
+      default:
+        throw new Error('invalid proposal: a proposal must be either an add or a remove proposal');
+    }
+  }
+
+  // Add mutates Vars by
+  //   - increasing the turn number by 1
+  //   - including the guarantee
+  //   - adjusting balances accordingly
+  //
+  // An error is returned if:
+  //   - the turn number is not incremented
+  //   - the balances are incorrectly adjusted, or the deposits are too large
+  //   - the guarantee is already included in vars.Outcome
+  //
+  // If an error is returned, the original vars is not mutated.
   // TODO: Implement
-  handleProposal(p: Proposal): void {}
+  add(p: Add): void {}
+
+  // Remove mutates Vars by
+  //   - increasing the turn number by 1
+  //   - removing the guarantee for the Target channel
+  //   - adjusting balances accordingly based on LeftAmount and RightAmount
+  //
+  // An error is returned if:
+  //   - the turn number is not incremented
+  //   - a guarantee is not found for the target
+  //   - the amounts are too large for the guarantee amount
+  //
+  // If an error is returned, the original vars is not mutated.
+  // TODO: Implement
+  remove(p: Remove): void {}
 }
 
 interface SignedVarsConstructorOptions extends VarsConstructorOptions {
@@ -649,7 +691,8 @@ export class ConsensusChannel {
     }
   }
 
-  // from channel/consensus_channel/leader_channel.go
+  // From channel/consensus_channel/leader_channel.go
+
   // leaderReceive is called by the Leader and iterates through
   // the proposal queue until it finds the countersigned proposal.
   //
@@ -663,7 +706,7 @@ export class ConsensusChannel {
   // An error is returned if:
   //   - the countersupplied proposal is not found
   //   - or if it is found but not correctly signed by the Follower
-  leaderReceive(countersigned: SignedProposal): void {
+  private leaderReceive(countersigned: SignedProposal): void {
     if (this.myIndex !== Leader) {
       throw ErrNotLeader;
     }
@@ -708,7 +751,6 @@ export class ConsensusChannel {
     throw ErrProposalQueueExhausted;
   }
 
-  // from channel/consensus_channel/leader_channel.go
   // Propose is called by the Leader and receives a proposal to add or remove a guarantee,
   // and generates and stores a SignedProposal in the queue, returning the
   // resulting SignedProposal
@@ -747,19 +789,19 @@ export class ConsensusChannel {
     return signed;
   }
 
-  // from channel/consensus_channel/leader_channel.go
   // appendToProposalQueue safely appends the given SignedProposal to the proposal queue of the receiver.
   // It will panic if the turn number of the signedproposal is not consecutive with the existing queue.
-  appendToProposalQueue(signed: SignedProposal) {
+  private appendToProposalQueue(signed: SignedProposal) {
     if (this._proposalQueue.length > 0 && this._proposalQueue[this._proposalQueue.length - 1].turnNum! + 1 !== signed.turnNum) {
       throw new Error('Appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum');
     }
     this._proposalQueue.push(signed);
   }
 
-  // from channel/consensus_channel/follower_channel.go
+  // From channel/consensus_channel/follower_channel.go
+
   // followerReceive is called by the follower to validate a proposal from the leader and add it to the proposal queue
-  followerReceive(p: SignedProposal): void {
+  private followerReceive(p: SignedProposal): void {
     if (this.myIndex !== Follower) {
       throw ErrNotFollower;
     }
@@ -801,7 +843,6 @@ export class ConsensusChannel {
     this._proposalQueue.push(p);
   }
 
-  // From channel/consensus_channel/follower_channel.go
   // SignNextProposal is called by the follower and inspects whether the
   // expected proposal matches the first proposal in the queue. If so,
   // the proposal is removed from the queue and integrated into the channel state.
@@ -883,6 +924,17 @@ export class Add {
   constructor(params: AddParams) {
     Object.assign(this, params);
   }
+
+  // TODO: Implement
+  equal(a2: Add): boolean {
+    return false;
+  }
+
+  // Clone returns a deep copy of the receiver.
+  // TODO: Implement
+  clone(): Add {
+    return {} as Add;
+  }
 }
 
 // Remove is a proposal to remove a guarantee for the given virtual channel.
@@ -915,6 +967,17 @@ export class Remove {
     leftAmount?: bigint;
   }) {
     Object.assign(this, params);
+  }
+
+  // TODO: Implement
+  equal(r2: Remove): boolean {
+    return false;
+  }
+
+  // Clone returns a deep copy of the receiver.
+  // TODO: Implement
+  clone(): Remove {
+    return {} as Remove;
   }
 }
 
@@ -955,16 +1018,40 @@ export class Proposal {
     Object.assign(this, params);
   }
 
+  // Target returns the target channel of the proposal.
+  target(): Destination {
+    switch (this.type()) {
+      case 'AddProposal':
+        return this.toAdd!.guarantee!.target();
+      case 'RemoveProposal':
+        return this.toRemove!.target!;
+      default:
+        throw new Error('invalid proposal type');
+    }
+  }
+
+  // Clone returns a deep copy of the receiver.
+  clone(): Proposal {
+    return new Proposal({
+      ledgerID: this.ledgerID,
+      toAdd: this.toAdd!.clone(),
+      toRemove: this.toRemove!.clone(),
+    });
+  }
+
   // Type returns the type of the proposal based on whether it contains an Add or a Remove proposal.
-  // TODO: Implement
+  // TODO: Check working
   type(): ProposalType {
+    const zeroAdd = new Add({});
+    if (!_.isEqual(this.toAdd, zeroAdd)) {
+      return ProposalType.AddProposal;
+    }
     return ProposalType.RemoveProposal;
   }
 
   // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
-  // TODO: Implement
   equal(q: Proposal): boolean {
-    return false;
+    return this.ledgerID === q.ledgerID && this.toAdd!.equal(q.toAdd!) && this.toRemove!.equal(q.toRemove!);
   }
 }
 
@@ -1006,10 +1093,6 @@ export class SignedProposal {
       proposal: this.proposal,
       turnNum: this.turnNum,
     };
-  }
-
-  constructor(params: SignedProposalParams) {
-    Object.assign(this, params);
   }
 
   constructor(params: SignedProposalParams) {
