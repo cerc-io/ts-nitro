@@ -11,11 +11,14 @@
 import { ethers } from 'ethers';
 
 import { signVoucher } from '@statechannels/nitro-protocol';
-import { zeroValueSignature } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+} from '@cerc-io/nitro-util';
 
 import { Signature } from '../channel/state/state';
 import { Address } from '../types/types';
 import { Destination } from '../types/destination';
+import { signatureJsonEncodingMap } from '../crypto/signatures';
 
 export class Voucher {
   channelId: Destination = new Destination();
@@ -23,6 +26,21 @@ export class Voucher {
   amount?: bigint;
 
   signature: Signature = zeroValueSignature;
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    channelId: { type: 'class', value: Destination },
+    amount: { type: 'bigint' },
+    signature: { type: 'object', value: signatureJsonEncodingMap },
+  };
+
+  static fromJSON(data: string): Voucher {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Voucher(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Voucher.jsonEncodingMap, this);
+  }
 
   constructor(params: {
     channelId?: Destination;

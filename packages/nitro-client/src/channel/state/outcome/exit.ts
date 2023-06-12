@@ -112,7 +112,7 @@ export class Exit {
     // Return the array of SingleAssetExit JSON directly
     // (Exit is not a struct in go-nitro, just an array of SingleAssetExit)
     return this.value.map((singleAssetExit) => {
-      return toJSON(SingleAssetExit.jsonEncodingMap, singleAssetExit);
+      return singleAssetExit.toJSON();
     });
   }
 

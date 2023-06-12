@@ -92,7 +92,7 @@ export class Allocations {
     // Return the array of Allocation JSON directly
     // (Allocations is not a struct in go-nitro, just an array of Allocation)
     return this.value.map((singleAssetExit) => {
-      return toJSON(Allocation.jsonEncodingMap, singleAssetExit);
+      return singleAssetExit.toJSON();
     });
   }
 
