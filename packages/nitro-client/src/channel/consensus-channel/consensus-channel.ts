@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
+
 import assert from 'assert';
-import { ethers } from 'ethers';
 
 import {
   FieldDescription, fromJSON, toJSON, zeroValueSignature,
@@ -494,7 +495,7 @@ export class ConsensusChannel {
   // HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
   hasRemovalBeenProposed(target: Destination): boolean {
     for (const p of this._proposalQueue) {
-      if (p.proposal?.Type() === ProposalType.RemoveProposal) {
+      if (p.proposal?.type() === ProposalType.RemoveProposal) {
         const remove = p.proposal.toRemove;
         if (remove?.target === target) {
           return true;
@@ -510,7 +511,7 @@ export class ConsensusChannel {
       return false;
     }
     const p = this._proposalQueue[0];
-    return p.proposal?.Type() === ProposalType.RemoveProposal && p.proposal?.toRemove?.target === target;
+    return p.proposal?.type() === ProposalType.RemoveProposal && p.proposal?.toRemove?.target === target;
   }
 
   // IsLeader returns true if the calling client is the leader of the channel,
@@ -750,6 +751,47 @@ export class ConsensusChannel {
     }
     throw ErrProposalQueueExhausted;
   }
+
+  // From channel/consensus_channel/follower_channel.go
+  // SignNextProposal is called by the follower and inspects whether the
+  // expected proposal matches the first proposal in the queue. If so,
+  // the proposal is removed from the queue and integrated into the channel state.
+  signNextProposal(expectedProposal: Proposal, sk: Buffer): SignedProposal {
+    if (this.myIndex !== Follower) {
+      throw ErrNotFollower;
+    }
+
+    this.validateProposalID(expectedProposal);
+
+    if (this._proposalQueue.length === 0) {
+      throw ErrNoProposals;
+    }
+
+    const p = this._proposalQueue[0].proposal;
+
+    if (!p?.equal(expectedProposal)) {
+      throw ErrNonMatchingProposals;
+    }
+
+    // vars are cloned and modified instead of modified in place to simplify recovering from error
+    const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome.clone() });
+
+    vars.handleProposal(p);
+
+    let signature: Signature;
+    try {
+      signature = this.sign(vars, sk);
+    } catch (err) {
+      throw new Error(`unable to sign state update: ${err}`);
+    }
+
+    const signed = this._proposalQueue[0];
+
+    this.current = new SignedVars({ turnNum: vars.turnNum, outcome: vars.outcome, signatures: [signed.signature!, signature] });
+    this._proposalQueue = this._proposalQueue.slice(1);
+
+    return new SignedProposal({ signature, proposal: signed.proposal, turnNum: vars.turnNum });
+  }
 }
 
 type AddParams = {
@@ -869,6 +911,12 @@ export class Proposal {
   type(): ProposalType {
     return ProposalType.RemoveProposal;
   }
+
+  // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
+  // TODO: Implement
+  equal(q: Proposal): boolean {
+    return false;
+  }
 }
 
 type SignedProposalParams = {
@@ -909,6 +957,10 @@ export class SignedProposal {
       proposal: this.proposal,
       turnNum: this.turnNum,
     };
+  }
+
+  constructor(params: SignedProposalParams) {
+    Object.assign(this, params);
   }
 
   constructor(params: SignedProposalParams) {
