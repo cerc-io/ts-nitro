@@ -523,7 +523,7 @@ export class Engine {
 
     outgoing.merge(notifEvents);
 
-    this.logger.log(`Objective ${objective.id()} is ${waitingFor}`);
+    this.logger(`Objective ${objective.id()} is ${waitingFor}`);
 
     // If our protocol is waiting for nothing then we know the objective is complete
     // TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id

@@ -1,4 +1,5 @@
 import assert from 'assert';
+import _ from 'lodash';
 
 import { fromJSON, toJSON, FieldDescription } from '@cerc-io/nitro-util';
 
@@ -267,7 +268,7 @@ export class Channel extends FixedPart {
   addSignedState(ss: SignedState): boolean {
     const s = ss.state();
 
-    if (s.channelId() !== this.id) {
+    if (!_.isEqual(s.channelId(), this.id)) {
       // Channel mismatch
       return false;
     }
@@ -285,7 +286,6 @@ export class Channel extends FixedPart {
       this.signedStateForTurnNum.set(s.turnNum, ss);
     } else {
       try {
-        // TODO: Implement
         signedState.merge(ss);
       } catch (err) {
         return false;

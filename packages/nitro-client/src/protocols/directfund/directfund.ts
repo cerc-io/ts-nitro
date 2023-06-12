@@ -254,9 +254,8 @@ export class Objective implements ObjectiveInterface {
 
   // Public methods on the DirectFundingObjectiveState
 
-  // TODO: Implement
   id(): ObjectiveId {
-    return '';
+    return `${objectivePrefix}${this.c?.id.string()}`;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
