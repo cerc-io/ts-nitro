@@ -303,6 +303,12 @@ export class SignedVars extends Vars {
     super(params);
     Object.assign(this, params);
   }
+
+  // clone returns a deep copy of the receiver.
+  // TODO: Implement
+  clone(): SignedVars {
+    return {} as SignedVars;
+  }
 }
 
 // ConsensusChannel is used to manage states in a running ledger channel.
@@ -587,9 +593,22 @@ export class ConsensusChannel {
   }
 
   // Clone returns a deep copy of the receiver.
-  // TODO: Implement
   clone(): ConsensusChannel {
-    return {} as ConsensusChannel;
+    const clonedProposalQueue: SignedProposal[] = new Array(this._proposalQueue.length);
+
+    for (let i = 0; i < this._proposalQueue.length; i += 1) {
+      clonedProposalQueue[i] = this._proposalQueue[i].clone();
+    }
+
+    const d = new ConsensusChannel({
+      myIndex: this.myIndex,
+      fp: this.fp.clone(),
+      id: this.id,
+      onChainFunding: this.onChainFunding.clone(),
+      current: this.current.clone(),
+      _proposalQueue: clonedProposalQueue,
+    });
+    return d;
   }
 
   // SupportedSignedState returns the latest supported signed state.
@@ -799,5 +818,11 @@ export class SignedProposal {
 
   constructor(params: SignedProposalParams) {
     Object.assign(this, params);
+  }
+
+  // Clone returns a deep copy of the receiver.
+  // TODO: Implement
+  clone(): SignedProposal {
+    return {} as SignedProposal;
   }
 }
