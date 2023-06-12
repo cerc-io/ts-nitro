@@ -82,11 +82,11 @@ export class Balance {
 export class Guarantee {
   amount: bigint = BigInt(0);
 
-  private _target: Destination = new Destination();
+  _target: Destination = new Destination();
 
-  private left: Destination = new Destination();
+  left: Destination = new Destination();
 
-  private right: Destination = new Destination();
+  right: Destination = new Destination();
 
   constructor(params: {
     amount?: bigint;
@@ -142,12 +142,12 @@ export class LedgerOutcome {
   private assetAddress?: Address;
 
   // Balance of participants[0]
-  private leader?: Balance;
+  leader?: Balance;
 
   // Balance of participants[1]
-  private follower?: Balance;
+  follower?: Balance;
 
-  private guarantees: Map<Destination, Guarantee> = new Map();
+  guarantees: Map<Destination, Guarantee> = new Map();
 
   constructor(params: {
     assetAddress?: Address;
@@ -302,6 +302,11 @@ export class Vars {
     });
   }
 
+  // Clone returns a deep copy of the receiver.
+  clone() {
+    return new Vars({ turnNum: this.turnNum, outcome: this.outcome.clone() });
+  }
+
   // HandleProposal handles a proposal to add or remove a guarantee.
   // It will mutate Vars by calling Add or Remove for the proposal.
   handleProposal(p: Proposal): void {
@@ -326,8 +331,56 @@ export class Vars {
   //   - the guarantee is already included in vars.Outcome
   //
   // If an error is returned, the original vars is not mutated.
-  // TODO: Implement
-  add(p: Add): void {}
+  add(p: Add): void {
+    // CHECKS
+    const o = this.outcome;
+
+    if (o.guarantees.has(p.guarantee!.target()!)) {
+      throw ErrDuplicateGuarantee;
+    }
+
+    let left: Balance;
+    let right: Balance;
+
+    if (o.leader?.destination === p.guarantee?.left) {
+      left = o.leader!;
+      right = o.follower!;
+    } else {
+      left = o.follower!;
+      right = o.leader!;
+    }
+
+    if (p.leftDeposit! > p.guarantee!.amount) {
+      throw ErrInvalidDeposit;
+    }
+
+    if (p.leftDeposit! > left.amount) {
+      throw ErrInsufficientFunds;
+    }
+
+    if (p.rightDeposit() > right.amount) {
+      throw ErrInsufficientFunds;
+    }
+
+    // EFFECTS
+
+    // Increase the turn number
+    this.turnNum += 1;
+
+    const rightDeposit = p.rightDeposit();
+
+    // Adjust balances
+    if (o.leader?.destination === p.guarantee?.left) {
+      o.leader!.amount -= p.leftDeposit!;
+      o.follower!.amount -= rightDeposit;
+    } else {
+      o.follower!.amount -= p.leftDeposit!;
+      o.leader!.amount -= rightDeposit;
+    }
+
+    // Include guarantee
+    o.guarantees.set(p.guarantee?._target!, p.guarantee!);
+  }
 
   // Remove mutates Vars by
   //   - increasing the turn number by 1
@@ -340,8 +393,40 @@ export class Vars {
   //   - the amounts are too large for the guarantee amount
   //
   // If an error is returned, the original vars is not mutated.
-  // TODO: Implement
-  remove(p: Remove): void {}
+  remove(p: Remove): void {
+    // CHECKS
+    const o = this.outcome;
+
+    const guarantee = o.guarantees.get(p.target!);
+
+    if (!guarantee) {
+      throw ErrGuaranteeNotFound;
+    }
+
+    if (p.leftAmount! > guarantee.amount) {
+      throw ErrInvalidAmount;
+    }
+
+    // EFFECTS
+
+    // Increase the turn number
+    this.turnNum += 1;
+
+    const rightAmount = guarantee.amount - p.leftAmount!;
+
+    // Adjust balances
+
+    if (o.leader?.destination === guarantee.left) {
+      o.leader.amount += p.leftAmount!;
+      o.follower!.amount += rightAmount;
+    } else {
+      o.leader!.amount += rightAmount;
+      o.follower!.amount += p.leftAmount!;
+    }
+
+    // Remove the guarantee
+    o.guarantees.delete(p.target!);
+  }
 }
 
 interface SignedVarsConstructorOptions extends VarsConstructorOptions {
@@ -925,16 +1010,24 @@ export class Add {
     Object.assign(this, params);
   }
 
-  // TODO: Implement
-  equal(a2: Add): boolean {
-    return false;
-  }
-
   // Clone returns a deep copy of the receiver.
   // TODO: Implement
   clone(): Add {
     return {} as Add;
   }
+
+  // RightDeposit computes the deposit from the right participant such that
+  // a.LeftDeposit + a.RightDeposit() fully funds a's guarantee.
+  // TODO: Implement
+  rightDeposit(): bigint {
+    return {} as bigint;
+  }
+
+  // TODO: Implement
+  equal(a2: Add): boolean {
+    return false;
+  }
+
 }
 
 // Remove is a proposal to remove a guarantee for the given virtual channel.
