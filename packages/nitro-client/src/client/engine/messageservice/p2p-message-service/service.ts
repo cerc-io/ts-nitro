@@ -173,8 +173,12 @@ export class P2PMessageService implements MessageService {
   }
 
   // id returns the libp2p peer ID of the message service.
-  // TODO: Implement and remove void
-  id(): string | void {}
+  async id(): Promise<PeerId> {
+    const PeerIdFactory = await import('@libp2p/peer-id-factory');
+
+    assert(this.key);
+    return PeerIdFactory.createFromPrivKey(this.key);
+  }
 
   // handlePeerFound is called by the mDNS service when a peer is found.
   async handlePeerFound({ detail: pi }: CustomEvent<Libp2pPeerInfo>) {
@@ -206,8 +210,29 @@ export class P2PMessageService implements MessageService {
   private msgStreamHandler({ stream }: IncomingStreamData) {}
 
   // sendPeerInfo sends our peer info over the given stream
-  // TODO: Implement
-  private sendPeerInfo(stream: Stream) {}
+  private async sendPeerInfo(stream: Stream): Promise<void> {
+    let raw: string = '';
+    try {
+      const peerId = await this.id();
+      const peerInfo: BasicPeerInfo = {
+        id: peerId,
+        address: this.me,
+      };
+
+      raw = JSON.stringify(peerInfo);
+    } catch (err) {
+      this.checkError(err as Error);
+    }
+
+    const { pipe } = await import('it-pipe');
+    const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
+
+    // Can use await to replace writer.Flush()?
+    await pipe(
+      [uint8ArrayFromString(raw + DELIMITER)],
+      stream.sink,
+    );
+  }
 
   // receivePeerInfo receives peer info from the given stream
   // TODO: Implement
