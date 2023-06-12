@@ -227,7 +227,7 @@ export class P2PMessageService implements MessageService {
     const { pipe } = await import('it-pipe');
     const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
 
-    // Can use await to replace writer.Flush()?
+    // TODO: Can use await to replace writer.Flush()?
     await pipe(
       [uint8ArrayFromString(raw + DELIMITER)],
       stream.sink,
@@ -235,8 +235,43 @@ export class P2PMessageService implements MessageService {
   }
 
   // receivePeerInfo receives peer info from the given stream
-  // TODO: Implement
-  private receivePeerInfo(stream: Stream) {}
+  private async receivePeerInfo(stream: Stream) {
+    const { pipe } = await import('it-pipe');
+    const { toString: uint8ArrayToString } = await import('uint8arrays/to-string');
+
+    let raw: string = '';
+    try {
+      pipe(
+        stream.source,
+        async (source) => {
+          let temp: string = '';
+          for await (const msg of source) {
+            temp += uint8ArrayToString(msg.subarray());
+
+            // TODO: Find a better way of doing this
+            const delimiterIndex = temp.indexOf(DELIMITER);
+            if (delimiterIndex !== -1) {
+              raw = temp.slice(0, delimiterIndex);
+              break;
+            }
+          }
+        },
+      );
+    } catch (err) {
+      this.checkError(err as Error);
+    }
+
+    // TODO: Implement
+    const peerInfo: BasicPeerInfo = JSON.parse(raw);
+
+    const [, foundPeer] = this.peers.loadOrStore(peerInfo.address, peerInfo);
+    if (!foundPeer) {
+      this.logger(`New peer found ${peerInfo}`);
+
+      // Use a non-blocking push to the channel
+      this.newPeerInfo.push(peerInfo);
+    }
+  }
 
   // Sends messages to other participants.
   // It blocks until the message is sent.
