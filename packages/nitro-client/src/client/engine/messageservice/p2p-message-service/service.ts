@@ -20,6 +20,10 @@ import type { IncomingStreamData } from '@libp2p/interface-registrar';
 import type { PeerInfo as Libp2pPeerInfo } from '@libp2p/interface-peer-info';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
+// @ts-expect-error
+import type { Address as PeerAddress } from '@libp2p/interface-peer-store';
+// @ts-expect-error
+import type { Multiaddr } from '@multiformats/multiaddr';
 
 import { SafeSyncMap } from '../../../../internal/safesync/safesync';
 import { Message } from '../../../../protocols/messages';
@@ -39,6 +43,18 @@ const RETRY_SLEEP_DURATION = 5 * 1000; // milliseconds
 interface BasicPeerInfo {
   id: PeerId;
   address: Address;
+}
+
+// Custom function to parse raw JSON string to BasicPeerInfo
+async function parseBasicPeerInfo(raw: string): Promise<BasicPeerInfo> {
+  const { peerIdFromString } = await import('@libp2p/peer-id');
+
+  const parsed = JSON.parse(raw);
+
+  return {
+    id: peerIdFromString(parsed.id),
+    address: parsed.address,
+  };
 }
 
 // PeerInfo contains peer information and the ip address/port
@@ -131,6 +147,7 @@ export class P2PMessageService implements MessageService {
     const PeerIdFactory = await import('@libp2p/peer-id-factory');
     const { tcp } = await import('@libp2p/tcp');
     const { yamux } = await import('@chainsafe/libp2p-yamux');
+    const { noise } = await import('@chainsafe/libp2p-noise');
 
     const options: Libp2pOptions = {
       peerId: await PeerIdFactory.createFromPrivKey(ms.key),
@@ -144,6 +161,8 @@ export class P2PMessageService implements MessageService {
         yamux(),
       ],
       // libp2p.NoSecurity,
+      // Use noise() instead
+      connectionEncryption: [noise()],
     };
 
     if (useMdnsPeerDiscovery) {
@@ -165,8 +184,9 @@ export class P2PMessageService implements MessageService {
     ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler);
 
     ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
-      ms.receivePeerInfo(stream);
-      stream.close();
+      ms.receivePeerInfo(stream).then(() => {
+        stream.close();
+      });
     });
 
     return ms;
@@ -181,13 +201,14 @@ export class P2PMessageService implements MessageService {
   }
 
   // handlePeerFound is called by the mDNS service when a peer is found.
-  async handlePeerFound({ detail: pi }: CustomEvent<Libp2pPeerInfo>) {
+  async handlePeerFound({ detail: pi }: any) {
     assert(this.p2pHost);
 
+    const peerMultiaddrs: Multiaddr[] = pi.addresses.map((address: PeerAddress) => address.multiaddr);
     const peer = await this.p2pHost.peerStore.save(
       pi.id,
       {
-        multiaddrs: pi.multiaddrs,
+        multiaddrs: peerMultiaddrs,
         // TODO: Check if ttl option exists to set it like in go-nitro
         // peerstore.PermanentAddrTTL
       },
@@ -199,7 +220,7 @@ export class P2PMessageService implements MessageService {
         PEER_EXCHANGE_PROTOCOL_ID,
       );
 
-      this.sendPeerInfo(stream);
+      await this.sendPeerInfo(stream);
       stream.close();
     } catch (err) {
       this.checkError(err as Error);
@@ -227,7 +248,6 @@ export class P2PMessageService implements MessageService {
     const { pipe } = await import('it-pipe');
     const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
 
-    // TODO: Can use await to replace writer.Flush()?
     await pipe(
       [uint8ArrayFromString(raw + DELIMITER)],
       stream.sink,
@@ -241,7 +261,7 @@ export class P2PMessageService implements MessageService {
 
     let raw: string = '';
     try {
-      pipe(
+      await pipe(
         stream.source,
         async (source) => {
           let temp: string = '';
@@ -261,8 +281,7 @@ export class P2PMessageService implements MessageService {
       this.checkError(err as Error);
     }
 
-    // TODO: Implement
-    const peerInfo: BasicPeerInfo = JSON.parse(raw);
+    const peerInfo: BasicPeerInfo = await parseBasicPeerInfo(raw);
 
     const [, foundPeer] = this.peers.loadOrStore(peerInfo.address, peerInfo);
     if (!foundPeer) {
