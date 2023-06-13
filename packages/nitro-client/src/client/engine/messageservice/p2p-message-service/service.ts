@@ -264,7 +264,6 @@ export class P2PMessageService implements MessageService {
     try {
       m = deserializeMessage(raw);
     } catch (err) {
-      console.error(err);
       this.checkError(err as Error);
     }
     assert(m);

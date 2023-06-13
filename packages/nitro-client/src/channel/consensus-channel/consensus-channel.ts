@@ -58,8 +58,8 @@ export class Balance {
   amount: bigint = BigInt(0);
 
   constructor(params: {
-    destination: Destination;
-    amount: bigint;
+    destination?: Destination;
+    amount?: bigint;
   }) {
     Object.assign(this, params);
   }
@@ -157,9 +157,6 @@ export class Guarantee {
       metadata: Buffer.concat([this.left.bytes(), this.right.bytes()]),
     });
   }
-
-
-
 }
 
 // LedgerOutcome encodes the outcome of a ledger channel involving a "leader" and "follower"
@@ -169,13 +166,13 @@ export class Guarantee {
 // [leader, follower, ...guaranteesSortedbyTargetDestination]
 export class LedgerOutcome {
   // Address of the asset type
-  private assetAddress?: Address;
+  private assetAddress: Address = '';
 
   // Balance of participants[0]
-  _leader?: Balance;
+  _leader: Balance = new Balance({});
 
   // Balance of participants[1]
-  _follower?: Balance;
+  _follower: Balance = new Balance({});
 
   guarantees: Map<Destination, Guarantee> = new Map();
 
@@ -190,12 +187,12 @@ export class LedgerOutcome {
 
   // Leader returns the leader's balance.
   leader(): Balance {
-    return this._leader!;
+    return this._leader;
   }
 
   // Follower returns the follower's balance.
   follower(): Balance {
-    return this._follower!;
+    return this._follower;
   }
 
   // NewLedgerOutcome creates a new ledger outcome with the given asset address, balances, and guarantees.
@@ -276,17 +273,17 @@ export class LedgerOutcome {
     const { assetAddress } = this;
 
     const leader = new Balance({
-      destination: this._leader!.destination,
-      amount: BigInt(this._leader!.amount), // Create a new BigInt instance
+      destination: this._leader.destination,
+      amount: BigInt(this._leader.amount), // Create a new BigInt instance
     });
 
     const follower = new Balance({
-      destination: this._follower!.destination,
-      amount: BigInt(this._follower!.amount), // Create a new BigInt instance
+      destination: this._follower.destination,
+      amount: BigInt(this._follower.amount), // Create a new BigInt instance
     });
 
     const guarantees = new Map<Destination, Guarantee>();
-    for (const [d, g] of this.guarantees!.entries()) {
+    for (const [d, g] of this.guarantees.entries()) {
       const g2 = g;
       g2.amount = BigInt(g.amount);
       guarantees.set(d, g2);
@@ -310,8 +307,8 @@ export class LedgerOutcome {
 
     return new LedgerOutcome({
       assetAddress: this.assetAddress,
-      _leader: this._leader!.clone(),
-      _follower: this._follower!.clone(),
+      _leader: this._leader.clone(),
+      _follower: this._follower.clone(),
       guarantees: clonedGuarantees,
     });
   }
@@ -320,7 +317,7 @@ export class LedgerOutcome {
   fundingTargets(): Destination[] {
     const targets: Destination[] = [];
 
-    for (const [dest] of this.guarantees!) {
+    for (const [dest] of this.guarantees) {
       targets.push(dest);
     }
 
@@ -391,9 +388,9 @@ export class Vars {
   handleProposal(p: Proposal): void {
     switch (p.type()) {
       case ProposalType.AddProposal:
-        return this.add(p.toAdd!);
+        return this.add(p.toAdd);
       case ProposalType.RemoveProposal:
-        return this.remove(p.toRemove!);
+        return this.remove(p.toRemove);
       default:
         throw new Error('invalid proposal: a proposal must be either an add or a remove proposal');
     }
@@ -414,26 +411,26 @@ export class Vars {
     // CHECKS
     const o = this.outcome;
 
-    if (o.guarantees.has(p.guarantee!.target()!)) {
+    if (o.guarantees.has(p.guarantee.target())) {
       throw ErrDuplicateGuarantee;
     }
 
     let left: Balance;
     let right: Balance;
 
-    if (o._leader?.destination === p.guarantee?.left) {
-      left = o._leader!;
-      right = o._follower!;
+    if (o._leader.destination === p.guarantee.left) {
+      left = o._leader;
+      right = o._follower;
     } else {
-      left = o._follower!;
-      right = o._leader!;
+      left = o._follower;
+      right = o._leader;
     }
 
-    if (p.leftDeposit! > p.guarantee!.amount) {
+    if (p.leftDeposit > p.guarantee.amount) {
       throw ErrInvalidDeposit;
     }
 
-    if (p.leftDeposit! > left.amount) {
+    if (p.leftDeposit > left.amount) {
       throw ErrInsufficientFunds;
     }
 
@@ -449,16 +446,16 @@ export class Vars {
     const rightDeposit = p.rightDeposit();
 
     // Adjust balances
-    if (o._leader?.destination === p.guarantee?.left) {
-      o._leader!.amount -= p.leftDeposit!;
-      o._follower!.amount -= rightDeposit;
+    if (o._leader.destination === p.guarantee.left) {
+      o._leader.amount -= p.leftDeposit;
+      o._follower.amount -= rightDeposit;
     } else {
-      o._follower!.amount -= p.leftDeposit!;
-      o._leader!.amount -= rightDeposit;
+      o._follower.amount -= p.leftDeposit;
+      o._leader.amount -= rightDeposit;
     }
 
     // Include guarantee
-    o.guarantees.set(p.guarantee?._target!, p.guarantee!);
+    o.guarantees.set(p.guarantee._target, p.guarantee);
   }
 
   // Remove mutates Vars by
@@ -476,13 +473,13 @@ export class Vars {
     // CHECKS
     const o = this.outcome;
 
-    const guarantee = o.guarantees.get(p.target!);
+    const guarantee = o.guarantees.get(p.target);
 
     if (!guarantee) {
       throw ErrGuaranteeNotFound;
     }
 
-    if (p.leftAmount! > guarantee.amount) {
+    if (p.leftAmount > guarantee.amount) {
       throw ErrInvalidAmount;
     }
 
@@ -491,20 +488,20 @@ export class Vars {
     // Increase the turn number
     this.turnNum += 1;
 
-    const rightAmount = guarantee.amount - p.leftAmount!;
+    const rightAmount = guarantee.amount - p.leftAmount;
 
     // Adjust balances
 
-    if (o._leader?.destination === guarantee.left) {
-      o._leader.amount += p.leftAmount!;
-      o._follower!.amount += rightAmount;
+    if (o._leader.destination === guarantee.left) {
+      o._leader.amount += p.leftAmount;
+      o._follower.amount += rightAmount;
     } else {
-      o._leader!.amount += rightAmount;
-      o._follower!.amount += p.leftAmount!;
+      o._leader.amount += rightAmount;
+      o._follower.amount += p.leftAmount;
     }
 
     // Remove the guarantee
-    o.guarantees.delete(p.target!);
+    o.guarantees.delete(p.target);
   }
 }
 
@@ -567,8 +564,6 @@ export class ConsensusChannel {
 
   // newConsensusChannel constructs a new consensus channel, validating its input by
   // checking that the signatures are as expected for the given fp, initialTurnNum and outcome.
-  // TODO: Can throw an error
-  // TODO: Refactor to newConsensusChannel static method
   static newConsensusChannel(
     fp: FixedPart,
     myIndex: LedgerIndex,
@@ -630,7 +625,7 @@ export class ConsensusChannel {
 
   // FixedPart returns the fixed part of the channel.
   fixedPart(): FixedPart {
-    return this.fp!;
+    return this.fp;
   }
 
   // Receive accepts a proposal signed by the ConsensusChannel counterparty,
@@ -670,7 +665,7 @@ export class ConsensusChannel {
     const p = this._proposalQueue[0];
 
     try {
-      vars.handleProposal(p.proposal!);
+      vars.handleProposal(p.proposal);
     } catch (err) {
       if (vars.turnNum !== p.turnNum) {
         throw new Error(`proposal turn number ${p.turnNum} does not match vars ${vars.turnNum}`);
@@ -702,9 +697,9 @@ export class ConsensusChannel {
   // HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
   hasRemovalBeenProposed(target: Destination): boolean {
     for (const p of this._proposalQueue) {
-      if (p.proposal?.type() === ProposalType.RemoveProposal) {
+      if (p.proposal.type() === ProposalType.RemoveProposal) {
         const remove = p.proposal.toRemove;
-        if (remove?.target === target) {
+        if (remove.target === target) {
           return true;
         }
       }
@@ -718,7 +713,7 @@ export class ConsensusChannel {
       return false;
     }
     const p = this._proposalQueue[0];
-    return p.proposal?.type() === ProposalType.RemoveProposal && p.proposal?.toRemove?.target === target;
+    return p.proposal.type() === ProposalType.RemoveProposal && p.proposal.toRemove.target === target;
   }
 
   // IsLeader returns true if the calling client is the leader of the channel,
@@ -785,7 +780,7 @@ export class ConsensusChannel {
   // ProposalQueue returns the current queue of proposals, ordered by TurnNum.
   proposalQueue(): SignedProposal[] {
     // Since c.proposalQueue is already ordered by TurnNum, we can simply return it.
-    return this._proposalQueue!;
+    return this._proposalQueue;
   }
 
   // latestProposedVars returns the latest proposed vars in a consensus channel
@@ -793,7 +788,7 @@ export class ConsensusChannel {
   private latestProposedVars(): Vars {
     const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome._clone() });
     for (const p of this._proposalQueue) {
-      vars.handleProposal(p.proposal!);
+      vars.handleProposal(p.proposal);
     }
 
     return vars;
@@ -874,12 +869,12 @@ export class ConsensusChannel {
       throw ErrNotLeader;
     }
 
-    this.validateProposalID(countersigned.proposal!);
+    this.validateProposalID(countersigned.proposal);
 
     const consensusCandidate = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome._clone() });
     const consensusTurnNum = countersigned.turnNum;
 
-    if (consensusTurnNum! <= consensusCandidate.turnNum) {
+    if (consensusTurnNum <= consensusCandidate.turnNum) {
       // We've already seen this proposal; return early
       return;
     }
@@ -887,12 +882,12 @@ export class ConsensusChannel {
     for (let i = 0; i < this._proposalQueue.length; i += 1) {
       const ourP = this._proposalQueue[i];
 
-      consensusCandidate.handleProposal(ourP.proposal!);
+      consensusCandidate.handleProposal(ourP.proposal);
 
       if (consensusCandidate.turnNum === consensusTurnNum) {
         let signer: Address;
         try {
-          signer = consensusCandidate.asState(this.fp).recoverSigner(countersigned.signature!);
+          signer = consensusCandidate.asState(this.fp).recoverSigner(countersigned.signature);
         } catch (err) {
           throw new Error(`unable to recover signer: ${err}`);
         }
@@ -905,7 +900,7 @@ export class ConsensusChannel {
         this.current = new SignedVars({
           outcome: consensusCandidate.outcome,
           turnNum: consensusCandidate.turnNum,
-          signatures: [mySig!, countersigned.signature!],
+          signatures: [mySig, countersigned.signature],
         });
         this._proposalQueue = this._proposalQueue.slice(i + 1);
         return;
@@ -955,7 +950,7 @@ export class ConsensusChannel {
   // appendToProposalQueue safely appends the given SignedProposal to the proposal queue of the receiver.
   // It will panic if the turn number of the signedproposal is not consecutive with the existing queue.
   private appendToProposalQueue(signed: SignedProposal) {
-    if (this._proposalQueue.length > 0 && this._proposalQueue[this._proposalQueue.length - 1].turnNum! + 1 !== signed.turnNum) {
+    if (this._proposalQueue.length > 0 && this._proposalQueue[this._proposalQueue.length - 1].turnNum + 1 !== signed.turnNum) {
       throw new Error('Appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum');
     }
     this._proposalQueue.push(signed);
@@ -969,7 +964,7 @@ export class ConsensusChannel {
       throw ErrNotFollower;
     }
 
-    this.validateProposalID(p.proposal!);
+    this.validateProposalID(p.proposal);
 
     let vars: Vars;
     try {
@@ -985,7 +980,7 @@ export class ConsensusChannel {
 
     // Add the incoming proposal to the vars
     try {
-      vars.handleProposal(p.proposal!);
+      vars.handleProposal(p.proposal);
     } catch (err) {
       throw new Error(`receive could not add new state vars: ${err}`);
     }
@@ -993,7 +988,7 @@ export class ConsensusChannel {
     // Validate the signature
     let signer: Address;
     try {
-      signer = this.recoverSigner(vars, p.signature!);
+      signer = this.recoverSigner(vars, p.signature);
     } catch (err) {
       throw new Error(`receive could not recover signature: ${err}`);
     }
@@ -1022,7 +1017,7 @@ export class ConsensusChannel {
 
     const p = this._proposalQueue[0].proposal;
 
-    if (!p?.equal(expectedProposal)) {
+    if (!p.equal(expectedProposal)) {
       throw ErrNonMatchingProposals;
     }
 
@@ -1040,7 +1035,7 @@ export class ConsensusChannel {
 
     const signed = this._proposalQueue[0];
 
-    this.current = new SignedVars({ turnNum: vars.turnNum, outcome: vars.outcome, signatures: [signed.signature!, signature] });
+    this.current = new SignedVars({ turnNum: vars.turnNum, outcome: vars.outcome, signatures: [signed.signature, signature] });
     this._proposalQueue = this._proposalQueue.slice(1);
 
     return new SignedProposal({ signature, proposal: signed.proposal, turnNum: vars.turnNum });
@@ -1201,9 +1196,9 @@ export class Proposal {
   target(): Destination {
     switch (this.type()) {
       case 'AddProposal':
-        return this.toAdd!.guarantee!.target();
+        return this.toAdd.guarantee.target();
       case 'RemoveProposal':
-        return this.toRemove!.target!;
+        return this.toRemove.target;
       default:
         throw new Error('invalid proposal type');
     }
@@ -1213,13 +1208,12 @@ export class Proposal {
   clone(): Proposal {
     return new Proposal({
       ledgerID: this.ledgerID,
-      toAdd: this.toAdd!.clone(),
-      toRemove: this.toRemove!.clone(),
+      toAdd: this.toAdd.clone(),
+      toRemove: this.toRemove.clone(),
     });
   }
 
   // Type returns the type of the proposal based on whether it contains an Add or a Remove proposal.
-  // TODO: Check working
   type(): ProposalType {
     const zeroAdd = new Add({});
     if (!_.isEqual(this.toAdd, zeroAdd)) {
@@ -1230,7 +1224,7 @@ export class Proposal {
 
   // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
   equal(q: Proposal): boolean {
-    return this.ledgerID === q.ledgerID && this.toAdd!.equal(q.toAdd!) && this.toRemove!.equal(q.toRemove!);
+    return this.ledgerID === q.ledgerID && this.toAdd.equal(q.toAdd) && this.toRemove.equal(q.toRemove);
   }
 }
 
@@ -1281,20 +1275,20 @@ export class SignedProposal {
   clone(): SignedProposal {
     return new SignedProposal({
       signature: this.signature,
-      proposal: this.proposal?.clone(),
+      proposal: this.proposal.clone(),
       turnNum: this.turnNum,
     });
   }
 
   // ChannelID returns the id of the ConsensusChannel which receive the proposal.
   channelID(): Destination {
-    return this.proposal?.ledgerID!;
+    return this.proposal.ledgerID;
   }
 
   // SortInfo returns the channelId and turn number so the proposal can be easily sorted.
   sortInfo(): [Destination, number] {
-    const cId = this.proposal?.ledgerID!;
-    const turnNum = this.turnNum!;
+    const cId = this.proposal.ledgerID;
+    const { turnNum } = this;
     return [cId, turnNum];
   }
 }

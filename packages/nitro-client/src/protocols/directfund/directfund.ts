@@ -472,7 +472,7 @@ export class Objective implements ObjectiveInterface {
 
   // TODO: Can throw an error
   // TODO: Check interface and implement
-  unmarshalJSON(b: Buffer): void { }
+  unmarshalJSON(b: Buffer): void {}
 }
 
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.
