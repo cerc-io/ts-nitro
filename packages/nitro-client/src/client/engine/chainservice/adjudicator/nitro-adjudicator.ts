@@ -5,4 +5,6 @@ export {
   INitroTypes,
   ExitFormat,
   DepositedEventObject,
+  AllocationUpdatedEventObject,
+  ConcludedEventObject,
 } from '@cerc-io/nitro-util';
