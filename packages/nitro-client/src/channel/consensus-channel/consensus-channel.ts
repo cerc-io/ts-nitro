@@ -74,6 +74,19 @@ export class Balance {
       allocationType: AllocationType.NormalAllocationType,
     });
   }
+
+  // Equal returns true if the balances are deeply equal, false otherwise.
+  equal(b2: Balance): boolean {
+    return _.isEqual(this.destination, b2.destination) && this.amount === b2.amount;
+  }
+
+  // Clone returns a deep copy of the receiver.
+  clone(): Balance {
+    return new Balance({
+      destination: this.destination,
+      amount: BigInt(this.amount),
+    });
+  }
 }
 
 // Guarantee is a convenient, ergonomic representation of a
@@ -1193,8 +1206,23 @@ export class SignedProposal {
   }
 
   // Clone returns a deep copy of the receiver.
-  // TODO: Implement
   clone(): SignedProposal {
-    return {} as SignedProposal;
+    return new SignedProposal({
+      signature: this.signature,
+      proposal: this.proposal?.clone(),
+      turnNum: this.turnNum,
+    });
+  }
+
+  // ChannelID returns the id of the ConsensusChannel which receive the proposal.
+  channelID(): Destination {
+    return this.proposal?.ledgerID!;
+  }
+
+  // SortInfo returns the channelId and turn number so the proposal can be easily sorted.
+  sortInfo(): [Destination, number] {
+    const cId = this.proposal?.ledgerID!;
+    const turnNum = this.turnNum!;
+    return [cId, turnNum];
   }
 }
