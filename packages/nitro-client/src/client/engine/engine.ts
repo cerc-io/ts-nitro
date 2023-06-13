@@ -457,17 +457,17 @@ export class Engine {
   }
 
   // sendMessages sends out the messages and records the metrics.
-  private sendMessages(msgs: Message[]): void {
+  private async sendMessages(msgs: Message[]): Promise<void> {
     // TODO: Implement metrics
     // defer e.metrics.RecordFunctionDuration()()
 
     assert(this.store);
     assert(this.msg);
-    for (const message of msgs) {
+    for await (const message of msgs) {
       message.from = this.store.getAddress();
       this.logMessage(message, Outgoing);
       this.recordMessageMetrics(message);
-      this.msg.send(message);
+      await this.msg.send(message);
     }
   }
 

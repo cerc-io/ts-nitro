@@ -11,8 +11,7 @@ export interface MessageService {
   out (): ReadChannel<Message>;
 
   // Send is for sending messages with the message service
-  // TODO: Use protocols message type
-  send (msg: Message): void;
+  send (msg: Message): Promise<void>;
 
   // Close closes the message service
   // TODO: Can throw an error

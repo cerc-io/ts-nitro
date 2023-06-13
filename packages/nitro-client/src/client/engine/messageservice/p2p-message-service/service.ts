@@ -26,7 +26,7 @@ import type { Address as PeerAddress } from '@libp2p/interface-peer-store';
 import type { Multiaddr } from '@multiformats/multiaddr';
 
 import { SafeSyncMap } from '../../../../internal/safesync/safesync';
-import { Message } from '../../../../protocols/messages';
+import { Message, deserializeMessage } from '../../../../protocols/messages';
 import { Address } from '../../../../types/types';
 import { MessageService } from '../messageservice';
 
@@ -181,7 +181,7 @@ export class P2PMessageService implements MessageService {
 
     ms.p2pHost.addEventListener('peer:discovery', ms.handlePeerFound.bind(ms));
 
-    ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler);
+    ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
 
     ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
       ms.receivePeerInfo(stream).then(() => {
@@ -228,7 +228,50 @@ export class P2PMessageService implements MessageService {
   }
 
   // TODO: Implement
-  private msgStreamHandler({ stream }: IncomingStreamData) {}
+  private async msgStreamHandler({ stream }: IncomingStreamData) {
+    const { pipe } = await import('it-pipe');
+    const { toString: uint8ArrayToString } = await import('uint8arrays/to-string');
+
+    let raw: string = '';
+    try {
+      await pipe(
+        stream.source,
+        async (source) => {
+          let temp: string = '';
+          for await (const msg of source) {
+            temp += uint8ArrayToString(msg.subarray());
+
+            // TODO: Find a better way of doing this
+            const delimiterIndex = temp.indexOf(DELIMITER);
+            if (delimiterIndex !== -1) {
+              raw = temp.slice(0, delimiterIndex);
+              break;
+            }
+          }
+        },
+      );
+    } catch (err) {
+      this.checkError(err as Error);
+    }
+
+    // An EOF means the stream has been closed by the other side.
+    // Check if 'raw' is empty in place of EOF error
+    if (raw === '') {
+      return;
+    }
+
+    let m;
+    try {
+      m = deserializeMessage(raw);
+    } catch (err) {
+      console.error(err);
+      this.checkError(err as Error);
+    }
+    assert(m);
+
+    await this.toEngine.push(m);
+    stream.close();
+  }
 
   // sendPeerInfo sends our peer info over the given stream
   private async sendPeerInfo(stream: Stream): Promise<void> {
@@ -281,13 +324,25 @@ export class P2PMessageService implements MessageService {
       this.checkError(err as Error);
     }
 
-    const peerInfo: BasicPeerInfo = await parseBasicPeerInfo(raw);
+    // An EOF means the stream has been closed by the other side.
+    // Check if 'raw' is empty in place of EOF error
+    if (raw === '') {
+      return;
+    }
+
+    let peerInfo;
+    try {
+      peerInfo = await parseBasicPeerInfo(raw);
+    } catch (err) {
+      this.checkError(err as Error);
+    }
+    assert(peerInfo);
 
     const [, foundPeer] = this.peers.loadOrStore(peerInfo.address, peerInfo);
     if (!foundPeer) {
-      this.logger(`New peer found ${peerInfo}`);
+      this.logger(`New peer found ${JSON.stringify(peerInfo)}`);
 
-      // Use a non-blocking push to the channel
+      // Use a non-blocking send in case no one is listening
       this.newPeerInfo.push(peerInfo);
     }
   }
@@ -313,6 +368,8 @@ export class P2PMessageService implements MessageService {
     assert(this.p2pHost);
     const { pipe } = await import('it-pipe');
     const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
+
+    /* eslint-disable no-await-in-loop */
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
         // eslint-disable-next-line no-await-in-loop
@@ -326,10 +383,12 @@ export class P2PMessageService implements MessageService {
         // writer.Flush()
         // s.Close()
 
-        pipe(
+        // Use await on pipe in place of writer.Flush()
+        await pipe(
           [uint8ArrayFromString(raw + DELIMITER)],
           s.sink,
         );
+        s.close();
 
         return;
       } catch (err) {
@@ -347,9 +406,8 @@ export class P2PMessageService implements MessageService {
   }
 
   // out returns a channel that can be used to receive messages from the message service
-  // TODO: Implement and remove void
   out(): ReadChannel<Message> {
-    return this.toEngine;
+    return this.toEngine.readOnly();
   }
 
   // Closes the P2PMessageService
@@ -357,8 +415,9 @@ export class P2PMessageService implements MessageService {
   close(): Error | void {}
 
   // peerInfoReceived returns a channel that receives a PeerInfo when a peer is discovered
-  // TODO: Implement and remove void
-  peerInfoReceived(): ReadChannel<BasicPeerInfo> | void {}
+  peerInfoReceived(): ReadChannel<BasicPeerInfo> {
+    return this.newPeerInfo.readOnly();
+  }
 
   // AddPeers adds the peers to the message service.
   // We ignore peers that are ourselves.

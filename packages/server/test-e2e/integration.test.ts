@@ -2,11 +2,11 @@
 import assert from 'assert';
 import { expect } from 'chai';
 
-import { Client } from '@cerc-io/nitro-client';
+import { Client, P2PMessageService } from '@cerc-io/nitro-client';
 
 import { createOutcome } from './utils';
 import { DirectFundParams } from './types';
-import { setupClient } from './helpers';
+import { setupClient, waitForPeerInfoExchange } from './helpers';
 import {
   ALICE_ADDRESS,
   ALICE_MESSAGING_PORT,
@@ -23,11 +23,16 @@ describe('test Client', () => {
   let bobClient: Client;
 
   it('should instantiate Clients', async () => {
-    aliceClient = await setupClient(ALICE_MESSAGING_PORT, ALICE_PK, ALICE_CHAIN_PK);
+    let aliceMsgService: P2PMessageService;
+    let bobMsgService: P2PMessageService;
+
+    [aliceClient, aliceMsgService] = await setupClient(ALICE_MESSAGING_PORT, ALICE_PK, ALICE_CHAIN_PK);
     expect(aliceClient.address).to.equal(ALICE_ADDRESS);
 
-    bobClient = await setupClient(BOB_MESSAGING_PORT, BOB_PK, BOB_CHAIN_PK);
+    [bobClient, bobMsgService] = await setupClient(BOB_MESSAGING_PORT, BOB_PK, BOB_CHAIN_PK);
     expect(bobClient.address).to.equal(BOB_ADDRESS);
+
+    await waitForPeerInfoExchange(1, [aliceMsgService, bobMsgService]);
   });
 
   it('should create ledger channel', async () => {

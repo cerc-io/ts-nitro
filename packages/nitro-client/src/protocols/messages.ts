@@ -135,6 +135,11 @@ export class Message {
   }
 }
 
+// DeserializeMessage deserializes the passed string into a protocols.Message.
+export function deserializeMessage(s: string): Message {
+  return Message.fromJSON(s);
+}
+
 // MessageSummary is a summary of a message suitable for logging.
 // TODO: Implement
 export class MessageSummary {}

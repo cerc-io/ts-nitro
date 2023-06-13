@@ -2,6 +2,7 @@ import {
   Client,
   EthChainService,
   MemStore,
+  P2PMessageService,
   PermissivePolicy,
 } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
@@ -25,7 +26,7 @@ export async function setupClient(
   msgPort: number,
   pk: string,
   chainPk: string,
-): Promise<Client> {
+): Promise<[Client, P2PMessageService]> {
   const store = new MemStore(hex2Bytes(pk));
 
   const chainService = await EthChainService.newEthChainService(
@@ -38,11 +39,21 @@ export async function setupClient(
 
   const messageService = await createP2PMessageService(msgPort, store.getAddress());
 
-  return Client.new(
+  const client = await Client.new(
     messageService,
     chainService,
     store,
     undefined,
     new PermissivePolicy(),
   );
+
+  return [client, messageService];
+}
+
+// waitForPeerInfoExchange waits for all the P2PMessageServices to receive peer info from each other
+/* eslint-disable no-await-in-loop */
+export async function waitForPeerInfoExchange(numOfPeers: number, services: P2PMessageService[]) {
+  for (let i = 0; i < numOfPeers; i += 1) {
+    await Promise.all(services.map((service) => service.peerInfoReceived().shift()));
+  }
 }
