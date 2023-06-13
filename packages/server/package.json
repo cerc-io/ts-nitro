@@ -27,7 +27,7 @@
     "build": "tsc",
     "start": "DEBUG=ts-nitro:* node --enable-source-maps dist/index.js",
     "lint": "eslint .",
-    "test:e2e": "DEBUG=ts-nitro:* mocha test-e2e/**/*.test.ts",
+    "test:e2e": "DEBUG=ts-nitro:* mocha test-e2e/**/*.test.ts --bail",
     "chain": "hardhat node"
   },
   "dependencies": {

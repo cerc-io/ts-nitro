@@ -1,5 +1,7 @@
 import JSONbig from 'json-bigint';
 
+import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+
 import { SignedProposal } from '../channel/consensus-channel/consensus-channel';
 import { Voucher } from '../payments/vouchers';
 import { Address } from '../types/types';
@@ -23,6 +25,12 @@ export type ObjectivePayload = {
 };
 
 export type PayloadType = string;
+
+const objectivePayloadJsonEncodingMap: Record<string, FieldDescription> = {
+  payloadData: { type: 'buffer' },
+  objectiveId: { type: 'string' },
+  type: { type: 'string' },
+};
 
 // CreateObjectivePayload generates an objective message from the given objective id and payload.
 // CreateObjectivePayload handles serializing `p` into json.
@@ -56,6 +64,24 @@ export class Message {
 
   // RejectedObjectives is a collection of objectives that have been rejected.
   rejectedObjectives: ObjectiveId[] = [];
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    to: { type: 'string' },
+    from: { type: 'string' },
+    objectivePayloads: { type: 'array', value: { type: 'object', value: objectivePayloadJsonEncodingMap } },
+    ledgerProposals: { type: 'array', value: { type: 'class', value: SignedProposal } },
+    payments: { type: 'array', value: { type: 'class', value: Voucher } },
+    rejectedObjectives: { type: 'array', value: { type: 'string' } },
+  };
+
+  static fromJSON(data: string): Message {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Message(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Message.jsonEncodingMap, this);
+  }
 
   constructor(params: {
     to?: Address;
@@ -97,10 +123,9 @@ export class Message {
   }
 
   // Serialize serializes the message into a string.
-  // TODO: Can throw an error
-  // TODO: Implement
   serialize(): string {
-    return '';
+    const bytes = Buffer.from(JSON.stringify(this));
+    return bytes.toString();
   }
 
   // Summarize returns a MessageSummary for the message that is suitable for logging
@@ -108,6 +133,11 @@ export class Message {
   summarize(): MessageSummary {
     return {};
   }
+}
+
+// DeserializeMessage deserializes the passed string into a protocols.Message.
+export function deserializeMessage(s: string): Message {
+  return Message.fromJSON(s);
 }
 
 // MessageSummary is a summary of a message suitable for logging.

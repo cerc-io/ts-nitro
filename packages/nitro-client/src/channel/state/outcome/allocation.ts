@@ -1,4 +1,5 @@
 import assert from 'assert';
+import _ from 'lodash';
 
 import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
@@ -51,15 +52,21 @@ export class Allocation {
 
   // Equal returns true if the supplied Allocation matches the receiver Allocation, and false otherwise.
   // Fields are compared with ==, except for big.Ints which are compared using Cmp
-  // TODO: Implement
   equal(b: Allocation): boolean {
-    return false;
+    return _.isEqual(this.destination, b.destination)
+    && this.allocationType === b.allocationType
+    && this.amount === b.amount
+    && this.metadata.compare(b.metadata) === 0;
   }
 
   // Clone returns a deep copy of the receiver.
-  // TODO: Implement
   clone(): Allocation {
-    return {} as Allocation;
+    return new Allocation({
+      destination: _.cloneDeep(this.destination),
+      amount: this.amount,
+      allocationType: this.allocationType,
+      metadata: Buffer.from(this.metadata),
+    });
   }
 }
 
@@ -85,7 +92,7 @@ export class Allocations {
     // Return the array of Allocation JSON directly
     // (Allocations is not a struct in go-nitro, just an array of Allocation)
     return this.value.map((singleAssetExit) => {
-      return toJSON(Allocation.jsonEncodingMap, singleAssetExit);
+      return singleAssetExit.toJSON();
     });
   }
 

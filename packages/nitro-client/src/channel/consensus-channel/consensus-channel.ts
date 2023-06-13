@@ -1,7 +1,9 @@
 import assert from 'assert';
 import { ethers } from 'ethers';
 
-import { zeroValueSignature } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+} from '@cerc-io/nitro-util';
 
 import { Signature } from '../../crypto/signatures';
 import { Address } from '../../types/types';
@@ -57,12 +59,28 @@ export class Guarantee {
   private right: Destination = new Destination();
 
   constructor(params: {
-    amount: bigint;
-    target: Destination;
-    left: Destination;
-    right: Destination;
+    amount?: bigint;
+    target?: Destination;
+    left?: Destination;
+    right?: Destination;
   }) {
     Object.assign(this, params);
+  }
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    amount: { type: 'bigint' },
+    target: { type: 'class', value: Destination },
+    left: { type: 'class', value: Destination },
+    right: { type: 'class', value: Destination },
+  };
+
+  static fromJSON(data: string): Guarantee {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Guarantee(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Guarantee.jsonEncodingMap, this);
   }
 
   // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
@@ -536,6 +554,81 @@ export class ConsensusChannel {
   }
 }
 
+type AddParams = {
+  guarantee?: Guarantee;
+  leftDeposit?: bigint;
+};
+
+// Add encodes a proposal to add a guarantee to a ConsensusChannel.
+// TODO: Implement
+export class Add {
+  guarantee: Guarantee = new Guarantee({});
+
+  // LeftDeposit is the portion of the Add's amount that will be deducted from left participant's ledger balance.
+  //
+  // The right participant's deduction is computed as the difference between the guarantee amount and LeftDeposit.
+  leftDeposit: bigint = BigInt(0);
+
+  static fromJSON(data: string): Add {
+    // jsonValue has Guarantee properties
+    // Construct Add with inidividual field values
+    const jsonValue = JSON.parse(data);
+
+    const props: AddParams = {
+      guarantee: Guarantee.fromJSON(JSON.stringify(jsonValue.guarantee)),
+      leftDeposit: jsonValue.leftDeposit,
+    };
+
+    return new Add(props);
+  }
+
+  toJSON(): any {
+    // Return a custom object
+    // (Add composes/embeds Guarantee in go-nitro)
+    return {
+      ...this.guarantee.toJSON(),
+      leftDeposit: this.leftDeposit,
+    };
+  }
+
+  constructor(params: AddParams) {
+    Object.assign(this, params);
+  }
+}
+
+// Remove is a proposal to remove a guarantee for the given virtual channel.
+// TODO: Implement
+export class Remove {
+  // Target is the address of the virtual channel being defunded
+  target: Destination = new Destination();
+
+  // LeftAmount is the amount to be credited (in the ledger channel) to the participant specified as the "left" in the guarantee.
+  //
+  // The amount for the "right" participant is calculated as the difference between the guarantee amount and LeftAmount.
+  leftAmount: bigint = BigInt(0);
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    target: { type: 'class', value: Destination },
+    leftAmount: { type: 'bigint' },
+  };
+
+  static fromJSON(data: string): Remove {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Remove(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Remove.jsonEncodingMap, this);
+  }
+
+  constructor(params: {
+    target?: Destination;
+    leftAmount?: bigint;
+  }) {
+    Object.assign(this, params);
+  }
+}
+
 // Proposal is a proposal either to add or to remove a guarantee.
 //
 // Exactly one of {toAdd, toRemove} should be non nil.
@@ -544,42 +637,77 @@ export class Proposal {
   // LedgerID is the ChannelID of the ConsensusChannel which should receive the proposal.
   //
   // The target virtual channel ID is contained in the Add / Remove struct.
-  ledgerID?: string;
+  ledgerID: Destination = new Destination();
 
-  toAdd?: Add;
+  toAdd: Add = new Add({});
 
-  toRemove?: Remove;
+  toRemove: Remove = new Remove({});
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    ledgerID: { type: 'class', value: Destination },
+    toAdd: { type: 'class', value: Add },
+    toRemove: { type: 'class', value: Remove },
+  };
+
+  static fromJSON(data: string): Proposal {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Proposal(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Proposal.jsonEncodingMap, this);
+  }
+
+  constructor(params: {
+    ledgerID?: Destination;
+    toAdd?: Add;
+    toRemove?: Remove;
+  }) {
+    Object.assign(this, params);
+  }
 }
+
+type SignedProposalParams = {
+  signature?: Signature;
+  proposal?: Proposal;
+  turnNum?: number;
+};
 
 // SignedProposal is a Proposal with a signature on it.
 // TODO: Implement
 export class SignedProposal {
-  signature?: Signature;
+  signature: Signature = zeroValueSignature;
 
-  proposal?: Proposal;
+  proposal: Proposal = new Proposal({});
 
-  turnNum?: number;
-}
+  // TODO: uint64 replacement
+  turnNum: number = 0;
 
-// Add encodes a proposal to add a guarantee to a ConsensusChannel.
-// TODO: Implement
-export class Add {
-  guarantee?: Guarantee;
+  static fromJSON(data: string): SignedProposal {
+    // jsonValue has Signature properties
+    // Construct SignedProposal with inidividual field values
+    const jsonValue = JSON.parse(data);
 
-  // LeftDeposit is the portion of the Add's amount that will be deducted from left participant's ledger balance.
-  //
-  // The right participant's deduction is computed as the difference between the guarantee amount and LeftDeposit.
-  leftDeposit?: bigint;
-}
+    const props: SignedProposalParams = {
+      signature: { r: jsonValue.r, s: jsonValue.s, v: jsonValue.v },
+      proposal: Proposal.fromJSON(JSON.stringify(jsonValue.proposal)),
+      turnNum: jsonValue.turnNum,
+    };
 
-// Remove is a proposal to remove a guarantee for the given virtual channel.
-// TODO: Implement
-export class Remove {
-  // Target is the address of the virtual channel being defunded
-  target?: string;
+    return new SignedProposal(props);
+  }
 
-  // LeftAmount is the amount to be credited (in the ledger channel) to the participant specified as the "left" in the guarantee.
-  //
-  // The amount for the "right" participant is calculated as the difference between the guarantee amount and LeftAmount.
-  leftAmount?: bigint;
+  toJSON(): any {
+    // Return a custom object
+    // (SignedProposal composes/embeds Signature in go-nitro)
+    return {
+      ...this.signature,
+      proposal: this.proposal,
+      turnNum: this.turnNum,
+    };
+  }
+
+  constructor(params: SignedProposalParams) {
+    Object.assign(this, params);
+  }
 }

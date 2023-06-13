@@ -34,7 +34,11 @@ export class PaymentChannelBalance {
 
   // Equal returns true if the other PaymentChannelBalance is equal to this one
   equal(other: PaymentChannelBalance): boolean {
-    return false;
+    return this.assetAddress === other.assetAddress
+    && this.payee === other.payee
+    && this.payer === other.payer
+    && this.paidSoFar === other.paidSoFar
+    && this.remainingFunds === other.remainingFunds;
   }
 }
 
@@ -44,7 +48,7 @@ export class PaymentChannelInfo {
 
   status: ChannelStatus = ChannelStatus.Proposed;
 
-  balance?: PaymentChannelBalance;
+  balance: PaymentChannelBalance = new PaymentChannelBalance({});
 
   constructor(params: {
     iD?: Destination;
@@ -56,7 +60,9 @@ export class PaymentChannelInfo {
 
   // Equal returns true if the other PaymentChannelInfo is equal to this one
   equal(other: PaymentChannelInfo): boolean {
-    return false;
+    return this.iD === other.iD
+    && this.status === other.status
+    && this.balance.equal(other.balance);
   }
 }
 
@@ -84,7 +90,11 @@ export class LedgerChannelBalance {
 
   // Equal returns true if the other LedgerChannelBalance is equal to this one
   equal(other: LedgerChannelBalance): boolean {
-    return false;
+    return this.assetAddress === other.assetAddress
+    && this.hub === other.hub
+    && this.client === other.client
+    && this.hubBalance === other.hubBalance
+    && this.clientBalance === other.clientBalance;
   }
 }
 
@@ -94,7 +104,7 @@ export class LedgerChannelInfo {
 
   status: ChannelStatus = ChannelStatus.Proposed;
 
-  balance?: LedgerChannelBalance;
+  balance: LedgerChannelBalance = new LedgerChannelBalance({});
 
   constructor(params: {
     iD?: Destination;
@@ -106,6 +116,8 @@ export class LedgerChannelInfo {
 
   // Equal returns true if the other LedgerChannelInfo is equal to this one
   equal(other: LedgerChannelInfo): boolean {
-    return false;
+    return this.iD === other.iD
+    && this.status === other.status
+    && this.balance.equal(other.balance);
   }
 }

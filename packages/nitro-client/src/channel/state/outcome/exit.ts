@@ -29,14 +29,14 @@ export class SingleAssetExit {
   asset: Address = ethers.constants.AddressZero;
 
   // Can be used to encode arbitrary additional information that applies to all allocations.
-  assetMetadata?: AssetMetadata;
+  assetMetadata: AssetMetadata = { assetType: 0, metadata: Buffer.alloc(0) };
 
   allocations: Allocations = new Allocations([]);
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     asset: { type: 'string' },
     assetMetadata: { type: 'object', value: assetMetadataJsonEncodingMap },
-    allocations: { type: 'array', value: { type: 'class', value: Allocation } },
+    allocations: { type: 'class', value: Allocations },
   };
 
   static fromJSON(data: string): SingleAssetExit {
@@ -59,9 +59,11 @@ export class SingleAssetExit {
   }
 
   // Equal returns true if the supplied SingleAssetExit is deeply equal to the receiver.
-  // TODO: Implement
   equal(r: SingleAssetExit): boolean {
-    return false;
+    return this.assetMetadata.metadata.compare(r.assetMetadata.metadata) === 0
+    && this.assetMetadata.assetType === r.assetMetadata.assetType
+    && this.asset === r.asset
+    && this.allocations.equal(r.allocations);
   }
 
   // Clone returns a deep clone of the receiver.
@@ -69,21 +71,18 @@ export class SingleAssetExit {
     return new SingleAssetExit({
       asset: this.asset,
       assetMetadata: this.assetMetadata,
-      // TODO: Use allocations.clone()
-      allocations: this.allocations,
+      allocations: this.allocations.clone(),
     });
   }
 
   // TotalAllocated returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
-  // TODO: Implement
   totalAllocated(): bigint {
-    return BigInt(0);
+    return this.allocations.total();
   }
 
   // TotalAllocatedFor returns the total amount allocated for the specific destination
-  // TODO: Implement
   totalAllocatedFor(dest: Destination): bigint {
-    return BigInt(0);
+    return this.allocations.totalFor(dest);
   }
 
   depositSafetyThreshold(interest: Destination): bigint {
@@ -113,12 +112,27 @@ export class Exit {
     // Return the array of SingleAssetExit JSON directly
     // (Exit is not a struct in go-nitro, just an array of SingleAssetExit)
     return this.value.map((singleAssetExit) => {
-      return toJSON(SingleAssetExit.jsonEncodingMap, singleAssetExit);
+      return singleAssetExit.toJSON();
     });
   }
 
   constructor(value: SingleAssetExit[]) {
     this.value = value;
+  }
+
+  // Equal returns true if the supplied Exit is deeply equal to the receiver.
+  equal(b: Exit): boolean {
+    if (this.value.length !== b.value.length) {
+      return false;
+    }
+
+    for (const [i, sae] of this.value.entries()) {
+      if (!sae.equal(b.value[i])) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   // Clone returns a deep clone of the receiver.
@@ -140,7 +154,6 @@ export class Exit {
     const fullValue = new Funds();
 
     for (const assetExit of this.value) {
-      // TODO: Implement
       fullValue.value.set(assetExit.asset, assetExit.totalAllocated());
     }
 

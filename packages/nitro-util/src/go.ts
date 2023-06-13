@@ -7,7 +7,7 @@ const log = debug('ts-nitro:util:go');
 // TODO: Avoid any type with method overloading
 export const go = async (func: (...args: any[]) => void | Promise<void>, ...params: any[]) => {
   try {
-    await func(params);
+    await func(...params);
   } catch (err) {
     log(err);
   }

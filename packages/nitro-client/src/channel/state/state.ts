@@ -1,8 +1,16 @@
 import { ethers } from 'ethers';
+import _ from 'lodash';
 
-import { getChannelId as utilGetChannelId } from '@statechannels/nitro-protocol';
+import * as ExitFormat from '@statechannels/exit-format';
 import {
-  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+  getChannelId as utilGetChannelId,
+  State as NitroState,
+  hashState as utilHashState,
+} from '@statechannels/nitro-protocol';
+// TODO: Use forked @statechannels/nitro-protocol
+import { signState as utilSignState } from '@statechannels/nitro-protocol/dist/src/signatures';
+import {
+  FieldDescription, bytes2Hex, fromJSON, hex2Bytes, toJSON,
 } from '@cerc-io/nitro-util';
 
 import * as nc from '../../crypto/signatures';
@@ -69,12 +77,23 @@ export class FixedPart {
 export class VariablePart {
   appData: Buffer = Buffer.alloc(0);
 
-  outcome?: Exit;
+  outcome: Exit = new Exit([]);
 
   // TODO: unit64 replacement
-  turnNum : number = 0;
+  turnNum: number = 0;
 
   isFinal: boolean = false;
+
+  constructor(
+    params: {
+      appData?: Buffer,
+      outcome?: Exit,
+      turnNum?: number,
+      isFinal?: boolean
+    },
+  ) {
+    Object.assign(this, params);
+  }
 }
 
 // State holds all of the data describing the state of a channel
@@ -142,9 +161,13 @@ export class State {
   }
 
   // VariablePart returns the VariablePart of the State
-  // TODO: Implement
   variablePart(): VariablePart {
-    return new VariablePart();
+    return new VariablePart({
+      appData: Buffer.from(this.appData),
+      outcome: _.cloneDeep(this.outcome),
+      turnNum: this.turnNum,
+      isFinal: this.isFinal,
+    });
   }
 
   // ChannelId computes and returns the channel id corresponding to the State,
@@ -158,37 +181,52 @@ export class State {
 
   // encodes the state into a []bytes value
   // TODO: Can throw an error
-  // TODO: Implement
+  // TODO: Implement (only if required)
   encode(): Buffer {
     return Buffer.from('');
   }
 
   // Hash returns the keccak256 hash of the State
-  // TODO: Can throw an error
-  // TODO: Implement
   hash(): string {
-    return '';
+    const state: NitroState = this._getNitroState();
+    return utilHashState(state);
   }
 
   // Sign generates an ECDSA signature on the state using the supplied private key
   // The state hash is prepended with \x19Ethereum Signed Message:\n32 and then rehashed
   // to create a digest to sign
-  // TODO: Can throw an error
   sign(secretKey: Buffer): Signature {
-    // TODO: Implement
-    return zeroValueSignature;
+    // Use signState method from @statechannels/nitro-protocol
+    // Create NitroState instance from State
+    const state: NitroState = this._getNitroState();
+
+    // TODO: Can avoid 0x prefix?
+    const { signature } = utilSignState(state, `0x${bytes2Hex(secretKey)}`);
+
+    return {
+      r: signature.r,
+      s: signature.s,
+      v: signature.v,
+    };
   }
 
   // RecoverSigner computes the Ethereum address which generated Signature sig on State state
   recoverSigner(sig: Signature): Address {
     const stateHash = this.hash();
-    return nc.recoverEthereumMessageSigner(Buffer.from(stateHash), sig);
+    return nc.recoverEthereumMessageSigner(hex2Bytes(stateHash), sig);
   }
 
   // Equal returns true if the given State is deeply equal to the receiever.
-  // TODO: Implement
   equal(r: State): boolean {
-    return false;
+    /* eslint-disable @typescript-eslint/no-use-before-define */
+    return equalParticipants(this.participants, r.participants)
+    && this.channelNonce === r.channelNonce
+    && this.appDefinition === r.appDefinition
+    && this.challengeDuration === r.challengeDuration
+    && this.appData.compare(r.appData) === 0
+    && this.outcome.equal(r.outcome)
+    && this.turnNum === r.turnNum
+    && this.isFinal === r.isFinal;
   }
 
   // Validate checks whether the state is malformed and returns an error if it is.
@@ -218,12 +256,65 @@ export class State {
 
     return clone;
   }
+
+  // Custom method to create NitroState instance from state
+  _getNitroState(): NitroState {
+    const stateOutcome: ExitFormat.Exit = this.outcome.value.map((singleAssetExit): ExitFormat.SingleAssetExit => {
+      // Use 0x00 if empty as ethersjs doesn't accept '' as valid value
+      // @statechannels/nitro-protocol uses string for Bytes
+      let exitMetadata = bytes2Hex(singleAssetExit.assetMetadata!.metadata);
+      exitMetadata = exitMetadata === '' ? '0x00' : exitMetadata;
+
+      // TODO: Remove "as any" after using a published package for @statechannels/nitro-protocol / @statechannels/exit-format
+      return {
+        asset: singleAssetExit.asset,
+        allocations: singleAssetExit.allocations.value.map((allocation) => {
+          let allocationMetadata = bytes2Hex(allocation.metadata);
+          allocationMetadata = allocationMetadata === '' ? '0x00' : allocationMetadata;
+
+          return {
+            destination: allocation.destination.value,
+            amount: allocation.amount.toString(),
+            allocationType: allocation.allocationType,
+            metadata: allocationMetadata,
+          };
+        }),
+        assetMetadata: {
+          assetType: singleAssetExit.assetMetadata.assetType,
+          metadata: exitMetadata,
+        },
+      } as any;
+    });
+
+    let stateAppData = bytes2Hex(this.appData);
+    stateAppData = stateAppData === '' ? '0x00' : stateAppData;
+
+    return {
+      participants: this.participants,
+      channelNonce: this.channelNonce,
+      appDefinition: this.appDefinition,
+      challengeDuration: this.challengeDuration,
+      outcome: stateOutcome,
+      appData: stateAppData,
+      turnNum: this.turnNum,
+      isFinal: this.isFinal,
+    };
+  }
 }
 
 // equalParticipants returns true if the given arrays contain equal addresses (in the same order).
-// TODO: Implement
 function equalParticipants(p: Address[], q: Address[]): boolean {
-  return false;
+  if (p.length !== q.length) {
+    return false;
+  }
+
+  for (let i = 0; i < p.length; i += 1) {
+    if (p[i] !== q[i]) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 // StateFromFixedAndVariablePart constructs a State from a FixedPart and a VariablePart

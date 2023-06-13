@@ -1,6 +1,6 @@
 import { P2PMessageService } from '@cerc-io/nitro-client';
 
-export const createP2PMessageService = async (port: number): Promise<P2PMessageService> => {
+export const createP2PMessageService = async (port: number, me: string): Promise<P2PMessageService> => {
   const keys = await import('@libp2p/crypto/keys');
 
   // TODO: Generate private key from a string
@@ -9,8 +9,7 @@ export const createP2PMessageService = async (port: number): Promise<P2PMessageS
   return P2PMessageService.newMessageService(
     '127.0.0.1',
     port,
-    // TODO: Pass account address
-    '',
+    me,
     privateKey.bytes,
     true,
   );

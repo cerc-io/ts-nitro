@@ -121,14 +121,25 @@ export class Objective implements ObjectiveInterface {
     });
 
     const signedInitial = SignedState.newSignedState(initialState);
-    const b = Buffer.from(JSON.stringify(signedInitial), 'utf-8');
+    let b: Buffer;
+    try {
+      b = Buffer.from(JSON.stringify(signedInitial), 'utf-8');
+    } catch (err) {
+      throw new Error(`could not create new objective: ${err}`);
+    }
+
     const objectivePayload: ObjectivePayload = {
       objectiveId: request.id(myAddress, chainId),
       payloadData: b,
       type: signedStatePayload,
     };
 
-    const objective = Objective.constructFromPayload(preApprove, objectivePayload, myAddress);
+    let objective: Objective;
+    try {
+      objective = Objective.constructFromPayload(preApprove, objectivePayload, myAddress);
+    } catch (err) {
+      throw new Error(`could not create new objective: ${err}`);
+    }
 
     if (channelsExistWithCounterparty(request.counterParty, getChannels, getTwoPartyConsensusLedger)) {
       throw new Error(`A channel already exists with counterparty ${request.counterParty}`);
@@ -243,9 +254,8 @@ export class Objective implements ObjectiveInterface {
 
   // Public methods on the DirectFundingObjectiveState
 
-  // TODO: Implement
   id(): ObjectiveId {
-    return '';
+    return `${objectivePrefix}${this.c?.id.string()}`;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects

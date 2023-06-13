@@ -1,5 +1,5 @@
 import {
-  Allocation, Destination, Exit, SingleAssetExit, AllocationType,
+  Allocation, Destination, Exit, SingleAssetExit, AllocationType, Allocations,
 } from '@cerc-io/nitro-client';
 
 /**
@@ -38,7 +38,7 @@ export function createOutcome(
         assetType: 0,
         metadata: Buffer.alloc(0),
       },
-      allocations: [
+      allocations: new Allocations([
         new Allocation({
           destination: Destination.addressToDestination(convertAddressToBytes32(alpha)),
           amount: BigInt(amount),
@@ -51,7 +51,7 @@ export function createOutcome(
           allocationType: AllocationType.NormalAllocationType,
           metadata: Buffer.alloc(0),
         }),
-      ],
+      ]),
     }),
   ]);
 }

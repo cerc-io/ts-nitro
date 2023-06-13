@@ -16,6 +16,13 @@ const getArgv = () => yargs.parserConfiguration({
     demandOption: true,
     describe: 'Message service port',
   },
+  address: {
+    alias: 'a',
+    type: 'string',
+    require: true,
+    demandOption: true,
+    describe: 'Account address for the client',
+  },
   chainurl: {
     alias: 'c',
     type: 'string',
@@ -27,7 +34,7 @@ const getArgv = () => yargs.parserConfiguration({
 const main = async () => {
   const argv = getArgv();
 
-  const p2pMessageService = await createP2PMessageService(argv.port);
+  const p2pMessageService = await createP2PMessageService(argv.port, argv.address);
 
   log('p2pMessageService', p2pMessageService.constructor.name);
 
