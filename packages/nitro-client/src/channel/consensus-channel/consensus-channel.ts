@@ -52,7 +52,6 @@ export const Follower: LedgerIndex = 1;
 
 // Balance is a convenient, ergonomic representation of a single-asset Allocation
 // of type 0, ie. a simple allocation.
-// TODO: Implement
 export class Balance {
   destination: Destination = new Destination();
 
@@ -91,7 +90,6 @@ export class Balance {
 
 // Guarantee is a convenient, ergonomic representation of a
 // single-asset Allocation of type 1, ie. a guarantee.
-// TODO: Implement
 export class Guarantee {
   amount: bigint = BigInt(0);
 
@@ -169,7 +167,6 @@ export class Guarantee {
 //
 // This struct does not store items in sorted order. The conventional ordering of allocation items is:
 // [leader, follower, ...guaranteesSortedbyTargetDestination]
-// TODO: Implement
 export class LedgerOutcome {
   // Address of the asset type
   private assetAddress?: Address;
@@ -355,7 +352,6 @@ interface VarsConstructorOptions {
 }
 
 // Vars stores the turn number and outcome for a state in a consensus channel.
-// TODO: Implement
 export class Vars {
   // TODO: uint64 replacement
   turnNum: number = 0;
@@ -517,7 +513,6 @@ interface SignedVarsConstructorOptions extends VarsConstructorOptions {
 }
 
 // SignedVars stores 0-2 signatures for some vars in a consensus channel.
-// TODO: Implement
 export class SignedVars extends Vars {
   signatures: [Signature, Signature] = [
     zeroValueSignature,
@@ -634,7 +629,6 @@ export class ConsensusChannel {
   }
 
   // FixedPart returns the fixed part of the channel.
-  // TODO: Implement
   fixedPart(): FixedPart {
     return this.fp!;
   }
@@ -755,8 +749,6 @@ export class ConsensusChannel {
     return this.current.outcome.fundingTargets();
   }
 
-  // TODO: Can throw an error
-  // TODO: Implement
   accept(p: SignedProposal): void {
     throw new Error('UNIMPLEMENTED');
   }
@@ -1061,7 +1053,6 @@ type AddParams = {
 };
 
 // Add encodes a proposal to add a guarantee to a ConsensusChannel.
-// TODO: Implement
 export class Add {
   guarantee: Guarantee = new Guarantee({});
 
@@ -1097,27 +1088,31 @@ export class Add {
   }
 
   // Clone returns a deep copy of the receiver.
-  // TODO: Implement
   clone(): Add {
-    return {} as Add;
+    // TODO: Make bigint fields optional?
+    // if a == nil || a.LeftDeposit == nil {
+    //   return Add{}
+    // }
+
+    return new Add({
+      guarantee: this.guarantee.clone(),
+      leftDeposit: BigInt(this.leftDeposit),
+    });
   }
 
   // RightDeposit computes the deposit from the right participant such that
-  // a.LeftDeposit + a.RightDeposit() fully funds a's guarantee.
-  // TODO: Implement
+  // a.LeftDeposit + a.RightDeposit() fully funds a's guarantee.BalanceBalance
   rightDeposit(): bigint {
-    return {} as bigint;
+    const result = this.guarantee.amount - this.leftDeposit;
+    return result;
   }
 
-  // TODO: Implement
   equal(a2: Add): boolean {
-    return false;
+    return _.isEqual(this.guarantee, a2.guarantee) && this.leftDeposit === a2.leftDeposit;
   }
-
 }
 
 // Remove is a proposal to remove a guarantee for the given virtual channel.
-// TODO: Implement
 export class Remove {
   // Target is the address of the virtual channel being defunded
   target: Destination = new Destination();
@@ -1148,22 +1143,27 @@ export class Remove {
     Object.assign(this, params);
   }
 
-  // TODO: Implement
   equal(r2: Remove): boolean {
-    return false;
+    return _.isEqual(this.target, r2.target) && this.leftAmount === r2.leftAmount;
   }
 
   // Clone returns a deep copy of the receiver.
-  // TODO: Implement
   clone(): Remove {
-    return {} as Remove;
+    // TODO: Make bigint fields optional?
+    // if r == nil || r.LeftAmount == nil {
+    //   return Remove{}
+    // }
+
+    return new Remove({
+      target: this.target,
+      leftAmount: BigInt(this.leftAmount),
+    });
   }
 }
 
 // Proposal is a proposal either to add or to remove a guarantee.
 //
 // Exactly one of {toAdd, toRemove} should be non nil.
-// TODO: Implement
 export class Proposal {
   // LedgerID is the ChannelID of the ConsensusChannel which should receive the proposal.
   //
@@ -1241,7 +1241,6 @@ type SignedProposalParams = {
 };
 
 // SignedProposal is a Proposal with a signature on it.
-// TODO: Implement
 export class SignedProposal {
   signature: Signature = zeroValueSignature;
 
