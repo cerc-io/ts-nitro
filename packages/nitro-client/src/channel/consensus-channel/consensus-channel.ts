@@ -175,20 +175,46 @@ export class LedgerOutcome {
   private assetAddress?: Address;
 
   // Balance of participants[0]
-  leader?: Balance;
+  _leader?: Balance;
 
   // Balance of participants[1]
-  follower?: Balance;
+  _follower?: Balance;
 
   guarantees: Map<Destination, Guarantee> = new Map();
 
   constructor(params: {
     assetAddress?: Address;
-    leader?: Balance;
-    follower?: Balance
+    _leader?: Balance;
+    _follower?: Balance
     guarantees?: Map<Destination, Guarantee>;
   }) {
     Object.assign(this, params);
+  }
+
+  // Leader returns the leader's balance.
+  leader(): Balance {
+    return this._leader!;
+  }
+
+  // Follower returns the follower's balance.
+  follower(): Balance {
+    return this._follower!;
+  }
+
+  // NewLedgerOutcome creates a new ledger outcome with the given asset address, balances, and guarantees.
+  static newLedgerOutcome(assetAddress: Address, leader: Balance, follower: Balance, guarantees: Guarantee[]): LedgerOutcome {
+    const guaranteeMap: Map<Destination, Guarantee> = new Map<Destination, Guarantee>();
+
+    for (const g of guarantees) {
+      guaranteeMap.set(g._target, g);
+    }
+
+    return new LedgerOutcome({
+      assetAddress,
+      _leader: leader,
+      _follower: follower,
+      guarantees: guaranteeMap,
+    });
   }
 
   // FromExit creates a new LedgerOutcome from the given SingleAssetExit.
@@ -217,21 +243,21 @@ export class LedgerOutcome {
     }
 
     return new LedgerOutcome({
-      leader,
-      follower,
+      _leader: leader,
+      _follower: follower,
       guarantees,
       assetAddress: sae.asset,
     });
   }
 
   asOutcome(): Exit {
-    assert(this.leader);
-    assert(this.follower);
+    assert(this._leader);
+    assert(this._follower);
     assert(this.guarantees);
     // The first items are [leader, follower] balances
     const allocations = [
-      this.leader.asAllocation(),
-      this.follower.asAllocation(),
+      this._leader.asAllocation(),
+      this._follower.asAllocation(),
     ];
 
     // Followed by guarantees, sorted by the target destination
@@ -248,17 +274,18 @@ export class LedgerOutcome {
     );
   }
 
-  clone(): LedgerOutcome {
+  // clone returns a deep clone of v.
+  _clone(): LedgerOutcome {
     const { assetAddress } = this;
 
     const leader = new Balance({
-      destination: this.leader!.destination,
-      amount: BigInt(this.leader!.amount), // Create a new BigInt instance
+      destination: this._leader!.destination,
+      amount: BigInt(this._leader!.amount), // Create a new BigInt instance
     });
 
     const follower = new Balance({
-      destination: this.follower!.destination,
-      amount: BigInt(this.follower!.amount), // Create a new BigInt instance
+      destination: this._follower!.destination,
+      amount: BigInt(this._follower!.amount), // Create a new BigInt instance
     });
 
     const guarantees = new Map<Destination, Guarantee>();
@@ -270,9 +297,25 @@ export class LedgerOutcome {
 
     return new LedgerOutcome({
       assetAddress,
-      leader,
-      follower,
+      _leader: leader,
+      _follower: follower,
       guarantees,
+    });
+  }
+
+  // Clone returns a deep copy of the receiver.
+  clone(): LedgerOutcome {
+    const clonedGuarantees: Map<Destination, Guarantee> = new Map<Destination, Guarantee>();
+
+    for (const [key, g] of clonedGuarantees) {
+      clonedGuarantees.set(key, g.clone());
+    }
+
+    return new LedgerOutcome({
+      assetAddress: this.assetAddress,
+      _leader: this._leader!.clone(),
+      _follower: this._follower!.clone(),
+      guarantees: clonedGuarantees,
     });
   }
 
@@ -288,14 +331,21 @@ export class LedgerOutcome {
   }
 
   // Includes returns true when the receiver includes g in its list of guarantees.
-  // TODO: Implement
   includes(g: Guarantee): boolean {
-    return false;
+    const existing = this.guarantees.get(g._target);
+    if (!existing) {
+      return false;
+    }
+
+    return g.left === existing.left
+      && g.right === existing.right
+      && g._target === existing._target
+      && g.amount === existing.amount;
   }
 
   // IncludesTarget returns true when the receiver includes a guarantee that targets the given destination.
   includesTarget(target: Destination): boolean {
-    return false;
+    return this.guarantees.has(target);
   }
 }
 
@@ -337,7 +387,7 @@ export class Vars {
 
   // Clone returns a deep copy of the receiver.
   clone() {
-    return new Vars({ turnNum: this.turnNum, outcome: this.outcome.clone() });
+    return new Vars({ turnNum: this.turnNum, outcome: this.outcome._clone() });
   }
 
   // HandleProposal handles a proposal to add or remove a guarantee.
@@ -375,12 +425,12 @@ export class Vars {
     let left: Balance;
     let right: Balance;
 
-    if (o.leader?.destination === p.guarantee?.left) {
-      left = o.leader!;
-      right = o.follower!;
+    if (o._leader?.destination === p.guarantee?.left) {
+      left = o._leader!;
+      right = o._follower!;
     } else {
-      left = o.follower!;
-      right = o.leader!;
+      left = o._follower!;
+      right = o._leader!;
     }
 
     if (p.leftDeposit! > p.guarantee!.amount) {
@@ -403,12 +453,12 @@ export class Vars {
     const rightDeposit = p.rightDeposit();
 
     // Adjust balances
-    if (o.leader?.destination === p.guarantee?.left) {
-      o.leader!.amount -= p.leftDeposit!;
-      o.follower!.amount -= rightDeposit;
+    if (o._leader?.destination === p.guarantee?.left) {
+      o._leader!.amount -= p.leftDeposit!;
+      o._follower!.amount -= rightDeposit;
     } else {
-      o.follower!.amount -= p.leftDeposit!;
-      o.leader!.amount -= rightDeposit;
+      o._follower!.amount -= p.leftDeposit!;
+      o._leader!.amount -= rightDeposit;
     }
 
     // Include guarantee
@@ -449,12 +499,12 @@ export class Vars {
 
     // Adjust balances
 
-    if (o.leader?.destination === guarantee.left) {
-      o.leader.amount += p.leftAmount!;
-      o.follower!.amount += rightAmount;
+    if (o._leader?.destination === guarantee.left) {
+      o._leader.amount += p.leftAmount!;
+      o._follower!.amount += rightAmount;
     } else {
-      o.leader!.amount += rightAmount;
-      o.follower!.amount += p.leftAmount!;
+      o._leader!.amount += rightAmount;
+      o._follower!.amount += p.leftAmount!;
     }
 
     // Remove the guarantee
@@ -535,7 +585,7 @@ export class ConsensusChannel {
 
     const cId = fp.channelId();
 
-    const vars: Vars = new Vars({ turnNum: initialTurnNum, outcome: outcome.clone() });
+    const vars: Vars = new Vars({ turnNum: initialTurnNum, outcome: outcome._clone() });
 
     let leaderAddr; let
       followerAddr: string;
@@ -617,7 +667,7 @@ export class ConsensusChannel {
 
   // IsProposedNext returns true if the next proposal in the queue would lead to g being included in the receiver's outcome, and false otherwise.
   isProposedNext(g: Guarantee): boolean {
-    const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome.clone() });
+    const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome._clone() });
 
     if (this._proposalQueue.length === 0) {
       return false;
@@ -749,7 +799,7 @@ export class ConsensusChannel {
   // latestProposedVars returns the latest proposed vars in a consensus channel
   // by cloning its current vars and applying each proposal in the queue.
   private latestProposedVars(): Vars {
-    const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome.clone() });
+    const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome._clone() });
     for (const p of this._proposalQueue) {
       vars.handleProposal(p.proposal!);
     }
@@ -834,7 +884,7 @@ export class ConsensusChannel {
 
     this.validateProposalID(countersigned.proposal!);
 
-    const consensusCandidate = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome.clone() });
+    const consensusCandidate = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome._clone() });
     const consensusTurnNum = countersigned.turnNum;
 
     if (consensusTurnNum! <= consensusCandidate.turnNum) {
@@ -985,7 +1035,7 @@ export class ConsensusChannel {
     }
 
     // vars are cloned and modified instead of modified in place to simplify recovering from error
-    const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome.clone() });
+    const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome._clone() });
 
     vars.handleProposal(p);
 
