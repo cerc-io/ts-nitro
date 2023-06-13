@@ -103,7 +103,7 @@ export class Guarantee {
 
   constructor(params: {
     amount?: bigint;
-    target?: Destination;
+    _target?: Destination;
     left?: Destination;
     right?: Destination;
   }) {
@@ -112,7 +112,7 @@ export class Guarantee {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     amount: { type: 'bigint' },
-    target: { type: 'class', value: Destination },
+    _target: { type: 'class', value: Destination },
     left: { type: 'class', value: Destination },
     right: { type: 'class', value: Destination },
   };
@@ -124,6 +124,28 @@ export class Guarantee {
 
   toJSON(): any {
     return toJSON(Guarantee.jsonEncodingMap, this);
+  }
+
+  // Clone returns a deep copy of the receiver.
+  clone(): Guarantee {
+    return new Guarantee({
+      amount: BigInt(this.amount),
+      _target: this._target,
+      left: this.left,
+      right: this.right,
+    });
+  }
+
+  // Target returns the target of the guarantee.
+  target(): Destination {
+    return this._target;
+  }
+
+  equal(g2: Guarantee): boolean {
+    if (this.amount === g2.amount) {
+      return false;
+    }
+    return this._target === g2._target && this.left === g2.left && this.right === g2.right;
   }
 
   // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
@@ -138,10 +160,8 @@ export class Guarantee {
     });
   }
 
-  // Target returns the target of the guarantee.
-  target(): Destination {
-    return this._target;
-  }
+
+
 }
 
 // LedgerOutcome encodes the outcome of a ledger channel involving a "leader" and "follower"
@@ -187,7 +207,7 @@ export class LedgerOutcome {
         const gM = GuaranteeMetadata.decodeIntoGuaranteeMetadata(allocation.metadata);
         const guarantee: Guarantee = new Guarantee({
           amount: allocation.amount,
-          target: allocation.destination,
+          _target: allocation.destination,
           left: gM.left,
           right: gM.right,
         });
@@ -460,9 +480,12 @@ export class SignedVars extends Vars {
   }
 
   // clone returns a deep copy of the receiver.
-  // TODO: Implement
   clone(): SignedVars {
-    return {} as SignedVars;
+    const clonedSignatures: [Signature, Signature] = [this.signatures[0], this.signatures[1]];
+    return new SignedVars({
+      ...super.clone(),
+      signatures: clonedSignatures,
+    });
   }
 }
 
