@@ -12,7 +12,7 @@ import { go } from '@cerc-io/nitro-util';
 
 import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent } from './chainservice/chainservice';
-import { Store } from './store/store';
+import { ErrNoSuchObjective, Store } from './store/store';
 import { PolicyMaker } from './policy-maker';
 import { MetricsApi, MetricsRecorder, NoOpMetrics } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
@@ -20,14 +20,30 @@ import {
   Objective, ObjectiveRequest, ObjectiveStatus, ProposalReceiver, SideEffects, WaitingFor,
 } from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
-import { Objective as VirtualFundObjective, ObjectiveRequest as VirtualFundObjectiveRequest } from '../../protocols/virtualfund/virtualfund';
 import { ConsensusChannel, Proposal } from '../../channel/consensus-channel/consensus-channel';
 import { Address } from '../../types/types';
 import { Voucher } from '../../payments/vouchers';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
-import { ObjectiveRequest as DirectDefundObjectiveRequest, Objective as DirectDefundObjective } from '../../protocols/directdefund/directdefund';
-import { ObjectiveRequest as DirectFundObjectiveRequest, Objective as DirectFundObjective } from '../../protocols/directfund/directfund';
-import { ObjectiveRequest as VirtualDefundObjectiveRequest, Objective as VirtualDefundObjective } from '../../protocols/virtualdefund/virtualdefund';
+import {
+  ObjectiveRequest as DirectFundObjectiveRequest,
+  Objective as DirectFundObjective,
+  isDirectFundObjective,
+} from '../../protocols/directfund/directfund';
+import {
+  ObjectiveRequest as DirectDefundObjectiveRequest,
+  Objective as DirectDefundObjective,
+  isDirectDefundObjective,
+} from '../../protocols/directdefund/directdefund';
+import {
+  Objective as VirtualFundObjective,
+  ObjectiveRequest as VirtualFundObjectiveRequest,
+  isVirtualFundObjective,
+} from '../../protocols/virtualfund/virtualfund';
+import {
+  ObjectiveRequest as VirtualDefundObjectiveRequest,
+  Objective as VirtualDefundObjective,
+  isVirtualDefundObjective,
+} from '../../protocols/virtualdefund/virtualdefund';
 import * as channel from '../../channel/channel';
 import { VirtualChannel } from '../../channel/virtual';
 import {
@@ -813,15 +829,75 @@ export class Engine {
 
   // getOrCreateObjective retrieves the objective from the store.
   // If the objective does not exist, it creates the objective using the supplied payload and stores it in the store
-  // TODO: Can throw an error
   private getOrCreateObjective(p: ObjectivePayload): Objective {
-    return {} as Objective;
+    assert(this.store);
+
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    const id = p.objectiveId;
+
+    try {
+      const objective = this.store.getObjectiveById(id);
+      return objective;
+    } catch (err) {
+      if ((err as Error).message.includes(ErrNoSuchObjective.message)) {
+        let newObj: Objective;
+        try {
+          newObj = this.constructObjectiveFromMessage(id, p);
+        } catch (constructErr) {
+          throw new Error(`error constructing objective from message: ${constructErr}`);
+        }
+
+        // TODO: Implement metrics
+        // e.metrics.RecordObjectiveStarted(newObj.Id())
+
+        try {
+          this.store.setObjective(newObj);
+        } catch (setErr) {
+          throw new Error(`error setting objective in store: ${setErr}`);
+        }
+
+        this.logger(`Created new objective from message ${newObj.id()}`);
+        return newObj;
+      }
+
+      // TODO: Check working
+      /* eslint-disable @typescript-eslint/no-throw-literal */
+      throw new ErrGetObjective({ wrappedError: err as Error, objectiveId: id });
+    }
   }
 
   // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied payload.
   // TODO: Can throw an error
   private constructObjectiveFromMessage(id: ObjectiveId, p: ObjectivePayload): Objective {
-    return {} as Objective;
+    assert(this.store);
+    this.logger(`Constructing objective ${id} from message`);
+
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    switch (true) {
+      case isDirectFundObjective(id): {
+        // TODO: Implement
+        const dfo = DirectFundObjective.constructFromPayload(false, p, this.store.getAddress());
+        return dfo;
+      }
+      case isVirtualFundObjective(id): {
+        // TODO: Implement
+        return {} as Objective;
+      }
+      case isVirtualDefundObjective(id): {
+        // TODO: Implement
+        return {} as Objective;
+      }
+      case isDirectDefundObjective(id): {
+        // TODO: Implement
+        return {} as Objective;
+      }
+      default:
+        throw new Error('cannot handle unimplemented objective type');
+    }
   }
 
   // GetConsensusAppAddress returns the address of a deployed ConsensusApp (for ledger channels)
