@@ -253,6 +253,19 @@ export class Objective implements ObjectiveInterface {
     return init;
   }
 
+  // ConstructObjectiveFromPayload takes in a message and constructs an objective from it.
+  // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
+  // TODO: Can throw an error
+  // TODO: Implement
+  static constructObjectiveFromPayload(
+    p: ObjectivePayload,
+    preapprove: boolean,
+    myAddress: Address,
+    getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
+  ): Objective {
+    return {} as Objective;
+  }
+
   // TODO: Implement
   id(): ObjectiveId {
     return '';

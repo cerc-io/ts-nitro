@@ -157,6 +157,20 @@ export class Objective implements ObjectiveInterface {
     });
   }
 
+  // ConstructObjectiveFromPayload takes in a message payload and constructs an objective from it.
+  // TODO: Can throw an error
+  // TODO: Implement
+  static constructObjectiveFromPayload(
+    p: ObjectivePayload,
+    preapprove: boolean,
+    myAddress: Address,
+    getChannel: GetChannelByIdFunction,
+    getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
+    latestVoucherAmount: bigint,
+  ): Objective {
+    return {} as Objective;
+  }
+
   // TODO: Implement
   id(): ObjectiveId {
     return '';
@@ -262,4 +276,14 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     assert(this.objectiveStarted);
     this.objectiveStarted.close();
   }
+}
+
+// GetVirtualChannelFromObjectiveId gets the virtual channel id from the objective id.
+export function getVirtualChannelFromObjectiveId(id: ObjectiveId): Destination {
+  if (!id.startsWith(objectivePrefix)) {
+    throw new Error(`id ${id} does not have prefix ${objectivePrefix}`);
+  }
+  const raw = id.slice(objectivePrefix.length);
+
+  return new Destination(raw);
 }

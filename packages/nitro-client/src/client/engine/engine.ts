@@ -43,6 +43,7 @@ import {
   ObjectiveRequest as VirtualDefundObjectiveRequest,
   Objective as VirtualDefundObjective,
   isVirtualDefundObjective,
+  getVirtualChannelFromObjectiveId,
 } from '../../protocols/virtualdefund/virtualdefund';
 import * as channel from '../../channel/channel';
 import { VirtualChannel } from '../../channel/virtual';
@@ -872,6 +873,8 @@ export class Engine {
   // TODO: Can throw an error
   private constructObjectiveFromMessage(id: ObjectiveId, p: ObjectivePayload): Objective {
     assert(this.store);
+    assert(this.vm);
+
     this.logger(`Constructing objective ${id} from message`);
 
     // TODO: Implement metrics
@@ -879,21 +882,83 @@ export class Engine {
 
     switch (true) {
       case isDirectFundObjective(id): {
-        // TODO: Implement
         const dfo = DirectFundObjective.constructFromPayload(false, p, this.store.getAddress());
         return dfo;
       }
       case isVirtualFundObjective(id): {
-        // TODO: Implement
-        return {} as Objective;
+        let vfo: VirtualFundObjective;
+        try {
+          // TODO: Implement
+          vfo = VirtualFundObjective.constructObjectiveFromPayload(
+            p,
+            false,
+            this.store.getAddress(),
+            this.store.getConsensusChannel.bind(this.store),
+          );
+        } catch (err) {
+          throw fromMsgErr(id, err as Error);
+        }
+
+        try {
+          this.registerPaymentChannel(vfo);
+        } catch (err) {
+          throw new Error(`could not register channel with payment/receipt manager.\n\ttarget channel: ${id}\n\terr: ${err}`);
+        }
+
+        return vfo;
       }
       case isVirtualDefundObjective(id): {
-        // TODO: Implement
-        return {} as Objective;
+        let vId: Destination;
+        try {
+          // TODO: Implement
+          vId = getVirtualChannelFromObjectiveId(id);
+        } catch (err) {
+          throw new Error(`could not determine virtual channel id from objective ${id}: ${err}`);
+        }
+
+        let minAmount = BigInt(0);
+        if (this.vm.channelRegistered(vId)) {
+          let paid: bigint;
+          try {
+            paid = this.vm.paid(vId);
+          } catch (err) {
+            throw new Error(`could not determine virtual channel id from objective ${id}: ${err}`);
+          }
+
+          minAmount = paid;
+        }
+
+        let vdfo: VirtualDefundObjective;
+        try {
+          // TODO: Implement
+          vdfo = VirtualDefundObjective.constructObjectiveFromPayload(
+            p,
+            false,
+            this.store.getAddress(),
+            this.store.getChannelById.bind(this.store),
+            this.store.getConsensusChannel.bind(this.store),
+            minAmount,
+          );
+        } catch (err) {
+          throw fromMsgErr(id, err as Error);
+        }
+
+        return vdfo;
       }
       case isDirectDefundObjective(id): {
-        // TODO: Implement
-        return {} as Objective;
+        let ddfo: DirectDefundObjective;
+        try {
+          // TODO: Implement
+          ddfo = DirectDefundObjective.constructObjectiveFromPayload(
+            p,
+            false,
+            this.store.getConsensusChannelById.bind(this.store),
+          );
+        } catch (err) {
+          throw fromMsgErr(id, err as Error);
+        }
+
+        return ddfo;
       }
       default:
         throw new Error('cannot handle unimplemented objective type');
@@ -953,9 +1018,9 @@ type MessageDirection = string;
 
 // fromMsgErr wraps errors from objective construction functions and
 // returns an error bundled with the objectiveID
-// TODO: Can throw an error
-// TODO: Implement
-function fromMsgErr(id: ObjectiveId, err: Error): void {}
+function fromMsgErr(id: ObjectiveId, err: Error): Error {
+  return new Error(`could not create objective from message.\n\ttarget objective: ${id}\n\terr: ${err}`);
+}
 
 // getProposalObjectiveId returns the objectiveId for a proposal.
 // TODO: Implement

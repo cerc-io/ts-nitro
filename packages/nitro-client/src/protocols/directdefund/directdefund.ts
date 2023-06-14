@@ -129,6 +129,17 @@ export class Objective implements ObjectiveInterface {
     return init;
   }
 
+  // ConstructObjectiveFromPayload takes in a state and constructs an objective from it.
+  // TODO: Can throw an error
+  // TODO: Implement
+  static constructObjectiveFromPayload(
+    p: ObjectivePayload,
+    preapprove: boolean,
+    getConsensusChannel: GetConsensusChannel,
+  ): Objective {
+    return {} as Objective;
+  }
+
   // TODO: Implement
   id(): ObjectiveId {
     return '';
