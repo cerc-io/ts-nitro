@@ -22,6 +22,8 @@ import { ObjectiveId, ObjectivePayload } from '../messages';
 import { VirtualChannel } from '../../channel/virtual';
 import { GuaranteeMetadata } from '../../channel/state/outcome/guarantee';
 
+const objectivePrefix = 'VirtualFund-';
+
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
 interface GetTwoPartyConsensusLedgerFunction {
@@ -95,6 +97,11 @@ export class Objective implements ObjectiveInterface {
   private a0?: Funds; // Initial balance for Alice
 
   private b0?: Funds; // Initial balance for Bob
+
+  // TODO: Implement
+  static fromJSON(data: string): Objective {
+    return {} as Objective;
+  }
 
   // NewObjective creates a new virtual funding objective from a given request.
   static newObjective(
@@ -318,6 +325,11 @@ export class Objective implements ObjectiveInterface {
   private isBob(): boolean {
     return this.myRole === this.n + 1;
   }
+}
+
+// IsVirtualFundObjective inspects a objective id and returns true if the objective id is for a virtual fund objective.
+export function isVirtualFundObjective(id: ObjectiveId): boolean {
+  return id.startsWith(objectivePrefix);
 }
 
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.

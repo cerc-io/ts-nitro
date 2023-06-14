@@ -46,6 +46,11 @@ export class Objective implements ObjectiveInterface {
   // n+1 is Bob
   myRole: number = 0;
 
+  // TODO: Implement
+  static fromJSON(data: string): Objective {
+    return {} as Objective;
+  }
+
   constructor(params: {
     status?: ObjectiveStatus,
     minimumPaymentAmount?: bigint,
@@ -215,6 +220,11 @@ export class Objective implements ObjectiveInterface {
   getStatus(): ObjectiveStatus {
     return ObjectiveStatus.Unapproved;
   }
+}
+
+// IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
+export function isVirtualDefundObjective(id: ObjectiveId): boolean {
+  return id.startsWith(objectivePrefix);
 }
 
 // ObjectiveRequest represents a request to create a new virtual defund objective.

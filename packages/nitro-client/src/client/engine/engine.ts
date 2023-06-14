@@ -211,7 +211,6 @@ export class Engine {
       let res = new EngineEvent();
 
       try {
-        // TODO: Check switch-case behaviour
         /* eslint-disable no-await-in-loop */
         /* eslint-disable default-case */
         switch (await Channel.select([
@@ -291,7 +290,6 @@ export class Engine {
   private async handleChainEvent(chainEvent: ChainEvent): Promise<EngineEvent> {
     // TODO: Implement metrics
     this.logger(`handling chain event: ${chainEvent}`);
-    // TODO: Implement getObjectiveByChannelId
     // eslint-disable-next-line prefer-const
     let [objective, ok] = this.store!.getObjectiveByChannelId(chainEvent.channelID());
 
@@ -304,6 +302,7 @@ export class Engine {
 
     // Workaround for Go type assertion syntax
     // TODO: Check if it works
+    assert(objective);
     ok = 'updateWithChainEvent' in objective && typeof objective.updateWithChainEvent === 'function';
     const eventHandler = objective as unknown as ChainEventHandler;
     if (!ok) {

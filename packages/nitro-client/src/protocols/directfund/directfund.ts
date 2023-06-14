@@ -89,6 +89,11 @@ export class Objective implements ObjectiveInterface {
 
   private transactionSubmitted: boolean = false;
 
+  // TODO: Implement
+  static fromJSON(data: string): Objective {
+    return {} as Objective;
+  }
+
   constructor(params: {
     status?: ObjectiveStatus,
     c?: channel.Channel,
@@ -480,6 +485,11 @@ export type ObjectiveResponse = {
   id: ObjectiveId
   channelId: Destination
 };
+
+// IsDirectFundObjective inspects a objective id and returns true if the objective id is for a direct fund objective.
+export function isDirectFundObjective(id: ObjectiveId): boolean {
+  return id.startsWith(objectivePrefix);
+}
 
 // ObjectiveRequest represents a request to create a new direct funding objective.
 export class ObjectiveRequest implements ObjectiveRequestInterface {
