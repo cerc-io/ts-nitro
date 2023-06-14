@@ -1308,6 +1308,12 @@ export class Proposal {
   equal(q: Proposal): boolean {
     return this.ledgerID === q.ledgerID && this.toAdd.equal(q.toAdd) && this.toRemove.equal(q.toRemove);
   }
+
+  // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
+  // TODO: Implement
+  static newAddProposal(ledgerID: Destination, g: Guarantee, leftDeposit: BigInt): Proposal {
+    return {} as Proposal;
+  }
 }
 
 type SignedProposalParams = {

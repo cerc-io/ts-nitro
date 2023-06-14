@@ -125,12 +125,12 @@ export class Connection {
 
   // handleProposal receives a signed proposal and acts according to the leader / follower
   // TODO: Implement
-  handleProposal(sp: SignedProposal) { }
+  handleProposal(sp: SignedProposal) {}
 
   // IsFundingTheTarget computes whether the ledger channel on the receiver funds the guarantee expected by this connection
-  // TODO: Implement
   isFundingTheTarget(): boolean {
-    return false;
+    const g = this.getExpectedGuarantee();
+    return this.channel!.includes(g);
   }
 
   // getExpectedGuarantee returns a map of asset addresses to guarantees for a Connection.
@@ -139,9 +139,19 @@ export class Connection {
     return {} as Guarantee;
   }
 
-  // TODO: Implement
   expectedProposal(): Proposal {
-    return {} as Proposal;
+    const g = this.getExpectedGuarantee();
+
+    let leftAmount: BigInt;
+
+    /* eslint-disable no-unreachable-loop */
+    for (const [, val] of this.guaranteeInfo.leftAmount!.value!) {
+      leftAmount = val;
+      break;
+    }
+
+    const proposal = Proposal.newAddProposal(this.channel!.id, g, leftAmount!);
+    return proposal;
   }
 }
 
@@ -455,9 +465,18 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   /// ///////////////////////////////////////////////
 
   // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
-  // TODO: Implement
   fundingComplete(): boolean {
-    return false;
+    // Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and
+    // {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
+    // A = P_0 and B=P_n are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
+    switch (true) {
+      case this.isAlice():
+        return this.toMyRight!.isFundingTheTarget();
+      case this.isBob():
+        return this.toMyLeft!.isFundingTheTarget();
+      default: // Intermediary
+        return this.toMyRight!.isFundingTheTarget() && this.toMyLeft!.isFundingTheTarget();
+    }
   }
 
   // Clone returns a deep copy of the receiver.
