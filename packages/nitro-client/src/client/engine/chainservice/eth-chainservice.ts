@@ -7,15 +7,19 @@ import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@nodeguy/channel';
 import { connectToChain, go } from '@cerc-io/nitro-util';
 
-import { ChainService, ChainEvent, DepositedEvent } from './chainservice';
+import {
+  ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent,
+} from './chainservice';
 import { ChainTransaction, DepositTransaction, WithdrawAllTransaction } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
 import { Token__factory } from './erc20/token';
 import { Destination } from '../../../types/destination';
 import {
-  INitroTypes, NitroAdjudicator__factory, NitroAdjudicator, DepositedEventObject,
+  INitroTypes, NitroAdjudicator__factory, NitroAdjudicator, DepositedEventObject, AllocationUpdatedEventObject, ConcludedEventObject,
 } from './adjudicator/nitro-adjudicator';
 import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
+
+import { getChainHolding } from './eth-chain-helpers';
 
 const log = debug('ts-nitro:eth-chain-service');
 
@@ -226,7 +230,7 @@ export class EthChainService implements ChainService {
   private dispatchChainEvents(logs: Log[]) {
     for (const l of logs) {
       switch (l.topics[0]) {
-        case depositedTopic:
+        case depositedTopic: {
           try {
             const nad = this.na.interface.parseLog(l).args as unknown as DepositedEventObject;
             const event = DepositedEvent.newDepositedEvent(
@@ -241,23 +245,62 @@ export class EthChainService implements ChainService {
             this.fatalF(`error in ParseDeposited: ${err}`);
           }
           break;
+        }
+        case allocationUpdatedTopic: {
+          let au;
+          try {
+            au = this.na.interface.parseLog(l).args as unknown as AllocationUpdatedEventObject;
+          } catch (err) {
+            this.fatalF(`error in ParseAllocationUpdated: ${err}`);
+          }
 
-        case allocationUpdatedTopic:
-          // TODO: Implement
+          let tx: any;
+          try {
+            // TODO: Implement
+            // [tx,pending]=this.chain.transactionByHash(context.background(),l.Txhash)
+            // if(pending){
+            //   this.fatalF(`Expected transaction to be part of the chain, but the transaction is pending`)
+            // }
+          } catch (err) {
+            this.fatalF(`error in TransactionByHash: ${err}`);
+          }
+
+          assert(au);
+          let assetAddress;
+          let amount;
+          try {
+            [assetAddress, amount] = getChainHolding(this.na, tx, au);
+          } catch (err) {
+            this.fatalF(`error in getChainHoldings: ${err}`);
+          }
+
+          assert(assetAddress);
+          assert(amount);
+          const event = AllocationUpdatedEvent.newAllocationUpdatedEvent(
+            new Destination(au.channelId),
+            String(l.blockNumber),
+            assetAddress,
+            amount,
+          );
+          this.out.push(event);
           break;
-
-        case concludedTopic:
-          // TODO: Implement
+        }
+        case concludedTopic: {
+          try {
+            const ce = this.na.interface.parseLog(l).args as unknown as ConcludedEventObject;
+            const event = new ConcludedEvent({ _channelID: new Destination(ce.channelId), blockNum: String(l.blockNumber) });
+            this.out.push(event);
+          } catch (err) {
+            this.fatalF(`error in ParseConcluded: ${err}`);
+          }
           break;
-
+        }
         case challengeRegisteredTopic:
           this.logger('Ignoring Challenge Registered event');
           break;
-
         case challengeClearedTopic:
           this.logger('Ignoring Challenge Cleared event');
           break;
-
         default:
           this.logger(`Ignoring unknown chain event topic: ${l.topics[0].toString()}`);
           break;
