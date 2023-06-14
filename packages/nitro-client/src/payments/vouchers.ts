@@ -23,7 +23,7 @@ import { signatureJsonEncodingMap } from '../crypto/signatures';
 export class Voucher {
   channelId: Destination = new Destination();
 
-  amount?: bigint;
+  amount: bigint = BigInt(0);
 
   signature: Signature = zeroValueSignature;
 
@@ -62,7 +62,7 @@ export class Voucher {
     // Using util method from nitro-protocol instead of go-nitro port
     this.signature = await signVoucher(
       {
-        amount: this.amount!.toString(),
+        amount: this.amount.toString(),
         channelId: this.channelId.string(),
       },
       wallet,
@@ -90,7 +90,7 @@ export class VoucherInfo {
 
   channelPayee: Address = ethers.constants.AddressZero;
 
-  startingBalance?: bigint;
+  startingBalance: bigint = BigInt(0);
 
   largestVoucher: Voucher = new Voucher({});
 
@@ -105,11 +105,11 @@ export class VoucherInfo {
 
   // Paid is the amount of funds that already have been used as payments
   paid(): bigint {
-    return this.largestVoucher.amount!;
+    return this.largestVoucher.amount;
   }
 
   // Remaining returns the amount of funds left to be used as payments
   remaining(): bigint {
-    return this.startingBalance! - this.paid();
+    return this.startingBalance - this.paid();
   }
 }
