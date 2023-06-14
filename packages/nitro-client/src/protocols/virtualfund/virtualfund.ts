@@ -10,7 +10,7 @@ import {
   ConsensusChannel, SignedProposal, Proposal, Guarantee,
 } from '../../channel/consensus-channel/consensus-channel';
 import { Exit } from '../../channel/state/outcome/exit';
-import { State } from '../../channel/state/state';
+import { FixedPart, State } from '../../channel/state/state';
 import { Funds } from '../../types/funds';
 import { Address } from '../../types/types';
 import {
@@ -473,8 +473,10 @@ export function isVirtualFundObjective(id: ObjectiveId): boolean {
 }
 
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.
-// TODO: Implement
-export class ObjectiveResponse {}
+export type ObjectiveResponse = {
+  id: ObjectiveId
+  channelId: Destination
+};
 
 // ObjectiveRequest represents a request to create a new virtual funding objective.
 // TODO: Implement
@@ -525,9 +527,9 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     });
   }
 
-  id(address: Address, chainId: bigint): ObjectiveId {
-    // TODO: Implement
-    return '';
+  id(myAddress: Address, chainId: bigint): ObjectiveId {
+    const idStr = this.channelId(myAddress).string();
+    return `${objectivePrefix}${idStr}`;
   }
 
   // WaitForObjectiveToStart blocks until the objective starts
@@ -542,12 +544,25 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
   // response computes and returns the appropriate response from the request.
   response(myAddress: Address): ObjectiveResponse {
-    // TODO: Implement
-    return new ObjectiveResponse();
+    const channelId = this.channelId(myAddress);
+
+    return {
+      id: `${objectivePrefix}${channelId.string()}`,
+      channelId,
+    };
   }
 
-  // TODO: Implement
   channelId(myAddress: Address): Destination {
-    return {} as Destination;
+    const participant: Address[] = [myAddress];
+    participant.push(...this.intermediaries);
+    participant.push(this.counterParty);
+
+    const fixedPart = new FixedPart({
+      participants: participant,
+      channelNonce: this.nonce,
+      challengeDuration: this.challengeDuration,
+    });
+
+    return fixedPart.channelId();
   }
 }
