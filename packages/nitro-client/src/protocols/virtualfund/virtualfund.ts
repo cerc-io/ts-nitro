@@ -22,7 +22,7 @@ import {
   Storable,
   ProposalReceiver,
 } from '../interfaces';
-import { ObjectiveId, ObjectivePayload } from '../messages';
+import { Message, ObjectiveId, ObjectivePayload } from '../messages';
 import { VirtualChannel } from '../../channel/virtual';
 import { GuaranteeMetadata } from '../../channel/state/outcome/guarantee';
 import { SignedState } from '../../channel/state/signedstate';
@@ -359,27 +359,32 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     return {} as Objective;
   }
 
-  // TODO: Implement
   id(): ObjectiveId {
-    return '';
+    return `${ObjectivePrefix}${this.v!.id.string()}`;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
-  approve(): ObjectiveInterface {
-    return new Objective({});
+  approve(): Objective {
+    const updated = this.clone();
+    // todo: consider case of s.Status == Rejected
+    updated.status = ObjectiveStatus.Approved;
+
+    return updated;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
   reject(): [Objective, SideEffects] {
-    return [new Objective({}), new SideEffects({})];
+    const updated = this.clone();
+    updated.status = ObjectiveStatus.Rejected;
+
+    const message = Message.createRejectionNoticeMessage(this.id(), ...this.otherParticipants());
+    const sideEffects = new SideEffects({ messagesToSend: message });
+    return [updated, sideEffects];
   }
 
   // OwnsChannel returns the channel the objective exclusively owns.
-  // TODO: Implement
   ownsChannel(): Destination {
-    return new Destination();
+    return this.v!.id;
   }
 
   // GetStatus returns the status of the objective.
@@ -387,9 +392,17 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     return this.status;
   }
 
-  // TODO: Implement
   otherParticipants(): Address[] {
-    return {} as Address[];
+    const otherParticipants: Address[] = [];
+    assert(this.v);
+
+    for (let i = 0; i < this.v.participants.length; i += 1) {
+      if (i !== this.myRole) {
+        otherParticipants.push(this.v.participants[i]);
+      }
+    }
+
+    return otherParticipants;
   }
 
   // TODO: Implement
@@ -403,10 +416,25 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
-  // TODO: Can throw an error
-  update(payload: ObjectivePayload): ObjectiveInterface {
-    return new Objective({});
+  update(raw: ObjectivePayload): Objective {
+    if (this.id() !== raw.objectiveId) {
+      throw new Error(`raw and objective Ids do not match: ${raw.objectiveId} and ${this.id()} respectively`);
+    }
+
+    let payload: SignedState;
+    try {
+      payload = this.getPayload(raw);
+    } catch (err) {
+      throw new Error(`error parsing payload: ${err}`);
+    }
+
+    const updated = this.clone();
+    const ss = payload;
+    if (ss.signatures().length !== 0) {
+      updated.v?.addSignedState(ss);
+    }
+
+    return updated;
   }
 
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
@@ -529,7 +557,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
   id(myAddress: Address, chainId: bigint): ObjectiveId {
     const idStr = this.channelId(myAddress).string();
-    return `${objectivePrefix}${idStr}`;
+    return `${ObjectivePrefix}${idStr}`;
   }
 
   // WaitForObjectiveToStart blocks until the objective starts
@@ -547,7 +575,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     const channelId = this.channelId(myAddress);
 
     return {
-      id: `${objectivePrefix}${channelId.string()}`,
+      id: `${ObjectivePrefix}${channelId.string()}`,
       channelId,
     };
   }
