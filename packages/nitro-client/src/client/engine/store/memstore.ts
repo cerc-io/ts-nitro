@@ -55,7 +55,7 @@ export class MemStore implements Store {
   }
 
   // TODO: Implement
-  getObjectiveById(): Objective {
+  getObjectiveById(id: ObjectiveId): Objective {
     return {} as Objective;
   }
 

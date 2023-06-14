@@ -1,5 +1,5 @@
 import { Message, ObjectiveId, ObjectivePayload } from './messages';
-import { Proposal } from '../channel/consensus-channel/consensus-channel';
+import { Proposal, SignedProposal } from '../channel/consensus-channel/consensus-channel';
 import { Address } from '../types/types';
 import { Destination } from '../types/destination';
 import { Funds } from '../types/funds';
@@ -116,6 +116,14 @@ export interface Objective extends Storable {
 
   // GetStatus returns the status of the objective.
   getStatus (): ObjectiveStatus
+}
+
+// ProposalReceiver is an Objective that receives proposals.
+export interface ProposalReceiver extends Objective {
+  // ReceiveProposal receives a signed proposal and returns an updated VirtualObjective.
+  // It is used to update the objective with a proposal received from a peer.
+  // TODO: Can throw an error
+  receiveProposal(signedProposal: SignedProposal): ProposalReceiver
 }
 
 export enum ObjectiveStatus {

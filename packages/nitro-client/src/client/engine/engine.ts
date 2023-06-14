@@ -1,3 +1,6 @@
+/* eslint-disable no-continue */
+/* eslint-disable @typescript-eslint/no-use-before-define */
+
 import debug from 'debug';
 import assert from 'assert';
 import { ethers } from 'ethers';
@@ -14,7 +17,7 @@ import { PolicyMaker } from './policy-maker';
 import { MetricsApi, MetricsRecorder, NoOpMetrics } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
 import {
-  Objective, ObjectiveRequest, SideEffects, WaitingFor,
+  Objective, ObjectiveRequest, ObjectiveStatus, ProposalReceiver, SideEffects, WaitingFor,
 } from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
 import { Objective as VirtualFundObjective, ObjectiveRequest as VirtualFundObjectiveRequest } from '../../protocols/virtualfund/virtualfund';
@@ -218,10 +221,17 @@ export class Engine {
             res = this.handleChainEvent(this.fromChain.value());
             break;
 
-          case this.fromMsg:
-            res = this.handleMessage(this.fromMsg.value());
-            break;
+          case this.fromMsg: {
+            let err: Error | undefined;
+            [res, err] = await this.handleMessage(this.fromMsg.value());
 
+            if (err) {
+              throw err;
+            }
+
+            break;
+            // TODO: Return errors from other handlers as well?
+          }
           case this.fromLedger:
             res = this.handleProposal(this.fromLedger.value());
             break;
@@ -262,9 +272,188 @@ export class Engine {
   //   - generates an updated objective,
   //   - attempts progress on the target Objective,
   //   - attempts progress on related objectives which may have become unblocked.
-  // TODO: Can throw an error
-  private handleMessage(message: Message): EngineEvent {
-    return new EngineEvent();
+  private async handleMessage(message: Message): Promise<[EngineEvent, Error | undefined]> {
+    assert(this.policymaker);
+    assert(this.store);
+    assert(this.vm);
+
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+    this.logMessage(message, Incoming);
+    const allCompleted = new EngineEvent();
+
+    for await (const payload of message.objectivePayloads) {
+      let objective: Objective;
+      try {
+        objective = this.getOrCreateObjective(payload);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
+
+      if (objective.getStatus() === ObjectiveStatus.Unapproved) {
+        this.logger('Policymaker is', this.policymaker);
+
+        if (this.policymaker.shouldApprove(objective)) {
+          objective = objective.approve();
+
+          if (objective instanceof DirectDefundObjective) {
+            // If we just approved a direct defund objective, destroy the consensus channel
+            // to prevent it being used (a Channel will now take over governance)
+            this.store.destroyConsensusChannel(objective.c!.id);
+          }
+        } else {
+          let sideEffects: SideEffects;
+          [objective, sideEffects] = objective.reject();
+
+          try {
+            this.store.setObjective(objective);
+          } catch (err) {
+            return [new EngineEvent(), err as Error];
+          }
+
+          allCompleted.completedObjectives.push(objective);
+
+          try {
+            await this.executeSideEffects(sideEffects);
+          } catch (err) {
+            // An error would mean we failed to send a message. But the objective is still "completed".
+            // So, we should return allCompleted even if there was an error.
+            return [allCompleted, err as Error];
+          }
+        }
+      }
+
+      if (objective.getStatus() === ObjectiveStatus.Completed) {
+        this.logger(`Ignoring payload for complected objective ${objective.id()}`);
+        continue;
+      }
+
+      if (objective.getStatus() === ObjectiveStatus.Rejected) {
+        this.logger(`Ignoring payload for rejected objective ${objective.id()}`);
+        continue;
+      }
+
+      let updatedObjective: Objective;
+      try {
+        updatedObjective = objective.update(payload);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
+
+      let progressEvent: EngineEvent;
+      try {
+        progressEvent = await this.attemptProgress(updatedObjective);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
+
+      allCompleted.merge(progressEvent);
+    }
+
+    for await (const entry of message.ledgerProposals) {
+      // The ledger protocol requires us to process these proposals in turnNum order.
+      // Here we rely on the sender having packed them into the message in that order, and do not apply any checks or sorting of our own.
+
+      const id = getProposalObjectiveId(entry.proposal);
+
+      let o: Objective;
+      try {
+        o = this.store.getObjectiveById(id);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
+
+      if (o.getStatus() === ObjectiveStatus.Completed) {
+        this.logger(`Ignoring payload for complected objective ${o.id()}`);
+        continue;
+      }
+
+      // Workaround for Go type assertion syntax
+      // TODO: Check working
+      const isProposalReceiver = 'receiveProposal' in o && typeof o.receiveProposal === 'function';
+      const objective = o as ProposalReceiver;
+      if (!isProposalReceiver) {
+        return [new EngineEvent(), new Error(`received a proposal for an objective which cannot receive proposals ${objective.id()}`)];
+      }
+
+      let updatedObjective: Objective;
+      try {
+        updatedObjective = objective.receiveProposal(entry);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
+
+      let progressEvent: EngineEvent;
+      try {
+        progressEvent = await this.attemptProgress(updatedObjective);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
+
+      allCompleted.merge(progressEvent);
+    }
+
+    for (const entry of message.rejectedObjectives) {
+      let objective: Objective;
+      try {
+        objective = this.store.getObjectiveById(entry);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
+
+      if (objective.getStatus() === ObjectiveStatus.Rejected) {
+        this.logger(`Ignoring payload for rejected objective ${objective.id()}`);
+        continue;
+      }
+
+      // we are rejecting due to a counterparty message notifying us of their rejection. We
+      // do not need to send a message back to that counterparty, and furthermore we assume that
+      // counterparty has already notified all other interested parties. We can therefore ignore the side effects
+      [objective] = objective.reject();
+      try {
+        this.store.setObjective(objective);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
+
+      allCompleted.completedObjectives.push(objective);
+    }
+
+    for (const voucher of message.payments) {
+      try {
+        // TODO: return the amount we paid?
+        this.vm.receive(voucher);
+      } catch (err) {
+        return [new EngineEvent(), new Error(`error accepting payment voucher: ${err}`)];
+      } finally {
+        // TODO: Check correctness
+        allCompleted.receivedVouchers.push(voucher);
+      }
+
+      const [c, ok] = this.store.getChannelById(voucher.channelId);
+      if (!ok) {
+        return [new EngineEvent(), new Error(`could not fetch channel for voucher ${voucher}`)];
+      }
+
+      let paid: bigint;
+      let remaining: bigint;
+      try {
+        [paid, remaining] = getVoucherBalance(c.id, this.vm);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
+
+      let info: PaymentChannelInfo;
+      try {
+        info = constructPaymentInfo(c, paid, remaining);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
+
+      allCompleted.paymentChannelUpdates.push(info);
+    }
+
+    return [allCompleted, undefined];
   }
 
   // handleChainEvent handles a Chain Event from the blockchain.
@@ -690,9 +879,11 @@ type MessageDirection = string;
 // fromMsgErr wraps errors from objective construction functions and
 // returns an error bundled with the objectiveID
 // TODO: Can throw an error
+// TODO: Implement
 function fromMsgErr(id: ObjectiveId, err: Error): void {}
 
 // getProposalObjectiveId returns the objectiveId for a proposal.
+// TODO: Implement
 function getProposalObjectiveId(p: Proposal): ObjectiveId {
   return '';
 }

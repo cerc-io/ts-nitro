@@ -4,6 +4,7 @@ import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-c
 import { VoucherStore } from '../../../payments/voucher-manager';
 import { Address } from '../../../types/types';
 import { Destination } from '../../../types/destination';
+import { ObjectiveId } from '../../../protocols/messages';
 
 export const ErrNoSuchChannel = new Error('store: failed to find required channel data');
 
@@ -17,7 +18,7 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 
   // Read an existing objective
   // TODO: Can throw an error
-  getObjectiveById (): Objective
+  getObjectiveById (id: ObjectiveId): Objective
 
   // Get the objective that currently owns the channel with the supplied ChannelId
   // TODO: Can throw an error
