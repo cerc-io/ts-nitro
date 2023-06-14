@@ -198,7 +198,6 @@ export class Engine {
       let res = new EngineEvent();
 
       try {
-        // TODO: Check switch-case behaviour
         /* eslint-disable no-await-in-loop */
         /* eslint-disable default-case */
         switch (await Channel.select([

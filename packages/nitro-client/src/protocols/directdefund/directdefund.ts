@@ -13,7 +13,7 @@ import { ObjectiveId, ObjectivePayload } from '../messages';
 import { Address } from '../../types/types';
 import { SignedState } from '../../channel/state/signedstate';
 
-const ObjectivePrefix = 'DirectDefunding-';
+const objectivePrefix = 'DirectDefunding-';
 
 const ErrChannelUpdateInProgress = new Error('can only defund a channel when the latest state is supported or when the channel has a final state');
 const ErrNoFinalState = new Error('cannot spawn direct defund objective without a final state');
@@ -70,6 +70,11 @@ export class Objective implements ObjectiveInterface {
   private finalTurnNum: number = 0;
 
   private transactionSubmitted: boolean = false; // whether a transition for the objective has been submitted or not
+
+  // TODO: Implement
+  static fromJSON(data: string): Objective {
+    return {} as Objective;
+  }
 
   // NewObjective initiates an Objective with the supplied channel
   static newObjective(
@@ -187,6 +192,11 @@ export class Objective implements ObjectiveInterface {
   }
 }
 
+// IsDirectDefundObjective inspects a objective id and returns true if the objective id is for a direct defund objective.
+export function isDirectDefundObjective(id: ObjectiveId): boolean {
+  return id.startsWith(objectivePrefix);
+}
+
 // ObjectiveRequest represents a request to create a new direct defund objective.
 // TODO: Implement
 export class ObjectiveRequest implements ObjectiveRequestInterface {
@@ -210,7 +220,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   id(address: Address, chainId?: bigint): ObjectiveId {
-    return ObjectivePrefix + this.channelId.string();
+    return objectivePrefix + this.channelId.string();
   }
 
   async waitForObjectiveToStart(): Promise<void> {

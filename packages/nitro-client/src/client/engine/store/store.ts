@@ -6,6 +6,7 @@ import { Address } from '../../../types/types';
 import { Destination } from '../../../types/destination';
 import { ObjectiveId } from '../../../protocols/messages';
 
+export const ErrNoSuchObjective = new Error('store: no such objective');
 export const ErrNoSuchChannel = new Error('store: failed to find required channel data');
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
@@ -22,7 +23,7 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 
   // Get the objective that currently owns the channel with the supplied ChannelId
   // TODO: Can throw an error
-  getObjectiveByChannelId (channelId: string): Objective
+  getObjectiveByChannelId (channelId: Destination): [Objective | undefined, boolean]
 
   // Write an objective
   // TODO: Can throw an error
