@@ -116,6 +116,14 @@ export class Message {
     return messages;
   }
 
+  // CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger channel.
+  // The proposals MUST be sorted by turnNum
+  // since the ledger protocol relies on the message receipient processing the proposals in that order. See ADR 4.
+  // TODO: Implement
+  static createSignedProposalMessage(recipient: Address, ...proposals: SignedProposal[]): Message {
+    return {} as Message;
+  }
+
   // CreateVoucherMessage returns a signed voucher message for each of the recipients provided.
   static createVoucherMessage(voucher: Voucher, ...recipients: Address[]): Message[] {
     const messages: Message[] = [];

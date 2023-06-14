@@ -132,6 +132,12 @@ export class Guarantee {
     return new Guarantee(props);
   }
 
+  // NewGuarantee constructs a new guarantee.
+  // TODO: Implement
+  static newGuarantee(amount: bigint, target: Destination, left: Destination, right: Destination): Guarantee {
+    return {} as Guarantee;
+  }
+
   toJSON(): any {
     return toJSON(Guarantee.jsonEncodingMap, this, new Map([['_target', 'target']]));
   }

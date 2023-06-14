@@ -76,6 +76,11 @@ export class SideEffects {
   }) {
     Object.assign(this, params);
   }
+
+  // From protocols/messages.go
+  // Merge accepts a SideEffects struct that is merged into the the existing SideEffects.
+  // TODO: Implement
+  merge(other: SideEffects) {}
 }
 
 // WaitingFor is an enumerable "pause-point" computed from an Objective.

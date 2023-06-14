@@ -6,7 +6,9 @@ import type { ReadWriteChannel } from '@nodeguy/channel';
 import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
-import { ConsensusChannel, SignedProposal } from '../../channel/consensus-channel/consensus-channel';
+import {
+  ConsensusChannel, SignedProposal, Proposal, Guarantee,
+} from '../../channel/consensus-channel/consensus-channel';
 import { Exit } from '../../channel/state/outcome/exit';
 import { State } from '../../channel/state/state';
 import { Funds } from '../../types/funds';
@@ -119,6 +121,27 @@ export class Connection {
 
     // The metadata can be encoded, so update the connection's guarantee
     this.guaranteeInfo = guaranteeInfo;
+  }
+
+  // handleProposal receives a signed proposal and acts according to the leader / follower
+  // TODO: Implement
+  handleProposal(sp: SignedProposal) { }
+
+  // IsFundingTheTarget computes whether the ledger channel on the receiver funds the guarantee expected by this connection
+  // TODO: Implement
+  isFundingTheTarget(): boolean {
+    return false;
+  }
+
+  // getExpectedGuarantee returns a map of asset addresses to guarantees for a Connection.
+  // TODO: Implement
+  getExpectedGuarantee(): Guarantee {
+    return {} as Guarantee;
+  }
+
+  // TODO: Implement
+  expectedProposal(): Proposal {
+    return {} as Proposal;
   }
 }
 
@@ -349,15 +372,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
   // TODO: Implement
-  reject(): [ObjectiveInterface, SideEffects] {
-    return [
-      new Objective({}),
-      {
-        messagesToSend: [],
-        proposalsToProcess: [],
-        transactionsToSubmit: [],
-      },
-    ];
+  reject(): [Objective, SideEffects] {
+    return [new Objective({}), new SideEffects({})];
   }
 
   // OwnsChannel returns the channel the objective exclusively owns.
@@ -397,15 +413,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   // TODO: Implement
   // TODO: Can throw an error
   crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
-    return [
-      new Objective({}),
-      {
-        messagesToSend: [],
-        proposalsToProcess: [],
-        transactionsToSubmit: [],
-      },
-      '',
-    ];
+    return [new Objective({}), new SideEffects({}), ''];
   }
 
   // Related returns a slice of related objects that need to be stored along with the objective

@@ -366,11 +366,7 @@ export class Objective implements ObjectiveInterface {
    */
   crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
     const updated = this.clone();
-    const sideEffects: SideEffects = {
-      messagesToSend: [],
-      transactionsToSubmit: [],
-      proposalsToProcess: [],
-    };
+    const sideEffects = new SideEffects({});
 
     // Input validation
     if (updated.status !== ObjectiveStatus.Approved) {
