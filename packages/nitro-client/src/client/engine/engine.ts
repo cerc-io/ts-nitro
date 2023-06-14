@@ -20,7 +20,7 @@ import {
   Objective, ObjectiveRequest, ObjectiveStatus, ProposalReceiver, SideEffects, WaitingFor,
 } from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
-import { ConsensusChannel, Proposal } from '../../channel/consensus-channel/consensus-channel';
+import { ConsensusChannel, Proposal, ProposalType } from '../../channel/consensus-channel/consensus-channel';
 import { Address } from '../../types/types';
 import { Voucher } from '../../payments/vouchers';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
@@ -38,12 +38,14 @@ import {
   Objective as VirtualFundObjective,
   ObjectiveRequest as VirtualFundObjectiveRequest,
   isVirtualFundObjective,
+  objectivePrefix as VirtualFundObjectivePrefix,
 } from '../../protocols/virtualfund/virtualfund';
 import {
   ObjectiveRequest as VirtualDefundObjectiveRequest,
   Objective as VirtualDefundObjective,
   isVirtualDefundObjective,
   getVirtualChannelFromObjectiveId,
+  objectivePrefix as VirtualDefundObjectivePrefix,
 } from '../../protocols/virtualdefund/virtualdefund';
 import * as channel from '../../channel/channel';
 import { VirtualChannel } from '../../channel/virtual';
@@ -1023,7 +1025,19 @@ function fromMsgErr(id: ObjectiveId, err: Error): Error {
 }
 
 // getProposalObjectiveId returns the objectiveId for a proposal.
-// TODO: Implement
 function getProposalObjectiveId(p: Proposal): ObjectiveId {
-  return '';
+  switch (p.type()) {
+    case ProposalType.AddProposal: {
+      const prefix = VirtualFundObjectivePrefix;
+      const channelId = p.toAdd.guarantee.target().string();
+      return `${prefix}${channelId}`;
+    }
+    case ProposalType.RemoveProposal: {
+      const prefix = VirtualDefundObjectivePrefix;
+      const channelId = p.toRemove.target.string();
+      return `${prefix}${channelId}`;
+    }
+    default:
+      throw new Error('invalid proposal type');
+  }
 }

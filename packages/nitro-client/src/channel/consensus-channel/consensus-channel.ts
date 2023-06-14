@@ -40,7 +40,7 @@ const ErrNotLeader = new Error('method may only be called by the channel leader'
 const ErrProposalQueueExhausted = new Error('proposal queue exhausted');
 const ErrWrongSigner = new Error('proposal incorrectly signed');
 
-enum ProposalType {
+export enum ProposalType {
   AddProposal = 'AddProposal',
   RemoveProposal = 'RemoveProposal',
 }

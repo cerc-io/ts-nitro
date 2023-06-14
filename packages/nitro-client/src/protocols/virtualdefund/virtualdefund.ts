@@ -17,7 +17,7 @@ import {
 } from '../interfaces';
 import { ObjectiveId, ObjectivePayload } from '../messages';
 
-const objectivePrefix = 'VirtualDefund-';
+export const objectivePrefix = 'VirtualDefund-';
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 type GetChannelByIdFunction = (id: Destination) => [ channel.Channel | undefined, boolean ];
