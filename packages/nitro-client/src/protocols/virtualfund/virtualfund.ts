@@ -6,7 +6,7 @@ import type { ReadWriteChannel } from '@nodeguy/channel';
 import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
-import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
+import { ConsensusChannel, SignedProposal } from '../../channel/consensus-channel/consensus-channel';
 import { Exit } from '../../channel/state/outcome/exit';
 import { State } from '../../channel/state/state';
 import { Funds } from '../../types/funds';
@@ -18,10 +18,12 @@ import {
   SideEffects,
   WaitingFor,
   Storable,
+  ProposalReceiver,
 } from '../interfaces';
 import { ObjectiveId, ObjectivePayload } from '../messages';
 import { VirtualChannel } from '../../channel/virtual';
 import { GuaranteeMetadata } from '../../channel/state/outcome/guarantee';
+import { SignedState } from '../../channel/state/signedstate';
 
 export const ObjectivePrefix = 'VirtualFund-';
 
@@ -121,7 +123,7 @@ export class Connection {
 }
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
-export class Objective implements ObjectiveInterface {
+export class Objective implements ObjectiveInterface, ProposalReceiver {
   status: ObjectiveStatus = ObjectiveStatus.Unapproved;
 
   v?: VirtualChannel;
@@ -358,6 +360,32 @@ export class Objective implements ObjectiveInterface {
     ];
   }
 
+  // OwnsChannel returns the channel the objective exclusively owns.
+  // TODO: Implement
+  ownsChannel(): Destination {
+    return new Destination();
+  }
+
+  // GetStatus returns the status of the objective.
+  getStatus(): ObjectiveStatus {
+    return this.status;
+  }
+
+  // TODO: Implement
+  otherParticipants(): Address[] {
+    return {} as Address[];
+  }
+
+  // TODO: Implement
+  getPayload(raw: ObjectivePayload): SignedState {
+    return {} as SignedState;
+  }
+
+  // TODO: Implement
+  receiveProposal(sp: SignedProposal): ProposalReceiver {
+    return {} as ProposalReceiver;
+  }
+
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
   // TODO: Implement
   // TODO: Can throw an error
@@ -386,15 +414,20 @@ export class Objective implements ObjectiveInterface {
     return [];
   }
 
-  // OwnsChannel returns the channel the objective exclusively owns.
+  /// ///////////////////////////////////////////////
+  //  Private methods on the VirtualFundObjective //
+  /// ///////////////////////////////////////////////
+
+  // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
   // TODO: Implement
-  ownsChannel(): Destination {
-    return new Destination();
+  fundingComplete(): boolean {
+    return false;
   }
 
-  // GetStatus returns the status of the objective.
-  getStatus(): ObjectiveStatus {
-    return this.status;
+  // Clone returns a deep copy of the receiver.
+  // TODO: Implement
+  clone(): Objective {
+    return {} as Objective;
   }
 
   // isAlice returns true if the receiver represents participant 0 in the virtualfund protocol.
@@ -405,6 +438,24 @@ export class Objective implements ObjectiveInterface {
   // isBob returns true if the receiver represents participant n+1 in the virtualfund protocol.
   private isBob(): boolean {
     return this.myRole === this.n + 1;
+  }
+
+  // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
+  // TODO: Implement
+  proposeLedgerUpdate(connection: Connection, sk: Buffer): SideEffects {
+    return {} as SideEffects;
+  }
+
+  // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
+  // TODO: Implement
+  acceptLedgerUpdate(c: Connection, sk: Buffer): SideEffects {
+    return {} as SideEffects;
+  }
+
+  // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
+  // TODO: Implement
+  updateLedgerWithGuarantee(ledgerConnection: Connection, sk: Buffer): SideEffects {
+    return {} as SideEffects;
   }
 }
 
@@ -485,5 +536,10 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   response(myAddress: Address): ObjectiveResponse {
     // TODO: Implement
     return new ObjectiveResponse();
+  }
+
+  // TODO: Implement
+  channelId(myAddress: Address): Destination {
+    return {} as Destination;
   }
 }
