@@ -22,15 +22,22 @@ import {
   WaitingFor,
   Storable,
   ProposalReceiver,
+  errNotApproved,
 } from '../interfaces';
 import {
-  Message, ObjectiveId, ObjectivePayload, getProposalObjectiveId,
+  Message, ObjectiveId, ObjectivePayload, getProposalObjectiveId, PayloadType,
 } from '../messages';
 import { VirtualChannel } from '../../channel/virtual';
 import { GuaranteeMetadata } from '../../channel/state/outcome/guarantee';
 import { SignedState } from '../../channel/state/signedstate';
 
 export const ObjectivePrefix = 'VirtualFund-';
+const WaitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund'; // Round 1
+const WaitingForCompleteFunding: WaitingFor = 'WaitingForCompleteFunding'; // Round 2
+const WaitingForCompletePostFund: WaitingFor = 'WaitingForCompletePostFund'; // Round 3
+const WaitingForNothing: WaitingFor = 'WaitingForNothing'; // Finished
+
+const SignedStatePayload: PayloadType = 'SignedStatePayload';
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
@@ -78,7 +85,6 @@ class GuaranteeInfo {
   }
 }
 
-// TODO: Implement
 export class Connection {
   channel?: ConsensusChannel;
 
@@ -168,14 +174,14 @@ export class Connection {
     let amount: bigint;
 
     /* eslint-disable no-unreachable-loop */
-    for (const [, val] of amountFunds.value) {
+    for (const [, val] of amountFunds!.value) {
       amount = val;
       break;
     }
 
-    const target = this.guaranteeInfo.guaranteeDestination;
-    const { left } = this.guaranteeInfo;
-    const { right } = this.guaranteeInfo;
+    const target = this.guaranteeInfo.guaranteeDestination!;
+    const { left } = this.guaranteeInfo!;
+    const { right } = this.guaranteeInfo!;
 
     return Guarantee.newGuarantee(amount!, target, left, right);
   }
@@ -186,7 +192,7 @@ export class Connection {
     let leftAmount: BigInt;
 
     /* eslint-disable no-unreachable-loop */
-    for (const [, val] of this.guaranteeInfo.leftAmount!.value!) {
+    for (const [, val] of this.guaranteeInfo!.leftAmount!.value!) {
       leftAmount = val;
       break;
     }
@@ -534,10 +540,73 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  // TODO: Implement
-  // TODO: Can throw an error
   crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
-    return [new Objective({}), new SideEffects({}), ''];
+    const updated = this.clone();
+
+    const sideEffects = new SideEffects({});
+    // Input validation
+    if (updated.status !== ObjectiveStatus.Approved) {
+      throw errNotApproved;
+    }
+
+    // Prefunding
+
+    if (!updated.v?.preFundSignedByMe()) {
+      const ss = updated.v?.signAndAddPrefund(secretKey);
+      const messages = Message.createObjectivePayloadMessage(this.id(), ss, SignedStatePayload, ...this.otherParticipants());
+      sideEffects.messagesToSend.push(...messages);
+    }
+
+    if (!updated.v?.preFundComplete()) {
+      return [updated, sideEffects, WaitingForCompletePrefund];
+    }
+
+    // Funding
+
+    if (!updated.isAlice() && !updated.toMyLeft?.isFundingTheTarget()) {
+      let ledgerSideEffects: SideEffects;
+      try {
+        ledgerSideEffects = updated.updateLedgerWithGuarantee(updated.toMyLeft!, secretKey);
+      } catch (err) {
+        throw new Error(`error updating ledger funding: ${err}`);
+      }
+      sideEffects.merge(ledgerSideEffects);
+    }
+
+    if (!updated.isBob() && !updated.toMyRight?.isFundingTheTarget()) {
+      let ledgerSideEffects: SideEffects;
+      try {
+        ledgerSideEffects = updated.updateLedgerWithGuarantee(updated.toMyRight!, secretKey);
+      } catch (err) {
+        throw new Error(`error updating ledger funding: ${err}`);
+      }
+      sideEffects.merge(ledgerSideEffects);
+    }
+
+    if (!updated.fundingComplete()) {
+      return [updated, sideEffects, WaitingForCompleteFunding];
+    }
+
+    // Postfunding
+    if (!updated.v.postFundSignedByMe()) {
+      const ss = updated.v?.signAndAddPostfund(secretKey);
+      const messages = Message.createObjectivePayloadMessage(this.id(), ss, SignedStatePayload, ...this.otherParticipants());
+      sideEffects.messagesToSend.push(...messages);
+    }
+
+    // Alice and Bob require a complete post fund round to know that vouchers may be enforced on chain.
+    // Intermediaries do not require the complete post fund, so we allow them to finish the protocol early.
+    // If they need to recover funds, they can force V to close by challenging with the pre fund state.
+    // Alice and Bob may counter-challenge with a postfund state plus a redemption state.
+    // See ADR-0009.
+
+    if (!updated.v.postFundComplete() && (updated.isAlice() || updated.isBob())) {
+      return [updated, sideEffects, WaitingForCompletePostFund];
+    }
+
+    // Completion
+    updated.status = ObjectiveStatus.Completed;
+    return [updated, sideEffects, WaitingForNothing];
   }
 
   // Related returns a slice of related objects that need to be stored along with the objective
@@ -574,9 +643,28 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // Clone returns a deep copy of the receiver.
-  // TODO: Implement
   clone(): Objective {
-    return {} as Objective;
+    const clone = new Objective({});
+    clone.status = this.status;
+    const vClone = this.v?.clone();
+    clone.v = vClone;
+
+    if (this.toMyLeft !== null) {
+      const lClone = this.toMyLeft?.channel?.clone();
+      clone.toMyLeft = new Connection({ channel: lClone, guaranteeInfo: this.toMyLeft?.guaranteeInfo });
+    }
+
+    if (this.toMyRight !== null) {
+      const rClone = this.toMyRight?.channel?.clone();
+      clone.toMyRight = new Connection({ channel: rClone, guaranteeInfo: this.toMyRight?.guaranteeInfo });
+    }
+
+    clone.n = this.n;
+    clone.myRole = this.myRole;
+
+    clone.a0 = this.a0;
+    clone.b0 = this.b0;
+    return clone;
   }
 
   // isAlice returns true if the receiver represents participant 0 in the virtualfund protocol.
@@ -683,7 +771,6 @@ export type ObjectiveResponse = {
 };
 
 // ObjectiveRequest represents a request to create a new virtual funding objective.
-// TODO: Implement
 export class ObjectiveRequest implements ObjectiveRequestInterface {
   intermediaries: Address[] = [];
 

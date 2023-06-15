@@ -1031,7 +1031,8 @@ export class Engine {
 
   // GetVirtualPaymentAppAddress returns the address of a deployed VirtualPaymentApp
   getVirtualPaymentAppAddress(): Address {
-    return ethers.constants.AddressZero;
+    assert(this.chain);
+    return this.chain.getVirtualPaymentAppAddress();
   }
 
   // logMessage logs a message to the engine's logger
