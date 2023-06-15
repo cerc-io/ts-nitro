@@ -267,7 +267,7 @@ export class Engine {
             // TODO: Return errors from other handlers as well?
           }
           case this.fromLedger:
-            res = this.handleProposal(this.fromLedger.value());
+            res = await this.handleProposal(this.fromLedger.value());
             break;
 
           case this.stop:
@@ -295,9 +295,21 @@ export class Engine {
   // handleProposal handles a Proposal returned to the engine from
   // a running ledger channel by pulling its corresponding objective
   // from the store and attempting progress.
-  // TODO: Can throw an error
-  private handleProposal(proposal: Proposal): EngineEvent {
-    return new EngineEvent();
+  private async handleProposal(proposal: Proposal): Promise<EngineEvent> {
+    assert(this.store);
+
+    // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
+    const id = getProposalObjectiveId(proposal);
+    const obj = this.store.getObjectiveById(id);
+
+    if (obj.getStatus() === ObjectiveStatus.Completed) {
+      this.logger(`Ignoring proposal for complected objective ${obj.id()}`);
+      return new EngineEvent();
+    }
+
+    return this.attemptProgress(obj);
   }
 
   // handleMessage handles a Message from a peer go-nitro Wallet.

@@ -480,7 +480,6 @@ export class MemStore implements Store {
 function decodeObjective(id: ObjectiveId, data: Buffer): Objective {
   switch (true) {
     case isDirectFundObjective(id): {
-      // TODO: Implement
       const dfo = DirectFundObjective.fromJSON(data.toString());
       return dfo;
     }
