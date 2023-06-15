@@ -7,7 +7,7 @@ import { Destination } from '../../types/destination';
 import { Address } from '../../types/types';
 import * as channel from '../../channel/channel';
 import { VirtualChannel } from '../../channel/virtual';
-import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
+import { ConsensusChannel, Proposal, SignedProposal } from '../../channel/consensus-channel/consensus-channel';
 import {
   ObjectiveRequest as ObjectiveRequestInterface,
   Objective as ObjectiveInterface,
@@ -15,8 +15,12 @@ import {
   WaitingFor,
   Storable,
   ObjectiveStatus,
+  ProposalReceiver,
 } from '../interfaces';
 import { ObjectiveId, ObjectivePayload } from '../messages';
+import { SignedState } from '../../channel/state/signedstate';
+import { SingleAssetExit } from '../../channel/state/outcome/exit';
+import { FixedPart, Signature } from '../../channel/state/state';
 
 export const ObjectivePrefix = 'VirtualDefund-';
 
@@ -202,26 +206,6 @@ export class Objective implements ObjectiveInterface {
     return [new Objective({}), new SideEffects({})];
   }
 
-  // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
-  // TODO: Can throw an error
-  update(payload: ObjectivePayload): ObjectiveInterface {
-    return new Objective({});
-  }
-
-  // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  // TODO: Implement
-  // TODO: Can throw an error
-  crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
-    return [new Objective({}), new SideEffects({}), ''];
-  }
-
-  // Related returns a slice of related objects that need to be stored along with the objective
-  // TODO: Implement
-  related(): Storable[] {
-    return [];
-  }
-
   // OwnsChannel returns the channel the objective exclusively owns.
   // TODO: Implement
   ownsChannel(): Destination {
@@ -233,11 +217,121 @@ export class Objective implements ObjectiveInterface {
   getStatus(): ObjectiveStatus {
     return ObjectiveStatus.Unapproved;
   }
+
+  // Related returns a slice of related objects that need to be stored along with the objective
+  // TODO: Implement
+  related(): Storable[] {
+    return [];
+  }
+
+  // Clone returns a deep copy of the receiver.
+  // TODO: Implement
+  private clone(): Objective {
+    return {} as Objective;
+  }
+
+  // otherParticipants returns the participants in the channel that are not the current participant.
+  // TODO: Implement
+  private otherParticipants(): Address[] {
+    return [];
+  }
+
+  // TODO: Implement
+  private hasFinalStateFromAlice(): boolean {
+    return false;
+  }
+
+  // Crank inspects the extended state and declares a list of Effects to be executed.
+  // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
+  // TODO: Implement
+  // TODO: Can throw an error
+  crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
+    return [new Objective({}), new SideEffects({}), ''];
+  }
+
+  // TODO: Implement
+  // isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol.
+  private isAlice(): boolean {
+    return false;
+  }
+
+  // isBob returns true if the receiver represents participant n+1 in the virtualdefund protocol.
+  // TODO: Implement
+  private isBob(): boolean {
+    return false;
+  }
+
+  // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
+  // TODO: Implement
+  private ledgerProposal(ledger: ConsensusChannel): Proposal {
+    return {} as Proposal;
+  }
+
+  // updateLedgerToRemoveGuarantee updates the ledger channel to remove the guarantee that funds V.
+  // TODO: Implement
+  private updateLedgerToRemoveGuarantee(ledger: ConsensusChannel, sk: Buffer): SideEffects {
+    return {} as SideEffects;
+  }
+
+  // VId returns the channel id of the virtual channel.
+  // TODO: Implement
+  vId(): Destination {
+    return {} as Destination;
+  }
+
+  // rightHasDefunded returns whether the ledger channel ToMyRight has removed
+  // its funding for the target channel.
+  //
+  // If ToMyRight==nil then we return true.
+  // TODO: Implement
+  private rightHasDefunded(): boolean {
+    return false;
+  }
+
+  // leftHasDefunded returns whether the ledger channel ToMyLeft has removed
+  // its funding for the target channel.
+  //
+  // If ToMyLeft==nil then we return true.
+  // TODO: Implement
+  private leftHasDefunded(): boolean {
+    return false;
+  }
+
+  // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
+  // and returns the updated state.
+  // TODO: Implement
+  update(op: ObjectivePayload): Objective {
+    return new Objective({});
+  }
+
+  // ReceiveProposal receives a signed proposal and returns an updated VirtualDefund objective.
+  // TODO: Implement
+  receiveProposal(sp: SignedProposal): ProposalReceiver {
+    return {} as ProposalReceiver;
+  }
 }
 
 // IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
 export function isVirtualDefundObjective(id: ObjectiveId): boolean {
   return id.startsWith(ObjectivePrefix);
+}
+
+// TODO: Implement
+// getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+export function getSignedStatePayload(b: []): SignedState {
+  return {} as SignedState;
+}
+
+// TODO: Implement
+// getRequestFinalStatePayload takes in a serialized channel id payload and returns the deserialized channel id.
+export function getRequestFinalStatePayload(b: []): Destination {
+  return {} as Destination;
+}
+
+// TODO: Implement
+// isZero returns true if every byte field on the signature is zero
+export function isZero(sig: Signature): boolean {
+  return false;
 }
 
 // ObjectiveRequest represents a request to create a new virtual defund objective.
@@ -286,3 +380,13 @@ export function getVirtualChannelFromObjectiveId(id: ObjectiveId): Destination {
 
   return new Destination(raw);
 }
+
+// TODO: Implement
+// validateFinalOutcome is a helper function that validates a final outcome from Alice is valid.
+export function validateFinalOutcome(
+  vFixed: FixedPart,
+  initialOutcome: SingleAssetExit,
+  finalOutcome: SingleAssetExit,
+  me: Address,
+  minAmount: bigint,
+): void {}
