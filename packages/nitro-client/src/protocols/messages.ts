@@ -1,12 +1,8 @@
-import JSONbig from 'json-bigint';
-
 import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
 import { SignedProposal } from '../channel/consensus-channel/consensus-channel';
 import { Voucher } from '../payments/vouchers';
 import { Address } from '../types/types';
-
-const JSONbigNative = JSONbig({ useNativeBigInt: true });
 
 // ObjectiveId is a unique identifier for an Objective.
 export type ObjectiveId = string;
@@ -36,7 +32,7 @@ const objectivePayloadJsonEncodingMap: Record<string, FieldDescription> = {
 // CreateObjectivePayload handles serializing `p` into json.
 const createObjectivePayload = (id: ObjectiveId, payloadType: PayloadType, p: any): ObjectivePayload => {
   try {
-    const payloadData: Buffer = Buffer.from(JSONbigNative.stringify(p));
+    const payloadData: Buffer = Buffer.from(JSON.stringify(p));
     return { payloadData, objectiveId: id, type: payloadType };
   } catch (err) {
     throw new Error(`Failed to create objective payload: ${err}`);

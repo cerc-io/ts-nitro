@@ -273,13 +273,13 @@ export class Objective implements ObjectiveInterface {
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
   // TODO: Implement
-  approve(): Objective {
+  approve(): ObjectiveInterface {
     return new Objective();
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
   // TODO: Implement
-  reject(): [Objective, SideEffects] {
+  reject(): [ObjectiveInterface, SideEffects] {
     return [
       new Objective(),
       {
@@ -293,7 +293,7 @@ export class Objective implements ObjectiveInterface {
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
   // TODO: Implement
   // TODO: Can throw an error
-  update(payload: ObjectivePayload): Objective {
+  update(payload: ObjectivePayload): ObjectiveInterface {
     return new Objective();
   }
 

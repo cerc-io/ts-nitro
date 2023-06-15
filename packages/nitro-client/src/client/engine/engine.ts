@@ -419,7 +419,6 @@ export class Engine {
       }
 
       // Workaround for Go type assertion syntax
-      // TODO: Check working
       const isProposalReceiver = 'receiveProposal' in o && typeof o.receiveProposal === 'function';
       const objective = o as ProposalReceiver;
       if (!isProposalReceiver) {
@@ -515,6 +514,7 @@ export class Engine {
   private async handleChainEvent(chainEvent: ChainEvent): Promise<EngineEvent> {
     // TODO: Implement metrics
     this.logger(`handling chain event: ${chainEvent}`);
+
     // eslint-disable-next-line prefer-const
     let [objective, ok] = this.store!.getObjectiveByChannelId(chainEvent.channelID());
 
@@ -527,7 +527,6 @@ export class Engine {
 
     // Workaround for Go type assertion syntax
     assert(objective);
-    // TODO: Check if this works
     ok = 'updateWithChainEvent' in objective && typeof objective.updateWithChainEvent === 'function';
     const eventHandler = objective as unknown as ChainEventHandler;
     if (!ok) {
@@ -538,7 +537,7 @@ export class Engine {
       });
     }
 
-    // TODO: Implement updateWithChainEvent method in different protocol Objectives to satisfy ChainEventHandler interface
+    // TODO: Implement
     const updatedEventHandler = eventHandler.updateWithChainEvent(chainEvent);
 
     return this.attemptProgress(updatedEventHandler);
