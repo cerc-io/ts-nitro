@@ -39,7 +39,8 @@ export class Channel extends FixedPart {
 
   // largest uint64 value reserved for "no supported state"
   // TODO: unit64 replacement
-  private latestSupportedStateTurnNum: number = 0;
+  // Can't make it private as access required when constructing VirtualChannel from an existing Channel instance
+  latestSupportedStateTurnNum: number = 0;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     ...super.jsonEncodingMap,
@@ -103,16 +104,8 @@ export class Channel extends FixedPart {
 
   // UnmarshalJSON populates the calling Channel with the
   // json-encoded data
-  // TODO: Can throw an error
-  // TODO: Implement
   unmarshalJSON(data: Buffer): void {
-    try {
-      // TODO: Implement json.Unmarshal
-      const jsonCh = JSON.parse(data.toString());
-      Object.assign(this, jsonCh);
-    } catch (err) {
-      throw new Error('error unmarshaling channel data');
-    }
+    // Use Channel.fromJSON()
   }
 
   // MyDestination returns the client's destination

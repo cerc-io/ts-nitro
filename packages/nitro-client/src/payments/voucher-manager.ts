@@ -76,7 +76,7 @@ export class VoucherManager {
       throw new Error("can only sign vouchers if we're the payer");
     }
 
-    const newAmount: bigint = vInfo.largestVoucher.amount! + amount;
+    const newAmount: bigint = vInfo.largestVoucher.amount + amount;
     const voucher = new Voucher({ amount: newAmount, channelId });
 
     vInfo.largestVoucher = voucher;
@@ -108,12 +108,18 @@ export class VoucherManager {
     }
     assert(v);
 
-    return BigInt(v.largestVoucher.amount!);
+    return v.largestVoucher.amount;
   }
 
   // Remaining returns the remaining amount of funds in the channel
-  // TODO: Can throw an error
   remaining(chanId: Destination): bigint {
-    return BigInt(0);
+    const [v, ok] = this.store.getVoucherInfo(chanId);
+    if (!ok) {
+      throw new Error('channel not registered');
+    }
+    assert(v);
+
+    const remaining = v.startingBalance - v.largestVoucher.amount;
+    return remaining;
   }
 }

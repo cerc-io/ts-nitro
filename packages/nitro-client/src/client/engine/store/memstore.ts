@@ -1,8 +1,9 @@
 import assert from 'assert';
+import _ from 'lodash';
 
 import { bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
 
-import { ErrNoSuchChannel, Store } from './store';
+import { ErrNoSuchChannel, ErrNoSuchObjective, Store } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
@@ -13,6 +14,10 @@ import { Address } from '../../../types/types';
 import { getAddressFromSecretKeyBytes } from '../../../crypto/keys';
 import { VirtualChannel } from '../../../channel/virtual';
 import { Destination } from '../../../types/destination';
+import { isDirectFundObjective, Objective as DirectFundObjective } from '../../../protocols/directfund/directfund';
+import { isDirectDefundObjective, Objective as DirectDefundObjective } from '../../../protocols/directdefund/directdefund';
+import { isVirtualFundObjective, Objective as VirtualFundObjective } from '../../../protocols/virtualfund/virtualfund';
+import { isVirtualDefundObjective, Objective as VirtualDefundObjective } from '../../../protocols/virtualdefund/virtualdefund';
 
 export class MemStore implements Store {
   objectives: SafeSyncMap<Buffer>;
@@ -54,21 +59,48 @@ export class MemStore implements Store {
     return val;
   }
 
-  // TODO: Implement
-  getObjectiveById(): Objective {
-    return {} as Objective;
+  getObjectiveById(id: ObjectiveId): Objective {
+    // todo: locking
+    const [objJSON, ok] = this.objectives.load(id);
+
+    // return immediately if no such objective exists
+    if (!ok) {
+      throw new Error(`${ErrNoSuchObjective}: ${id}`);
+    }
+
+    let obj: Objective;
+    try {
+      assert(objJSON);
+      /* eslint-disable @typescript-eslint/no-use-before-define */
+      obj = decodeObjective(id, objJSON);
+    } catch (err) {
+      throw new Error(`error decoding objective ${id}: ${err}`);
+    }
+
+    try {
+      this.populateChannelData(obj);
+    } catch (err) {
+      // TODO: Handle partial return
+      // return existing objective data along with error
+      // return obj, fmt.Errorf("error populating channel data for objective %s: %w", id, err)
+
+      throw new Error(`error populating channel data for objective ${id}: ${err}`);
+    }
+
+    return obj;
   }
 
   public setObjective(obj: Objective): void {
     // todo: locking
     let objJSON: Buffer;
     try {
+      // TODO: Implement json marshalling for all objectives
       objJSON = Buffer.from(JSON.stringify(obj), 'utf-8');
     } catch (err) {
       throw new Error(`error setting objective ${obj.id()}: ${err}`);
     }
 
-    this.objectives.store(obj.id().toString(), objJSON);
+    this.objectives.store(obj.id(), objJSON);
 
     for (const rel of obj.related()) {
       switch (rel.constructor) {
@@ -111,13 +143,13 @@ export class MemStore implements Store {
     }
 
     // Objective ownership can only be transferred if the channel is not owned by another objective
-    const [prevOwner, isOwned] = this.channelToObjective.load(obj.ownsChannel().toString());
+    const [prevOwner, isOwned] = this.channelToObjective.load(obj.ownsChannel().string());
 
     if (obj.getStatus() === ObjectiveStatus.Approved) {
       if (!prevOwner) {
-        this.channelToObjective.store(obj.ownsChannel().toString(), obj.id());
+        this.channelToObjective.store(obj.ownsChannel().string(), obj.id());
       }
-      if (isOwned && prevOwner !== obj.id().toString()) {
+      if (isOwned && prevOwner !== obj.id()) {
         throw new Error(`cannot transfer ownership of channel from objective ${prevOwner} to ${obj.id()}`);
       }
     }
@@ -126,7 +158,7 @@ export class MemStore implements Store {
   public setChannel(ch: Channel): void {
     const chJSON = Buffer.from(JSON.stringify(ch), 'utf-8');
 
-    this.channels.store(ch.id.toString(), chJSON);
+    this.channels.store(ch.id.string(), chJSON);
   }
 
   // destroyChannel deletes the channel with id id.
@@ -134,15 +166,16 @@ export class MemStore implements Store {
     this.channels.delete(id.string());
   }
 
-  // TODO: Implement
+  // SetConsensusChannel sets the channel in the store.
   setConsensusChannel(ch: ConsensusChannel): void {
     if (ch.id.isZero()) {
       throw new Error('cannot store a channel with a zero id');
     }
 
+    // TODO: Implement json marshalling
     const chJSON = Buffer.from(JSON.stringify(ch), 'utf-8');
 
-    this.consensusChannels.store(ch.id.toString(), chJSON);
+    this.consensusChannels.store(ch.id.string(), chJSON);
   }
 
   // DestroyChannel deletes the channel with id id.
@@ -161,22 +194,18 @@ export class MemStore implements Store {
   }
 
   private _getChannelById(id: Destination): Channel {
-    const [chJSON, ok] = this.channels.load(id.toString());
+    const [chJSON, ok] = this.channels.load(id.string());
 
     if (!ok) {
       throw ErrNoSuchChannel;
     }
 
     assert(chJSON);
-
-    const ch = new Channel({});
-
     try {
-      ch.unmarshalJSON(chJSON);
-
+      const ch = Channel.fromJSON(chJSON.toString());
       return ch;
     } catch (err) {
-      throw new Error(`error unmarshaling channel ${ch.id}`);
+      throw new Error(`error unmarshaling channel ${id.string()}`);
     }
   }
 
@@ -224,11 +253,11 @@ export class MemStore implements Store {
     }
     assert(chJSON);
 
-    const ch = new ConsensusChannel({});
+    let ch: ConsensusChannel;
     try {
-      ch.unmarshalJSON(chJSON);
+      ch = ConsensusChannel.fromJSON(chJSON.toString());
     } catch (err) {
-      throw new Error(`error unmarshaling channel ${ch.id}`);
+      throw new Error(`error unmarshaling channel ${id.string()}`);
     }
 
     return ch;
@@ -269,17 +298,149 @@ export class MemStore implements Store {
     return [];
   }
 
-  // TODO: Implement
-  getObjectiveByChannelId(channelId: string): Objective {
-    return {} as Objective;
+  getObjectiveByChannelId(channelId: Destination): [Objective | undefined, boolean] {
+    // todo: locking
+    const [id, found] = this.channelToObjective.load(channelId.string());
+    if (!found) {
+      return [undefined, false];
+    }
+
+    let objective: Objective;
+    try {
+      assert(id);
+      objective = this.getObjectiveById(id);
+    } catch (err) {
+      // TODO: Handle partial return
+      // Return undefined in case of error for now as the partial value is not actually being used
+      return [undefined, false];
+    }
+
+    return [objective, true];
   }
 
   // populateChannelData fetches stored Channel data relevant to the given
   // objective and attaches it to the objective. The channel data is attached
   // in-place of the objectives existing channel pointers.
-  // TODO: Can throw an error
-  // TODO: Implement
-  populateChannelData(obj: Objective): void {}
+  populateChannelData(obj: Objective): void {
+    const id = obj.id();
+
+    switch (obj.constructor) {
+      case DirectFundObjective: {
+        const o = obj as DirectFundObjective;
+
+        let ch: Channel;
+        try {
+          ch = this._getChannelById(o.c!.id);
+        } catch (err) {
+          throw new Error(`error retrieving channel data for objective ${id}: ${err}`);
+        }
+
+        o.c = ch;
+
+        return;
+      }
+      case DirectDefundObjective: {
+        const o = obj as DirectDefundObjective;
+
+        let ch: Channel;
+        try {
+          ch = this._getChannelById(o.c!.id);
+        } catch (err) {
+          throw new Error(`error retrieving channel data for objective ${id}: ${err}`);
+        }
+
+        o.c = ch;
+
+        return;
+      }
+      case VirtualFundObjective: {
+        const o = obj as VirtualFundObjective;
+
+        let ch: Channel;
+        try {
+          ch = this._getChannelById(o.v!.id);
+        } catch (err) {
+          throw new Error(`error retrieving virtual channel data for objective ${id}: ${err}`);
+        }
+        o.v = new VirtualChannel(ch);
+
+        const zeroAddress = new Destination();
+
+        if (o.toMyLeft
+          && o.toMyLeft.channel
+          && _.isEqual(o.toMyLeft.channel.id, zeroAddress)
+        ) {
+          let left: ConsensusChannel;
+          try {
+            left = this.getConsensusChannelById(o.toMyLeft.channel.id);
+          } catch (err) {
+            throw new Error(`error retrieving left ledger channel data for objective ${id}: ${err}`);
+          }
+
+          o.toMyLeft.channel = left;
+        }
+
+        if (o.toMyRight
+          && o.toMyRight.channel
+          && _.isEqual(o.toMyRight.channel.id, zeroAddress)
+        ) {
+          let right: ConsensusChannel;
+          try {
+            right = this.getConsensusChannelById(o.toMyRight.channel.id);
+          } catch (err) {
+            throw new Error(`error retrieving right ledger channel data for objective ${id}: ${err}`);
+          }
+
+          o.toMyRight.channel = right;
+        }
+
+        return;
+      }
+      case VirtualDefundObjective: {
+        const o = obj as VirtualDefundObjective;
+
+        let ch: Channel;
+        try {
+          ch = this._getChannelById(o.v!.id);
+        } catch (err) {
+          throw new Error(`error retrieving virtual channel data for objective ${id}: ${err}`);
+        }
+        o.v = new VirtualChannel(ch);
+
+        const zeroAddress = new Destination();
+
+        if (o.toMyLeft
+          && _.isEqual(o.toMyLeft.id, zeroAddress)
+        ) {
+          let left: ConsensusChannel;
+          try {
+            left = this.getConsensusChannelById(o.toMyLeft.id);
+          } catch (err) {
+            throw new Error(`error retrieving left ledger channel data for objective ${id}: ${err}`);
+          }
+
+          o.toMyLeft = left;
+        }
+
+        if (o.toMyRight
+          && _.isEqual(o.toMyRight.id, zeroAddress)
+        ) {
+          let right: ConsensusChannel;
+          try {
+            right = this.getConsensusChannelById(o.toMyRight.id);
+          } catch (err) {
+            throw new Error(`error retrieving right ledger channel data for objective ${id}: ${err}`);
+          }
+
+          o.toMyRight = right;
+        }
+
+        return;
+      }
+      default:
+        throw new Error(`objective ${id} did not correctly represent a known Objective type`);
+    }
+  }
 
   releaseChannelFromOwnership(channelId: Destination): void {
     this.channelToObjective.delete(channelId.string());
@@ -316,8 +477,26 @@ export class MemStore implements Store {
 // decodeObjective is a helper which encapsulates the deserialization
 // of Objective JSON data. The decoded objectives will not have any
 // channel data other than the channel Id.
-// TODO: Can throw an error
-// TODO: Implement
 function decodeObjective(id: ObjectiveId, data: Buffer): Objective {
-  return {} as Objective;
+  switch (true) {
+    case isDirectFundObjective(id): {
+      // TODO: Implement
+      const dfo = DirectFundObjective.fromJSON(data.toString());
+      return dfo;
+    }
+    case isDirectDefundObjective(id): {
+      const ddfo = DirectDefundObjective.fromJSON(data.toString());
+      return ddfo;
+    }
+    case isVirtualFundObjective(id): {
+      const vfo = VirtualFundObjective.fromJSON(data.toString());
+      return vfo;
+    }
+    case isVirtualDefundObjective(id): {
+      const dvfo = VirtualDefundObjective.fromJSON(data.toString());
+      return dvfo;
+    }
+    default:
+      throw new Error(`objective id ${id} does not correspond to a known Objective type`);
+  }
 }

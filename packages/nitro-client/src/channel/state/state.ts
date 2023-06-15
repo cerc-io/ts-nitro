@@ -50,6 +50,15 @@ export class FixedPart {
     challengeDuration: { type: 'number' },
   };
 
+  static fromJSON(data: string): FixedPart {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new FixedPart(props);
+  }
+
+  toJSON(): any {
+    return toJSON(FixedPart.jsonEncodingMap, this);
+  }
+
   channelId(): Destination {
     return new Destination(utilGetChannelId(this));
   }

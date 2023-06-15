@@ -17,7 +17,7 @@ import {
 } from '../interfaces';
 import { ObjectiveId, ObjectivePayload } from '../messages';
 
-const objectivePrefix = 'VirtualDefund-';
+export const objectivePrefix = 'VirtualDefund-';
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 type GetChannelByIdFunction = (id: Destination) => [ channel.Channel | undefined, boolean ];
@@ -45,6 +45,11 @@ export class Objective implements ObjectiveInterface {
   // 1...n is Irene, Ivan, ... (the n intermediaries)
   // n+1 is Bob
   myRole: number = 0;
+
+  // TODO: Implement
+  static fromJSON(data: string): Objective {
+    return {} as Objective;
+  }
 
   constructor(params: {
     status?: ObjectiveStatus,
@@ -152,6 +157,20 @@ export class Objective implements ObjectiveInterface {
     });
   }
 
+  // ConstructObjectiveFromPayload takes in a message payload and constructs an objective from it.
+  // TODO: Can throw an error
+  // TODO: Implement
+  static constructObjectiveFromPayload(
+    p: ObjectivePayload,
+    preapprove: boolean,
+    myAddress: Address,
+    getChannel: GetChannelByIdFunction,
+    getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
+    latestVoucherAmount: bigint,
+  ): Objective {
+    return {} as Objective;
+  }
+
   // TODO: Implement
   id(): ObjectiveId {
     return '';
@@ -217,6 +236,11 @@ export class Objective implements ObjectiveInterface {
   }
 }
 
+// IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
+export function isVirtualDefundObjective(id: ObjectiveId): boolean {
+  return id.startsWith(objectivePrefix);
+}
+
 // ObjectiveRequest represents a request to create a new virtual defund objective.
 // TODO: Implement
 export class ObjectiveRequest implements ObjectiveRequestInterface {
@@ -252,4 +276,14 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     assert(this.objectiveStarted);
     this.objectiveStarted.close();
   }
+}
+
+// GetVirtualChannelFromObjectiveId gets the virtual channel id from the objective id.
+export function getVirtualChannelFromObjectiveId(id: ObjectiveId): Destination {
+  if (!id.startsWith(objectivePrefix)) {
+    throw new Error(`id ${id} does not have prefix ${objectivePrefix}`);
+  }
+  const raw = id.slice(objectivePrefix.length);
+
+  return new Destination(raw);
 }
