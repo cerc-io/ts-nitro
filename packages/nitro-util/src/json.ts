@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import assert from 'assert';
+import _ from 'lodash';
 
 export interface FieldDescription {
   type: 'class' | 'string' | 'number' | 'bigint' | 'boolean' | 'buffer' | 'object' | 'array' | 'map';
@@ -58,7 +59,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
 }
 
 // Go compatible JSON unmarshalling utility method
-export function fromJSON(jsonEncodingMap: Record<string, any>, data: string): any {
+export function fromJSON(jsonEncodingMap: Record<string, any>, data: string, keysMap: Map<string, string> = new Map()): any {
   // Parse the JSON data string
   const jsonValue = JSON.parse(data);
 
@@ -66,27 +67,33 @@ export function fromJSON(jsonEncodingMap: Record<string, any>, data: string): an
 
   Object.keys(jsonEncodingMap).forEach((fieldKey) => {
     const fieldType = jsonEncodingMap[fieldKey];
-    props[fieldKey] = decodeValue(fieldType, jsonValue[fieldKey]);
+
+    // Use mapped key in props
+    const propsKey = keysMap.get(fieldKey) ?? fieldKey;
+    props[propsKey] = decodeValue(fieldType, jsonValue[fieldKey]);
   });
 
   return props;
 }
 
 // Go compatible JSON marshalling utility method
-export function toJSON(jsonEncodingMap: Record<string, any>, obj: any): any {
-  const jsonObj: any = { ...obj };
+export function toJSON(jsonEncodingMap: Record<string, any>, obj: any, keysMap: Map<string, string> = new Map()): any {
+  let jsonObj: any = { ...obj };
+
+  // Replace object keys with mapped keys
+  jsonObj = _.mapKeys(jsonObj, (value, key) => keysMap.get(key) ?? key);
 
   Object.keys(jsonEncodingMap).forEach((fieldKey) => {
     const fieldType = jsonEncodingMap[fieldKey];
 
     // Create a custom object if field is of a map type
     if (fieldType.type === 'map') {
-      jsonObj[fieldKey] = encodeMap(obj[fieldKey]);
+      jsonObj[fieldKey] = encodeMap(jsonObj[fieldKey]);
     }
 
     // Marshall bigint as a string
     if (fieldType.type === 'bigint') {
-      jsonObj[fieldKey] = (obj[fieldKey] as bigint).toString();
+      jsonObj[fieldKey] = (jsonObj[fieldKey] as bigint).toString();
     }
   });
 

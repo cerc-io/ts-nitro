@@ -21,12 +21,12 @@ export class SignedState {
   };
 
   static fromJSON(data: string): SignedState {
-    const props = fromJSON(this.jsonEncodingMap, data);
+    const props = fromJSON(this.jsonEncodingMap, data, new Map([['state', '_state']]));
     return new SignedState(props);
   }
 
   toJSON(): any {
-    return toJSON(SignedState.jsonEncodingMap, this);
+    return toJSON(SignedState.jsonEncodingMap, this, new Map([['_state', 'state']]));
   }
 
   constructor(params: {

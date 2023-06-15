@@ -110,18 +110,18 @@ export class Guarantee {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     amount: { type: 'bigint' },
-    _target: { type: 'class', value: Destination },
+    target: { type: 'class', value: Destination },
     left: { type: 'class', value: Destination },
     right: { type: 'class', value: Destination },
   };
 
   static fromJSON(data: string): Guarantee {
-    const props = fromJSON(this.jsonEncodingMap, data);
+    const props = fromJSON(this.jsonEncodingMap, data, new Map([['target', '_target']]));
     return new Guarantee(props);
   }
 
   toJSON(): any {
-    return toJSON(Guarantee.jsonEncodingMap, this);
+    return toJSON(Guarantee.jsonEncodingMap, this, new Map([['_target', 'target']]));
   }
 
   // Clone returns a deep copy of the receiver.
