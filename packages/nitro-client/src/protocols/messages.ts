@@ -107,6 +107,19 @@ export class Message {
     return messages;
   }
 
+  // CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger
+  // It contains the provided signed proposals and any proposals in the proposal queue.
+  static createRejectionNoticeMessage(oId: ObjectiveId, ...recipients: Address[]): Message[] {
+    const messages: Message[] = [];
+
+    for (const recipient of recipients) {
+      const message: Message = new Message({ to: recipient, rejectedObjectives: [oId] });
+      messages.push(message);
+    }
+
+    return messages;
+  }
+
   // CreateVoucherMessage returns a signed voucher message for each of the recipients provided.
   static createVoucherMessage(voucher: Voucher, ...recipients: Address[]): Message[] {
     const messages: Message[] = [];

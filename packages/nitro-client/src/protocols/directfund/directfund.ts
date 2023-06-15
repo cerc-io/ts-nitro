@@ -79,11 +79,11 @@ export class Objective implements ObjectiveInterface {
 
   c?: channel.Channel;
 
-  private myDepositSafetyThreshold?: Funds;
+  private myDepositSafetyThreshold: Funds = new Funds();
 
-  private myDepositTarget?: Funds;
+  private myDepositTarget: Funds = new Funds();
 
-  private fullyFundedThreshold?: Funds;
+  private fullyFundedThreshold: Funds = new Funds();
 
   private latestBlockNumber: number = 0;
 
@@ -221,7 +221,6 @@ export class Objective implements ObjectiveInterface {
   }
 
   // GetStatus returns the status of the objective.
-  // TODO: Implement
   getStatus(): ObjectiveStatus {
     return this.status;
   }
@@ -264,29 +263,46 @@ export class Objective implements ObjectiveInterface {
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
   approve(): Objective {
-    return new Objective({});
+    const updated = this.clone();
+    // todo: consider case of s.Status == Rejected
+    updated.status = ObjectiveStatus.Approved;
+
+    return updated;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
   reject(): [Objective, SideEffects] {
-    return [
-      new Objective({}),
-      {
-        messagesToSend: [],
-        proposalsToProcess: [],
-        transactionsToSubmit: [],
-      },
-    ];
+    const updated = this.clone();
+
+    assert(this.c);
+    updated.status = ObjectiveStatus.Rejected;
+    const peer = this.c.participants[1 - this.c.myIndex];
+
+    const sideEffects = new SideEffects({
+      messagesToSend: Message.createRejectionNoticeMessage(this.id(), peer),
+    });
+    return [updated, sideEffects];
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Can throw an error
-  // TODO: Implement
-  update(payload: ObjectivePayload): Objective {
-    return new Objective({});
+  update(p: ObjectivePayload): Objective {
+    if (this.id() !== p.objectiveId) {
+      // TODO: Handle partial return case if required
+      throw new Error(`event and objective Ids do not match: ${p.objectiveId} and ${this.id()} respectively`);
+    }
+
+    const updated = this.clone();
+    let ss: SignedState;
+    try {
+      ss = getSignedStatePayload(p.payloadData);
+    } catch (err) {
+      throw new Error(`could not get signed state payload: ${err}`);
+    }
+
+    assert(updated.c);
+    updated.c.addSignedState(ss);
+    return updated;
   }
 
   otherParticipants(): Address[] {
@@ -457,9 +473,6 @@ export class Objective implements ObjectiveInterface {
     const cClone = this.c.clone();
     clone.c = cClone;
 
-    assert(this.myDepositSafetyThreshold);
-    assert(this.myDepositTarget);
-    assert(this.fullyFundedThreshold);
     clone.myDepositSafetyThreshold = this.myDepositSafetyThreshold.clone();
     clone.myDepositTarget = this.myDepositTarget.clone();
     clone.fullyFundedThreshold = this.fullyFundedThreshold.clone();

@@ -94,12 +94,13 @@ export class MemStore implements Store {
     // todo: locking
     let objJSON: Buffer;
     try {
+      // TODO: Implement json marshalling for all objectives
       objJSON = Buffer.from(JSON.stringify(obj), 'utf-8');
     } catch (err) {
       throw new Error(`error setting objective ${obj.id()}: ${err}`);
     }
 
-    this.objectives.store(obj.id().toString(), objJSON);
+    this.objectives.store(obj.id(), objJSON);
 
     for (const rel of obj.related()) {
       switch (rel.constructor) {
@@ -142,13 +143,13 @@ export class MemStore implements Store {
     }
 
     // Objective ownership can only be transferred if the channel is not owned by another objective
-    const [prevOwner, isOwned] = this.channelToObjective.load(obj.ownsChannel().toString());
+    const [prevOwner, isOwned] = this.channelToObjective.load(obj.ownsChannel().string());
 
     if (obj.getStatus() === ObjectiveStatus.Approved) {
       if (!prevOwner) {
-        this.channelToObjective.store(obj.ownsChannel().toString(), obj.id());
+        this.channelToObjective.store(obj.ownsChannel().string(), obj.id());
       }
-      if (isOwned && prevOwner !== obj.id().toString()) {
+      if (isOwned && prevOwner !== obj.id()) {
         throw new Error(`cannot transfer ownership of channel from objective ${prevOwner} to ${obj.id()}`);
       }
     }
@@ -157,7 +158,7 @@ export class MemStore implements Store {
   public setChannel(ch: Channel): void {
     const chJSON = Buffer.from(JSON.stringify(ch), 'utf-8');
 
-    this.channels.store(ch.id.toString(), chJSON);
+    this.channels.store(ch.id.string(), chJSON);
   }
 
   // destroyChannel deletes the channel with id id.
@@ -165,15 +166,16 @@ export class MemStore implements Store {
     this.channels.delete(id.string());
   }
 
-  // TODO: Implement
+  // SetConsensusChannel sets the channel in the store.
   setConsensusChannel(ch: ConsensusChannel): void {
     if (ch.id.isZero()) {
       throw new Error('cannot store a channel with a zero id');
     }
 
+    // TODO: Implement json marshalling
     const chJSON = Buffer.from(JSON.stringify(ch), 'utf-8');
 
-    this.consensusChannels.store(ch.id.toString(), chJSON);
+    this.consensusChannels.store(ch.id.string(), chJSON);
   }
 
   // DestroyChannel deletes the channel with id id.
@@ -192,22 +194,18 @@ export class MemStore implements Store {
   }
 
   private _getChannelById(id: Destination): Channel {
-    const [chJSON, ok] = this.channels.load(id.toString());
+    const [chJSON, ok] = this.channels.load(id.string());
 
     if (!ok) {
       throw ErrNoSuchChannel;
     }
 
     assert(chJSON);
-
-    const ch = new Channel({});
-
     try {
-      ch.unmarshalJSON(chJSON);
-
+      const ch = Channel.fromJSON(chJSON.toString());
       return ch;
     } catch (err) {
-      throw new Error(`error unmarshaling channel ${ch.id}`);
+      throw new Error(`error unmarshaling channel ${id.string()}`);
     }
   }
 
@@ -257,6 +255,7 @@ export class MemStore implements Store {
 
     const ch = new ConsensusChannel({});
     try {
+      // TODO: Implment JSON unmarshalling
       ch.unmarshalJSON(chJSON);
     } catch (err) {
       throw new Error(`error unmarshaling channel ${ch.id}`);

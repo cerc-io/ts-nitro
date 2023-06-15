@@ -633,10 +633,10 @@ export class ConsensusChannel {
   // consensus state.
   receive(sp: SignedProposal): void {
     if (this.isFollower()) {
-      return this.followerReceive(sp);
+      this.followerReceive(sp);
     }
     if (this.isLeader()) {
-      return this.leaderReceive(sp);
+      this.leaderReceive(sp);
     }
 
     throw new Error('ConsensusChannel is malformed');
