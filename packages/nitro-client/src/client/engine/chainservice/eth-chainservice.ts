@@ -227,8 +227,8 @@ export class EthChainService implements ChainService {
   }
 
   // dispatchChainEvents takes in a collection of event logs from the chain
-  private dispatchChainEvents(logs: Log[]) {
-    for (const l of logs) {
+  private async dispatchChainEvents(logs: Log[]): Promise<void> {
+    for await (const l of logs) {
       switch (l.topics[0]) {
         case depositedTopic: {
           try {
@@ -269,7 +269,7 @@ export class EthChainService implements ChainService {
           let assetAddress;
           let amount;
           try {
-            [assetAddress, amount] = getChainHolding(this.na, tx, au);
+            [assetAddress, amount] = await getChainHolding(this.na, tx, au);
           } catch (err) {
             this.fatalF(`error in getChainHoldings: ${err}`);
           }
