@@ -104,16 +104,8 @@ export class Channel extends FixedPart {
 
   // UnmarshalJSON populates the calling Channel with the
   // json-encoded data
-  // TODO: Can throw an error
-  // TODO: Implement
   unmarshalJSON(data: Buffer): void {
-    try {
-      // TODO: Implement json.Unmarshal
-      const jsonCh = JSON.parse(data.toString());
-      Object.assign(this, jsonCh);
-    } catch (err) {
-      throw new Error('error unmarshaling channel data');
-    }
+    // Use Channel.fromJSON()
   }
 
   // MyDestination returns the client's destination

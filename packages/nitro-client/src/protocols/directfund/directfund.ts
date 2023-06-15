@@ -1,7 +1,9 @@
+import assert from 'assert';
+
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
+import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
-import assert from 'assert';
 import { Exit } from '../../channel/state/outcome/exit';
 import { Address } from '../../types/types';
 import { Funds } from '../../types/funds';
@@ -89,9 +91,23 @@ export class Objective implements ObjectiveInterface {
 
   private transactionSubmitted: boolean = false;
 
-  // TODO: Implement
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    status: { type: 'number' },
+    c: { type: 'class', value: Channel },
+    myDepositSafetyThreshold: { type: 'class', value: Funds },
+    myDepositTarget: { type: 'class', value: Funds },
+    fullyFundedThreshold: { type: 'class', value: Funds },
+    latestBlockNumber: { type: 'number' },
+    transactionSubmitted: { type: 'boolean' },
+  };
+
   static fromJSON(data: string): Objective {
-    return {} as Objective;
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Objective(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Objective.jsonEncodingMap, this);
   }
 
   constructor(params: {
