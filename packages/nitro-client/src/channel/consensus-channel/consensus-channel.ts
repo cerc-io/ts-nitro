@@ -7,7 +7,7 @@ import {
   FieldDescription, fromJSON, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
 
-import { Signature } from '../../crypto/signatures';
+import { Signature, signatureJsonEncodingMap } from '../../crypto/signatures';
 import { getAddressFromSecretKeyBytes } from '../../crypto/keys';
 import { Address } from '../../types/types';
 import { Funds } from '../../types/funds';
@@ -57,6 +57,20 @@ export class Balance {
 
   amount: bigint = BigInt(0);
 
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    destination: { type: 'class', value: Destination },
+    amount: { type: 'bigint' },
+  };
+
+  static fromJSON(data: string): Balance {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Balance(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Balance.jsonEncodingMap, this);
+  }
+
   constructor(params: {
     destination?: Destination;
     amount?: bigint;
@@ -99,15 +113,6 @@ export class Guarantee {
 
   right: Destination = new Destination();
 
-  constructor(params: {
-    amount?: bigint;
-    _target?: Destination;
-    left?: Destination;
-    right?: Destination;
-  }) {
-    Object.assign(this, params);
-  }
-
   static jsonEncodingMap: Record<string, FieldDescription> = {
     amount: { type: 'bigint' },
     target: { type: 'class', value: Destination },
@@ -122,6 +127,15 @@ export class Guarantee {
 
   toJSON(): any {
     return toJSON(Guarantee.jsonEncodingMap, this, new Map([['_target', 'target']]));
+  }
+
+  constructor(params: {
+    amount?: bigint;
+    _target?: Destination;
+    left?: Destination;
+    right?: Destination;
+  }) {
+    Object.assign(this, params);
   }
 
   // Clone returns a deep copy of the receiver.
@@ -175,6 +189,36 @@ export class LedgerOutcome {
   _follower: Balance = new Balance({});
 
   guarantees: Map<Destination, Guarantee> = new Map();
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    assetAddress: { type: 'string' },
+    leader: { type: 'class', value: Balance },
+    follower: { type: 'class', value: Balance },
+    guarantees: { type: 'map', key: { type: 'class', value: Destination }, value: { type: 'class', value: Guarantee } },
+  };
+
+  static fromJSON(data: string): LedgerOutcome {
+    const props = fromJSON(
+      this.jsonEncodingMap,
+      data,
+      new Map([
+        ['leader', '_leader'],
+        ['follower', '_follower'],
+      ]),
+    );
+    return new LedgerOutcome(props);
+  }
+
+  toJSON(): any {
+    return toJSON(
+      LedgerOutcome.jsonEncodingMap,
+      this,
+      new Map([
+        ['_leader', 'leader'],
+        ['_follower', 'follower'],
+      ]),
+    );
+  }
 
   constructor(params: {
     assetAddress?: Address;
@@ -355,6 +399,20 @@ export class Vars {
 
   outcome: LedgerOutcome = new LedgerOutcome({});
 
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    turnNum: { type: 'number' },
+    outcome: { type: 'class', value: LedgerOutcome },
+  };
+
+  static fromJSON(data: string): Vars {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Vars(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Vars.jsonEncodingMap, this);
+  }
+
   constructor(params: VarsConstructorOptions) {
     Object.assign(this, params);
   }
@@ -516,6 +574,20 @@ export class SignedVars extends Vars {
     zeroValueSignature,
   ];
 
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    ...super.jsonEncodingMap,
+    signatures: { type: 'array', value: { type: 'object', value: signatureJsonEncodingMap } },
+  };
+
+  static fromJSON(data: string): SignedVars {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new SignedVars(props);
+  }
+
+  toJSON(): any {
+    return toJSON(SignedVars.jsonEncodingMap, this);
+  }
+
   constructor(params: SignedVarsConstructorOptions) {
     super(params);
     Object.assign(this, params);
@@ -550,6 +622,24 @@ export class ConsensusChannel {
 
   // a queue of proposed changes which can be applied to the current state, ordered by TurnNum.
   private _proposalQueue: SignedProposal[] = [];
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    id: { type: 'class', value: Destination },
+    myIndex: { type: 'number' },
+    onChainFunding: { type: 'class', value: Funds },
+    fp: { type: 'class', value: FixedPart },
+    current: { type: 'class', value: SignedVars },
+    proposalQueue: { type: 'array', value: { type: 'class', value: SignedState } },
+  };
+
+  static fromJSON(data: string): ConsensusChannel {
+    const props = fromJSON(this.jsonEncodingMap, data, new Map([['proposalQueue', '_proposalQueue']]));
+    return new ConsensusChannel(props);
+  }
+
+  toJSON(): any {
+    return toJSON(ConsensusChannel.jsonEncodingMap, this, new Map([['_proposalQueue', 'proposalQueue']]));
+  }
 
   constructor(params: {
     id?: Destination;
@@ -840,13 +930,7 @@ export class ConsensusChannel {
   // UnmarshalJSON populates the receiver with the
   // json-encoded data
   unmarshalJSON(data: Buffer) {
-    try {
-      // TODO: Implement json.Unmarshal
-      const jsonCh = JSON.parse(data.toString());
-      Object.assign(this, jsonCh);
-    } catch (err) {
-      throw new Error(`error unmarshaling channel data: ${err}`);
-    }
+    // Use ConsensusChannel.fromJSON()
   }
 
   // From channel/consensus_channel/leader_channel.go

@@ -253,12 +253,11 @@ export class MemStore implements Store {
     }
     assert(chJSON);
 
-    const ch = new ConsensusChannel({});
+    let ch: ConsensusChannel;
     try {
-      // TODO: Implment JSON unmarshalling
-      ch.unmarshalJSON(chJSON);
+      ch = ConsensusChannel.fromJSON(chJSON.toString());
     } catch (err) {
-      throw new Error(`error unmarshaling channel ${ch.id}`);
+      throw new Error(`error unmarshaling channel ${id.string()}`);
     }
 
     return ch;
