@@ -7,7 +7,7 @@ import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
 import {
-  ConsensusChannel, SignedProposal, Proposal, Guarantee,
+  ConsensusChannel, SignedProposal, Proposal, Guarantee, ErrIncorrectChannelID, ErrInvalidTurnNum,
 } from '../../channel/consensus-channel/consensus-channel';
 import { Exit } from '../../channel/state/outcome/exit';
 import { FixedPart, State } from '../../channel/state/state';
@@ -124,8 +124,28 @@ export class Connection {
   }
 
   // handleProposal receives a signed proposal and acts according to the leader / follower
-  // TODO: Implement
-  handleProposal(sp: SignedProposal) {}
+  handleProposal(sp: SignedProposal): void {
+    // TODO: Create error in caller
+    // if c == nil {
+    //   return fmt.Errorf("nil connection should not handle proposals")
+    // }
+
+    if (sp.proposal.ledgerID !== this.channel?.id) {
+      throw ErrIncorrectChannelID;
+    }
+
+    if (this.channel !== null) {
+      try {
+        this.channel.receive(sp);
+      } catch (err) {
+        // Ignore stale or future proposals
+        if ((err as Error).message.includes(ErrInvalidTurnNum.message)) {
+          /* eslint-disable no-useless-return */
+          return;
+        }
+      }
+    }
+  }
 
   // IsFundingTheTarget computes whether the ledger channel on the receiver funds the guarantee expected by this connection
   isFundingTheTarget(): boolean {
@@ -134,9 +154,27 @@ export class Connection {
   }
 
   // getExpectedGuarantee returns a map of asset addresses to guarantees for a Connection.
-  // TODO: Implement
   getExpectedGuarantee(): Guarantee {
-    return {} as Guarantee;
+    const amountFunds = this.guaranteeInfo.leftAmount!.add(this.guaranteeInfo!.rightAmount!);
+
+    // HACK: GuaranteeInfo stores amounts as types.Funds.
+    // We only expect a single asset type, and we want to know how much is to be
+    // diverted for that asset type.
+    // So, we loop through amountFunds and break after the first asset type ...
+
+    let amount: bigint;
+
+    /* eslint-disable no-unreachable-loop */
+    for (const [, val] of amountFunds.value) {
+      amount = val;
+      break;
+    }
+
+    const target = this.guaranteeInfo.guaranteeDestination;
+    const { left } = this.guaranteeInfo;
+    const { right } = this.guaranteeInfo;
+
+    return Guarantee.newGuarantee(amount!, target, left, right);
   }
 
   expectedProposal(): Proposal {
