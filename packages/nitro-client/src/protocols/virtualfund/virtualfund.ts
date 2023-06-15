@@ -493,9 +493,17 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // Related returns a slice of related objects that need to be stored along with the objective
-  // TODO: Implement
   related(): Storable[] {
-    return [];
+    const ret: Storable[] = [this.v!];
+
+    if (this.toMyLeft !== null) {
+      ret.push(this.toMyLeft!.channel!);
+    }
+    if (this.toMyRight !== null) {
+      ret.push(this.toMyRight!.channel!);
+    }
+
+    return ret;
   }
 
   /// ///////////////////////////////////////////////
@@ -534,21 +542,84 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
-  // TODO: Implement
   proposeLedgerUpdate(connection: Connection, sk: Buffer): SideEffects {
-    return {} as SideEffects;
+    const ledger = connection.channel;
+
+    if (!ledger!.isLeader()) {
+      throw new Error('only the leader can propose a ledger update');
+    }
+
+    const sideEffects = new SideEffects({});
+
+    ledger?.propose(connection.expectedProposal(), sk);
+
+    const receipient = ledger!.follower();
+
+    // Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
+    // to create a valid message with ordered proposals:
+
+    const message = Message.createSignedProposalMessage(receipient, ...connection.channel!.proposalQueue());
+    sideEffects.messagesToSend.push(message);
+    return sideEffects;
   }
 
   // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
-  // TODO: Implement
   acceptLedgerUpdate(c: Connection, sk: Buffer): SideEffects {
-    return {} as SideEffects;
+    const ledger = c.channel;
+    let sp: SignedProposal;
+    try {
+      sp = ledger!.signNextProposal(c.expectedProposal(), sk);
+    } catch (err) {
+      throw new Error(`no proposed state found for ledger channel ${err}`);
+    }
+    const sideEffects = new SideEffects({});
+
+    // ledger sideEffect
+    const proposals = ledger?.proposalQueue();
+    if (proposals!.length !== 0) {
+      sideEffects.proposalsToProcess.push(proposals![0].proposal);
+    }
+
+    // message sideEffect
+    const receipient = ledger!.leader();
+    const message = Message.createSignedProposalMessage(receipient, sp);
+    sideEffects.messagesToSend.push(message);
+    return sideEffects;
   }
 
   // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
-  // TODO: Implement
   updateLedgerWithGuarantee(ledgerConnection: Connection, sk: Buffer): SideEffects {
-    return {} as SideEffects;
+    const ledger = ledgerConnection.channel;
+
+    let sideEffects: SideEffects;
+    const g = ledgerConnection.getExpectedGuarantee();
+    const proposed = ledger!.isProposed(g);
+
+    if (ledger!.isLeader()) { // If the user is the proposer craft a new proposal
+      if (proposed) {
+        return new SideEffects({});
+      }
+      let se: SideEffects;
+      try {
+        se = this.proposeLedgerUpdate(ledgerConnection, sk);
+      } catch (err) {
+        throw new Error(`error proposing ledger update: ${err}`);
+      }
+      sideEffects = se;
+    } else {
+      // If the proposal is next in the queue we accept it
+      const proposedNext = ledger?.isProposedNext(g);
+      if (proposedNext) {
+        let se: SideEffects;
+        try {
+          se = this.acceptLedgerUpdate(ledgerConnection, sk);
+        } catch (err) {
+          throw new Error(`error proposing ledger update: ${err}`);
+        }
+        sideEffects = se;
+      }
+    }
+    return sideEffects!;
   }
 }
 
