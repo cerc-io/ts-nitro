@@ -1,6 +1,6 @@
 import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
-import { SignedProposal } from '../channel/consensus-channel/consensus-channel';
+import { SignedProposal, Proposal } from '../channel/consensus-channel/consensus-channel';
 import { Voucher } from '../payments/vouchers';
 import { Address } from '../types/types';
 
@@ -151,6 +151,12 @@ export class Message {
   summarize(): MessageSummary {
     return JSON.stringify(this, null, 2);
   }
+}
+
+// GetProposalObjectiveId returns the objectiveId for a proposal.
+// TODO: Implement
+export function getProposalObjectiveId(p: Proposal): ObjectiveId {
+  return '';
 }
 
 // DeserializeMessage deserializes the passed string into a protocols.Message.

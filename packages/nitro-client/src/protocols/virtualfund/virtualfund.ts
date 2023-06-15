@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { ethers } from 'ethers';
+import _ from 'lodash';
 
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
@@ -22,7 +23,9 @@ import {
   Storable,
   ProposalReceiver,
 } from '../interfaces';
-import { Message, ObjectiveId, ObjectivePayload } from '../messages';
+import {
+  Message, ObjectiveId, ObjectivePayload, getProposalObjectiveId,
+} from '../messages';
 import { VirtualChannel } from '../../channel/virtual';
 import { GuaranteeMetadata } from '../../channel/state/outcome/guarantee';
 import { SignedState } from '../../channel/state/signedstate';
@@ -458,9 +461,54 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     return {} as SignedState;
   }
 
-  // TODO: Implement
   receiveProposal(sp: SignedProposal): ProposalReceiver {
-    return {} as ProposalReceiver;
+    const pId = getProposalObjectiveId(sp.proposal);
+    if (this.id() !== pId) {
+      throw new Error(`sp and objective Ids do not match: ${pId} and ${this.id()} respectively`);
+    }
+
+    const updated = this.clone();
+
+    let toMyLeftId: Destination;
+    let toMyRightId: Destination;
+
+    if (!this.isAlice()) {
+      toMyLeftId = this.toMyLeft!.channel!.id; // Avoid this if it is nil
+    }
+    if (!this.isBob()) {
+      toMyRightId = this.toMyRight!.channel!.id; // Avoid this if it is nil
+    }
+
+    if (sp.proposal.target() === this.v?.id) {
+      let err: Error | undefined;
+      switch (true) {
+        case _.isEqual(sp.proposal.ledgerID, new Destination()):
+          throw new Error('signed proposal is for a zero-addressed ledger channel');
+          // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+        case _.isEqual(sp.proposal.ledgerID, toMyLeftId!):
+          try {
+            updated.toMyLeft!.handleProposal(sp);
+          } catch (handleError) {
+            err = handleError as Error;
+          }
+          break;
+        case _.isEqual(sp.proposal.ledgerID, toMyRightId!):
+          try {
+            updated.toMyRight!.handleProposal(sp);
+          } catch (handleError) {
+            err = handleError as Error;
+          }
+          break;
+        default:
+          throw new Error('signed proposal is not addressed to a known ledger connection');
+      }
+
+      if (err) {
+        throw new Error(`error incorporating signed proposal ${sp} into objective: ${err}`);
+      }
+    }
+
+    return updated;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
