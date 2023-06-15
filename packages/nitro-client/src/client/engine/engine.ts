@@ -1032,7 +1032,7 @@ function getProposalObjectiveId(p: Proposal): ObjectiveId {
   switch (p.type()) {
     case ProposalType.AddProposal: {
       const prefix = VirtualFundObjectivePrefix;
-      const channelId = p.toAdd.guarantee.target().string();
+      const channelId = p.toAdd.target().string();
       return `${prefix}${channelId}`;
     }
     case ProposalType.RemoveProposal: {

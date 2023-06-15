@@ -102,6 +102,13 @@ export class Balance {
   }
 }
 
+interface GuaranteeOptions {
+  amount?: bigint;
+  _target?: Destination;
+  left?: Destination;
+  right?: Destination;
+}
+
 // Guarantee is a convenient, ergonomic representation of a
 // single-asset Allocation of type 1, ie. a guarantee.
 export class Guarantee {
@@ -129,12 +136,7 @@ export class Guarantee {
     return toJSON(Guarantee.jsonEncodingMap, this, new Map([['_target', 'target']]));
   }
 
-  constructor(params: {
-    amount?: bigint;
-    _target?: Destination;
-    left?: Destination;
-    right?: Destination;
-  }) {
+  constructor(params: GuaranteeOptions) {
     Object.assign(this, params);
   }
 
@@ -469,14 +471,14 @@ export class Vars {
     // CHECKS
     const o = this.outcome;
 
-    if (o.guarantees.has(p.guarantee.target())) {
+    if (o.guarantees.has(p.target())) {
       throw ErrDuplicateGuarantee;
     }
 
     let left: Balance;
     let right: Balance;
 
-    if (o._leader.destination === p.guarantee.left) {
+    if (o._leader.destination === p.left) {
       left = o._leader;
       right = o._follower;
     } else {
@@ -484,7 +486,7 @@ export class Vars {
       right = o._leader;
     }
 
-    if (p.leftDeposit > p.guarantee.amount) {
+    if (p.leftDeposit > p.amount) {
       throw ErrInvalidDeposit;
     }
 
@@ -504,7 +506,7 @@ export class Vars {
     const rightDeposit = p.rightDeposit();
 
     // Adjust balances
-    if (o._leader.destination === p.guarantee.left) {
+    if (o._leader.destination === p.left) {
       o._leader.amount -= p.leftDeposit;
       o._follower.amount -= rightDeposit;
     } else {
@@ -513,7 +515,7 @@ export class Vars {
     }
 
     // Include guarantee
-    o.guarantees.set(p.guarantee._target, p.guarantee);
+    o.guarantees.set(p._target, p as Guarantee);
   }
 
   // Remove mutates Vars by
@@ -1126,43 +1128,33 @@ export class ConsensusChannel {
   }
 }
 
-type AddParams = {
-  guarantee?: Guarantee;
+interface AddOptions extends GuaranteeOptions {
   leftDeposit?: bigint;
-};
+}
 
 // Add encodes a proposal to add a guarantee to a ConsensusChannel.
-export class Add {
-  guarantee: Guarantee = new Guarantee({});
-
+export class Add extends Guarantee {
   // LeftDeposit is the portion of the Add's amount that will be deducted from left participant's ledger balance.
   //
   // The right participant's deduction is computed as the difference between the guarantee amount and LeftDeposit.
   leftDeposit: bigint = BigInt(0);
 
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    ...super.jsonEncodingMap,
+    leftDeposit: { type: 'bigint' },
+  };
+
   static fromJSON(data: string): Add {
-    // jsonValue has Guarantee properties
-    // Construct Add with inidividual field values
-    const jsonValue = JSON.parse(data);
-
-    const props: AddParams = {
-      guarantee: Guarantee.fromJSON(JSON.stringify(jsonValue.guarantee)),
-      leftDeposit: jsonValue.leftDeposit,
-    };
-
+    const props = fromJSON(this.jsonEncodingMap, data, new Map([['target', '_target']]));
     return new Add(props);
   }
 
   toJSON(): any {
-    // Return a custom object
-    // (Add composes/embeds Guarantee in go-nitro)
-    return {
-      ...this.guarantee.toJSON(),
-      leftDeposit: this.leftDeposit,
-    };
+    return toJSON(Add.jsonEncodingMap, this, new Map([['_target', 'target']]));
   }
 
-  constructor(params: AddParams) {
+  constructor(params: AddOptions) {
+    super(params);
     Object.assign(this, params);
   }
 
@@ -1174,7 +1166,7 @@ export class Add {
     // }
 
     return new Add({
-      guarantee: this.guarantee.clone(),
+      ...super.clone(),
       leftDeposit: BigInt(this.leftDeposit),
     });
   }
@@ -1182,12 +1174,12 @@ export class Add {
   // RightDeposit computes the deposit from the right participant such that
   // a.LeftDeposit + a.RightDeposit() fully funds a's guarantee.BalanceBalance
   rightDeposit(): bigint {
-    const result = this.guarantee.amount - this.leftDeposit;
+    const result = this.amount - this.leftDeposit;
     return result;
   }
 
   equal(a2: Add): boolean {
-    return _.isEqual(this.guarantee, a2.guarantee) && this.leftDeposit === a2.leftDeposit;
+    return _.isEqual((this as Guarantee), (a2 as Guarantee)) && this.leftDeposit === a2.leftDeposit;
   }
 }
 
@@ -1280,7 +1272,7 @@ export class Proposal {
   target(): Destination {
     switch (this.type()) {
       case 'AddProposal':
-        return this.toAdd.guarantee.target();
+        return this.toAdd.target();
       case 'RemoveProposal':
         return this.toRemove.target;
       default:

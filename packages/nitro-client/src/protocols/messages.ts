@@ -143,8 +143,9 @@ export class Message {
 
   // Summarize returns a MessageSummary for the message that is suitable for logging
   // TODO: Implement
+  // Use JSON.stringify() for now
   summarize(): MessageSummary {
-    return {};
+    return JSON.stringify(this, null, 2);
   }
 }
 
@@ -155,4 +156,5 @@ export function deserializeMessage(s: string): Message {
 
 // MessageSummary is a summary of a message suitable for logging.
 // TODO: Implement
-export class MessageSummary {}
+// Use string as we're using JSON.stringify() for now
+export type MessageSummary = string;
