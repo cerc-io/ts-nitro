@@ -174,14 +174,14 @@ export class Connection {
     let amount: bigint;
 
     /* eslint-disable no-unreachable-loop */
-    for (const [, val] of amountFunds!.value) {
+    for (const [, val] of amountFunds.value) {
       amount = val;
       break;
     }
 
-    const target = this.guaranteeInfo.guaranteeDestination!;
-    const { left } = this.guaranteeInfo!;
-    const { right } = this.guaranteeInfo!;
+    const target = this.guaranteeInfo.guaranteeDestination;
+    const { left } = this.guaranteeInfo;
+    const { right } = this.guaranteeInfo;
 
     return Guarantee.newGuarantee(amount!, target, left, right);
   }
@@ -192,7 +192,7 @@ export class Connection {
     let leftAmount: BigInt;
 
     /* eslint-disable no-unreachable-loop */
-    for (const [, val] of this.guaranteeInfo!.leftAmount!.value!) {
+    for (const [, val] of this.guaranteeInfo.leftAmount!.value) {
       leftAmount = val;
       break;
     }
@@ -449,13 +449,12 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     return this.status;
   }
 
-  otherParticipants(): Address[] {
+  private otherParticipants(): Address[] {
     const otherParticipants: Address[] = [];
-    assert(this.v);
 
-    for (let i = 0; i < this.v.participants.length; i += 1) {
+    for (let i = 0; i < this.v!.participants.length; i += 1) {
       if (i !== this.myRole) {
-        otherParticipants.push(this.v.participants[i]);
+        otherParticipants.push(this.v!.participants[i]);
       }
     }
 
@@ -463,7 +462,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // TODO: Implement
-  getPayload(raw: ObjectivePayload): SignedState {
+  private getPayload(raw: ObjectivePayload): SignedState {
     return {} as SignedState;
   }
 
@@ -485,7 +484,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       toMyRightId = this.toMyRight!.channel!.id; // Avoid this if it is nil
     }
 
-    if (sp.proposal.target() === this.v?.id) {
+    if (sp.proposal.target() === this.v!.id) {
       let err: Error | undefined;
       switch (true) {
         case _.isEqual(sp.proposal.ledgerID, new Destination()):
@@ -533,7 +532,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     const updated = this.clone();
     const ss = payload;
     if (ss.signatures().length !== 0) {
-      updated.v?.addSignedState(ss);
+      updated.v!.addSignedState(ss);
     }
 
     return updated;
@@ -551,13 +550,13 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // Prefunding
 
-    if (!updated.v?.preFundSignedByMe()) {
-      const ss = updated.v?.signAndAddPrefund(secretKey);
+    if (!updated.v!.preFundSignedByMe()) {
+      const ss = updated.v!.signAndAddPrefund(secretKey);
       const messages = Message.createObjectivePayloadMessage(this.id(), ss, SignedStatePayload, ...this.otherParticipants());
       sideEffects.messagesToSend.push(...messages);
     }
 
-    if (!updated.v?.preFundComplete()) {
+    if (!updated.v!.preFundComplete()) {
       return [updated, sideEffects, WaitingForCompletePrefund];
     }
 
@@ -588,8 +587,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     }
 
     // Postfunding
-    if (!updated.v.postFundSignedByMe()) {
-      const ss = updated.v?.signAndAddPostfund(secretKey);
+    if (!updated.v!.postFundSignedByMe()) {
+      const ss = updated.v!.signAndAddPostfund(secretKey);
       const messages = Message.createObjectivePayloadMessage(this.id(), ss, SignedStatePayload, ...this.otherParticipants());
       sideEffects.messagesToSend.push(...messages);
     }
@@ -600,7 +599,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     // Alice and Bob may counter-challenge with a postfund state plus a redemption state.
     // See ADR-0009.
 
-    if (!updated.v.postFundComplete() && (updated.isAlice() || updated.isBob())) {
+    if (!updated.v!.postFundComplete() && (updated.isAlice() || updated.isBob())) {
       return [updated, sideEffects, WaitingForCompletePostFund];
     }
 
@@ -628,7 +627,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   /// ///////////////////////////////////////////////
 
   // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
-  fundingComplete(): boolean {
+  private fundingComplete(): boolean {
     // Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and
     // {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
     // A = P_0 and B=P_n are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
@@ -643,10 +642,10 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // Clone returns a deep copy of the receiver.
-  clone(): Objective {
+  private clone(): Objective {
     const clone = new Objective({});
     clone.status = this.status;
-    const vClone = this.v?.clone();
+    const vClone = this.v!.clone();
     clone.v = vClone;
 
     if (this.toMyLeft !== null) {
@@ -678,7 +677,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
-  proposeLedgerUpdate(connection: Connection, sk: Buffer): SideEffects {
+  private proposeLedgerUpdate(connection: Connection, sk: Buffer): SideEffects {
     const ledger = connection.channel;
 
     if (!ledger!.isLeader()) {
@@ -700,7 +699,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
-  acceptLedgerUpdate(c: Connection, sk: Buffer): SideEffects {
+  private acceptLedgerUpdate(c: Connection, sk: Buffer): SideEffects {
     const ledger = c.channel;
     let sp: SignedProposal;
     try {
@@ -724,7 +723,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
-  updateLedgerWithGuarantee(ledgerConnection: Connection, sk: Buffer): SideEffects {
+  private updateLedgerWithGuarantee(ledgerConnection: Connection, sk: Buffer): SideEffects {
     const ledger = ledgerConnection.channel;
 
     let sideEffects: SideEffects;
@@ -844,12 +843,12 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   channelId(myAddress: Address): Destination {
-    const participant: Address[] = [myAddress];
-    participant.push(...this.intermediaries);
-    participant.push(this.counterParty);
+    const participants: Address[] = [myAddress];
+    participants.push(...this.intermediaries);
+    participants.push(this.counterParty);
 
     const fixedPart = new FixedPart({
-      participants: participant,
+      participants,
       channelNonce: this.nonce,
       challengeDuration: this.challengeDuration,
     });
