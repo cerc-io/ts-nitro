@@ -1,9 +1,13 @@
 import assert from 'assert';
 
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
-import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+import {
+  FieldDescription,
+  fromJSON,
+  toJSON,
+  zeroValueSignature,
+} from '@cerc-io/nitro-util';
 
-import { zeroValueSignature } from '@cerc-io/nitro-util';
 import { Destination } from '../../types/destination';
 import { Address } from '../../types/types';
 import * as channel from '../../channel/channel';
@@ -18,13 +22,27 @@ import {
   ObjectiveStatus,
   ProposalReceiver,
 } from '../interfaces';
-import { Message, ObjectiveId, ObjectivePayload } from '../messages';
+import {
+  Message, ObjectiveId, ObjectivePayload, PayloadType,
+} from '../messages';
 import { SignedState } from '../../channel/state/signedstate';
 import { SingleAssetExit, Exit } from '../../channel/state/outcome/exit';
 import {
   FixedPart, VariablePart, Signature, stateFromFixedAndVariablePart, State,
 } from '../../channel/state/state';
 import { equal } from '../../crypto/signatures';
+
+const WaitingForFinalStateFromAlice: WaitingFor = 'WaitingForFinalStateFromAlice';
+const WaitingForSupportedFinalState: WaitingFor = 'WaitingForSupportedFinalState'; // Round 1
+const WaitingForDefundingOnMyLeft: WaitingFor = 'WaitingForDefundingOnMyLeft'; // Round 2
+const WaitingForDefundingOnMyRight: WaitingFor = 'WaitingForDefundingOnMyRight'; // Round 2
+const WaitingForNothing: WaitingFor = 'WaitingForNothing'; // Finished
+
+// SignedStatePayload indicates that the payload is a json serialized signed state
+const SignedStatePayload: PayloadType = 'SignedStatePayload';
+// RequestFinalStatePayload indicates that the payload is a request for the final state
+// The actual payload is simply the channel id that the final state is for
+const RequestFinalStatePayload: PayloadType = 'RequestFinalStatePayload';
 
 // The turn number used for the final state
 const FinalTurnNum = 2;
@@ -37,6 +55,94 @@ type GetChannelByIdFunction = (id: Destination) => [channel.Channel | undefined,
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
 type GetTwoPartyConsensusLedgerFunction = (counterparty: Address) => [ConsensusChannel | undefined, boolean];
+
+// TODO: Implement
+// getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+export function getSignedStatePayload(b: Buffer): SignedState {
+  return {} as SignedState;
+}
+
+// TODO: Implement
+// getRequestFinalStatePayload takes in a serialized channel id payload and returns the deserialized channel id.
+export function getRequestFinalStatePayload(b: Buffer): Destination {
+  return {} as Destination;
+}
+
+// validateFinalOutcome is a helper function that validates a final outcome from Alice is valid.
+export function validateFinalOutcome(
+  vFixed: FixedPart,
+  initialOutcome: SingleAssetExit,
+  finalOutcome: SingleAssetExit,
+  me: Address,
+  minAmount: bigint,
+): void {
+  // Check the outcome participants are correct
+  const alice = vFixed.participants[0];
+  const bob = vFixed.participants[vFixed.participants.length - 1];
+
+  if (initialOutcome.allocations.value[0].destination !== Destination.addressToDestination(alice)) {
+    throw new Error(`0th allocation is not to Alice but to ${initialOutcome.allocations.value[0].destination}`);
+  }
+  if (initialOutcome.allocations.value[1].destination !== Destination.addressToDestination(bob)) {
+    throw new Error(`1st allocation is not to Bob but to ${initialOutcome.allocations.value[0].destination}`);
+  }
+
+  // Check the amounts are correct
+  const initialAliceAmount = initialOutcome.allocations.value[0].amount;
+  const initialBobAmount = initialOutcome.allocations.value[1].amount;
+  const finalAliceAmount = finalOutcome.allocations.value[0].amount;
+  const finalBobAmount = finalOutcome.allocations.value[1].amount;
+  const paidToBob = finalBobAmount - finalAliceAmount;
+  const paidFromAlice = initialAliceAmount - finalAliceAmount;
+
+  if (paidToBob !== paidFromAlice) {
+    throw new Error(`final outcome is not balanced: Alice paid ${paidFromAlice}, Bob received ${paidToBob}`);
+  }
+
+  // if we're Bob we want to make sure the final state Alice sent is equal to or larger than the payment we already have
+  if (me === bob) {
+    if (paidToBob < minAmount) {
+      throw new Error(`payment amount ${paidToBob} is less than the minimum payment amount ${minAmount}`);
+    }
+  }
+}
+
+// ObjectiveRequest represents a request to create a new virtual defund objective.
+// TODO: Implement
+export class ObjectiveRequest implements ObjectiveRequestInterface {
+  channelId: Destination = new Destination();
+
+  private objectiveStarted?: ReadWriteChannel<void>;
+
+  constructor(params: {
+    channelId?: Destination;
+    objectiveStarted?: ReadWriteChannel<void>;
+  }) {
+    Object.assign(this, params);
+  }
+
+  // NewObjectiveRequest creates a new ObjectiveRequest.
+  static newObjectiveRequest(channelId: Destination): ObjectiveRequest {
+    return new ObjectiveRequest({
+      channelId,
+      objectiveStarted: Channel(), // Initialize as an unresolved promise
+    });
+  }
+
+  id(address: Address, chainId?: bigint): ObjectiveId {
+    return ObjectivePrefix + this.channelId.string();
+  }
+
+  async waitForObjectiveToStart(): Promise<void> {
+    assert(this.objectiveStarted);
+    await this.objectiveStarted.shift();
+  }
+
+  signalObjectiveStarted(): void {
+    assert(this.objectiveStarted);
+    this.objectiveStarted.close();
+  }
+}
 
 export class Objective implements ObjectiveInterface {
   status: ObjectiveStatus = ObjectiveStatus.Unapproved;
@@ -183,17 +289,58 @@ export class Objective implements ObjectiveInterface {
   }
 
   // ConstructObjectiveFromPayload takes in a message payload and constructs an objective from it.
-  // TODO: Can throw an error
-  // TODO: Implement
   static constructObjectiveFromPayload(
     p: ObjectivePayload,
     preapprove: boolean,
     myAddress: Address,
     getChannel: GetChannelByIdFunction,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
-    latestVoucherAmount: bigint,
+    latestVoucherAmount: bigint = BigInt(0),
   ): Objective {
-    return {} as Objective;
+    // if latestVoucherAmount == nil {
+    //   latestVoucherAmount = big.NewInt(0)
+    // }
+
+    let cId: Destination;
+    let err: Error;
+
+    switch (p.type) {
+      case RequestFinalStatePayload: {
+        try {
+          cId = getRequestFinalStatePayload(p.payloadData);
+        } catch (handleError) {
+          err = handleError as Error;
+        }
+        break;
+      }
+
+      case SignedStatePayload: {
+        let ss: SignedState;
+        try {
+          ss = getSignedStatePayload(p.payloadData);
+        } catch (handleError) {
+          err = handleError as Error;
+        }
+        cId = ss!.channelId();
+        break;
+      }
+
+      default:
+        throw new Error(`unknown payload type ${p.type}`);
+    }
+
+    if (err!) {
+      throw err;
+    }
+
+    return this.newObjective(
+      ObjectiveRequest.newObjectiveRequest(cId!),
+      preapprove,
+      myAddress,
+      latestVoucherAmount,
+      getChannel,
+      getTwoPartyConsensusLedger,
+    );
   }
 
   // TODO: Implement
@@ -365,75 +512,111 @@ export class Objective implements ObjectiveInterface {
 
   // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
   // and returns the updated state.
-  // TODO: Implement
   update(op: ObjectivePayload): Objective {
-    return new Objective({});
+    if (this.id() !== op.objectiveId) {
+      throw new Error(`event and objective Ids do not match: ${op.objectiveId} and ${this.id()} respectively`);
+    }
+
+    switch (op.type) {
+      case SignedStatePayload: {
+        const ss = getSignedStatePayload(op.payloadData);
+        const updated = this.clone();
+        try {
+          validateFinalOutcome(
+            updated.v!,
+            updated.initialOutcome(),
+            ss.state().outcome.value[0],
+            this.v!.participants[this.myRole],
+            updated.minimumPaymentAmount!,
+          );
+        } catch (err) {
+          throw new Error(`outcome failed validation ${err}`);
+        }
+
+        const ok = updated.v!.addSignedState(ss);
+        if (!ok) {
+          throw new Error(`could not add signed state ${ss}`);
+        }
+        return updated;
+      }
+
+      case RequestFinalStatePayload: {
+        // Since the objective is already created we don't need to do anything else with the payload
+        return new Objective({});
+      }
+
+      default:
+        throw new Error(`unknown payload type ${op.type}`);
+    }
   }
 
   // ReceiveProposal receives a signed proposal and returns an updated VirtualDefund objective.
   // TODO: Implement
   receiveProposal(sp: SignedProposal): ProposalReceiver {
-    return {} as ProposalReceiver;
+    let toMyLeftId: Destination;
+    let toMyRightId: Destination;
+
+    if (this.toMyLeft !== null) {
+      toMyLeftId = this.toMyLeft!.id;
+    }
+    if (this.toMyRight !== null) {
+      toMyRightId = this.toMyRight!.id;
+    }
+
+    const updated = this.clone();
+
+    if (sp.proposal.target() === this.vId()) {
+      let err: Error | undefined;
+
+      switch (true) {
+        case _.isEqual(sp.proposal.ledgerID, new Destination()): {
+          throw new Error('signed proposal is for a zero-addressed ledger channel');
+        // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+        }
+
+        case _.isEqual(sp.proposal.ledgerID, toMyLeftId!): {
+          try {
+            updated.toMyLeft!.receive(sp);
+          } catch (handleError) {
+            err = handleError as Error;
+          }
+          break;
+        }
+
+        case _.isEqual(sp.proposal.ledgerID, toMyRightId!): {
+          try {
+            updated.toMyRight!.receive(sp);
+          } catch (handleError) {
+            err = handleError as Error;
+          }
+          break;
+        }
+
+        default:
+          throw new Error('signed proposal is not addressed to a known ledger connection');
+      }
+
+      // Ignore stale or future proposals.
+      if ((err as Error).message.includes(ErrInvalidTurnNum.message)) {
+        return updated;
+      }
+
+      if (err) {
+        throw new Error(`error incorporating signed proposal ${sp} into objective: ${err}`);
+      }
+    }
+    return updated;
+  }
+
+  // isZero returns true if every byte field on the signature is zero
+  private isZero(sig: Signature): boolean {
+    return equal(sig, zeroValueSignature);
   }
 }
 
 // IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
 export function isVirtualDefundObjective(id: ObjectiveId): boolean {
   return id.startsWith(ObjectivePrefix);
-}
-
-// TODO: Implement
-// getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
-export function getSignedStatePayload(b: []): SignedState {
-  return {} as SignedState;
-}
-
-// TODO: Implement
-// getRequestFinalStatePayload takes in a serialized channel id payload and returns the deserialized channel id.
-export function getRequestFinalStatePayload(b: []): Destination {
-  return {} as Destination;
-}
-
-// isZero returns true if every byte field on the signature is zero
-export function isZero(sig: Signature): boolean {
-  return equal(sig, zeroValueSignature);
-}
-
-// ObjectiveRequest represents a request to create a new virtual defund objective.
-// TODO: Implement
-export class ObjectiveRequest implements ObjectiveRequestInterface {
-  channelId: Destination = new Destination();
-
-  private objectiveStarted?: ReadWriteChannel<void>;
-
-  constructor(params: {
-    channelId?: Destination;
-    objectiveStarted?: ReadWriteChannel<void>;
-  }) {
-    Object.assign(this, params);
-  }
-
-  // NewObjectiveRequest creates a new ObjectiveRequest.
-  static newObjectiveRequest(channelId: Destination): ObjectiveRequest {
-    return new ObjectiveRequest({
-      channelId,
-      objectiveStarted: Channel(), // Initialize as an unresolved promise
-    });
-  }
-
-  id(address: Address, chainId?: bigint): ObjectiveId {
-    return ObjectivePrefix + this.channelId.string();
-  }
-
-  async waitForObjectiveToStart(): Promise<void> {
-    assert(this.objectiveStarted);
-    await this.objectiveStarted.shift();
-  }
-
-  signalObjectiveStarted(): void {
-    assert(this.objectiveStarted);
-    this.objectiveStarted.close();
-  }
 }
 
 // GetVirtualChannelFromObjectiveId gets the virtual channel id from the objective id.
@@ -445,13 +628,3 @@ export function getVirtualChannelFromObjectiveId(id: ObjectiveId): Destination {
 
   return new Destination(raw);
 }
-
-// TODO: Implement
-// validateFinalOutcome is a helper function that validates a final outcome from Alice is valid.
-export function validateFinalOutcome(
-  vFixed: FixedPart,
-  initialOutcome: SingleAssetExit,
-  finalOutcome: SingleAssetExit,
-  me: Address,
-  minAmount: bigint,
-): void { }
