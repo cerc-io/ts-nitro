@@ -3,6 +3,7 @@ import assert from 'assert';
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
 import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
+import { zeroValueSignature } from '@cerc-io/nitro-util';
 import { Destination } from '../../types/destination';
 import { Address } from '../../types/types';
 import * as channel from '../../channel/channel';
@@ -17,19 +18,25 @@ import {
   ObjectiveStatus,
   ProposalReceiver,
 } from '../interfaces';
-import { ObjectiveId, ObjectivePayload } from '../messages';
+import { Message, ObjectiveId, ObjectivePayload } from '../messages';
 import { SignedState } from '../../channel/state/signedstate';
-import { SingleAssetExit } from '../../channel/state/outcome/exit';
-import { FixedPart, Signature } from '../../channel/state/state';
+import { SingleAssetExit, Exit } from '../../channel/state/outcome/exit';
+import {
+  FixedPart, VariablePart, Signature, stateFromFixedAndVariablePart, State,
+} from '../../channel/state/state';
+import { equal } from '../../crypto/signatures';
+
+// The turn number used for the final state
+const FinalTurnNum = 2;
 
 export const ObjectivePrefix = 'VirtualDefund-';
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
-type GetChannelByIdFunction = (id: Destination) => [ channel.Channel | undefined, boolean ];
+type GetChannelByIdFunction = (id: Destination) => [channel.Channel | undefined, boolean];
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
-type GetTwoPartyConsensusLedgerFunction = (counterparty: Address) => [ ConsensusChannel | undefined, boolean ];
+type GetTwoPartyConsensusLedgerFunction = (counterparty: Address) => [ConsensusChannel | undefined, boolean];
 
 export class Objective implements ObjectiveInterface {
   status: ObjectiveStatus = ObjectiveStatus.Unapproved;
@@ -190,50 +197,104 @@ export class Objective implements ObjectiveInterface {
   }
 
   // TODO: Implement
+  private generateFinalOutcome(): SingleAssetExit {
+    return {} as SingleAssetExit;
+  }
+
+  // finalState returns the final state for the virtual channel
+  private generateFinalState(): State {
+    const vp = new VariablePart({ outcome: new Exit([this.generateFinalOutcome()]), turnNum: FinalTurnNum, isFinal: true });
+    return stateFromFixedAndVariablePart(this.v!, vp);
+  }
+
   id(): ObjectiveId {
-    return '';
+    const id = this.vId().string();
+    return `${ObjectivePrefix}${id}`;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
-  approve(): ObjectiveInterface {
-    return new Objective({});
+  approve(): Objective {
+    const updated = this.clone();
+    // todo: consider case of s.Status == Rejected
+    updated.status = ObjectiveStatus.Approved;
+
+    return updated;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
   reject(): [Objective, SideEffects] {
-    return [new Objective({}), new SideEffects({})];
+    const updated = this.clone();
+    updated.status = ObjectiveStatus.Rejected;
+
+    const peers: Address[] = [];
+    for (const [i, peer] of this.v!.participants.entries()) {
+      if (i !== this.myRole) {
+        peers.push(peer);
+      }
+    }
+
+    const message = Message.createRejectionNoticeMessage(this.id(), ...peers);
+    const sideEffects = new SideEffects({ messagesToSend: message });
+    return [updated, sideEffects];
   }
 
   // OwnsChannel returns the channel the objective exclusively owns.
-  // TODO: Implement
   ownsChannel(): Destination {
-    return new Destination();
+    return this.vId();
   }
 
   // GetStatus returns the status of the objective.
-  // TODO: Implement
   getStatus(): ObjectiveStatus {
-    return ObjectiveStatus.Unapproved;
+    return this.status;
   }
 
   // Related returns a slice of related objects that need to be stored along with the objective
-  // TODO: Implement
   related(): Storable[] {
-    return [];
+    const related: Storable[] = [];
+    related.push(this.v!);
+
+    if (this.toMyLeft !== null) {
+      related.push(this.toMyLeft!);
+    }
+    if (this.toMyRight !== null) {
+      related.push(this.toMyRight!);
+    }
+
+    return related;
   }
 
   // Clone returns a deep copy of the receiver.
-  // TODO: Implement
   private clone(): Objective {
-    return {} as Objective;
+    const clone = new Objective({});
+    clone.status = this.status;
+    clone.v = this.v!.clone();
+
+    if (this.minimumPaymentAmount !== null) {
+      clone.minimumPaymentAmount = BigInt(this.minimumPaymentAmount!);
+    }
+    clone.myRole = this.myRole;
+    // TODO: Properly clone the consensus channels
+
+    if (this.toMyLeft !== null) {
+      clone.toMyLeft = this.toMyLeft;
+    }
+
+    if (this.toMyRight !== null) {
+      clone.toMyRight = this.toMyRight;
+    }
+
+    return clone;
   }
 
   // otherParticipants returns the participants in the channel that are not the current participant.
-  // TODO: Implement
   private otherParticipants(): Address[] {
-    return [];
+    const others: Address[] = [];
+    for (let i = 0; i < this.v!.participants.length; i += 1) {
+      if (i !== this.myRole) {
+        others.push(this.v!.participants[i]);
+      }
+    }
+    return others;
   }
 
   // TODO: Implement
@@ -249,16 +310,14 @@ export class Objective implements ObjectiveInterface {
     return [new Objective({}), new SideEffects({}), ''];
   }
 
-  // TODO: Implement
   // isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol.
   private isAlice(): boolean {
-    return false;
+    return this.myRole === 0;
   }
 
   // isBob returns true if the receiver represents participant n+1 in the virtualdefund protocol.
-  // TODO: Implement
   private isBob(): boolean {
-    return false;
+    return this.myRole === this.v!.participants.length - 1;
   }
 
   // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
@@ -274,27 +333,34 @@ export class Objective implements ObjectiveInterface {
   }
 
   // VId returns the channel id of the virtual channel.
-  // TODO: Implement
   vId(): Destination {
-    return {} as Destination;
+    return this.v!.channelId();
   }
 
   // rightHasDefunded returns whether the ledger channel ToMyRight has removed
   // its funding for the target channel.
   //
   // If ToMyRight==nil then we return true.
-  // TODO: Implement
   private rightHasDefunded(): boolean {
-    return false;
+    if (this.toMyRight === null) {
+      return true;
+    }
+
+    const included = this.toMyRight!.includesTarget(this.vId());
+    return !included;
   }
 
   // leftHasDefunded returns whether the ledger channel ToMyLeft has removed
   // its funding for the target channel.
   //
   // If ToMyLeft==nil then we return true.
-  // TODO: Implement
   private leftHasDefunded(): boolean {
-    return false;
+    if (this.toMyLeft === null) {
+      return true;
+    }
+
+    const included = this.toMyLeft!.includesTarget(this.vId());
+    return !included;
   }
 
   // Update receives an protocols.ObjectiveEvent, applies all applicable event data to the VirtualDefundObjective,
@@ -328,10 +394,9 @@ export function getRequestFinalStatePayload(b: []): Destination {
   return {} as Destination;
 }
 
-// TODO: Implement
 // isZero returns true if every byte field on the signature is zero
 export function isZero(sig: Signature): boolean {
-  return false;
+  return equal(sig, zeroValueSignature);
 }
 
 // ObjectiveRequest represents a request to create a new virtual defund objective.
@@ -389,4 +454,4 @@ export function validateFinalOutcome(
   finalOutcome: SingleAssetExit,
   me: Address,
   minAmount: bigint,
-): void {}
+): void { }
