@@ -172,7 +172,6 @@ export class MemStore implements Store {
       throw new Error('cannot store a channel with a zero id');
     }
 
-    // TODO: Implement json marshalling
     const chJSON = Buffer.from(JSON.stringify(ch), 'utf-8');
 
     this.consensusChannels.store(ch.id.string(), chJSON);
@@ -272,9 +271,8 @@ export class MemStore implements Store {
     this.consensusChannels.range((key: string, chJSON: Buffer): boolean => {
       let ch = new ConsensusChannel({});
       try {
-        // TODO: Implement json.Unmarshal
-        ch = JSON.parse(chJSON.toString());
-      } catch (error) {
+        ch = ConsensusChannel.fromJSON(chJSON.toString());
+      } catch (err) {
         return true; // channel not found, continue looking
       }
 
@@ -447,7 +445,6 @@ export class MemStore implements Store {
   }
 
   setVoucherInfo(channelId: Destination, v: VoucherInfo): void {
-    // Implement json.Marshal
     const jsonData = Buffer.from(JSON.stringify(v));
 
     this.vouchers.store(channelId.string(), jsonData);
@@ -462,16 +459,16 @@ export class MemStore implements Store {
     assert(data);
 
     try {
-      // TODO: Implement json.Unmarshal
-      const v = new VoucherInfo(JSON.parse(data.toString()));
+      const v = VoucherInfo.fromJSON(data.toString());
       return [v, true];
     } catch (err) {
       return [undefined, false];
     }
   }
 
-  // TODO: Implement
-  removeVoucherInfo(channelId: Destination): void {}
+  removeVoucherInfo(channelId: Destination): void {
+    this.vouchers.delete(channelId.string());
+  }
 }
 
 // decodeObjective is a helper which encapsulates the deserialization
