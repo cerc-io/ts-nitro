@@ -22,6 +22,7 @@ import {
 import { Address } from '../../types/types';
 import { SignedState } from '../../channel/state/signedstate';
 import { State } from '../../channel/state/state';
+import { AllocationUpdatedEvent, ChainEvent, ConcludedEvent } from '../../client/engine/chainservice/chainservice';
 
 const WaitingForFinalization: WaitingFor = 'WaitingForFinalization';
 const WaitingForWithdraw: WaitingFor = 'WaitingForWithdraw';
@@ -157,28 +158,93 @@ export class Objective implements ObjectiveInterface {
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
-  approve(): Objective {
-    return new Objective();
+  approve(): ObjectiveInterface {
+    const updated = this.clone();
+    // todo: consider case of o.Status == Rejected
+    updated.status = ObjectiveStatus.Approved;
+
+    return updated;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
-  reject(): [Objective, SideEffects] {
-    return [
-      new Objective(),
-      {
-        messagesToSend: [],
-        proposalsToProcess: [],
-        transactionsToSubmit: [],
-      },
-    ];
+  reject(): [ObjectiveInterface, SideEffects] {
+    const updated = this.clone();
+    updated.status = ObjectiveStatus.Rejected;
+    const peer = this.c!.participants[1 - this.c!.myIndex];
+
+    const sideEffects = new SideEffects({ messagesToSend: Message.createRejectionNoticeMessage(this.id(), peer) });
+    return [updated, sideEffects];
+  }
+
+  // OwnsChannel returns the channel the objective exclusively owns.
+  ownsChannel(): Destination {
+    assert(this.c);
+    return this.c.id;
+  }
+
+  // GetStatus returns the status of the objective.
+  getStatus(): ObjectiveStatus {
+    return this.status;
+  }
+
+  // Related returns a slice of related objects that need to be stored along with the objective
+  related(): Storable[] {
+    return [this.c!];
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
-  update(payload: ObjectivePayload): Objective {
-    return new Objective();
+  update(p: ObjectivePayload): ObjectiveInterface {
+    if (this.id() !== p.objectiveId) {
+      throw new Error(`event and objective Ids do not match: ${p.objectiveId} and ${this.id()} respectively`);
+    }
+
+    let ss: SignedState;
+    try {
+      /* eslint-disable @typescript-eslint/no-use-before-define */
+      ss = getSignedStatePayload(p.payloadData);
+    } catch (err) {
+      throw new Error(`could not get signed state payload: ${err}`);
+    }
+
+    if (ss.signatures().length !== 0) {
+      if (!ss.state().isFinal) {
+        throw new Error('direct defund objective can only be updated with final states');
+      }
+      if (this.finalTurnNum !== ss.state().turnNum) {
+        throw new Error(`expected state with turn number ${this.finalTurnNum}, received turn number ${ss.state().turnNum}`);
+      }
+    } else {
+      throw new Error('event does not contain a signed state');
+    }
+
+    const updated = this.clone();
+    updated.c!.addSignedState(ss);
+
+    return updated;
+  }
+
+  // UpdateWithChainEvent updates the objective with observed on-chain data.
+  //
+  // Only Allocation Updated events are currently handled.
+  updateWithChainEvent(event: ChainEvent): ObjectiveInterface {
+    const updated = this.clone();
+
+    switch (event.constructor) {
+      case AllocationUpdatedEvent: {
+        const e = event as AllocationUpdatedEvent;
+
+        // todo: check block number
+        updated.c!.onChainFunding.value.set(e.assetAndAmount!.assetAddress!, e.assetAndAmount!.assetAmount!);
+        break;
+      }
+      case ConcludedEvent: {
+        break;
+      }
+      default:
+        throw new Error(`objective ${updated} cannot handle event ${event}`);
+    }
+
+    return updated;
   }
 
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
@@ -252,24 +318,6 @@ export class Objective implements ObjectiveInterface {
     return [updated, sideEffects, WaitingForNothing];
   }
 
-  // Related returns a slice of related objects that need to be stored along with the objective
-  // TODO: Implement
-  related(): Storable[] {
-    return [];
-  }
-
-  // OwnsChannel returns the channel the objective exclusively owns.
-  ownsChannel(): Destination {
-    assert(this.c);
-    return this.c.id;
-  }
-
-  // GetStatus returns the status of the objective.
-  // TODO: Implement
-  getStatus(): ObjectiveStatus {
-    return ObjectiveStatus.Unapproved;
-  }
-
   // clone returns a deep copy of the receiver.
   clone(): Objective {
     const clone = new Objective();
@@ -340,4 +388,16 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   signalObjectiveStarted(): void {}
+}
+
+// getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+function getSignedStatePayload(b: Buffer): SignedState {
+  let ss: SignedState;
+  try {
+    ss = SignedState.fromJSON(b.toString());
+  } catch (err) {
+    throw new Error(`could not unmarshal signed state: ${err}`);
+  }
+
+  return ss;
 }
