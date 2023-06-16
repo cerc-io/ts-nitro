@@ -9,6 +9,10 @@ export interface FieldDescription {
 }
 
 function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
+  if (!fieldJsonValue) {
+    return fieldJsonValue;
+  }
+
   switch (fieldType.type) {
     case 'class': {
       return fieldType.value.fromJSON(JSON.stringify(fieldJsonValue));

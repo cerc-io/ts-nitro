@@ -1,6 +1,7 @@
 import assert from 'assert';
 
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
+import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
 import { Address } from '../../types/types';
@@ -32,7 +33,7 @@ export class Objective implements ObjectiveInterface {
   // MinimumPaymentAmount is the latest payment amount we have received from Alice before starting defunding.
   // This is set by Bob so he can ensure he receives the latest amount from any vouchers he's received.
   // If this is not set then virtual defunding will accept any final outcome from Alice.
-  minimumPaymentAmount?: bigint;
+  minimumPaymentAmount: bigint = BigInt(0);
 
   v?: VirtualChannel;
 
@@ -46,9 +47,22 @@ export class Objective implements ObjectiveInterface {
   // n+1 is Bob
   myRole: number = 0;
 
-  // TODO: Implement
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    status: { type: 'number' },
+    minimumPaymentAmount: { type: 'bigint' },
+    v: { type: 'class', value: VirtualChannel },
+    toMyLeft: { type: 'class', value: ConsensusChannel },
+    toMyRight: { type: 'class', value: ConsensusChannel },
+    myRole: { type: 'number' },
+  };
+
   static fromJSON(data: string): Objective {
-    return {} as Objective;
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Objective(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Objective.jsonEncodingMap, this);
   }
 
   constructor(params: {
