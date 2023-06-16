@@ -23,13 +23,13 @@ import { Address } from '../../types/types';
 import { SignedState } from '../../channel/state/signedstate';
 import { State } from '../../channel/state/state';
 
-const waitingForFinalization: WaitingFor = 'WaitingForFinalization';
-const waitingForWithdraw: WaitingFor = 'WaitingForWithdraw';
-const waitingForNothing: WaitingFor = 'WaitingForNothing'; // Finished
+const WaitingForFinalization: WaitingFor = 'WaitingForFinalization';
+const WaitingForWithdraw: WaitingFor = 'WaitingForWithdraw';
+const WaitingForNothing: WaitingFor = 'WaitingForNothing'; // Finished
 
-const signedStatePayload: PayloadType = 'SignedStatePayload';
+const SignedStatePayload: PayloadType = 'SignedStatePayload';
 
-const objectivePrefix = 'DirectDefunding-';
+const ObjectivePrefix = 'DirectDefunding-';
 
 const ErrChannelUpdateInProgress = new Error('can only defund a channel when the latest state is supported or when the channel has a final state');
 const ErrNoFinalState = new Error('cannot spawn direct defund objective without a final state');
@@ -153,7 +153,7 @@ export class Objective implements ObjectiveInterface {
   }
 
   id(): ObjectiveId {
-    return `${objectivePrefix}${this.c!.id.string()}`;
+    return `${ObjectivePrefix}${this.c!.id.string()}`;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
@@ -216,7 +216,7 @@ export class Objective implements ObjectiveInterface {
 
       let messages: Message[];
       try {
-        messages = Message.createObjectivePayloadMessage(updated.id(), ss, signedStatePayload, ...this.otherParticipants());
+        messages = Message.createObjectivePayloadMessage(updated.id(), ss, SignedStatePayload, ...this.otherParticipants());
       } catch (err) {
         throw new Error(`could not create payload message ${err}`);
       }
@@ -232,7 +232,7 @@ export class Objective implements ObjectiveInterface {
     }
 
     if (!latestSupportedState.isFinal) {
-      return [updated, sideEffects, waitingForFinalization];
+      return [updated, sideEffects, WaitingForFinalization];
     }
 
     // Withdrawal of funds
@@ -245,11 +245,11 @@ export class Objective implements ObjectiveInterface {
       }
 
       // Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
-      return [updated, sideEffects, waitingForWithdraw];
+      return [updated, sideEffects, WaitingForWithdraw];
     }
 
     updated.status = ObjectiveStatus.Completed;
-    return [updated, sideEffects, waitingForNothing];
+    return [updated, sideEffects, WaitingForNothing];
   }
 
   // Related returns a slice of related objects that need to be stored along with the objective
@@ -305,7 +305,7 @@ export class Objective implements ObjectiveInterface {
 
 // IsDirectDefundObjective inspects a objective id and returns true if the objective id is for a direct defund objective.
 export function isDirectDefundObjective(id: ObjectiveId): boolean {
-  return id.startsWith(objectivePrefix);
+  return id.startsWith(ObjectivePrefix);
 }
 
 // ObjectiveRequest represents a request to create a new direct defund objective.
@@ -331,7 +331,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   id(address: Address, chainId?: bigint): ObjectiveId {
-    return objectivePrefix + this.channelId.string();
+    return ObjectivePrefix + this.channelId.string();
   }
 
   async waitForObjectiveToStart(): Promise<void> {

@@ -38,14 +38,14 @@ import {
   Objective as VirtualFundObjective,
   ObjectiveRequest as VirtualFundObjectiveRequest,
   isVirtualFundObjective,
-  objectivePrefix as VirtualFundObjectivePrefix,
+  ObjectivePrefix as VirtualFundObjectivePrefix,
 } from '../../protocols/virtualfund/virtualfund';
 import {
   ObjectiveRequest as VirtualDefundObjectiveRequest,
   Objective as VirtualDefundObjective,
   isVirtualDefundObjective,
   getVirtualChannelFromObjectiveId,
-  objectivePrefix as VirtualDefundObjectivePrefix,
+  ObjectivePrefix as VirtualDefundObjectivePrefix,
 } from '../../protocols/virtualdefund/virtualdefund';
 import * as channel from '../../channel/channel';
 import { VirtualChannel } from '../../channel/virtual';

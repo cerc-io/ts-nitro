@@ -27,15 +27,15 @@ import {
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
 
-const waitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund';
-const waitingForMyTurnToFund: WaitingFor = 'WaitingForMyTurnToFund';
-const waitingForCompleteFunding: WaitingFor = 'WaitingForCompleteFunding';
-const waitingForCompletePostFund: WaitingFor = 'WaitingForCompletePostFund';
-const waitingForNothing: WaitingFor = 'WaitingForNothing'; // Finished
+const WaitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund';
+const WaitingForMyTurnToFund: WaitingFor = 'WaitingForMyTurnToFund';
+const WaitingForCompleteFunding: WaitingFor = 'WaitingForCompleteFunding';
+const WaitingForCompletePostFund: WaitingFor = 'WaitingForCompletePostFund';
+const WaitingForNothing: WaitingFor = 'WaitingForNothing'; // Finished
 
-const signedStatePayload: PayloadType = 'SignedStatePayload';
+const SignedStatePayload: PayloadType = 'SignedStatePayload';
 
-const objectivePrefix = 'DirectFunding-';
+const ObjectivePrefix = 'DirectFunding-';
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 interface GetChannelsByParticipantFunction {
@@ -152,7 +152,7 @@ export class Objective implements ObjectiveInterface {
     const objectivePayload: ObjectivePayload = {
       objectiveId: request.id(myAddress, chainId),
       payloadData: b,
-      type: signedStatePayload,
+      type: SignedStatePayload,
     };
 
     let objective: Objective;
@@ -275,7 +275,7 @@ export class Objective implements ObjectiveInterface {
   // Public methods on the DirectFundingObjectiveState
 
   id(): ObjectiveId {
-    return `${objectivePrefix}${this.c?.id.string()}`;
+    return `${ObjectivePrefix}${this.c?.id.string()}`;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
@@ -374,7 +374,7 @@ export class Objective implements ObjectiveInterface {
     }
 
     if (!updated.c.preFundComplete()) {
-      return [updated, sideEffects, waitingForCompletePrefund];
+      return [updated, sideEffects, WaitingForCompletePrefund];
     }
 
     // Funding
@@ -383,7 +383,7 @@ export class Objective implements ObjectiveInterface {
     const safeToDeposit = updated.safeToDeposit();
 
     if (!fundingComplete && !safeToDeposit) {
-      return [updated, sideEffects, waitingForMyTurnToFund];
+      return [updated, sideEffects, WaitingForMyTurnToFund];
     }
 
     if (!fundingComplete && safeToDeposit && amountToDeposit.isNonZero() && !updated.transactionSubmitted) {
@@ -393,7 +393,7 @@ export class Objective implements ObjectiveInterface {
     }
 
     if (!fundingComplete) {
-      return [updated, sideEffects, waitingForCompleteFunding];
+      return [updated, sideEffects, WaitingForCompleteFunding];
     }
 
     // Postfunding
@@ -407,7 +407,7 @@ export class Objective implements ObjectiveInterface {
 
       let messages: Message[];
       try {
-        messages = Message.createObjectivePayloadMessage(updated.id(), ss, signedStatePayload, ...updated.otherParticipants());
+        messages = Message.createObjectivePayloadMessage(updated.id(), ss, SignedStatePayload, ...updated.otherParticipants());
       } catch (err) {
         throw new Error('could not create payload message');
       }
@@ -416,12 +416,12 @@ export class Objective implements ObjectiveInterface {
     }
 
     if (!updated.c.postFundComplete()) {
-      return [updated, sideEffects, waitingForCompletePostFund];
+      return [updated, sideEffects, WaitingForCompletePostFund];
     }
 
     // Completion
     updated.status = ObjectiveStatus.Completed;
-    return [updated, sideEffects, waitingForNothing];
+    return [updated, sideEffects, WaitingForNothing];
   }
 
   // Related returns a slice of related objects that need to be stored along with the objective
@@ -517,7 +517,7 @@ export type ObjectiveResponse = {
 
 // IsDirectFundObjective inspects a objective id and returns true if the objective id is for a direct fund objective.
 export function isDirectFundObjective(id: ObjectiveId): boolean {
-  return id.startsWith(objectivePrefix);
+  return id.startsWith(ObjectivePrefix);
 }
 
 // ObjectiveRequest represents a request to create a new direct funding objective.
@@ -588,7 +588,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     });
 
     const channelId: Destination = fixedPart.channelId();
-    return `${objectivePrefix}${channelId.string()}` as ObjectiveId;
+    return `${ObjectivePrefix}${channelId.string()}` as ObjectiveId;
   }
 
   // Response computes and returns the appropriate response from the request.
@@ -603,7 +603,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     const channelId = fixedPart.channelId();
 
     return {
-      id: `${objectivePrefix}${channelId.string()}`,
+      id: `${ObjectivePrefix}${channelId.string()}`,
       channelId,
     };
   }

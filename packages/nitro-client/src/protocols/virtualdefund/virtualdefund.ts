@@ -17,7 +17,7 @@ import {
 } from '../interfaces';
 import { ObjectiveId, ObjectivePayload } from '../messages';
 
-export const objectivePrefix = 'VirtualDefund-';
+export const ObjectivePrefix = 'VirtualDefund-';
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 type GetChannelByIdFunction = (id: Destination) => [ channel.Channel | undefined, boolean ];
@@ -238,7 +238,7 @@ export class Objective implements ObjectiveInterface {
 
 // IsVirtualDefundObjective inspects a objective id and returns true if the objective id is for a virtualdefund objective.
 export function isVirtualDefundObjective(id: ObjectiveId): boolean {
-  return id.startsWith(objectivePrefix);
+  return id.startsWith(ObjectivePrefix);
 }
 
 // ObjectiveRequest represents a request to create a new virtual defund objective.
@@ -264,7 +264,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   id(address: Address, chainId?: bigint): ObjectiveId {
-    return objectivePrefix + this.channelId.string();
+    return ObjectivePrefix + this.channelId.string();
   }
 
   async waitForObjectiveToStart(): Promise<void> {
@@ -280,10 +280,10 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
 // GetVirtualChannelFromObjectiveId gets the virtual channel id from the objective id.
 export function getVirtualChannelFromObjectiveId(id: ObjectiveId): Destination {
-  if (!id.startsWith(objectivePrefix)) {
-    throw new Error(`id ${id} does not have prefix ${objectivePrefix}`);
+  if (!id.startsWith(ObjectivePrefix)) {
+    throw new Error(`id ${id} does not have prefix ${ObjectivePrefix}`);
   }
-  const raw = id.slice(objectivePrefix.length);
+  const raw = id.slice(ObjectivePrefix.length);
 
   return new Destination(raw);
 }
