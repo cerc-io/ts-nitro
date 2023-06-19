@@ -59,16 +59,26 @@ type GetChannelByIdFunction = (id: Destination) => [channel.Channel | undefined,
 // the calling client and the given counterparty, if such a channel exists.
 type GetTwoPartyConsensusLedgerFunction = (counterparty: Address) => [ConsensusChannel | undefined, boolean];
 
-// TODO: Implement
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
 export function getSignedStatePayload(b: Buffer): SignedState {
-  return {} as SignedState;
+  let ss:SignedState;
+  try {
+    ss = SignedState.fromJSON(b.toString());
+  } catch (err) {
+    throw new Error(`could not unmarshal signed state: ${err}`);
+  }
+  return ss;
 }
 
-// TODO: Implement
 // getRequestFinalStatePayload takes in a serialized channel id payload and returns the deserialized channel id.
 export function getRequestFinalStatePayload(b: Buffer): Destination {
-  return {} as Destination;
+  let cId: Destination;
+  try {
+    cId = Destination.fromJSON(b.toString());
+  } catch (err) {
+    throw new Error(`could not unmarshal signatures: ${err}`);
+  }
+  return cId;
 }
 
 // validateFinalOutcome is a helper function that validates a final outcome from Alice is valid.
