@@ -403,17 +403,82 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     return init;
   }
 
+  // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+  static getSignedStatePayload(b: Buffer): SignedState {
+    let ss: SignedState;
+    try {
+      ss = SignedState.fromJSON(b.toString());
+    } catch (err) {
+      throw new Error(`could not unmarshal signed state: ${err}`);
+    }
+    return ss;
+  }
+
   // ConstructObjectiveFromPayload takes in a message and constructs an objective from it.
   // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
-  // TODO: Can throw an error
-  // TODO: Implement
   static constructObjectiveFromPayload(
     p: ObjectivePayload,
     preapprove: boolean,
     myAddress: Address,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
   ): Objective {
-    return {} as Objective;
+    let initialState: SignedState;
+    try {
+      initialState = this.getSignedStatePayload(p.payloadData);
+    } catch (err) {
+      throw new Error(`could not get signed state payload: ${err}`);
+    }
+    const { participants } = initialState.state();
+
+    let leftC: ConsensusChannel | undefined;
+    let rightC: ConsensusChannel | undefined;
+    let ok: boolean;
+
+    if (myAddress === participants[0]) {
+      // I am Alice
+      throw new Error('participant[0] should not construct objectives from peer messages');
+    } else if (myAddress === participants[participants.length - 1]) {
+      // I am Bob
+      const leftOfBob = participants[participants.length - 2];
+      ([leftC, ok] = getTwoPartyConsensusLedger(leftOfBob));
+      if (!ok!) {
+        throw new Error(`could not find a left ledger channel between ${leftOfBob} and ${myAddress}`);
+      }
+    } else {
+      const intermediaries = participants.slice(1, participants.length - 1);
+      let foundMyself = false;
+
+      for (const [i, intermediary] of intermediaries.entries()) {
+        if (myAddress === intermediary) {
+          foundMyself = true;
+          // I am intermediary `i` and participant `p`
+          // Error: Changed variable from p to e
+          // error  'p' is already declared in the upper scope (function argument)
+          const e = i + 1; // participants[p] === intermediaries[i]
+
+          const leftOfMe = participants[e - 1];
+          const rightOfMe = participants[e + 1];
+
+          ([leftC, ok] = getTwoPartyConsensusLedger(leftOfMe));
+          if (!ok!) {
+            throw new Error(`could not find a left ledger channel between ${leftOfMe} and ${myAddress}`);
+          }
+
+          ([rightC, ok] = getTwoPartyConsensusLedger(rightOfMe));
+          if (!ok!) {
+            throw new Error(`could not find a right ledger channel between ${myAddress} and ${rightOfMe}`);
+          }
+
+          break;
+        }
+      }
+
+      if (!foundMyself) {
+        throw new Error('client address not found in the participant list');
+      }
+    }
+
+    return this.constructFromState(preapprove, initialState.state(), myAddress, leftC!, rightC!);
   }
 
   id(): ObjectiveId {
@@ -461,9 +526,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     return otherParticipants;
   }
 
-  // TODO: Implement
   private getPayload(raw: ObjectivePayload): SignedState {
-    return {} as SignedState;
+    return SignedState.fromJSON(JSON.stringify(raw));
   }
 
   receiveProposal(sp: SignedProposal): ProposalReceiver {
@@ -828,8 +892,9 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     await this.objectiveStarted.shift();
   }
 
-  signalObjectiveStarted(): void {
-    // TODO: Implement
+  async signalObjectiveStarted(): Promise<void> {
+    assert(this.objectiveStarted);
+    await this.objectiveStarted.close();
   }
 
   // response computes and returns the appropriate response from the request.
