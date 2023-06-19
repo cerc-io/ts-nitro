@@ -94,7 +94,6 @@ export class MemStore implements Store {
     // todo: locking
     let objJSON: Buffer;
     try {
-      // TODO: Implement json marshalling for all objectives
       objJSON = Buffer.from(JSON.stringify(obj), 'utf-8');
     } catch (err) {
       throw new Error(`error setting objective ${obj.id()}: ${err}`);

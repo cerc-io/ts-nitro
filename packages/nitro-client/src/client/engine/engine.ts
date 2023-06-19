@@ -745,15 +745,15 @@ export class Engine {
     go(this.sendMessages.bind(this), sideEffects.messagesToSend);
 
     assert(this.chain);
-    for (const tx of sideEffects.transactionsToSubmit) {
+    for await (const tx of sideEffects.transactionsToSubmit) {
       this.logger(`Sending chain transaction for channel ${tx.channelId()}`);
 
       await this.chain.sendTransaction(tx);
     }
 
     assert(this.fromLedger);
-    for (const proposal of sideEffects.proposalsToProcess) {
-      this.fromLedger.push(proposal);
+    for await (const proposal of sideEffects.proposalsToProcess) {
+      await this.fromLedger.push(proposal);
     }
   }
 
