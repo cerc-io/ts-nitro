@@ -85,7 +85,6 @@ export class Voucher {
 
 // VoucherInfo contains the largest voucher we've received on a channel.
 // As well as details about the balance and who the payee/payer is.
-// TODO: Implement
 export class VoucherInfo {
   channelPayer: Address = ethers.constants.AddressZero;
 

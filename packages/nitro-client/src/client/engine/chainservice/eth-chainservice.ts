@@ -408,6 +408,7 @@ export class EthChainService implements ChainService {
     return this.chain.chainID();
   }
 
-  // TODO: Implement and remove void
-  close(): Error | void {}
+  close() {
+    this.cancel();
+  }
 }

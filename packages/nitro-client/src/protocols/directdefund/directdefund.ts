@@ -269,7 +269,6 @@ export class Objective implements ObjectiveInterface {
   }
 
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  // TODO: Implement
   crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
     const updated = this.clone();
 
@@ -378,7 +377,6 @@ export function isDirectDefundObjective(id: ObjectiveId): boolean {
 }
 
 // ObjectiveRequest represents a request to create a new direct defund objective.
-// TODO: Implement
 export class ObjectiveRequest implements ObjectiveRequestInterface {
   channelId: Destination = new Destination();
 

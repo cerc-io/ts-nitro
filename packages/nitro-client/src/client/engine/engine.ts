@@ -947,7 +947,6 @@ export class Engine {
       case isVirtualFundObjective(id): {
         let vfo: VirtualFundObjective;
         try {
-          // TODO: Implement
           vfo = VirtualFundObjective.constructObjectiveFromPayload(
             p,
             false,
@@ -988,7 +987,6 @@ export class Engine {
 
         let vdfo: VirtualDefundObjective;
         try {
-          // TODO: Implement
           vdfo = VirtualDefundObjective.constructObjectiveFromPayload(
             p,
             false,

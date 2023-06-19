@@ -47,7 +47,7 @@ export class MemStore implements Store {
     this.vouchers = new SafeSyncMap();
   }
 
-  // TODO: Implement
+  // Since this is a memory store, there is nothing to close
   close(): void {}
 
   getAddress(): Address {

@@ -40,7 +40,6 @@ const createObjectivePayload = (id: ObjectiveId, payloadType: PayloadType, p: an
 };
 
 // Message is an object to be sent across the wire.
-// TODO: Implement
 export class Message {
   to: Address = '';
 
