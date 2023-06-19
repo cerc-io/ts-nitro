@@ -254,17 +254,18 @@ export class EthChainService implements ChainService {
             this.fatalF(`error in ParseAllocationUpdated: ${err}`);
           }
 
-          let tx: any;
+          let tx;
           try {
-            // TODO: Implement
-            // [tx,pending]=this.chain.transactionByHash(context.background(),l.Txhash)
-            // if(pending){
-            //   this.fatalF(`Expected transaction to be part of the chain, but the transaction is pending`)
-            // }
+            tx = await this.chain.provider.getTransaction(l.transactionHash);
+            if (tx.confirmations < 1) {
+              // If confirmations less than 1, then tx is pending
+              this.fatalF('Expected transaction to be part of the chain, but the transaction is pending');
+            }
           } catch (err) {
             this.fatalF(`error in TransactionByHash: ${err}`);
           }
 
+          assert(tx);
           assert(au);
           let assetAddress;
           let amount;
