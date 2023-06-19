@@ -197,7 +197,13 @@ export class Client {
   // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
   // It parses events from the ToApi chan and then dispatches events to the necessary client chan.
   private async handleEngineEvents() {
-    for (const update = await this.engine.toApi.shift(); update !== undefined;) {
+    /* eslint-disable no-await-in-loop */
+    while (true) {
+      const update = await this.engine.toApi.shift();
+      if (update === undefined) {
+        break;
+      }
+
       for (const completed of update.completedObjectives) {
         const [d] = this.completedObjectives!.loadOrStore(String(completed.id()), Channel());
         d.close();
