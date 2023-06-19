@@ -189,7 +189,7 @@ export class Connection {
   expectedProposal(): Proposal {
     const g = this.getExpectedGuarantee();
 
-    let leftAmount: BigInt;
+    let leftAmount: bigint;
 
     /* eslint-disable no-unreachable-loop */
     for (const [, val] of this.guaranteeInfo.leftAmount!.value) {

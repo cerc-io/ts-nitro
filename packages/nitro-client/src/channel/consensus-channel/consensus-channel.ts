@@ -1188,6 +1188,13 @@ export class Add extends Guarantee {
   equal(a2: Add): boolean {
     return _.isEqual((this as Guarantee), (a2 as Guarantee)) && this.leftDeposit === a2.leftDeposit;
   }
+
+  // NewAdd constructs a new Add proposal.
+  static newAdd(g: Guarantee, leftDeposit: bigint): Add {
+    return new Add({
+      _target: g._target, amount: g.amount, left: g.left, right: g.right, leftDeposit,
+    });
+  }
 }
 
 // Remove is a proposal to remove a guarantee for the given virtual channel.
@@ -1236,6 +1243,11 @@ export class Remove {
       target: this.target,
       leftAmount: BigInt(this.leftAmount),
     });
+  }
+
+  // NewRemove constructs a new Remove proposal.
+  static newRemove(target: Destination, leftAmount: bigint): Remove {
+    return new Remove({ target, leftAmount });
   }
 }
 
@@ -1311,9 +1323,13 @@ export class Proposal {
   }
 
   // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
-  // TODO: Implement
-  static newAddProposal(ledgerID: Destination, g: Guarantee, leftDeposit: BigInt): Proposal {
-    return {} as Proposal;
+  static newAddProposal(ledgerID: Destination, g: Guarantee, leftDeposit: bigint): Proposal {
+    return new Proposal({ toAdd: Add.newAdd(g, leftDeposit), ledgerID });
+  }
+
+  // NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
+  static newRemoveProposal(ledgerID: Destination, target: Destination, leftAmount: bigint): Proposal {
+    return new Proposal({ toRemove: Remove.newRemove(target, leftAmount), ledgerID });
   }
 }
 
