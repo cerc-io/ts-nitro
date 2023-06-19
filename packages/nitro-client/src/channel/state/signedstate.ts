@@ -16,7 +16,7 @@ export class SignedState {
   private sigs: Map<number, Signature> = new Map(); // keyed by participant index
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    _state: { type: 'class', value: State },
+    state: { type: 'class', value: State },
     sigs: { type: 'map', key: { type: 'number' }, value: { type: 'object', value: signatureJsonEncodingMap } },
   };
 
@@ -162,6 +162,7 @@ export class SignedState {
   }
 
   // SortInfo returns the channel id and turn number of the state, so the state can be easily sorted.
+  // TODO: unit64 replacement
   sortInfo(): [Destination, number] {
     const cId = this._state.channelId();
     const { turnNum } = this._state;
