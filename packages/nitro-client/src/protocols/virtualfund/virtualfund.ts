@@ -1,14 +1,17 @@
 import assert from 'assert';
 import { ethers } from 'ethers';
+import _ from 'lodash';
 
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
 import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
-import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
+import {
+  ConsensusChannel, SignedProposal, Proposal, Guarantee, ErrIncorrectChannelID, ErrInvalidTurnNum,
+} from '../../channel/consensus-channel/consensus-channel';
 import { Exit } from '../../channel/state/outcome/exit';
-import { State } from '../../channel/state/state';
+import { FixedPart, State } from '../../channel/state/state';
 import { Funds } from '../../types/funds';
 import { Address } from '../../types/types';
 import {
@@ -18,12 +21,23 @@ import {
   SideEffects,
   WaitingFor,
   Storable,
+  ProposalReceiver,
+  errNotApproved,
 } from '../interfaces';
-import { ObjectiveId, ObjectivePayload } from '../messages';
+import {
+  Message, ObjectiveId, ObjectivePayload, getProposalObjectiveId, PayloadType,
+} from '../messages';
 import { VirtualChannel } from '../../channel/virtual';
 import { GuaranteeMetadata } from '../../channel/state/outcome/guarantee';
+import { SignedState } from '../../channel/state/signedstate';
 
 export const ObjectivePrefix = 'VirtualFund-';
+const WaitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund'; // Round 1
+const WaitingForCompleteFunding: WaitingFor = 'WaitingForCompleteFunding'; // Round 2
+const WaitingForCompletePostFund: WaitingFor = 'WaitingForCompletePostFund'; // Round 3
+const WaitingForNothing: WaitingFor = 'WaitingForNothing'; // Finished
+
+const SignedStatePayload: PayloadType = 'SignedStatePayload';
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
@@ -71,7 +85,6 @@ class GuaranteeInfo {
   }
 }
 
-// TODO: Implement
 export class Connection {
   channel?: ConsensusChannel;
 
@@ -118,10 +131,79 @@ export class Connection {
     // The metadata can be encoded, so update the connection's guarantee
     this.guaranteeInfo = guaranteeInfo;
   }
+
+  // handleProposal receives a signed proposal and acts according to the leader / follower
+  handleProposal(sp: SignedProposal): void {
+    // TODO: Create error in caller
+    // if c == nil {
+    //   return fmt.Errorf("nil connection should not handle proposals")
+    // }
+
+    if (sp.proposal.ledgerID !== this.channel?.id) {
+      throw ErrIncorrectChannelID;
+    }
+
+    if (this.channel !== null) {
+      try {
+        this.channel.receive(sp);
+      } catch (err) {
+        // Ignore stale or future proposals
+        if ((err as Error).message.includes(ErrInvalidTurnNum.message)) {
+          /* eslint-disable no-useless-return */
+          return;
+        }
+      }
+    }
+  }
+
+  // IsFundingTheTarget computes whether the ledger channel on the receiver funds the guarantee expected by this connection
+  isFundingTheTarget(): boolean {
+    const g = this.getExpectedGuarantee();
+    return this.channel!.includes(g);
+  }
+
+  // getExpectedGuarantee returns a map of asset addresses to guarantees for a Connection.
+  getExpectedGuarantee(): Guarantee {
+    const amountFunds = this.guaranteeInfo.leftAmount!.add(this.guaranteeInfo!.rightAmount!);
+
+    // HACK: GuaranteeInfo stores amounts as types.Funds.
+    // We only expect a single asset type, and we want to know how much is to be
+    // diverted for that asset type.
+    // So, we loop through amountFunds and break after the first asset type ...
+
+    let amount: bigint;
+
+    /* eslint-disable no-unreachable-loop */
+    for (const [, val] of amountFunds.value) {
+      amount = val;
+      break;
+    }
+
+    const target = this.guaranteeInfo.guaranteeDestination;
+    const { left } = this.guaranteeInfo;
+    const { right } = this.guaranteeInfo;
+
+    return Guarantee.newGuarantee(amount!, target, left, right);
+  }
+
+  expectedProposal(): Proposal {
+    const g = this.getExpectedGuarantee();
+
+    let leftAmount: BigInt;
+
+    /* eslint-disable no-unreachable-loop */
+    for (const [, val] of this.guaranteeInfo.leftAmount!.value) {
+      leftAmount = val;
+      break;
+    }
+
+    const proposal = Proposal.newAddProposal(this.channel!.id, g, leftAmount!);
+    return proposal;
+  }
 }
 
 // Objective is a cache of data computed by reading from the store. It stores (potentially) infinite data.
-export class Objective implements ObjectiveInterface {
+export class Objective implements ObjectiveInterface, ProposalReceiver {
   status: ObjectiveStatus = ObjectiveStatus.Unapproved;
 
   v?: VirtualChannel;
@@ -321,80 +403,331 @@ export class Objective implements ObjectiveInterface {
     return init;
   }
 
+  // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
+  static getSignedStatePayload(b: Buffer): SignedState {
+    let ss: SignedState;
+    try {
+      ss = SignedState.fromJSON(b.toString());
+    } catch (err) {
+      throw new Error(`could not unmarshal signed state: ${err}`);
+    }
+    return ss;
+  }
+
   // ConstructObjectiveFromPayload takes in a message and constructs an objective from it.
   // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
-  // TODO: Can throw an error
-  // TODO: Implement
   static constructObjectiveFromPayload(
     p: ObjectivePayload,
     preapprove: boolean,
     myAddress: Address,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
   ): Objective {
-    return {} as Objective;
+    let initialState: SignedState;
+    try {
+      initialState = this.getSignedStatePayload(p.payloadData);
+    } catch (err) {
+      throw new Error(`could not get signed state payload: ${err}`);
+    }
+    const { participants } = initialState.state();
+
+    let leftC: ConsensusChannel | undefined;
+    let rightC: ConsensusChannel | undefined;
+    let ok: boolean;
+
+    if (myAddress === participants[0]) {
+      // I am Alice
+      throw new Error('participant[0] should not construct objectives from peer messages');
+    } else if (myAddress === participants[participants.length - 1]) {
+      // I am Bob
+      const leftOfBob = participants[participants.length - 2];
+      ([leftC, ok] = getTwoPartyConsensusLedger(leftOfBob));
+      if (!ok!) {
+        throw new Error(`could not find a left ledger channel between ${leftOfBob} and ${myAddress}`);
+      }
+    } else {
+      const intermediaries = participants.slice(1, participants.length - 1);
+      let foundMyself = false;
+
+      for (const [i, intermediary] of intermediaries.entries()) {
+        if (myAddress === intermediary) {
+          foundMyself = true;
+          // I am intermediary `i` and participant `p`
+          // Error: Changed variable from p to e
+          // error  'p' is already declared in the upper scope (function argument)
+          const e = i + 1; // participants[p] === intermediaries[i]
+
+          const leftOfMe = participants[e - 1];
+          const rightOfMe = participants[e + 1];
+
+          ([leftC, ok] = getTwoPartyConsensusLedger(leftOfMe));
+          if (!ok!) {
+            throw new Error(`could not find a left ledger channel between ${leftOfMe} and ${myAddress}`);
+          }
+
+          ([rightC, ok] = getTwoPartyConsensusLedger(rightOfMe));
+          if (!ok!) {
+            throw new Error(`could not find a right ledger channel between ${myAddress} and ${rightOfMe}`);
+          }
+
+          break;
+        }
+      }
+
+      if (!foundMyself) {
+        throw new Error('client address not found in the participant list');
+      }
+    }
+
+    return this.constructFromState(preapprove, initialState.state(), myAddress, leftC!, rightC!);
   }
 
-  // TODO: Implement
   id(): ObjectiveId {
-    return '';
+    return `${ObjectivePrefix}${this.v!.id.string()}`;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
-  approve(): ObjectiveInterface {
-    return new Objective({});
+  approve(): Objective {
+    const updated = this.clone();
+    // todo: consider case of s.Status == Rejected
+    updated.status = ObjectiveStatus.Approved;
+
+    return updated;
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
-  reject(): [ObjectiveInterface, SideEffects] {
-    return [
-      new Objective({}),
-      {
-        messagesToSend: [],
-        proposalsToProcess: [],
-        transactionsToSubmit: [],
-      },
-    ];
-  }
+  reject(): [Objective, SideEffects] {
+    const updated = this.clone();
+    updated.status = ObjectiveStatus.Rejected;
 
-  // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Implement
-  // TODO: Can throw an error
-  update(payload: ObjectivePayload): ObjectiveInterface {
-    return new Objective({});
-  }
-
-  // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  // TODO: Implement
-  // TODO: Can throw an error
-  crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
-    return [
-      new Objective({}),
-      {
-        messagesToSend: [],
-        proposalsToProcess: [],
-        transactionsToSubmit: [],
-      },
-      '',
-    ];
-  }
-
-  // Related returns a slice of related objects that need to be stored along with the objective
-  // TODO: Implement
-  related(): Storable[] {
-    return [];
+    const message = Message.createRejectionNoticeMessage(this.id(), ...this.otherParticipants());
+    const sideEffects = new SideEffects({ messagesToSend: message });
+    return [updated, sideEffects];
   }
 
   // OwnsChannel returns the channel the objective exclusively owns.
-  // TODO: Implement
   ownsChannel(): Destination {
-    return new Destination();
+    return this.v!.id;
   }
 
   // GetStatus returns the status of the objective.
   getStatus(): ObjectiveStatus {
     return this.status;
+  }
+
+  private otherParticipants(): Address[] {
+    const otherParticipants: Address[] = [];
+
+    for (let i = 0; i < this.v!.participants.length; i += 1) {
+      if (i !== this.myRole) {
+        otherParticipants.push(this.v!.participants[i]);
+      }
+    }
+
+    return otherParticipants;
+  }
+
+  private getPayload(raw: ObjectivePayload): SignedState {
+    return SignedState.fromJSON(JSON.stringify(raw));
+  }
+
+  receiveProposal(sp: SignedProposal): ProposalReceiver {
+    const pId = getProposalObjectiveId(sp.proposal);
+    if (this.id() !== pId) {
+      throw new Error(`sp and objective Ids do not match: ${pId} and ${this.id()} respectively`);
+    }
+
+    const updated = this.clone();
+
+    let toMyLeftId: Destination;
+    let toMyRightId: Destination;
+
+    if (!this.isAlice()) {
+      toMyLeftId = this.toMyLeft!.channel!.id; // Avoid this if it is nil
+    }
+    if (!this.isBob()) {
+      toMyRightId = this.toMyRight!.channel!.id; // Avoid this if it is nil
+    }
+
+    if (sp.proposal.target() === this.v!.id) {
+      let err: Error | undefined;
+      switch (true) {
+        case _.isEqual(sp.proposal.ledgerID, new Destination()):
+          throw new Error('signed proposal is for a zero-addressed ledger channel');
+          // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
+        case _.isEqual(sp.proposal.ledgerID, toMyLeftId!):
+          try {
+            updated.toMyLeft!.handleProposal(sp);
+          } catch (handleError) {
+            err = handleError as Error;
+          }
+          break;
+        case _.isEqual(sp.proposal.ledgerID, toMyRightId!):
+          try {
+            updated.toMyRight!.handleProposal(sp);
+          } catch (handleError) {
+            err = handleError as Error;
+          }
+          break;
+        default:
+          throw new Error('signed proposal is not addressed to a known ledger connection');
+      }
+
+      if (err) {
+        throw new Error(`error incorporating signed proposal ${sp} into objective: ${err}`);
+      }
+    }
+
+    return updated;
+  }
+
+  // returns an updated Objective (a copy, no mutation allowed), does not declare effects
+  update(raw: ObjectivePayload): Objective {
+    if (this.id() !== raw.objectiveId) {
+      throw new Error(`raw and objective Ids do not match: ${raw.objectiveId} and ${this.id()} respectively`);
+    }
+
+    let payload: SignedState;
+    try {
+      payload = this.getPayload(raw);
+    } catch (err) {
+      throw new Error(`error parsing payload: ${err}`);
+    }
+
+    const updated = this.clone();
+    const ss = payload;
+    if (ss.signatures().length !== 0) {
+      updated.v!.addSignedState(ss);
+    }
+
+    return updated;
+  }
+
+  // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
+  crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
+    const updated = this.clone();
+
+    const sideEffects = new SideEffects({});
+    // Input validation
+    if (updated.status !== ObjectiveStatus.Approved) {
+      throw errNotApproved;
+    }
+
+    // Prefunding
+
+    if (!updated.v!.preFundSignedByMe()) {
+      const ss = updated.v!.signAndAddPrefund(secretKey);
+      const messages = Message.createObjectivePayloadMessage(this.id(), ss, SignedStatePayload, ...this.otherParticipants());
+      sideEffects.messagesToSend.push(...messages);
+    }
+
+    if (!updated.v!.preFundComplete()) {
+      return [updated, sideEffects, WaitingForCompletePrefund];
+    }
+
+    // Funding
+
+    if (!updated.isAlice() && !updated.toMyLeft?.isFundingTheTarget()) {
+      let ledgerSideEffects: SideEffects;
+      try {
+        ledgerSideEffects = updated.updateLedgerWithGuarantee(updated.toMyLeft!, secretKey);
+      } catch (err) {
+        throw new Error(`error updating ledger funding: ${err}`);
+      }
+      sideEffects.merge(ledgerSideEffects);
+    }
+
+    if (!updated.isBob() && !updated.toMyRight?.isFundingTheTarget()) {
+      let ledgerSideEffects: SideEffects;
+      try {
+        ledgerSideEffects = updated.updateLedgerWithGuarantee(updated.toMyRight!, secretKey);
+      } catch (err) {
+        throw new Error(`error updating ledger funding: ${err}`);
+      }
+      sideEffects.merge(ledgerSideEffects);
+    }
+
+    if (!updated.fundingComplete()) {
+      return [updated, sideEffects, WaitingForCompleteFunding];
+    }
+
+    // Postfunding
+    if (!updated.v!.postFundSignedByMe()) {
+      const ss = updated.v!.signAndAddPostfund(secretKey);
+      const messages = Message.createObjectivePayloadMessage(this.id(), ss, SignedStatePayload, ...this.otherParticipants());
+      sideEffects.messagesToSend.push(...messages);
+    }
+
+    // Alice and Bob require a complete post fund round to know that vouchers may be enforced on chain.
+    // Intermediaries do not require the complete post fund, so we allow them to finish the protocol early.
+    // If they need to recover funds, they can force V to close by challenging with the pre fund state.
+    // Alice and Bob may counter-challenge with a postfund state plus a redemption state.
+    // See ADR-0009.
+
+    if (!updated.v!.postFundComplete() && (updated.isAlice() || updated.isBob())) {
+      return [updated, sideEffects, WaitingForCompletePostFund];
+    }
+
+    // Completion
+    updated.status = ObjectiveStatus.Completed;
+    return [updated, sideEffects, WaitingForNothing];
+  }
+
+  // Related returns a slice of related objects that need to be stored along with the objective
+  related(): Storable[] {
+    const ret: Storable[] = [this.v!];
+
+    if (this.toMyLeft !== null) {
+      ret.push(this.toMyLeft!.channel!);
+    }
+    if (this.toMyRight !== null) {
+      ret.push(this.toMyRight!.channel!);
+    }
+
+    return ret;
+  }
+
+  /// ///////////////////////////////////////////////
+  //  Private methods on the VirtualFundObjective //
+  /// ///////////////////////////////////////////////
+
+  // fundingComplete returns true if the appropriate ledger channel guarantees sufficient funds for J
+  private fundingComplete(): boolean {
+    // Each peer commits to an update in L_{i-1} and L_i including the guarantees G_{i-1} and
+    // {G_i} respectively, and deducting b_0 from L_{I-1} and a_0 from L_i.
+    // A = P_0 and B=P_n are special cases. A only does the guarantee for L_0 (deducting a0), and B only foes the guarantee for L_n (deducting b0).
+    switch (true) {
+      case this.isAlice():
+        return this.toMyRight!.isFundingTheTarget();
+      case this.isBob():
+        return this.toMyLeft!.isFundingTheTarget();
+      default: // Intermediary
+        return this.toMyRight!.isFundingTheTarget() && this.toMyLeft!.isFundingTheTarget();
+    }
+  }
+
+  // Clone returns a deep copy of the receiver.
+  private clone(): Objective {
+    const clone = new Objective({});
+    clone.status = this.status;
+    const vClone = this.v!.clone();
+    clone.v = vClone;
+
+    if (this.toMyLeft !== null) {
+      const lClone = this.toMyLeft?.channel?.clone();
+      clone.toMyLeft = new Connection({ channel: lClone, guaranteeInfo: this.toMyLeft?.guaranteeInfo });
+    }
+
+    if (this.toMyRight !== null) {
+      const rClone = this.toMyRight?.channel?.clone();
+      clone.toMyRight = new Connection({ channel: rClone, guaranteeInfo: this.toMyRight?.guaranteeInfo });
+    }
+
+    clone.n = this.n;
+    clone.myRole = this.myRole;
+
+    clone.a0 = this.a0;
+    clone.b0 = this.b0;
+    return clone;
   }
 
   // isAlice returns true if the receiver represents participant 0 in the virtualfund protocol.
@@ -406,6 +739,87 @@ export class Objective implements ObjectiveInterface {
   private isBob(): boolean {
     return this.myRole === this.n + 1;
   }
+
+  // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
+  private proposeLedgerUpdate(connection: Connection, sk: Buffer): SideEffects {
+    const ledger = connection.channel;
+
+    if (!ledger!.isLeader()) {
+      throw new Error('only the leader can propose a ledger update');
+    }
+
+    const sideEffects = new SideEffects({});
+
+    ledger?.propose(connection.expectedProposal(), sk);
+
+    const receipient = ledger!.follower();
+
+    // Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
+    // to create a valid message with ordered proposals:
+
+    const message = Message.createSignedProposalMessage(receipient, ...connection.channel!.proposalQueue());
+    sideEffects.messagesToSend.push(message);
+    return sideEffects;
+  }
+
+  // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
+  private acceptLedgerUpdate(c: Connection, sk: Buffer): SideEffects {
+    const ledger = c.channel;
+    let sp: SignedProposal;
+    try {
+      sp = ledger!.signNextProposal(c.expectedProposal(), sk);
+    } catch (err) {
+      throw new Error(`no proposed state found for ledger channel ${err}`);
+    }
+    const sideEffects = new SideEffects({});
+
+    // ledger sideEffect
+    const proposals = ledger?.proposalQueue();
+    if (proposals!.length !== 0) {
+      sideEffects.proposalsToProcess.push(proposals![0].proposal);
+    }
+
+    // message sideEffect
+    const receipient = ledger!.leader();
+    const message = Message.createSignedProposalMessage(receipient, sp);
+    sideEffects.messagesToSend.push(message);
+    return sideEffects;
+  }
+
+  // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
+  private updateLedgerWithGuarantee(ledgerConnection: Connection, sk: Buffer): SideEffects {
+    const ledger = ledgerConnection.channel;
+
+    let sideEffects: SideEffects;
+    const g = ledgerConnection.getExpectedGuarantee();
+    const proposed = ledger!.isProposed(g);
+
+    if (ledger!.isLeader()) { // If the user is the proposer craft a new proposal
+      if (proposed) {
+        return new SideEffects({});
+      }
+      let se: SideEffects;
+      try {
+        se = this.proposeLedgerUpdate(ledgerConnection, sk);
+      } catch (err) {
+        throw new Error(`error proposing ledger update: ${err}`);
+      }
+      sideEffects = se;
+    } else {
+      // If the proposal is next in the queue we accept it
+      const proposedNext = ledger?.isProposedNext(g);
+      if (proposedNext) {
+        let se: SideEffects;
+        try {
+          se = this.acceptLedgerUpdate(ledgerConnection, sk);
+        } catch (err) {
+          throw new Error(`error proposing ledger update: ${err}`);
+        }
+        sideEffects = se;
+      }
+    }
+    return sideEffects!;
+  }
 }
 
 // IsVirtualFundObjective inspects a objective id and returns true if the objective id is for a virtual fund objective.
@@ -414,11 +828,12 @@ export function isVirtualFundObjective(id: ObjectiveId): boolean {
 }
 
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.
-// TODO: Implement
-export class ObjectiveResponse {}
+export type ObjectiveResponse = {
+  id: ObjectiveId
+  channelId: Destination
+};
 
 // ObjectiveRequest represents a request to create a new virtual funding objective.
-// TODO: Implement
 export class ObjectiveRequest implements ObjectiveRequestInterface {
   intermediaries: Address[] = [];
 
@@ -466,9 +881,9 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     });
   }
 
-  id(address: Address, chainId: bigint): ObjectiveId {
-    // TODO: Implement
-    return '';
+  id(myAddress: Address, chainId: bigint): ObjectiveId {
+    const idStr = this.channelId(myAddress).string();
+    return `${ObjectivePrefix}${idStr}`;
   }
 
   // WaitForObjectiveToStart blocks until the objective starts
@@ -477,13 +892,32 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     await this.objectiveStarted.shift();
   }
 
-  signalObjectiveStarted(): void {
-    // TODO: Implement
+  async signalObjectiveStarted(): Promise<void> {
+    assert(this.objectiveStarted);
+    await this.objectiveStarted.close();
   }
 
   // response computes and returns the appropriate response from the request.
   response(myAddress: Address): ObjectiveResponse {
-    // TODO: Implement
-    return new ObjectiveResponse();
+    const channelId = this.channelId(myAddress);
+
+    return {
+      id: `${ObjectivePrefix}${channelId.string()}`,
+      channelId,
+    };
+  }
+
+  channelId(myAddress: Address): Destination {
+    const participants: Address[] = [myAddress];
+    participants.push(...this.intermediaries);
+    participants.push(this.counterParty);
+
+    const fixedPart = new FixedPart({
+      participants,
+      channelNonce: this.nonce,
+      challengeDuration: this.challengeDuration,
+    });
+
+    return fixedPart.channelId();
   }
 }

@@ -347,11 +347,10 @@ export class Objective implements ObjectiveInterface {
 
   private otherParticipants(): Address[] {
     const others: Address[] = [];
-    assert(this.c);
 
-    for (let i = 0; i < this.c.participants.length; i += 1) {
-      if (i !== this.c.myIndex) {
-        others.push(this.c.participants[i]);
+    for (let i = 0; i < this.c!.participants.length; i += 1) {
+      if (i !== this.c!.myIndex) {
+        others.push(this.c!.participants[i]);
       }
     }
 
@@ -366,11 +365,7 @@ export class Objective implements ObjectiveInterface {
    */
   crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
     const updated = this.clone();
-    const sideEffects: SideEffects = {
-      messagesToSend: [],
-      transactionsToSubmit: [],
-      proposalsToProcess: [],
-    };
+    const sideEffects = new SideEffects({});
 
     // Input validation
     if (updated.status !== ObjectiveStatus.Approved) {

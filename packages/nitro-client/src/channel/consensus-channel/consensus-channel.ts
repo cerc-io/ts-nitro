@@ -18,27 +18,27 @@ import { Allocation, AllocationType, Allocations } from '../state/outcome/alloca
 import { Exit, SingleAssetExit } from '../state/outcome/exit';
 import { GuaranteeMetadata } from '../state/outcome/guarantee';
 
-const ErrIncorrectChannelID = new Error('proposal ID and channel ID do not match');
-const ErrIncorrectTurnNum = new Error('incorrect turn number');
-const ErrInvalidDeposit = new Error('unable to divert to guarantee: invalid deposit');
-const ErrInsufficientFunds = new Error('insufficient funds');
-const ErrDuplicateGuarantee = new Error('duplicate guarantee detected');
-const ErrGuaranteeNotFound = new Error('guarantee not found');
-const ErrInvalidAmount = new Error('left amount is greater than the guarantee amount');
+export const ErrIncorrectChannelID = new Error('proposal ID and channel ID do not match');
+export const ErrIncorrectTurnNum = new Error('incorrect turn number');
+export const ErrInvalidDeposit = new Error('unable to divert to guarantee: invalid deposit');
+export const ErrInsufficientFunds = new Error('insufficient funds');
+export const ErrDuplicateGuarantee = new Error('duplicate guarantee detected');
+export const ErrGuaranteeNotFound = new Error('guarantee not found');
+export const ErrInvalidAmount = new Error('left amount is greater than the guarantee amount');
 
 // From channel/consensus_channel/follower_channel.go
-const ErrNotFollower = new Error('method may only be called by channel follower');
-const ErrNoProposals = new Error('no proposals in the queue');
-const ErrUnsupportedQueuedProposal = new Error('only Add proposal is supported for queued proposals');
-const ErrUnsupportedExpectedProposal = new Error('only Add proposal is supported for expected update');
-const ErrNonMatchingProposals = new Error('expected proposal does not match first proposal in the queue');
-const ErrInvalidProposalSignature = new Error('invalid signature for proposal');
-const ErrInvalidTurnNum = new Error('the proposal turn number is not the next turn number');
+export const ErrNotFollower = new Error('method may only be called by channel follower');
+export const ErrNoProposals = new Error('no proposals in the queue');
+export const ErrUnsupportedQueuedProposal = new Error('only Add proposal is supported for queued proposals');
+export const ErrUnsupportedExpectedProposal = new Error('only Add proposal is supported for expected update');
+export const ErrNonMatchingProposals = new Error('expected proposal does not match first proposal in the queue');
+export const ErrInvalidProposalSignature = new Error('invalid signature for proposal');
+export const ErrInvalidTurnNum = new Error('the proposal turn number is not the next turn number');
 
 // From channel/consensus_channel/leader_channel.go
-const ErrNotLeader = new Error('method may only be called by the channel leader');
-const ErrProposalQueueExhausted = new Error('proposal queue exhausted');
-const ErrWrongSigner = new Error('proposal incorrectly signed');
+export const ErrNotLeader = new Error('method may only be called by the channel leader');
+export const ErrProposalQueueExhausted = new Error('proposal queue exhausted');
+export const ErrWrongSigner = new Error('proposal incorrectly signed');
 
 export enum ProposalType {
   AddProposal = 'AddProposal',
@@ -130,6 +130,13 @@ export class Guarantee {
   static fromJSON(data: string): Guarantee {
     const props = fromJSON(this.jsonEncodingMap, data, new Map([['target', '_target']]));
     return new Guarantee(props);
+  }
+
+  // NewGuarantee constructs a new guarantee.
+  static newGuarantee(amount: bigint, target: Destination, left: Destination, right: Destination): Guarantee {
+    return new Guarantee({
+      amount, _target: target, left, right,
+    });
   }
 
   toJSON(): any {
@@ -1301,6 +1308,12 @@ export class Proposal {
   // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
   equal(q: Proposal): boolean {
     return this.ledgerID === q.ledgerID && this.toAdd.equal(q.toAdd) && this.toRemove.equal(q.toRemove);
+  }
+
+  // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
+  // TODO: Implement
+  static newAddProposal(ledgerID: Destination, g: Guarantee, leftDeposit: BigInt): Proposal {
+    return {} as Proposal;
   }
 }
 

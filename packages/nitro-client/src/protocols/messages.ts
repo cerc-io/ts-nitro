@@ -1,6 +1,6 @@
 import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
-import { SignedProposal } from '../channel/consensus-channel/consensus-channel';
+import { SignedProposal, Proposal } from '../channel/consensus-channel/consensus-channel';
 import { Voucher } from '../payments/vouchers';
 import { Address } from '../types/types';
 
@@ -116,6 +116,14 @@ export class Message {
     return messages;
   }
 
+  // CreateSignedProposalMessage returns a signed proposal message addressed to the counterparty in the given ledger channel.
+  // The proposals MUST be sorted by turnNum
+  // since the ledger protocol relies on the message receipient processing the proposals in that order. See ADR 4.
+  static createSignedProposalMessage(recipient: Address, ...proposals: SignedProposal[]): Message {
+    const msg = new Message({ to: recipient, ledgerProposals: proposals });
+    return msg;
+  }
+
   // CreateVoucherMessage returns a signed voucher message for each of the recipients provided.
   static createVoucherMessage(voucher: Voucher, ...recipients: Address[]): Message[] {
     const messages: Message[] = [];
@@ -143,6 +151,12 @@ export class Message {
   summarize(): MessageSummary {
     return JSON.stringify(this, null, 2);
   }
+}
+
+// GetProposalObjectiveId returns the objectiveId for a proposal.
+// TODO: Implement
+export function getProposalObjectiveId(p: Proposal): ObjectiveId {
+  return '';
 }
 
 // DeserializeMessage deserializes the passed string into a protocols.Message.

@@ -198,15 +198,8 @@ export class Objective implements ObjectiveInterface {
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
   // TODO: Implement
-  reject(): [ObjectiveInterface, SideEffects] {
-    return [
-      new Objective({}),
-      {
-        messagesToSend: [],
-        proposalsToProcess: [],
-        transactionsToSubmit: [],
-      },
-    ];
+  reject(): [Objective, SideEffects] {
+    return [new Objective({}), new SideEffects({})];
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
@@ -220,15 +213,7 @@ export class Objective implements ObjectiveInterface {
   // TODO: Implement
   // TODO: Can throw an error
   crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
-    return [
-      new Objective({}),
-      {
-        messagesToSend: [],
-        proposalsToProcess: [],
-        transactionsToSubmit: [],
-      },
-      '',
-    ];
+    return [new Objective({}), new SideEffects({}), ''];
   }
 
   // Related returns a slice of related objects that need to be stored along with the objective
