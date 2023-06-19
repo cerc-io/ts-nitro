@@ -153,9 +153,22 @@ export class Message {
 }
 
 // GetProposalObjectiveId returns the objectiveId for a proposal.
-// TODO: Implement
 export function getProposalObjectiveId(p: Proposal): ObjectiveId {
-  return '';
+  switch (p.type()) {
+    case 'AddProposal': {
+      const prefix = 'VirtualFund-';
+      const channelId = p.toAdd.target().toString();
+      return prefix + channelId;
+    }
+    case 'RemoveProposal': {
+      const prefix = 'VirtualDefund-';
+      const channelId = p.toRemove.target.toString();
+      return prefix + channelId;
+    }
+    default: {
+      throw new Error('invalid proposal type');
+    }
+  }
 }
 
 // DeserializeMessage deserializes the passed string into a protocols.Message.
