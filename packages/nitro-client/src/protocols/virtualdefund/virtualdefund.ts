@@ -1,4 +1,5 @@
 import assert from 'assert';
+import _ from 'lodash';
 
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
 import {
@@ -12,7 +13,9 @@ import { Destination } from '../../types/destination';
 import { Address } from '../../types/types';
 import * as channel from '../../channel/channel';
 import { VirtualChannel } from '../../channel/virtual';
-import { ConsensusChannel, Proposal, SignedProposal } from '../../channel/consensus-channel/consensus-channel';
+import {
+  ConsensusChannel, Proposal, SignedProposal, ErrInvalidTurnNum,
+} from '../../channel/consensus-channel/consensus-channel';
 import {
   ObjectiveRequest as ObjectiveRequestInterface,
   Objective as ObjectiveInterface,
@@ -108,7 +111,6 @@ export function validateFinalOutcome(
 }
 
 // ObjectiveRequest represents a request to create a new virtual defund objective.
-// TODO: Implement
 export class ObjectiveRequest implements ObjectiveRequestInterface {
   channelId: Destination = new Destination();
 
@@ -343,9 +345,26 @@ export class Objective implements ObjectiveInterface {
     );
   }
 
-  // TODO: Implement
+  // finalState returns the final state for the virtual channel
+  private finalState(): State {
+    return this.v!.signedStateForTurnNum.get(FinalTurnNum)!.state();
+  }
+
+  private initialOutcome(): SingleAssetExit {
+    return this.v!.postFundState().outcome.value[0];
+  }
+
   private generateFinalOutcome(): SingleAssetExit {
-    return {} as SingleAssetExit;
+    if (this.myRole !== 0) {
+      throw new Error('Only Alice should call generateFinalOutcome');
+    }
+
+    // Since Alice is responsible for issuing vouchers she always has the largest payment amount
+    // This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
+    const finalOutcome = this.initialOutcome().clone();
+    finalOutcome.allocations.value[0].amount -= this.minimumPaymentAmount!;
+    finalOutcome.allocations.value[1].amount += this.minimumPaymentAmount!;
+    return finalOutcome;
   }
 
   // finalState returns the final state for the virtual channel
@@ -444,17 +463,93 @@ export class Objective implements ObjectiveInterface {
     return others;
   }
 
-  // TODO: Implement
   private hasFinalStateFromAlice(): boolean {
-    return false;
+    const ok = this.v!.signedStateForTurnNum.has(FinalTurnNum);
+    const ss = this.v!.signedStateForTurnNum.get(FinalTurnNum);
+    return ok && ss!.state().isFinal && !this.isZero(ss!.signatures()[0]);
   }
 
   // Crank inspects the extended state and declares a list of Effects to be executed.
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  // TODO: Implement
-  // TODO: Can throw an error
   crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
-    return [new Objective({}), new SideEffects({}), ''];
+    const updated = this.clone();
+    const sideEffects = new SideEffects({});
+
+    // Input validation
+    if (updated.status !== ObjectiveStatus.Approved) {
+      return [updated, sideEffects, WaitingForNothing];
+    }
+
+    // If we don't know the amount yet we send a message to alice to request it
+    if (!updated.isAlice() && !updated.hasFinalStateFromAlice()) {
+      const alice = this.v!.participants[0];
+      const messages = Message.createObjectivePayloadMessage(updated.id(), this.vId(), RequestFinalStatePayload, alice);
+      sideEffects.messagesToSend.push(...messages);
+      return [updated, sideEffects, WaitingForFinalStateFromAlice];
+    }
+
+    // Signing of the final state
+    if (!updated.v!.finalSignedByMe()) {
+      let s: State;
+
+      if (updated.isAlice()) {
+        s = updated.generateFinalState();
+      } else {
+        s = updated.finalState();
+      }
+
+      // Sign and store:
+      let ss: SignedState;
+      try {
+        ss = updated.v!.signAndAddState(s, secretKey);
+      } catch (err) {
+        throw new Error(`could not sign final state: ${err}`);
+      }
+      let messages: Message[];
+      try {
+        messages = Message.createObjectivePayloadMessage(updated.id(), ss, SignedStatePayload, ...this.otherParticipants());
+      } catch (err) {
+        throw new Error(`could not get create payload message: ${err}`);
+      }
+      sideEffects.messagesToSend.push(...messages);
+    }
+
+    // Check if all participants have signed the final state
+    if (!updated.v!.finalCompleted()) {
+      return [updated, sideEffects, WaitingForSupportedFinalState];
+    }
+
+    if (!updated.isAlice() && !updated.leftHasDefunded()) {
+      let ledggerSideEffects: SideEffects;
+      try {
+        ledggerSideEffects = updated.updateLedgerToRemoveGuarantee(updated.toMyLeft!, secretKey);
+      } catch (err) {
+        throw new Error(`error updating ledger funding: ${err}`);
+      }
+      sideEffects.merge(ledggerSideEffects);
+    }
+
+    if (!updated.isBob() && !updated.rightHasDefunded()) {
+      let ledgerSideEffects: SideEffects;
+      try {
+        ledgerSideEffects = updated.updateLedgerToRemoveGuarantee(updated.toMyRight!, secretKey);
+      } catch (err) {
+        throw new Error(`error updating ledger funding: ${err}`);
+      }
+      sideEffects.merge(ledgerSideEffects);
+    }
+
+    if (!updated.leftHasDefunded()) {
+      return [updated, sideEffects, WaitingForDefundingOnMyLeft];
+    }
+
+    if (!updated.rightHasDefunded()) {
+      return [updated, sideEffects, WaitingForDefundingOnMyRight];
+    }
+
+    // Mark the objective as done
+    updated.status = ObjectiveStatus.Completed;
+    return [updated, sideEffects, WaitingForNothing];
   }
 
   // isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol.
@@ -468,15 +563,60 @@ export class Objective implements ObjectiveInterface {
   }
 
   // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
-  // TODO: Implement
   private ledgerProposal(ledger: ConsensusChannel): Proposal {
-    return {} as Proposal;
+    const left = this.finalState().outcome.value[0].allocations.value[0].amount;
+    return Proposal.newRemoveProposal(ledger.id, this.vId(), left);
   }
 
   // updateLedgerToRemoveGuarantee updates the ledger channel to remove the guarantee that funds V.
-  // TODO: Implement
   private updateLedgerToRemoveGuarantee(ledger: ConsensusChannel, sk: Buffer): SideEffects {
-    return {} as SideEffects;
+    let sideEffects: SideEffects;
+
+    const proposed = ledger.hasRemovalBeenProposed(this.vId());
+
+    if (ledger.isLeader()) {
+      if (proposed) { // If we've already proposed a remove proposal we can return
+        return new SideEffects({});
+      }
+
+      try {
+        ledger.propose(this.ledgerProposal(ledger), sk);
+      } catch (err) {
+        throw new Error(`error proposing ledger update: ${err}`);
+      }
+
+      const receipient = ledger.follower();
+      // Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
+      // to create a valid message with ordered proposals:
+
+      const message = Message.createSignedProposalMessage(receipient, ...ledger.proposalQueue());
+      sideEffects!.messagesToSend.push(message);
+    } else {
+      // If the proposal is next in the queue we accept it
+      const proposedNext = ledger.hasRemovalBeenProposedNext(this.vId());
+
+      if (proposedNext) {
+        let sp: SignedProposal;
+        try {
+          sp = ledger.signNextProposal(this.ledgerProposal(ledger), sk);
+        } catch (err) {
+          throw new Error(`could not sign proposal: ${err}`);
+        }
+
+        // ledger sideEffect
+        const proposals = ledger.proposalQueue();
+        if (proposals.length !== 0) {
+          sideEffects!.proposalsToProcess.push(proposals[0].proposal);
+        }
+
+        // messaging sideEffect
+        const receipient = ledger.leader();
+        const message = Message.createSignedProposalMessage(receipient, sp);
+        sideEffects!.messagesToSend.push(message);
+      }
+    }
+
+    return sideEffects!;
   }
 
   // VId returns the channel id of the virtual channel.
@@ -551,7 +691,6 @@ export class Objective implements ObjectiveInterface {
   }
 
   // ReceiveProposal receives a signed proposal and returns an updated VirtualDefund objective.
-  // TODO: Implement
   receiveProposal(sp: SignedProposal): ProposalReceiver {
     let toMyLeftId: Destination;
     let toMyRightId: Destination;
