@@ -53,16 +53,12 @@ export class Funds {
     const sum = new Funds();
 
     for (const funds of a) {
-      for (const asset in funds.value) {
-        if (funds.value.has(asset)) {
-          const amount = funds.value.get(asset)!;
-
-          if (!sum.value.get(asset)) {
-            sum.value.set(asset, BigInt(0));
-          }
-
-          sum.value.set(asset, sum.value.get(asset)! + amount);
+      for (const [asset, amount] of funds.value.entries()) {
+        if (!sum.value.get(asset)) {
+          sum.value.set(asset, BigInt(0));
         }
+
+        sum.value.set(asset, sum.value.get(asset)! + amount);
       }
     }
 

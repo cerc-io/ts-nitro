@@ -336,12 +336,10 @@ export class Engine {
         return [new EngineEvent(), err as Error];
       }
 
-      // TODO: Implement for all protocols
       if (objective.getStatus() === ObjectiveStatus.Unapproved) {
         this.logger('Policymaker is', this.policymaker);
 
         if (this.policymaker.shouldApprove(objective)) {
-          // TODO: Implement for all protocols
           objective = objective.approve();
 
           if (objective instanceof DirectDefundObjective) {
@@ -351,7 +349,6 @@ export class Engine {
           }
         } else {
           let sideEffects: SideEffects;
-          // TODO: Implement for all protocols
           [objective, sideEffects] = objective.reject();
 
           try {
@@ -384,7 +381,6 @@ export class Engine {
 
       let updatedObjective: Objective;
       try {
-        // TODO: Implement for all protocols
         updatedObjective = objective.update(payload);
       } catch (err) {
         return [new EngineEvent(), err as Error];

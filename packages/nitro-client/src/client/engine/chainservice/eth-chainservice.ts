@@ -5,7 +5,7 @@ import debug from 'debug';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@nodeguy/channel';
-import { connectToChain, go } from '@cerc-io/nitro-util';
+import { connectToChain, go, hex2Bytes } from '@cerc-io/nitro-util';
 
 import {
   ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent,
@@ -112,7 +112,7 @@ export class EthChainService implements ChainService {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
     }
 
-    const [ethClient, txSigner] = await connectToChain(chainUrl, Buffer.from(chainPk));
+    const [ethClient, txSigner] = await connectToChain(chainUrl, hex2Bytes(chainPk));
 
     const na = NitroAdjudicator__factory.connect(naAddress, txSigner);
 

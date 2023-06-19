@@ -139,7 +139,7 @@ export class Allocations {
   totalFor(dest: Destination): bigint {
     let total = BigInt(0);
     this.value.forEach((allocation) => {
-      if (allocation.destination === dest) {
+      if (_.isEqual(allocation.destination, dest)) {
         total += allocation.amount;
       }
     });
@@ -183,7 +183,7 @@ export class Allocations {
     rightAmount: bigint,
     guaranteeDestination: Destination,
   ): Allocations {
-    if (leftDestination === rightDestination) {
+    if (_.isEqual(leftDestination, rightDestination)) {
       throw new Error('debtees must be distinct');
     }
 

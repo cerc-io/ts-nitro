@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 import { Destination } from '../../../types/destination';
 import { Funds } from '../../../types/funds';
 // eslint-disable-next-line import/no-cycle
@@ -10,7 +12,7 @@ export const singleAssetExitDepositSafetyThreshold = (singleAssetExit: SingleAss
   let sum: bigint = BigInt(0);
 
   for (const allocation of singleAssetExit.allocations.value) {
-    if (allocation.destination === interest) {
+    if (_.isEqual(allocation.destination, interest)) {
       // We have 'hit' the destination whose balances we are interested in protecting
       return sum;
     }
