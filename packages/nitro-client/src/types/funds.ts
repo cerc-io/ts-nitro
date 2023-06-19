@@ -21,7 +21,7 @@ export class Funds {
   toJSON(): any {
     // Return serialized map value
     // (Funds is a map in go-nitro)
-    return encodeMap(this.value);
+    return encodeMap(Funds.jsonEncodingMap.value.value, this.value);
   }
 
   constructor(value: Map<Address, bigint> = new Map()) {
