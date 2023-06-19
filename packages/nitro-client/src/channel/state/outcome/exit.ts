@@ -90,6 +90,9 @@ export class SingleAssetExit {
   }
 }
 
+// easyExit is a more ergonomic data type which can be derived from an Exit
+type EasyExit = Map<Address, SingleAssetExit>;
+
 // Exit is an ordered list of SingleAssetExits
 export class Exit {
   // Access using value property
@@ -175,11 +178,36 @@ export class Exit {
     return exitDepositSafetyThreshold(this, interest);
   }
 
+  // toEasyExit() convets an Exit into an easyExit.
+  //
+  // An EasyExit is a mapping from asset to SingleAssetExit, rather than an array.
+  // The conversion loses some information, because the position in the original array is not recorded in the map.
+  // The position has no semantic meaning, but does of course affect the hash of the exit.
+  // Furthermore, this transformation assumes there are *no* repeated entries.
+  // For these reasons, the transformation should be considered non-invertibile and used with care.
+  toEasyExit(): EasyExit {
+    const easy: EasyExit = new Map<Address, SingleAssetExit>();
+    for (const [i] of this.value.entries()) {
+      easy.set(this.value[i].asset, this.value[i]);
+    }
+    return easy;
+  }
+
   // Affords returns true if every allocation in the allocationMap can be afforded by the Exit, given the funds
   //
   // Both arguments are maps keyed by the same assets
-  // TODO: Implement
   affords(allocationMap: Map<Address, Allocation>, fundingMap: Funds): boolean {
-    return false;
+    const easyExit = this.toEasyExit();
+    for (const [asset] of easyExit) {
+      const x = fundingMap.value.get(asset);
+      if (!x) {
+        return false;
+      }
+      const allocation = allocationMap.get(asset);
+      if (!easyExit.get(asset)?.allocations.affords(allocation!, x)) {
+        return false;
+      }
+    }
+    return true;
   }
 }

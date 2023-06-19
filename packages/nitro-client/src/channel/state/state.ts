@@ -327,7 +327,15 @@ function equalParticipants(p: Address[], q: Address[]): boolean {
 }
 
 // StateFromFixedAndVariablePart constructs a State from a FixedPart and a VariablePart
-// TODO: Implement
 export function stateFromFixedAndVariablePart(f: FixedPart, v: VariablePart): State {
-  return {} as State;
+  return new State({
+    participants: f.participants,
+    channelNonce: f.channelNonce,
+    appDefinition: f.appDefinition,
+    challengeDuration: f.challengeDuration,
+    appData: v.appData,
+    outcome: v.outcome,
+    turnNum: v.turnNum,
+    isFinal: v.isFinal,
+  });
 }
