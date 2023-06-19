@@ -18,10 +18,16 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
       return fieldType.value.fromJSON(JSON.stringify(fieldJsonValue));
     }
 
-    case 'string':
-    case 'number':
+    case 'string': {
+      return String(fieldJsonValue);
+    }
+
+    case 'number': {
+      return Number(fieldJsonValue);
+    }
+
     case 'boolean': {
-      return fieldJsonValue;
+      return String(fieldJsonValue) === 'true';
     }
 
     case 'bigint': {

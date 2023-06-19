@@ -99,7 +99,7 @@ export class Objective implements ObjectiveInterface {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
-    c: { type: 'class', value: Channel },
+    c: { type: 'class', value: channel.Channel },
     myDepositSafetyThreshold: { type: 'class', value: Funds },
     myDepositTarget: { type: 'class', value: Funds },
     fullyFundedThreshold: { type: 'class', value: Funds },
