@@ -380,7 +380,6 @@ export class EthChainService implements ChainService {
           //   sub.Unsubscribe()
 
           case logs:
-            // TODO: Implement
             this.dispatchChainEvents([logs.value()]);
             break;
         }

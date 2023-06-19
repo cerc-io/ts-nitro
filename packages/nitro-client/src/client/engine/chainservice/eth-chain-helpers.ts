@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
-import { Transaction, providers } from 'ethers';
+import { Transaction, utils, providers } from 'ethers';
 
-import { AllocationUpdatedEventObject, NitroAdjudicator } from './adjudicator/nitro-adjudicator';
+import { AllocationUpdatedEventObject, INitroTypes, NitroAdjudicator } from './adjudicator/nitro-adjudicator';
 import { Address } from '../../../types/types';
 import { Destination } from '../../../types/destination';
 
 // getAssetHoldings reads on-chain holdings for a channel,asset address, and block number
 async function getAssetHoldings(na: NitroAdjudicator, assetAddress: Address, blockNumber: bigint, channelId: Destination): Promise<bigint> {
-  // TODO: Check working
   const amount = await na.holdings(assetAddress, channelId.value, { blockTag: Number(blockNumber) });
   return amount.toBigInt();
 }
@@ -30,15 +29,17 @@ export async function getChainHolding(
 }
 
 // assetAddressForIndex uses the input parameters of a transaction to map an asset index to an asset address
-// TODO: Check tx type
-// TODO: Can throw an error
-// TODO: Implement
 function assetAddressForIndex(na: NitroAdjudicator, tx: Transaction, index: bigint): Address {
-  return '';
+  const abiInterface = na.interface;
+  const params = decodeTxParams(abiInterface, tx);
+
+  const candidate = params.candidate as INitroTypes.SignedVariablePartStructOutput;
+
+  return candidate.variablePart.outcome[Number(index)].asset;
 }
 
-// TODO: Can throw an error
-// TODO: Implement
-function decodeTxParams(abi: any, data: Buffer): Map<string, any> {
-  return new Map();
+function decodeTxParams(abiInterface: utils.Interface, tx: Transaction): utils.Result {
+  const txData = abiInterface.parseTransaction(tx);
+
+  return txData.args;
 }
