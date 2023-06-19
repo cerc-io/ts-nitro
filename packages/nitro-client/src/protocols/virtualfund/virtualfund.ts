@@ -1,9 +1,10 @@
 import assert from 'assert';
+import { ethers } from 'ethers';
 
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
+import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
-import { ethers } from 'ethers';
 import { Destination } from '../../types/destination';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
 import { Exit } from '../../channel/state/outcome/exit';
@@ -35,11 +36,29 @@ class GuaranteeInfo {
 
   public right: Destination = new Destination();
 
+  // TODO: Make non-optional?
   public leftAmount?: Funds;
 
   public rightAmount?: Funds;
 
   public guaranteeDestination: Destination = new Destination();
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    left: { type: 'class', value: Destination },
+    right: { type: 'class', value: Destination },
+    leftAmount: { type: 'class', value: Funds },
+    rightAmount: { type: 'class', value: Funds },
+    guaranteeDestination: { type: 'class', value: Destination },
+  };
+
+  static fromJSON(data: string): GuaranteeInfo {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new GuaranteeInfo(props);
+  }
+
+  toJSON(): any {
+    return toJSON(GuaranteeInfo.jsonEncodingMap, this);
+  }
 
   constructor(params: {
     left?: Destination,
@@ -57,6 +76,27 @@ export class Connection {
   channel?: ConsensusChannel;
 
   guaranteeInfo: GuaranteeInfo = new GuaranteeInfo({});
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    channel: { type: 'class', value: ConsensusChannel },
+    guaranteeInfo: { type: 'class', value: GuaranteeInfo },
+  };
+
+  static fromJSON(data: string): Connection {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Connection(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Connection.jsonEncodingMap, this);
+  }
+
+  constructor(params: {
+    channel?: ConsensusChannel,
+    guaranteeInfo?: GuaranteeInfo,
+  }) {
+    Object.assign(this, params);
+  }
 
   // insertGuaranteeInfo mutates the receiver Connection struct.
   insertGuaranteeInfo(a0: Funds, b0: Funds, vId: Destination, left: Destination, right: Destination) {
@@ -98,9 +138,37 @@ export class Objective implements ObjectiveInterface {
 
   private b0?: Funds; // Initial balance for Bob
 
-  // TODO: Implement
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    status: { type: 'number' },
+    v: { type: 'class', value: VirtualChannel },
+    toMyLeft: { type: 'class', value: Connection },
+    toMyRight: { type: 'class', value: Connection },
+    n: { type: 'number' },
+    myRole: { type: 'number' },
+    a0: { type: 'class', value: Funds },
+    b0: { type: 'class', value: Funds },
+  };
+
   static fromJSON(data: string): Objective {
-    return {} as Objective;
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Objective(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Objective.jsonEncodingMap, this);
+  }
+
+  constructor(params: {
+    status?: ObjectiveStatus,
+    v?: VirtualChannel,
+    toMyLeft?: Connection,
+    toMyRight?: Connection,
+    n?: number,
+    myRole?: number,
+    a0?: Funds,
+    b0?: Funds,
+  }) {
+    Object.assign(this, params);
   }
 
   // NewObjective creates a new virtual funding objective from a given request.
@@ -160,7 +228,7 @@ export class Objective implements ObjectiveInterface {
     consensusChannelToMyLeft?: ConsensusChannel,
     consensusChannelToMyRight?: ConsensusChannel,
   ): Objective {
-    const init: Objective = new Objective();
+    const init: Objective = new Objective({});
 
     if (preApprove) {
       init.status = ObjectiveStatus.Approved;
@@ -217,7 +285,7 @@ export class Objective implements ObjectiveInterface {
 
     // everyone other than Alice has a left-channel
     if (!init.isAlice()) {
-      init.toMyLeft = new Connection();
+      init.toMyLeft = new Connection({});
 
       if (!consensusChannelToMyLeft) {
         throw new Error('Non-Alice virtualfund objective requires non-null left ledger channel');
@@ -234,7 +302,7 @@ export class Objective implements ObjectiveInterface {
     }
 
     if (!init.isBob()) {
-      init.toMyRight = new Connection();
+      init.toMyRight = new Connection({});
 
       if (!consensusChannelToMyRight) {
         throw new Error('Non-Bob virtualfund objective requires non-null right ledger channel');
@@ -273,15 +341,15 @@ export class Objective implements ObjectiveInterface {
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
   // TODO: Implement
-  approve(): Objective {
-    return new Objective();
+  approve(): ObjectiveInterface {
+    return new Objective({});
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
   // TODO: Implement
-  reject(): [Objective, SideEffects] {
+  reject(): [ObjectiveInterface, SideEffects] {
     return [
-      new Objective(),
+      new Objective({}),
       {
         messagesToSend: [],
         proposalsToProcess: [],
@@ -293,8 +361,8 @@ export class Objective implements ObjectiveInterface {
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
   // TODO: Implement
   // TODO: Can throw an error
-  update(payload: ObjectivePayload): Objective {
-    return new Objective();
+  update(payload: ObjectivePayload): ObjectiveInterface {
+    return new Objective({});
   }
 
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
@@ -302,7 +370,7 @@ export class Objective implements ObjectiveInterface {
   // TODO: Can throw an error
   crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
     return [
-      new Objective(),
+      new Objective({}),
       {
         messagesToSend: [],
         proposalsToProcess: [],

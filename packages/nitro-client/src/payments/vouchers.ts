@@ -18,7 +18,7 @@ import {
 import { Signature } from '../channel/state/state';
 import { Address } from '../types/types';
 import { Destination } from '../types/destination';
-import { signatureJsonEncodingMap } from '../crypto/signatures';
+import { equal, signatureJsonEncodingMap } from '../crypto/signatures';
 
 export class Voucher {
   channelId: Destination = new Destination();
@@ -76,9 +76,10 @@ export class Voucher {
   }
 
   // Equal returns true if the two vouchers have the same channel id, amount and signatures
-  // TODO: Implement
   equal(other: Voucher): boolean {
-    return false;
+    return this.channelId === other.channelId
+    && this.amount === other.amount
+    && equal(this.signature, other.signature);
   }
 }
 
@@ -94,11 +95,27 @@ export class VoucherInfo {
 
   largestVoucher: Voucher = new Voucher({});
 
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    channelPayer: { type: 'string' },
+    channelPayee: { type: 'string' },
+    startingBalance: { type: 'bigint' },
+    largestVoucher: { type: 'class', value: Voucher },
+  };
+
+  static fromJSON(data: string): VoucherInfo {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new VoucherInfo(props);
+  }
+
+  toJSON(): any {
+    return toJSON(VoucherInfo.jsonEncodingMap, this);
+  }
+
   constructor(params: {
-    channelPayer: Address
-    channelPayee: Address
+    channelPayer?: Address
+    channelPayee?: Address
     startingBalance?: bigint
-    largestVoucher: Voucher
+    largestVoucher?: Voucher
   }) {
     Object.assign(this, params);
   }

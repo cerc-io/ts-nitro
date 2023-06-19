@@ -26,6 +26,7 @@ import {
 } from '../../channel/consensus-channel/consensus-channel';
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
+import { ChainEvent, DepositedEvent } from '../../client/engine/chainservice/chainservice';
 
 const WaitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund';
 const WaitingForMyTurnToFund: WaitingFor = 'WaitingForMyTurnToFund';
@@ -87,6 +88,7 @@ export class Objective implements ObjectiveInterface {
 
   private fullyFundedThreshold: Funds = new Funds();
 
+  // TODO: uint64 replacement
   private latestBlockNumber: number = 0;
 
   private transactionSubmitted: boolean = false;
@@ -279,7 +281,7 @@ export class Objective implements ObjectiveInterface {
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  approve(): Objective {
+  approve(): ObjectiveInterface {
     const updated = this.clone();
     // todo: consider case of s.Status == Rejected
     updated.status = ObjectiveStatus.Approved;
@@ -288,7 +290,7 @@ export class Objective implements ObjectiveInterface {
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  reject(): [Objective, SideEffects] {
+  reject(): [ObjectiveInterface, SideEffects] {
     const updated = this.clone();
 
     assert(this.c);
@@ -302,7 +304,7 @@ export class Objective implements ObjectiveInterface {
   }
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  update(p: ObjectivePayload): Objective {
+  update(p: ObjectivePayload): ObjectiveInterface {
     if (this.id() !== p.objectiveId) {
       // TODO: Handle partial return case if required
       throw new Error(`event and objective Ids do not match: ${p.objectiveId} and ${this.id()} respectively`);
@@ -321,7 +323,29 @@ export class Objective implements ObjectiveInterface {
     return updated;
   }
 
-  otherParticipants(): Address[] {
+  // UpdateWithChainEvent updates the objective with observed on-chain data.
+  //
+  // Only Channel Deposit events are currently handled.
+  updateWithChainEvent(event: ChainEvent): ObjectiveInterface {
+    const updated = this.clone();
+
+    if (!(event instanceof DepositedEvent)) {
+      // TODO: Handle partial return case if required
+      throw new Error(`objective ${updated} cannot handle event ${event}`);
+    }
+
+    const de = event;
+
+    // TODO: uint64 comparison
+    if (Number(de.blockNum) > updated.latestBlockNumber) {
+      updated.c!.onChainFunding.value.set(de.assetAndAmount.assetAddress, de.nowHeld);
+      updated.latestBlockNumber = Number(de.blockNum);
+    }
+
+    return updated;
+  }
+
+  private otherParticipants(): Address[] {
     const others: Address[] = [];
     assert(this.c);
 

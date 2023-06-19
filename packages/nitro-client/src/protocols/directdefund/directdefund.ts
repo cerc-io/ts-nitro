@@ -2,6 +2,7 @@ import assert from 'assert';
 import isEqual from 'lodash/isEqual';
 
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
+import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
@@ -87,9 +88,29 @@ export class Objective implements ObjectiveInterface {
 
   private transactionSubmitted: boolean = false; // whether a transition for the objective has been submitted or not
 
-  // TODO: Implement
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    status: { type: 'number' },
+    c: { type: 'class', value: channel.Channel },
+    finalTurnNum: { type: 'number' },
+    transactionSubmitted: { type: 'boolean' },
+  };
+
   static fromJSON(data: string): Objective {
-    return {} as Objective;
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Objective(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Objective.jsonEncodingMap, this);
+  }
+
+  constructor(params: {
+    status?: ObjectiveStatus,
+    c?: channel.Channel,
+    finalTurnNum?: number,
+    transactionSubmitted?: boolean,
+  }) {
+    Object.assign(this, params);
   }
 
   // NewObjective initiates an Objective with the supplied channel
@@ -121,7 +142,7 @@ export class Objective implements ObjectiveInterface {
       throw ErrChannelUpdateInProgress;
     }
 
-    const init = new Objective();
+    const init = new Objective({});
 
     if (preApprove) {
       init.status = ObjectiveStatus.Approved;
@@ -320,7 +341,7 @@ export class Objective implements ObjectiveInterface {
 
   // clone returns a deep copy of the receiver.
   clone(): Objective {
-    const clone = new Objective();
+    const clone = new Objective({});
     clone.status = this.status;
 
     assert(this.c);

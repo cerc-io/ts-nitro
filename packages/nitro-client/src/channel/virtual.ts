@@ -1,8 +1,22 @@
+import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+
 import { Channel } from './channel';
 import { State } from './state/state';
 
-// TODO: Implement
 export class VirtualChannel extends Channel {
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    ...super.jsonEncodingMap,
+  };
+
+  static fromJSON(data: string): VirtualChannel {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new VirtualChannel(props);
+  }
+
+  toJSON(): any {
+    return toJSON(VirtualChannel.jsonEncodingMap, this);
+  }
+
   // NewVirtualChannel returns a new VirtualChannel based on the supplied state.
   //
   // Virtual channel protocol currently presumes exactly two "active" participants,
@@ -22,5 +36,15 @@ export class VirtualChannel extends Channel {
     const c = Channel.new(s, myIndex);
 
     return new VirtualChannel({ ...c });
+  }
+
+  clone(): VirtualChannel {
+    // TODO: Handle case
+    // if v == nil {
+    //   return nil
+    // }
+
+    const w = new VirtualChannel({ ...super.clone() });
+    return w;
   }
 }
