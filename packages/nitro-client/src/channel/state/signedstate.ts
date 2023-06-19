@@ -53,7 +53,6 @@ export class SignedState {
   addSignature(sig: Signature): void {
     let signer: Address;
     try {
-      // TODO: Implement
       signer = this.state().recoverSigner(sig);
     } catch (err) {
       throw new Error('AddSignature failed to recover signer');

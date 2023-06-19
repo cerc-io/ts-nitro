@@ -8,6 +8,13 @@ export interface ChainEvent {
   channelID (): string
 }
 
+// TODO: Implement
+class AssetAndAmount {
+  assetAddress?: Address;
+
+  assetAmount?: bigint;
+}
+
 // TODO: Add eth chainservice implementation
 export interface ChainService {
   eventFeed (): ReadChannel<ChainEvent>;
@@ -27,3 +34,14 @@ export interface ChainService {
   // TODO: Can throw an error
   close (): void;
 }
+
+// AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
+// The event includes the token address and amount at the block that generated the event
+// TODO: Implement
+export class AllocationUpdatedEvent {
+  assetAndAmount?: AssetAndAmount;
+}
+
+// ConcludedEvent is an internal representation of the Concluded blockchain event
+// TODO: Implement
+export class ConcludedEvent {}

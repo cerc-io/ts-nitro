@@ -27,11 +27,11 @@ class ChainTransactionBase implements ChainTransaction {
 }
 
 export class DepositTransaction extends ChainTransactionBase implements ChainTransaction {
-  deposit?: Funds;
+  deposit: Funds = new Funds();
 
   constructor(params: {
     channelId: Destination
-    deposit: Funds
+    deposit?: Funds
   }) {
     super(params.channelId);
     Object.assign(this, params);
@@ -46,7 +46,19 @@ export class DepositTransaction extends ChainTransactionBase implements ChainTra
 }
 
 export class WithdrawAllTransaction extends ChainTransactionBase implements ChainTransaction {
-  signedState?: SignedState;
+  signedState: SignedState = new SignedState({});
+
+  constructor(params: {
+    channelId: Destination
+    signedState?: SignedState,
+  }) {
+    super(params.channelId);
+    Object.assign(this, params);
+  }
+
+  static newWithdrawAllTransaction(channelId: Destination, signedState: SignedState): WithdrawAllTransaction {
+    return new WithdrawAllTransaction({ channelId, signedState });
+  }
 }
 
 // SideEffects are effects to be executed by an imperative shell
