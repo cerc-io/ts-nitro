@@ -537,7 +537,6 @@ export class Engine {
       });
     }
 
-    // TODO: Implement
     const updatedEventHandler = eventHandler.updateWithChainEvent(chainEvent);
 
     return this.attemptProgress(updatedEventHandler);

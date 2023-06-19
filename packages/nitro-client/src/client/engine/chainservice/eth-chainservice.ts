@@ -321,7 +321,6 @@ export class EthChainService implements ChainService {
     try {
       this.chain.provider.on(query, listener);
     } catch (err) {
-      // TODO: Implement
       this.fatalF(`subscribeFilterLogs failed: ${err}`);
     }
 

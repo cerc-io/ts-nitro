@@ -93,7 +93,6 @@ export interface ChainEventHandler {
   updateWithChainEvent(event: ChainEvent): Objective
 }
 
-// TODO: Add eth chainservice implementation
 export interface ChainService {
   eventFeed (): ReadChannel<ChainEvent>;
 
