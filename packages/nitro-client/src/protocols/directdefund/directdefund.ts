@@ -163,15 +163,33 @@ export class Objective implements ObjectiveInterface {
     return init;
   }
 
+  /* eslint-disable @typescript-eslint/no-use-before-define */
   // ConstructObjectiveFromPayload takes in a state and constructs an objective from it.
-  // TODO: Can throw an error
-  // TODO: Implement
   static constructObjectiveFromPayload(
     p: ObjectivePayload,
     preapprove: boolean,
     getConsensusChannel: GetConsensusChannel,
   ): Objective {
-    return {} as Objective;
+    let ss: SignedState;
+    try {
+      ss = getSignedStatePayload(p.payloadData);
+    } catch (err) {
+      throw new Error(`could not get signed state payload: ${err}`);
+    }
+    const s = ss.state();
+
+    // Implicit in the wire protocol is that the message signalling
+    // closure of a channel includes an isFinal state (in the 0 slot of the message)
+    //
+    if (!s.isFinal) {
+      throw ErrNoFinalState;
+    }
+
+    s.fixedPart().validate();
+
+    const cId = s.channelId();
+    const request = ObjectiveRequest.newObjectiveRequest(cId);
+    return this.newObjective(request, preapprove, getConsensusChannel);
   }
 
   id(): ObjectiveId {
@@ -408,7 +426,10 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     await this.objectiveStarted.shift();
   }
 
-  signalObjectiveStarted(): void {}
+  signalObjectiveStarted(): void {
+    assert(this.objectiveStarted);
+    this.objectiveStarted.close();
+  }
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
