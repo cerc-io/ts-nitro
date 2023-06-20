@@ -14,14 +14,14 @@ export class Funds {
   static fromJSON(data: string): Funds {
     // jsonValue has the value for 'value' map
     const jsonValue = JSON.parse(data);
-    const value = decodeMap(Funds.jsonEncodingMap.key, Funds.jsonEncodingMap.value, jsonValue);
+    const value = decodeMap(Funds.jsonEncodingMap.value.key!, Funds.jsonEncodingMap.value.value, jsonValue);
     return new Funds(value);
   }
 
   toJSON(): any {
     // Return serialized map value
     // (Funds is a map in go-nitro)
-    return encodeMap(this.value);
+    return encodeMap(Funds.jsonEncodingMap.value.value, this.value);
   }
 
   constructor(value: Map<Address, bigint> = new Map()) {
@@ -30,18 +30,33 @@ export class Funds {
 
   // isNonZero returns true if the Holdings structure has any non-zero asset
   isNonZero(): boolean {
-    for (const asset in this.value) {
-      if (this.value.has(asset)) {
-        const value = this.value.get(asset);
-
-        if (value !== undefined && value > BigInt(0)) {
-          return true;
-        }
+    for (const [asset, amount] of this.value.entries()) {
+      if (amount > BigInt(0)) {
+        return true;
       }
     }
 
     return false;
   }
+
+  // String returns a bracket-separaged list of assets: {[0x0a,0x01][0x0b,0x01]}
+  string(): string {
+    if (this.value.size === 0) {
+      return '{}';
+    }
+
+    let s: string = '{';
+    for (const [asset, amount] of this.value.entries()) {
+      s += `[${asset},${amount.toString()}]`;
+    }
+    s += '}';
+
+    return s;
+  }
+
+  // todo:
+  // ToFunds returns a Funds map from its string representation
+  // func ToFunds(s string) Funds {}
 
   // Add returns the sum of the receiver and the input Funds objects
   add(...a: Funds[]): Funds {
@@ -53,16 +68,12 @@ export class Funds {
     const sum = new Funds();
 
     for (const funds of a) {
-      for (const asset in funds.value) {
-        if (funds.value.has(asset)) {
-          const amount = funds.value.get(asset)!;
-
-          if (!sum.value.get(asset)) {
-            sum.value.set(asset, BigInt(0));
-          }
-
-          sum.value.set(asset, sum.value.get(asset)! + amount);
+      for (const [asset, amount] of funds.value.entries()) {
+        if (!sum.value.get(asset)) {
+          sum.value.set(asset, BigInt(0));
         }
+
+        sum.value.set(asset, sum.value.get(asset)! + amount);
       }
     }
 

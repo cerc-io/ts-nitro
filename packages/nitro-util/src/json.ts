@@ -18,10 +18,16 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
       return fieldType.value.fromJSON(JSON.stringify(fieldJsonValue));
     }
 
-    case 'string':
-    case 'number':
+    case 'string': {
+      return String(fieldJsonValue);
+    }
+
+    case 'number': {
+      return Number(fieldJsonValue);
+    }
+
     case 'boolean': {
-      return fieldJsonValue;
+      return String(fieldJsonValue) === 'true';
     }
 
     case 'bigint': {
@@ -89,27 +95,18 @@ export function toJSON(jsonEncodingMap: Record<string, any>, obj: any, keysMap: 
 
   Object.keys(jsonEncodingMap).forEach((fieldKey) => {
     const fieldType = jsonEncodingMap[fieldKey];
-
-    // Create a custom object if field is of a map type
-    if (fieldType.type === 'map') {
-      jsonObj[fieldKey] = encodeMap(jsonObj[fieldKey]);
-    }
-
-    // Marshall bigint as a string
-    if (fieldType.type === 'bigint') {
-      jsonObj[fieldKey] = (jsonObj[fieldKey] as bigint).toString();
-    }
+    jsonObj[fieldKey] = encodeValue(fieldType, jsonObj[fieldKey]);
   });
 
   return jsonObj;
 }
 
-export function encodeMap(mapValue: Map<any, any>): any {
+export function encodeMap(valueDescription: FieldDescription, mapValue: Map<any, any>): any {
   const mapObject: any = {};
 
   mapValue.forEach((value: any, key: any) => {
     // Use .toString() for keys (key type should have .toString() method)
-    mapObject[key.toString()] = value;
+    mapObject[key.toString()] = encodeValue(valueDescription, value);
   });
 
   return mapObject;
@@ -130,4 +127,20 @@ export function decodeMap(
   });
 
   return mapFieldvalue;
+}
+
+function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
+  let jsonObjValue: any = fieldValue;
+
+  // Create a custom object if field is of a map type
+  if (fieldType.type === 'map') {
+    jsonObjValue = encodeMap(fieldType.value as FieldDescription, fieldValue);
+  }
+
+  // Marshall bigint as a string
+  if (fieldType.type === 'bigint') {
+    jsonObjValue = (fieldValue as bigint).toString();
+  }
+
+  return jsonObjValue;
 }

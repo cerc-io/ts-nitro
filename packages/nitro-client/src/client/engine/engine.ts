@@ -3,8 +3,8 @@
 
 import debug from 'debug';
 import assert from 'assert';
-import { ethers } from 'ethers';
 import JSONbig from 'json-bigint';
+import _ from 'lodash';
 
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
@@ -68,7 +68,8 @@ class ErrUnhandledChainEvent extends Error {
   constructor(params: {
     event?: ChainEvent,
     objective?: Objective,
-    reason?: string }) {
+    reason?: string
+  }) {
     super(`Chain event ${params.event} could not be handled by objective ${params.objective} due to: ${params.reason ?? ''}`);
     Object.assign(this);
   }
@@ -287,7 +288,7 @@ export class Engine {
           // e.metrics.RecordObjectiveCompleted(obj.Id())
         });
 
-        this._toApi.push(res);
+        await this._toApi.push(res);
       }
     }
   }
@@ -336,12 +337,10 @@ export class Engine {
         return [new EngineEvent(), err as Error];
       }
 
-      // TODO: Implement for all protocols
       if (objective.getStatus() === ObjectiveStatus.Unapproved) {
         this.logger('Policymaker is', this.policymaker);
 
         if (this.policymaker.shouldApprove(objective)) {
-          // TODO: Implement for all protocols
           objective = objective.approve();
 
           if (objective instanceof DirectDefundObjective) {
@@ -351,7 +350,6 @@ export class Engine {
           }
         } else {
           let sideEffects: SideEffects;
-          // TODO: Implement for all protocols
           [objective, sideEffects] = objective.reject();
 
           try {
@@ -384,7 +382,6 @@ export class Engine {
 
       let updatedObjective: Objective;
       try {
-        // TODO: Implement for all protocols
         updatedObjective = objective.update(payload);
       } catch (err) {
         return [new EngineEvent(), err as Error];
@@ -513,7 +510,8 @@ export class Engine {
   //   - attempts progress.
   private async handleChainEvent(chainEvent: ChainEvent): Promise<EngineEvent> {
     // TODO: Implement metrics
-    this.logger(`handling chain event: ${chainEvent}`);
+    assert('string' in chainEvent && typeof chainEvent.string === 'function');
+    this.logger(`handling chain event: ${chainEvent.string()}`);
 
     // eslint-disable-next-line prefer-const
     let [objective, ok] = this.store!.getObjectiveByChannelId(chainEvent.channelID());
@@ -679,7 +677,7 @@ export class Engine {
   private async handlePaymentRequest(request: PaymentRequest): Promise<EngineEvent> {
     const ee = new EngineEvent();
 
-    if (request === {} as PaymentRequest) {
+    if (_.isEqual(request, {})) {
       throw new Error('handleAPIEvent: Empty payment request');
     }
 
@@ -745,15 +743,15 @@ export class Engine {
     go(this.sendMessages.bind(this), sideEffects.messagesToSend);
 
     assert(this.chain);
-    for (const tx of sideEffects.transactionsToSubmit) {
-      this.logger(`Sending chain transaction for channel ${tx.channelId()}`);
+    for await (const tx of sideEffects.transactionsToSubmit) {
+      this.logger(`Sending chain transaction for channel ${tx.channelId().string()}`);
 
       await this.chain.sendTransaction(tx);
     }
 
     assert(this.fromLedger);
-    for (const proposal of sideEffects.proposalsToProcess) {
-      this.fromLedger.push(proposal);
+    for await (const proposal of sideEffects.proposalsToProcess) {
+      await this.fromLedger.push(proposal);
     }
   }
 

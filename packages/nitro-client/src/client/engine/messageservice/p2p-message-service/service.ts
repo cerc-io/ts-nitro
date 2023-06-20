@@ -181,9 +181,9 @@ export class P2PMessageService implements MessageService {
 
     ms.p2pHost.addEventListener('peer:discovery', ms.handlePeerFound.bind(ms));
 
-    ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
+    await ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
 
-    ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
+    await ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
       ms.receivePeerInfo(stream).then(() => {
         stream.close();
       });

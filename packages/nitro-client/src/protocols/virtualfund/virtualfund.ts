@@ -139,11 +139,11 @@ export class Connection {
     //   return fmt.Errorf("nil connection should not handle proposals")
     // }
 
-    if (sp.proposal.ledgerID !== this.channel?.id) {
+    if (!_.isEqual(sp.proposal.ledgerID, this.channel!.id)) {
       throw ErrIncorrectChannelID;
     }
 
-    if (this.channel !== null) {
+    if (this.channel) {
       try {
         this.channel.receive(sp);
       } catch (err) {
@@ -164,14 +164,14 @@ export class Connection {
 
   // getExpectedGuarantee returns a map of asset addresses to guarantees for a Connection.
   getExpectedGuarantee(): Guarantee {
-    const amountFunds = this.guaranteeInfo.leftAmount!.add(this.guaranteeInfo!.rightAmount!);
+    const amountFunds = this.guaranteeInfo.leftAmount!.add(this.guaranteeInfo.rightAmount!);
 
     // HACK: GuaranteeInfo stores amounts as types.Funds.
     // We only expect a single asset type, and we want to know how much is to be
     // diverted for that asset type.
     // So, we loop through amountFunds and break after the first asset type ...
 
-    let amount: bigint;
+    let amount: bigint = BigInt(0);
 
     /* eslint-disable no-unreachable-loop */
     for (const [, val] of amountFunds.value) {
@@ -183,13 +183,13 @@ export class Connection {
     const { left } = this.guaranteeInfo;
     const { right } = this.guaranteeInfo;
 
-    return Guarantee.newGuarantee(amount!, target, left, right);
+    return Guarantee.newGuarantee(amount, target, left, right);
   }
 
   expectedProposal(): Proposal {
     const g = this.getExpectedGuarantee();
 
-    let leftAmount: bigint;
+    let leftAmount: bigint = BigInt(0);
 
     /* eslint-disable no-unreachable-loop */
     for (const [, val] of this.guaranteeInfo.leftAmount!.value) {
@@ -197,7 +197,7 @@ export class Connection {
       break;
     }
 
-    const proposal = Proposal.newAddProposal(this.channel!.id, g, leftAmount!);
+    const proposal = Proposal.newAddProposal(this.channel!.id, g, leftAmount);
     return proposal;
   }
 }
@@ -343,12 +343,12 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     for (const outcome of initialStateOfV.outcome.value) {
       const { asset } = outcome;
 
-      if (outcome.allocations.value[0].destination !== Destination.addressToDestination(initialStateOfV.participants[0])) {
+      if (!_.isEqual(outcome.allocations.value[0].destination, Destination.addressToDestination(initialStateOfV.participants[0]))) {
         throw new Error('Allocation in slot 0 does not correspond to participant 0');
       }
       const amount0 = outcome.allocations.value[0].amount;
 
-      if (outcome.allocations.value[1].destination !== Destination.addressToDestination(initialStateOfV.participants[init.n + 1])) {
+      if (!_.isEqual(outcome.allocations.value[1].destination, Destination.addressToDestination(initialStateOfV.participants[init.n + 1]))) {
         throw new Error(`Allocation in slot 1 does not correspond to participant ${init.n + 1}`);
       }
       const amount1 = outcome.allocations.value[1].amount;
@@ -441,7 +441,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       // I am Bob
       const leftOfBob = participants[participants.length - 2];
       ([leftC, ok] = getTwoPartyConsensusLedger(leftOfBob));
-      if (!ok!) {
+      if (!ok) {
         throw new Error(`could not find a left ledger channel between ${leftOfBob} and ${myAddress}`);
       }
     } else {
@@ -460,12 +460,12 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
           const rightOfMe = participants[e + 1];
 
           ([leftC, ok] = getTwoPartyConsensusLedger(leftOfMe));
-          if (!ok!) {
+          if (!ok) {
             throw new Error(`could not find a left ledger channel between ${leftOfMe} and ${myAddress}`);
           }
 
           ([rightC, ok] = getTwoPartyConsensusLedger(rightOfMe));
-          if (!ok!) {
+          if (!ok) {
             throw new Error(`could not find a right ledger channel between ${myAddress} and ${rightOfMe}`);
           }
 
@@ -478,7 +478,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       }
     }
 
-    return this.constructFromState(preapprove, initialState.state(), myAddress, leftC!, rightC!);
+    return this.constructFromState(preapprove, initialState.state(), myAddress, leftC, rightC);
   }
 
   id(): ObjectiveId {
@@ -548,7 +548,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       toMyRightId = this.toMyRight!.channel!.id; // Avoid this if it is nil
     }
 
-    if (sp.proposal.target() === this.v!.id) {
+    if (_.isEqual(sp.proposal.target(), this.v!.id)) {
       let err: Error | undefined;
       switch (true) {
         case _.isEqual(sp.proposal.ledgerID, new Destination()):
@@ -557,15 +557,15 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         case _.isEqual(sp.proposal.ledgerID, toMyLeftId!):
           try {
             updated.toMyLeft!.handleProposal(sp);
-          } catch (handleError) {
-            err = handleError as Error;
+          } catch (handleErr) {
+            err = handleErr as Error;
           }
           break;
         case _.isEqual(sp.proposal.ledgerID, toMyRightId!):
           try {
             updated.toMyRight!.handleProposal(sp);
-          } catch (handleError) {
-            err = handleError as Error;
+          } catch (handleErr) {
+            err = handleErr as Error;
           }
           break;
         default:
@@ -626,7 +626,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // Funding
 
-    if (!updated.isAlice() && !updated.toMyLeft?.isFundingTheTarget()) {
+    if (!updated.isAlice() && !updated.toMyLeft!.isFundingTheTarget()) {
       let ledgerSideEffects: SideEffects;
       try {
         ledgerSideEffects = updated.updateLedgerWithGuarantee(updated.toMyLeft!, secretKey);
@@ -636,7 +636,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       sideEffects.merge(ledgerSideEffects);
     }
 
-    if (!updated.isBob() && !updated.toMyRight?.isFundingTheTarget()) {
+    if (!updated.isBob() && !updated.toMyRight!.isFundingTheTarget()) {
       let ledgerSideEffects: SideEffects;
       try {
         ledgerSideEffects = updated.updateLedgerWithGuarantee(updated.toMyRight!, secretKey);
@@ -676,11 +676,11 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   related(): Storable[] {
     const ret: Storable[] = [this.v!];
 
-    if (this.toMyLeft !== null) {
-      ret.push(this.toMyLeft!.channel!);
+    if (this.toMyLeft) {
+      ret.push(this.toMyLeft.channel!);
     }
-    if (this.toMyRight !== null) {
-      ret.push(this.toMyRight!.channel!);
+    if (this.toMyRight) {
+      ret.push(this.toMyRight.channel!);
     }
 
     return ret;
@@ -712,14 +712,14 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     const vClone = this.v!.clone();
     clone.v = vClone;
 
-    if (this.toMyLeft !== null) {
-      const lClone = this.toMyLeft?.channel?.clone();
-      clone.toMyLeft = new Connection({ channel: lClone, guaranteeInfo: this.toMyLeft?.guaranteeInfo });
+    if (this.toMyLeft) {
+      const lClone = this.toMyLeft.channel!.clone();
+      clone.toMyLeft = new Connection({ channel: lClone, guaranteeInfo: this.toMyLeft!.guaranteeInfo });
     }
 
-    if (this.toMyRight !== null) {
-      const rClone = this.toMyRight?.channel?.clone();
-      clone.toMyRight = new Connection({ channel: rClone, guaranteeInfo: this.toMyRight?.guaranteeInfo });
+    if (this.toMyRight) {
+      const rClone = this.toMyRight.channel!.clone();
+      clone.toMyRight = new Connection({ channel: rClone, guaranteeInfo: this.toMyRight!.guaranteeInfo });
     }
 
     clone.n = this.n;
@@ -742,17 +742,17 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
   // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
   private proposeLedgerUpdate(connection: Connection, sk: Buffer): SideEffects {
-    const ledger = connection.channel;
+    const ledger = connection.channel!;
 
-    if (!ledger!.isLeader()) {
+    if (!ledger.isLeader()) {
       throw new Error('only the leader can propose a ledger update');
     }
 
     const sideEffects = new SideEffects({});
 
-    ledger?.propose(connection.expectedProposal(), sk);
+    ledger.propose(connection.expectedProposal(), sk);
 
-    const receipient = ledger!.follower();
+    const receipient = ledger.follower();
 
     // Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
     // to create a valid message with ordered proposals:
@@ -764,23 +764,23 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
   // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
   private acceptLedgerUpdate(c: Connection, sk: Buffer): SideEffects {
-    const ledger = c.channel;
+    const ledger = c.channel!;
     let sp: SignedProposal;
     try {
-      sp = ledger!.signNextProposal(c.expectedProposal(), sk);
+      sp = ledger.signNextProposal(c.expectedProposal(), sk);
     } catch (err) {
       throw new Error(`no proposed state found for ledger channel ${err}`);
     }
     const sideEffects = new SideEffects({});
 
     // ledger sideEffect
-    const proposals = ledger?.proposalQueue();
-    if (proposals!.length !== 0) {
-      sideEffects.proposalsToProcess.push(proposals![0].proposal);
+    const proposals = ledger.proposalQueue();
+    if (proposals.length !== 0) {
+      sideEffects.proposalsToProcess.push(proposals[0].proposal);
     }
 
     // message sideEffect
-    const receipient = ledger!.leader();
+    const receipient = ledger.leader();
     const message = Message.createSignedProposalMessage(receipient, sp);
     sideEffects.messagesToSend.push(message);
     return sideEffects;
@@ -788,13 +788,13 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
   // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
   private updateLedgerWithGuarantee(ledgerConnection: Connection, sk: Buffer): SideEffects {
-    const ledger = ledgerConnection.channel;
+    const ledger = ledgerConnection.channel!;
 
-    let sideEffects: SideEffects;
+    let sideEffects: SideEffects = new SideEffects({});
     const g = ledgerConnection.getExpectedGuarantee();
-    const proposed = ledger!.isProposed(g);
+    const proposed = ledger.isProposed(g);
 
-    if (ledger!.isLeader()) { // If the user is the proposer craft a new proposal
+    if (ledger.isLeader()) { // If the user is the proposer craft a new proposal
       if (proposed) {
         return new SideEffects({});
       }
@@ -807,7 +807,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       sideEffects = se;
     } else {
       // If the proposal is next in the queue we accept it
-      const proposedNext = ledger?.isProposedNext(g);
+      const proposedNext = ledger.isProposedNext(g);
       if (proposedNext) {
         let se: SideEffects;
         try {
@@ -818,7 +818,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         sideEffects = se;
       }
     }
-    return sideEffects!;
+    return sideEffects;
   }
 }
 
@@ -881,6 +881,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     });
   }
 
+  // Id returns the objective id for the request.
   id(myAddress: Address, chainId: bigint): ObjectiveId {
     const idStr = this.channelId(myAddress).string();
     return `${ObjectivePrefix}${idStr}`;
@@ -892,12 +893,13 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     await this.objectiveStarted.shift();
   }
 
+  // SignalObjectiveStarted is used by the engine to signal the objective has been started.
   signalObjectiveStarted(): void {
     assert(this.objectiveStarted);
     this.objectiveStarted.close();
   }
 
-  // response computes and returns the appropriate response from the request.
+  // Response computes and returns the appropriate response from the request.
   response(myAddress: Address): ObjectiveResponse {
     const channelId = this.channelId(myAddress);
 

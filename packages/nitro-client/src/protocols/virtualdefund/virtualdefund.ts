@@ -93,10 +93,10 @@ export function validateFinalOutcome(
   const alice = vFixed.participants[0];
   const bob = vFixed.participants[vFixed.participants.length - 1];
 
-  if (initialOutcome.allocations.value[0].destination !== Destination.addressToDestination(alice)) {
+  if (!_.isEqual(initialOutcome.allocations.value[0].destination, Destination.addressToDestination(alice))) {
     throw new Error(`0th allocation is not to Alice but to ${initialOutcome.allocations.value[0].destination}`);
   }
-  if (initialOutcome.allocations.value[1].destination !== Destination.addressToDestination(bob)) {
+  if (!_.isEqual(initialOutcome.allocations.value[1].destination, Destination.addressToDestination(bob))) {
     throw new Error(`1st allocation is not to Bob but to ${initialOutcome.allocations.value[0].destination}`);
   }
 
@@ -285,10 +285,9 @@ export class Objective implements ObjectiveInterface {
       }
     }
 
-    if (!largestPaymentAmount) {
-      // eslint-disable-next-line no-param-reassign
-      largestPaymentAmount = BigInt(0);
-    }
+    // if largestPaymentAmount == nil {
+    //   largestPaymentAmount = big.NewInt(0)
+    // }
 
     return new Objective({
       status,
@@ -314,14 +313,14 @@ export class Objective implements ObjectiveInterface {
     // }
 
     let cId: Destination;
-    let err: Error;
+    let err: Error | undefined;
 
     switch (p.type) {
       case RequestFinalStatePayload: {
         try {
           cId = getRequestFinalStatePayload(p.payloadData);
-        } catch (handleError) {
-          err = handleError as Error;
+        } catch (getErr) {
+          err = getErr as Error;
         }
         break;
       }
@@ -330,8 +329,8 @@ export class Objective implements ObjectiveInterface {
         let ss: SignedState;
         try {
           ss = getSignedStatePayload(p.payloadData);
-        } catch (handleError) {
-          err = handleError as Error;
+        } catch (getErr) {
+          err = getErr as Error;
         }
         cId = ss!.channelId();
         break;
@@ -341,7 +340,7 @@ export class Objective implements ObjectiveInterface {
         throw new Error(`unknown payload type ${p.type}`);
     }
 
-    if (err!) {
+    if (err) {
       throw err;
     }
 
@@ -372,8 +371,8 @@ export class Objective implements ObjectiveInterface {
     // Since Alice is responsible for issuing vouchers she always has the largest payment amount
     // This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
     const finalOutcome = this.initialOutcome().clone();
-    finalOutcome.allocations.value[0].amount -= this.minimumPaymentAmount!;
-    finalOutcome.allocations.value[1].amount += this.minimumPaymentAmount!;
+    finalOutcome.allocations.value[0].amount -= this.minimumPaymentAmount;
+    finalOutcome.allocations.value[1].amount += this.minimumPaymentAmount;
     return finalOutcome;
   }
 
@@ -429,11 +428,11 @@ export class Objective implements ObjectiveInterface {
     const related: Storable[] = [];
     related.push(this.v!);
 
-    if (this.toMyLeft !== null) {
-      related.push(this.toMyLeft!);
+    if (this.toMyLeft) {
+      related.push(this.toMyLeft);
     }
-    if (this.toMyRight !== null) {
-      related.push(this.toMyRight!);
+    if (this.toMyRight) {
+      related.push(this.toMyRight);
     }
 
     return related;
@@ -443,19 +442,22 @@ export class Objective implements ObjectiveInterface {
   private clone(): Objective {
     const clone = new Objective({});
     clone.status = this.status;
+
     clone.v = this.v!.clone();
 
-    if (this.minimumPaymentAmount !== null) {
-      clone.minimumPaymentAmount = BigInt(this.minimumPaymentAmount!);
-    }
-    clone.myRole = this.myRole;
-    // TODO: Properly clone the consensus channels
+    // if o.MinimumPaymentAmount != nil {
+    //   clone.MinimumPaymentAmount = big.NewInt(0).Set(o.MinimumPaymentAmount)
+    // }
+    clone.minimumPaymentAmount = this.minimumPaymentAmount;
 
-    if (this.toMyLeft !== null) {
+    clone.myRole = this.myRole;
+
+    // TODO: Properly clone the consensus channels
+    if (this.toMyLeft) {
       clone.toMyLeft = this.toMyLeft;
     }
 
-    if (this.toMyRight !== null) {
+    if (this.toMyRight) {
       clone.toMyRight = this.toMyRight;
     }
 
@@ -475,8 +477,8 @@ export class Objective implements ObjectiveInterface {
 
   private hasFinalStateFromAlice(): boolean {
     const ok = this.v!.signedStateForTurnNum.has(FinalTurnNum);
-    const ss = this.v!.signedStateForTurnNum.get(FinalTurnNum);
-    return ok && ss!.state().isFinal && !this.isZero(ss!.signatures()[0]);
+    const ss = this.v!.signedStateForTurnNum.get(FinalTurnNum)!;
+    return ok && ss.state().isFinal && !this.isZero(ss.signatures()[0]);
   }
 
   // Crank inspects the extended state and declares a list of Effects to be executed.
@@ -580,7 +582,7 @@ export class Objective implements ObjectiveInterface {
 
   // updateLedgerToRemoveGuarantee updates the ledger channel to remove the guarantee that funds V.
   private updateLedgerToRemoveGuarantee(ledger: ConsensusChannel, sk: Buffer): SideEffects {
-    let sideEffects: SideEffects;
+    const sideEffects: SideEffects = new SideEffects({});
 
     const proposed = ledger.hasRemovalBeenProposed(this.vId());
 
@@ -600,7 +602,7 @@ export class Objective implements ObjectiveInterface {
       // to create a valid message with ordered proposals:
 
       const message = Message.createSignedProposalMessage(receipient, ...ledger.proposalQueue());
-      sideEffects!.messagesToSend.push(message);
+      sideEffects.messagesToSend.push(message);
     } else {
       // If the proposal is next in the queue we accept it
       const proposedNext = ledger.hasRemovalBeenProposedNext(this.vId());
@@ -616,17 +618,17 @@ export class Objective implements ObjectiveInterface {
         // ledger sideEffect
         const proposals = ledger.proposalQueue();
         if (proposals.length !== 0) {
-          sideEffects!.proposalsToProcess.push(proposals[0].proposal);
+          sideEffects.proposalsToProcess.push(proposals[0].proposal);
         }
 
         // messaging sideEffect
         const receipient = ledger.leader();
         const message = Message.createSignedProposalMessage(receipient, sp);
-        sideEffects!.messagesToSend.push(message);
+        sideEffects.messagesToSend.push(message);
       }
     }
 
-    return sideEffects!;
+    return sideEffects;
   }
 
   // VId returns the channel id of the virtual channel.
@@ -639,11 +641,11 @@ export class Objective implements ObjectiveInterface {
   //
   // If ToMyRight==nil then we return true.
   private rightHasDefunded(): boolean {
-    if (this.toMyRight === null) {
+    if (!this.toMyRight) {
       return true;
     }
 
-    const included = this.toMyRight!.includesTarget(this.vId());
+    const included = this.toMyRight.includesTarget(this.vId());
     return !included;
   }
 
@@ -652,11 +654,11 @@ export class Objective implements ObjectiveInterface {
   //
   // If ToMyLeft==nil then we return true.
   private leftHasDefunded(): boolean {
-    if (this.toMyLeft === null) {
+    if (!this.toMyLeft) {
       return true;
     }
 
-    const included = this.toMyLeft!.includesTarget(this.vId());
+    const included = this.toMyLeft.includesTarget(this.vId());
     return !included;
   }
 
@@ -677,7 +679,7 @@ export class Objective implements ObjectiveInterface {
             updated.initialOutcome(),
             ss.state().outcome.value[0],
             this.v!.participants[this.myRole],
-            updated.minimumPaymentAmount!,
+            updated.minimumPaymentAmount,
           );
         } catch (err) {
           throw new Error(`outcome failed validation ${err}`);
@@ -702,19 +704,19 @@ export class Objective implements ObjectiveInterface {
 
   // ReceiveProposal receives a signed proposal and returns an updated VirtualDefund objective.
   receiveProposal(sp: SignedProposal): ProposalReceiver {
-    let toMyLeftId: Destination;
-    let toMyRightId: Destination;
+    let toMyLeftId: Destination | undefined;
+    let toMyRightId: Destination | undefined;
 
-    if (this.toMyLeft !== null) {
-      toMyLeftId = this.toMyLeft!.id;
+    if (this.toMyLeft) {
+      toMyLeftId = this.toMyLeft.id;
     }
-    if (this.toMyRight !== null) {
-      toMyRightId = this.toMyRight!.id;
+    if (this.toMyRight) {
+      toMyRightId = this.toMyRight.id;
     }
 
     const updated = this.clone();
 
-    if (sp.proposal.target() === this.vId()) {
+    if (_.isEqual(sp.proposal.target(), this.vId())) {
       let err: Error | undefined;
 
       switch (true) {
@@ -723,20 +725,20 @@ export class Objective implements ObjectiveInterface {
         // catch this case to avoid unspecified behaviour -- because if Alice or Bob we allow a null channel.
         }
 
-        case _.isEqual(sp.proposal.ledgerID, toMyLeftId!): {
+        case _.isEqual(sp.proposal.ledgerID, toMyLeftId): {
           try {
             updated.toMyLeft!.receive(sp);
-          } catch (handleError) {
-            err = handleError as Error;
+          } catch (receiveErr) {
+            err = receiveErr as Error;
           }
           break;
         }
 
-        case _.isEqual(sp.proposal.ledgerID, toMyRightId!): {
+        case _.isEqual(sp.proposal.ledgerID, toMyRightId): {
           try {
             updated.toMyRight!.receive(sp);
-          } catch (handleError) {
-            err = handleError as Error;
+          } catch (receiveErr) {
+            err = receiveErr as Error;
           }
           break;
         }

@@ -34,7 +34,7 @@ export class DepositTransaction extends ChainTransactionBase implements ChainTra
     deposit?: Funds
   }) {
     super(params.channelId);
-    Object.assign(this, params);
+    Object.assign(this, { deposit: params.deposit });
   }
 
   static newDepositTransaction(channelId: Destination, deposit: Funds): DepositTransaction {
@@ -53,7 +53,7 @@ export class WithdrawAllTransaction extends ChainTransactionBase implements Chai
     signedState?: SignedState,
   }) {
     super(params.channelId);
-    Object.assign(this, params);
+    Object.assign(this, { signedState: params.signedState });
   }
 
   static newWithdrawAllTransaction(channelId: Destination, signedState: SignedState): WithdrawAllTransaction {

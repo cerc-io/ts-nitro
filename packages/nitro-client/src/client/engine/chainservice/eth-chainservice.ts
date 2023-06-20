@@ -5,7 +5,7 @@ import debug from 'debug';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@nodeguy/channel';
-import { connectToChain, go } from '@cerc-io/nitro-util';
+import { connectToChain, go, hex2Bytes } from '@cerc-io/nitro-util';
 
 import {
   ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent,
@@ -112,7 +112,7 @@ export class EthChainService implements ChainService {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
     }
 
-    const [ethClient, txSigner] = await connectToChain(chainUrl, Buffer.from(chainPk));
+    const [ethClient, txSigner] = await connectToChain(chainUrl, hex2Bytes(chainPk));
 
     const na = NitroAdjudicator__factory.connect(naAddress, txSigner);
 
@@ -164,7 +164,7 @@ export class EthChainService implements ChainService {
       case DepositTransaction: {
         const depositTx = tx as DepositTransaction;
         assert(depositTx.deposit);
-        for (const [tokenAddress, amount] of depositTx.deposit.value.entries()) {
+        for await (const [tokenAddress, amount] of depositTx.deposit.value.entries()) {
           const txOpts: ethers.PayableOverrides = {};
           const ethTokenAddress = ethers.constants.AddressZero;
 
@@ -172,14 +172,11 @@ export class EthChainService implements ChainService {
             txOpts.value = ethers.BigNumber.from(amount);
           } else {
             const tokenTransactor = Token__factory.connect(tokenAddress, this.txSigner);
-            // eslint-disable-next-line no-await-in-loop
             await tokenTransactor.approve(this.naAddress, amount);
           }
 
-          // eslint-disable-next-line no-await-in-loop
           const holdings = await this.na.holdings(tokenAddress, depositTx.channelId().value);
 
-          // eslint-disable-next-line no-await-in-loop
           await this.na.deposit(tokenAddress, depositTx.channelId().value, holdings, amount, txOpts);
         }
 
@@ -240,7 +237,7 @@ export class EthChainService implements ChainService {
               nad.amountDeposited.toBigInt(),
               nad.destinationHoldings.toBigInt(),
             );
-            this.out.push(event);
+            await this.out.push(event);
           } catch (err) {
             this.fatalF(`error in ParseDeposited: ${err}`);
           }
@@ -283,14 +280,14 @@ export class EthChainService implements ChainService {
             assetAddress,
             amount,
           );
-          this.out.push(event);
+          await this.out.push(event);
           break;
         }
         case concludedTopic: {
           try {
             const ce = this.na.interface.parseLog(l).args as unknown as ConcludedEventObject;
             const event = new ConcludedEvent({ _channelID: new Destination(ce.channelId), blockNum: String(l.blockNumber) });
-            this.out.push(event);
+            await this.out.push(event);
           } catch (err) {
             this.fatalF(`error in ParseConcluded: ${err}`);
           }
@@ -380,7 +377,7 @@ export class EthChainService implements ChainService {
           //   sub.Unsubscribe()
 
           case logs:
-            this.dispatchChainEvents([logs.value()]);
+            await this.dispatchChainEvents([logs.value()]);
             break;
         }
       }

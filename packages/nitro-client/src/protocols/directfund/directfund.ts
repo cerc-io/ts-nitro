@@ -39,7 +39,7 @@ const SignedStatePayload: PayloadType = 'SignedStatePayload';
 const ObjectivePrefix = 'DirectFunding-';
 
 export function fundOnChainEffect(cId: Destination, asset: string, amount: Funds): string {
-  return `deposit ${amount} into ${cId}`;
+  return `deposit ${amount.string()} into ${cId.string()}`;
 }
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
@@ -99,7 +99,7 @@ export class Objective implements ObjectiveInterface {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
-    c: { type: 'class', value: Channel },
+    c: { type: 'class', value: channel.Channel },
     myDepositSafetyThreshold: { type: 'class', value: Funds },
     myDepositTarget: { type: 'class', value: Funds },
     fullyFundedThreshold: { type: 'class', value: Funds },

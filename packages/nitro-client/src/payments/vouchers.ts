@@ -9,6 +9,7 @@
 //     {alice: 80, bob: 20}
 
 import { ethers } from 'ethers';
+import _ from 'lodash';
 
 import { Bytes32, signVoucher } from '@statechannels/nitro-protocol';
 import {
@@ -83,7 +84,7 @@ export class Voucher {
 
   // Equal returns true if the two vouchers have the same channel id, amount and signatures
   equal(other: Voucher): boolean {
-    return this.channelId === other.channelId
+    return _.isEqual(this.channelId, other.channelId)
     && this.amount === other.amount
     && equal(this.signature, other.signature);
   }

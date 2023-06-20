@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import _ from 'lodash';
 
 import { Address } from '../../types/types';
 import { Destination } from '../../types/destination';
@@ -60,7 +61,7 @@ export class PaymentChannelInfo {
 
   // Equal returns true if the other PaymentChannelInfo is equal to this one
   equal(other: PaymentChannelInfo): boolean {
-    return this.iD === other.iD
+    return _.isEqual(this.iD, other.iD)
     && this.status === other.status
     && this.balance.equal(other.balance);
   }
@@ -116,7 +117,7 @@ export class LedgerChannelInfo {
 
   // Equal returns true if the other LedgerChannelInfo is equal to this one
   equal(other: LedgerChannelInfo): boolean {
-    return this.iD === other.iD
+    return _.isEqual(this.iD, other.iD)
     && this.status === other.status
     && this.balance.equal(other.balance);
   }
