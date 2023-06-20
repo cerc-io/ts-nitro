@@ -892,9 +892,9 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     await this.objectiveStarted.shift();
   }
 
-  async signalObjectiveStarted(): Promise<void> {
+  signalObjectiveStarted(): void {
     assert(this.objectiveStarted);
-    await this.objectiveStarted.close();
+    this.objectiveStarted.close();
   }
 
   // response computes and returns the appropriate response from the request.
