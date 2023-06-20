@@ -217,8 +217,8 @@ export class MemStore implements Store {
       let ch: Channel;
       try {
         ch = Channel.fromJSON(chJSON.toString());
-      } catch (handleError) {
-        err = handleError as Error;
+      } catch (unmarshalErr) {
+        err = unmarshalErr as Error;
         return false;
       }
 
@@ -252,8 +252,8 @@ export class MemStore implements Store {
 
       try {
         ch = Channel.fromJSON(chJSON.toString());
-      } catch (handleError) {
-        err = handleError as Error;
+      } catch (unmarshalErr) {
+        err = unmarshalErr as Error;
         return false;
       }
 
@@ -350,8 +350,8 @@ export class MemStore implements Store {
 
       try {
         ch = ConsensusChannel.fromJSON(chJSON.toString());
-      } catch (handleError) {
-        err = handleError as Error;
+      } catch (unmarshalErr) {
+        err = unmarshalErr as Error;
         return false;
       }
 

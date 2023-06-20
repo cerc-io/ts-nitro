@@ -60,7 +60,7 @@ async function parseBasicPeerInfo(raw: string): Promise<BasicPeerInfo> {
 // PeerInfo contains peer information and the ip address/port
 interface PeerInfo {
   port: number;
-  id: string;
+  id: PeerId;
   address: Address;
   ipAddress: string;
 }
@@ -408,16 +408,42 @@ export class P2PMessageService implements MessageService {
   }
 
   // Closes the P2PMessageService
-  // TODO: Implement and remove void
-  close(): Error | void {}
+  close(): void {
+    // The mdns service is optional so we only close it if it exists
+    // if s.mdns != nil {
+    //   s.mdns.Close()
+    // }
+
+    this.p2pHost!.unhandle(PROTOCOL_ID);
+    this.p2pHost!.stop();
+  }
 
   // peerInfoReceived returns a channel that receives a PeerInfo when a peer is discovered
   peerInfoReceived(): ReadChannel<BasicPeerInfo> {
     return this.newPeerInfo.readOnly();
   }
 
+  /* eslint-disable no-continue */
   // AddPeers adds the peers to the message service.
   // We ignore peers that are ourselves.
-  // TODO: Implement
-  addPeers(peers: PeerInfo[]) {}
+  async addPeers(peers: PeerInfo[]) {
+    for (const [, p] of peers.entries()) {
+      // Ignore ourselves
+      if (p.address === this.me) {
+        continue;
+      }
+
+      const { multiaddr } = await import('@multiformats/multiaddr');
+      const multi = multiaddr(`/ip4/${p.ipAddress}/tcp/${p.port}/p2p/${p.id}`);
+      await this.p2pHost!.peerStore.merge(
+        p.id,
+        {
+          multiaddrs: [multi],
+          // TODO: Check if ttl option exists to set it like in go-nitro
+          // peerstore.PermanentAddrTTL
+        },
+      );
+      this.peers.store(p.address.toString(), { id: p.id, address: p.address });
+    }
+  }
 }

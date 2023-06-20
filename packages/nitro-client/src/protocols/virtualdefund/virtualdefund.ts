@@ -477,8 +477,8 @@ export class Objective implements ObjectiveInterface {
 
   private hasFinalStateFromAlice(): boolean {
     const ok = this.v!.signedStateForTurnNum.has(FinalTurnNum);
-    const ss = this.v!.signedStateForTurnNum.get(FinalTurnNum)!;
-    return ok && ss.state().isFinal && !this.isZero(ss.signatures()[0]);
+    const ss = this.v!.signedStateForTurnNum.get(FinalTurnNum);
+    return ok && ss!.state().isFinal && !this.isZero(ss!.signatures()[0]);
   }
 
   // Crank inspects the extended state and declares a list of Effects to be executed.
