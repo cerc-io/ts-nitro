@@ -14,7 +14,7 @@ export class Funds {
   static fromJSON(data: string): Funds {
     // jsonValue has the value for 'value' map
     const jsonValue = JSON.parse(data);
-    const value = decodeMap(Funds.jsonEncodingMap.key, Funds.jsonEncodingMap.value, jsonValue);
+    const value = decodeMap(Funds.jsonEncodingMap.value.key!, Funds.jsonEncodingMap.value.value, jsonValue);
     return new Funds(value);
   }
 
@@ -30,13 +30,9 @@ export class Funds {
 
   // isNonZero returns true if the Holdings structure has any non-zero asset
   isNonZero(): boolean {
-    for (const asset in this.value) {
-      if (this.value.has(asset)) {
-        const value = this.value.get(asset);
-
-        if (value !== undefined && value > BigInt(0)) {
-          return true;
-        }
+    for (const [asset, amount] of this.value.entries()) {
+      if (amount > BigInt(0)) {
+        return true;
       }
     }
 
