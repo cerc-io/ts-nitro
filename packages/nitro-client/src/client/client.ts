@@ -212,31 +212,29 @@ export class Client {
         this.completedObjectivesForRPC!.push(completed.id());
       }
 
-      for (const erred of update.failedObjectives) {
-        // eslint-disable-next-line no-await-in-loop
+      for await (const erred of update.failedObjectives) {
         await this.failedObjectives!.push(erred);
       }
 
-      for (const payment of update.receivedVouchers) {
-        // eslint-disable-next-line no-await-in-loop
+      for await (const payment of update.receivedVouchers) {
         await this.receivedVouchers!.push(payment);
       }
 
-      for (const updated of update.ledgerChannelUpdates) {
+      for await (const updated of update.ledgerChannelUpdates) {
         try {
           // TODO: Implement
           this.channelNotifier!.notifyLedgerUpdated(updated);
         } catch (err) {
-          this.handleError(err as Error);
+          await this.handleError(err as Error);
         }
       }
 
-      for (const updated of update.paymentChannelUpdates) {
+      for await (const updated of update.paymentChannelUpdates) {
         try {
           // TODO: Implement
           this.channelNotifier!.notifyPaymentUpdated(updated);
         } catch (err) {
-          this.handleError(err as Error);
+          await this.handleError(err as Error);
         }
       }
     }

@@ -164,7 +164,7 @@ export class EthChainService implements ChainService {
       case DepositTransaction: {
         const depositTx = tx as DepositTransaction;
         assert(depositTx.deposit);
-        for (const [tokenAddress, amount] of depositTx.deposit.value.entries()) {
+        for await (const [tokenAddress, amount] of depositTx.deposit.value.entries()) {
           const txOpts: ethers.PayableOverrides = {};
           const ethTokenAddress = ethers.constants.AddressZero;
 
@@ -172,14 +172,11 @@ export class EthChainService implements ChainService {
             txOpts.value = ethers.BigNumber.from(amount);
           } else {
             const tokenTransactor = Token__factory.connect(tokenAddress, this.txSigner);
-            // eslint-disable-next-line no-await-in-loop
             await tokenTransactor.approve(this.naAddress, amount);
           }
 
-          // eslint-disable-next-line no-await-in-loop
           const holdings = await this.na.holdings(tokenAddress, depositTx.channelId().value);
 
-          // eslint-disable-next-line no-await-in-loop
           await this.na.deposit(tokenAddress, depositTx.channelId().value, holdings, amount, txOpts);
         }
 

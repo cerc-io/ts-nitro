@@ -287,7 +287,7 @@ export class Engine {
           // e.metrics.RecordObjectiveCompleted(obj.Id())
         });
 
-        this._toApi.push(res);
+        await this._toApi.push(res);
       }
     }
   }
@@ -509,7 +509,8 @@ export class Engine {
   //   - attempts progress.
   private async handleChainEvent(chainEvent: ChainEvent): Promise<EngineEvent> {
     // TODO: Implement metrics
-    this.logger(`handling chain event: ${chainEvent}`);
+    assert('string' in chainEvent && typeof chainEvent.string === 'function');
+    this.logger(`handling chain event: ${chainEvent.string()}`);
 
     // eslint-disable-next-line prefer-const
     let [objective, ok] = this.store!.getObjectiveByChannelId(chainEvent.channelID());
@@ -742,7 +743,7 @@ export class Engine {
 
     assert(this.chain);
     for await (const tx of sideEffects.transactionsToSubmit) {
-      this.logger(`Sending chain transaction for channel ${tx.channelId()}`);
+      this.logger(`Sending chain transaction for channel ${tx.channelId().string()}`);
 
       await this.chain.sendTransaction(tx);
     }

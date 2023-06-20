@@ -125,7 +125,7 @@ export class AllocationUpdatedEvent extends CommonEvent {
   assetAndAmount: AssetAndAmount;
 
   string(): string {
-    return `Channel ${this.channelID().string()} has had allocation updated to ${this.assetAndAmount} at Block ${this.blockNum}`;
+    return `Channel ${this.channelID().string()} has had allocation updated to ${this.assetAndAmount.string()} at Block ${this.blockNum}`;
   }
 
   static newAllocationUpdatedEvent(channelId: Destination, blockNum: string, assetAddress: Address, assetAmount: bigint): AllocationUpdatedEvent {
