@@ -19,7 +19,6 @@ export interface VoucherStore {
 
 // VoucherInfo stores the status of payments for a given payment channel.
 // VoucherManager receives and generates vouchers. It is responsible for storing vouchers.
-// TODO: Implement
 export class VoucherManager {
   private store: VoucherStore;
 

@@ -227,7 +227,6 @@ export class P2PMessageService implements MessageService {
     }
   }
 
-  // TODO: Implement
   private async msgStreamHandler({ stream }: IncomingStreamData) {
     const { pipe } = await import('it-pipe');
     const { toString: uint8ArrayToString } = await import('uint8arrays/to-string');
@@ -349,7 +348,6 @@ export class P2PMessageService implements MessageService {
   // Sends messages to other participants.
   // It blocks until the message is sent.
   // It will retry establishing a stream NUM_CONNECT_ATTEMPTS times before giving up
-  // TODO: Implement
   async send(msg: Message) {
     let raw: string = '';
     try {

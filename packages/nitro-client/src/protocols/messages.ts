@@ -39,8 +39,57 @@ const createObjectivePayload = (id: ObjectiveId, payloadType: PayloadType, p: an
   }
 };
 
+// MessageSummary is a summary of a message suitable for logging.
+interface MessageSummary {
+  to: string;
+  from: string;
+  payloadSummaries: ObjectivePayloadSummary[];
+  proposalSummaries: ProposalSummary[];
+  payments: PaymentSummary[];
+  rejectedObjectives: string[];
+}
+
+// ObjectivePayloadSummary is a summary of an objective payload suitable for logging.
+interface ObjectivePayloadSummary {
+  objectiveId: string;
+  type: string;
+  payloadDataSize: number;
+}
+
+// ProposalSummary is a summary of a proposal suitable for logging.
+interface ProposalSummary {
+  objectiveId: string;
+  ledgerId: string;
+  proposalType: string;
+  turnNum: number;
+}
+
+// PaymentSummary is a summary of a payment voucher suitable for logging.
+interface PaymentSummary {
+  amount: number;
+  channelId: string;
+}
+
+// GetProposalObjectiveId returns the objectiveId for a proposal.
+export function getProposalObjectiveId(p: Proposal): ObjectiveId {
+  switch (p.type()) {
+    case 'AddProposal': {
+      const prefix = 'VirtualFund-';
+      const channelId = p.toAdd.target().toString();
+      return prefix + channelId;
+    }
+    case 'RemoveProposal': {
+      const prefix = 'VirtualDefund-';
+      const channelId = p.toRemove.target.toString();
+      return prefix + channelId;
+    }
+    default: {
+      throw new Error('invalid proposal type');
+    }
+  }
+}
+
 // Message is an object to be sent across the wire.
-// TODO: Implement
 export class Message {
   to: Address = '';
 
@@ -146,25 +195,42 @@ export class Message {
   }
 
   // Summarize returns a MessageSummary for the message that is suitable for logging
-  // TODO: Implement
-  // Use JSON.stringify() for now
   summarize(): MessageSummary {
-    return JSON.stringify(this, null, 2);
-  }
-}
+    const s: MessageSummary = {
+      to: this.to.slice(0, 8),
+      from: this.from.slice(0, 8),
+      payloadSummaries: this.objectivePayloads.map((p): ObjectivePayloadSummary => ({
+        objectiveId: p.objectiveId.toString(),
+        type: p.type.toString(),
+        payloadDataSize: p.payloadData.length,
+      })),
+      proposalSummaries: this.ledgerProposals.map((p): ProposalSummary => {
+        let objIdString = '';
+        try {
+          const objId = getProposalObjectiveId(p.proposal);
+          objIdString = objId.toString();
+        } catch (err) {
+          objIdString = (err as Error).message; // Use error message as objective id
+        }
+        return {
+          objectiveId: objIdString,
+          ledgerId: p.channelID.toString(),
+          turnNum: p.turnNum,
+          proposalType: p.proposal.type.toString(),
+        };
+      }),
+      payments: this.payments.map((p): PaymentSummary => ({
+        amount: Number(p.amount),
+        channelId: p.channelId.toString(),
+      })),
+      rejectedObjectives: this.rejectedObjectives.map((o) => o.toString()),
+    };
 
-// GetProposalObjectiveId returns the objectiveId for a proposal.
-// TODO: Implement
-export function getProposalObjectiveId(p: Proposal): ObjectiveId {
-  return '';
+    return s;
+  }
 }
 
 // DeserializeMessage deserializes the passed string into a protocols.Message.
 export function deserializeMessage(s: string): Message {
   return Message.fromJSON(s);
 }
-
-// MessageSummary is a summary of a message suitable for logging.
-// TODO: Implement
-// Use string as we're using JSON.stringify() for now
-export type MessageSummary = string;

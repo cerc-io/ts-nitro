@@ -10,7 +10,7 @@
 
 import { ethers } from 'ethers';
 
-import { signVoucher } from '@statechannels/nitro-protocol';
+import { Bytes32, signVoucher } from '@statechannels/nitro-protocol';
 import {
   FieldDescription, fromJSON, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
@@ -18,7 +18,8 @@ import {
 import { Signature } from '../channel/state/state';
 import { Address } from '../types/types';
 import { Destination } from '../types/destination';
-import { equal, signatureJsonEncodingMap } from '../crypto/signatures';
+import { equal, recoverEthereumMessageSigner, signatureJsonEncodingMap } from '../crypto/signatures';
+import * as nitroAbi from '../abi/types';
 
 export class Voucher {
   channelId: Destination = new Destination();
@@ -50,10 +51,16 @@ export class Voucher {
     Object.assign(this, params);
   }
 
-  // TODO: Can throw an error
-  hash(): Buffer {
-    // TODO: Implement
-    return Buffer.from('');
+  hash(): Bytes32 {
+    try {
+      const encoded = ethers.utils.defaultAbiCoder.encode(
+        [nitroAbi.Destination, nitroAbi.Uint256],
+        [this.channelId, this.amount],
+      );
+      return ethers.utils.keccak256(encoded);
+    } catch (err) {
+      throw new Error(`failed to encode voucher: ${err}`);
+    }
   }
 
   async sign(pk: Buffer): Promise<void> {
@@ -69,10 +76,9 @@ export class Voucher {
     );
   }
 
-  // TODO: Can throw an error
-  // TODO: Implement
   recoverSigner(): Address {
-    return ethers.constants.AddressZero;
+    const hash = this.hash();
+    return recoverEthereumMessageSigner(Buffer.from(ethers.utils.arrayify(hash)), this.signature);
   }
 
   // Equal returns true if the two vouchers have the same channel id, amount and signatures
@@ -85,7 +91,6 @@ export class Voucher {
 
 // VoucherInfo contains the largest voucher we've received on a channel.
 // As well as details about the balance and who the payee/payer is.
-// TODO: Implement
 export class VoucherInfo {
   channelPayer: Address = ethers.constants.AddressZero;
 

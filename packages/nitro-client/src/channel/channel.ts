@@ -25,7 +25,7 @@ interface ConstructorOptions extends FixedPartConstructorOptions {
 export class Channel extends FixedPart {
   id: Destination = new Destination();
 
-  // TODO: unit replacement
+  // TODO: uint replacement
   myIndex: number = 0;
 
   onChainFunding: Funds = new Funds();
@@ -97,8 +97,8 @@ export class Channel extends FixedPart {
 
   // MarshalJSON returns a JSON representation of the Channel
   // TODO: Can throw an error
-  // TODO: Implement
   marshalJSON(): Buffer {
+    // Use toJSON method
     return Buffer.from('');
   }
 

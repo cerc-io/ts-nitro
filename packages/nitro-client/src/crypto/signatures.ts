@@ -36,7 +36,6 @@ const splitSignature = (concatenatedSignature: Buffer): Signature => ethers.util
 // of the hash using the provided secret key. The known message added to the input before hashing is
 // "\x19Ethereum Signed Message:\n" + len(message).
 // See https://github.com/ethereum/go-ethereum/pull/2940 and EIPs 191, 721.
-// TODO: Implement
 export const signEthereumMessage = async (message: Buffer, secretKey: Buffer): Promise<Signature> => {
   const digest = computeEthereumSignedMessageDigest(message);
   const wallet = new ethers.Wallet(secretKey);
@@ -66,6 +65,4 @@ export const recoverEthereumMessageSigner = (message: Buffer, signature: Signatu
   return ethers.utils.recoverAddress(digest.toString(), sig);
 };
 
-export const equal = (s1: Signature, s2 :Signature): boolean => {
-  return s1.r === s2.r && s1.s === s2.s && s1.v === s2.v;
-};
+export const equal = (s1: Signature, s2 :Signature): boolean => s1.r === s2.r && s1.s === s2.s && s1.v === s2.v;
