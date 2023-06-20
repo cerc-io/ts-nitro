@@ -39,6 +39,25 @@ export class Funds {
     return false;
   }
 
+  // String returns a bracket-separaged list of assets: {[0x0a,0x01][0x0b,0x01]}
+  string(): string {
+    if (this.value.size === 0) {
+      return '{}';
+    }
+
+    let s: string = '{';
+    for (const [asset, amount] of this.value.entries()) {
+      s += `[${asset},${amount.toString()}]`;
+    }
+    s += '}';
+
+    return s;
+  }
+
+  // todo:
+  // ToFunds returns a Funds map from its string representation
+  // func ToFunds(s string) Funds {}
+
   // Add returns the sum of the receiver and the input Funds objects
   add(...a: Funds[]): Funds {
     a.push(this);

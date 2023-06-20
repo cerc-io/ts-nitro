@@ -39,7 +39,7 @@ const SignedStatePayload: PayloadType = 'SignedStatePayload';
 const ObjectivePrefix = 'DirectFunding-';
 
 export function fundOnChainEffect(cId: Destination, asset: string, amount: Funds): string {
-  return `deposit ${amount} into ${cId}`;
+  return `deposit ${amount.string()} into ${cId.string()}`;
 }
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
