@@ -93,10 +93,10 @@ export function validateFinalOutcome(
   const alice = vFixed.participants[0];
   const bob = vFixed.participants[vFixed.participants.length - 1];
 
-  if (initialOutcome.allocations.value[0].destination !== Destination.addressToDestination(alice)) {
+  if (!_.isEqual(initialOutcome.allocations.value[0].destination, Destination.addressToDestination(alice))) {
     throw new Error(`0th allocation is not to Alice but to ${initialOutcome.allocations.value[0].destination}`);
   }
-  if (initialOutcome.allocations.value[1].destination !== Destination.addressToDestination(bob)) {
+  if (!_.isEqual(initialOutcome.allocations.value[1].destination, Destination.addressToDestination(bob))) {
     throw new Error(`1st allocation is not to Bob but to ${initialOutcome.allocations.value[0].destination}`);
   }
 
@@ -429,11 +429,11 @@ export class Objective implements ObjectiveInterface {
     const related: Storable[] = [];
     related.push(this.v!);
 
-    if (this.toMyLeft !== null) {
-      related.push(this.toMyLeft!);
+    if (this.toMyLeft) {
+      related.push(this.toMyLeft);
     }
-    if (this.toMyRight !== null) {
-      related.push(this.toMyRight!);
+    if (this.toMyRight) {
+      related.push(this.toMyRight);
     }
 
     return related;
@@ -443,19 +443,22 @@ export class Objective implements ObjectiveInterface {
   private clone(): Objective {
     const clone = new Objective({});
     clone.status = this.status;
+
     clone.v = this.v!.clone();
 
-    if (this.minimumPaymentAmount !== null) {
-      clone.minimumPaymentAmount = BigInt(this.minimumPaymentAmount!);
-    }
-    clone.myRole = this.myRole;
-    // TODO: Properly clone the consensus channels
+    // if o.MinimumPaymentAmount != nil {
+    //   clone.MinimumPaymentAmount = big.NewInt(0).Set(o.MinimumPaymentAmount)
+    // }
+    clone.minimumPaymentAmount = this.minimumPaymentAmount;
 
-    if (this.toMyLeft !== null) {
+    clone.myRole = this.myRole;
+
+    // TODO: Properly clone the consensus channels
+    if (this.toMyLeft) {
       clone.toMyLeft = this.toMyLeft;
     }
 
-    if (this.toMyRight !== null) {
+    if (this.toMyRight) {
       clone.toMyRight = this.toMyRight;
     }
 
@@ -639,11 +642,11 @@ export class Objective implements ObjectiveInterface {
   //
   // If ToMyRight==nil then we return true.
   private rightHasDefunded(): boolean {
-    if (this.toMyRight === null) {
+    if (!this.toMyRight) {
       return true;
     }
 
-    const included = this.toMyRight!.includesTarget(this.vId());
+    const included = this.toMyRight.includesTarget(this.vId());
     return !included;
   }
 
@@ -652,11 +655,11 @@ export class Objective implements ObjectiveInterface {
   //
   // If ToMyLeft==nil then we return true.
   private leftHasDefunded(): boolean {
-    if (this.toMyLeft === null) {
+    if (!this.toMyLeft) {
       return true;
     }
 
-    const included = this.toMyLeft!.includesTarget(this.vId());
+    const included = this.toMyLeft.includesTarget(this.vId());
     return !included;
   }
 
@@ -705,16 +708,16 @@ export class Objective implements ObjectiveInterface {
     let toMyLeftId: Destination;
     let toMyRightId: Destination;
 
-    if (this.toMyLeft !== null) {
-      toMyLeftId = this.toMyLeft!.id;
+    if (this.toMyLeft) {
+      toMyLeftId = this.toMyLeft.id;
     }
-    if (this.toMyRight !== null) {
-      toMyRightId = this.toMyRight!.id;
+    if (this.toMyRight) {
+      toMyRightId = this.toMyRight.id;
     }
 
     const updated = this.clone();
 
-    if (sp.proposal.target() === this.vId()) {
+    if (_.isEqual(sp.proposal.target(), this.vId())) {
       let err: Error | undefined;
 
       switch (true) {

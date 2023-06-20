@@ -163,10 +163,13 @@ export class Guarantee {
   }
 
   equal(g2: Guarantee): boolean {
-    if (this.amount === g2.amount) {
+    if (this.amount !== g2.amount) {
       return false;
     }
-    return this._target === g2._target && this.left === g2.left && this.right === g2.right;
+
+    return _.isEqual(this._target, g2._target)
+    && _.isEqual(this.left, g2.left)
+    && _.isEqual(this.right, g2.right);
   }
 
   // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
@@ -384,9 +387,9 @@ export class LedgerOutcome {
       return false;
     }
 
-    return g.left === existing.left
-      && g.right === existing.right
-      && g._target === existing._target
+    return _.isEqual(g.left, existing.left)
+      && _.isEqual(g.right, existing.right)
+      && _.isEqual(g._target, existing._target)
       && g.amount === existing.amount;
   }
 
@@ -485,7 +488,7 @@ export class Vars {
     let left: Balance;
     let right: Balance;
 
-    if (o._leader.destination === p.left) {
+    if (_.isEqual(o._leader.destination, p.left)) {
       left = o._leader;
       right = o._follower;
     } else {
@@ -513,7 +516,7 @@ export class Vars {
     const rightDeposit = p.rightDeposit();
 
     // Adjust balances
-    if (o._leader.destination === p.left) {
+    if (_.isEqual(o._leader.destination, p.left)) {
       o._leader.amount -= p.leftDeposit;
       o._follower.amount -= rightDeposit;
     } else {
@@ -559,7 +562,7 @@ export class Vars {
 
     // Adjust balances
 
-    if (o._leader.destination === guarantee.left) {
+    if (_.isEqual(o._leader.destination, guarantee.left)) {
       o._leader.amount += p.leftAmount;
       o._follower.amount += rightAmount;
     } else {
@@ -798,7 +801,7 @@ export class ConsensusChannel {
     for (const p of this._proposalQueue) {
       if (p.proposal.type() === ProposalType.RemoveProposal) {
         const remove = p.proposal.toRemove;
-        if (remove.target === target) {
+        if (_.isEqual(remove.target, target)) {
           return true;
         }
       }
@@ -812,7 +815,7 @@ export class ConsensusChannel {
       return false;
     }
     const p = this._proposalQueue[0];
-    return p.proposal.type() === ProposalType.RemoveProposal && p.proposal.toRemove.target === target;
+    return p.proposal.type() === ProposalType.RemoveProposal && _.isEqual(p.proposal.toRemove.target, target);
   }
 
   // IsLeader returns true if the calling client is the leader of the channel,
@@ -896,7 +899,7 @@ export class ConsensusChannel {
   // validateProposalID checks that the given proposal's ID matches
   // the channel's ID.
   private validateProposalID(propsal: Proposal): void {
-    if (propsal.ledgerID !== this.id) {
+    if (!_.isEqual(propsal.ledgerID, this.id)) {
       throw ErrIncorrectChannelID;
     }
   }
@@ -1010,7 +1013,7 @@ export class ConsensusChannel {
       throw ErrNotLeader;
     }
 
-    if (proposal.ledgerID !== this.id) {
+    if (!_.isEqual(proposal.ledgerID, this.id)) {
       throw ErrIncorrectChannelID;
     }
 
@@ -1319,7 +1322,7 @@ export class Proposal {
 
   // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
   equal(q: Proposal): boolean {
-    return this.ledgerID === q.ledgerID && this.toAdd.equal(q.toAdd) && this.toRemove.equal(q.toRemove);
+    return _.isEqual(this.ledgerID, q.ledgerID) && this.toAdd.equal(q.toAdd) && this.toRemove.equal(q.toRemove);
   }
 
   // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.

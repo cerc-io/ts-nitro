@@ -3,8 +3,8 @@
 
 import debug from 'debug';
 import assert from 'assert';
-import { ethers } from 'ethers';
 import JSONbig from 'json-bigint';
+import _ from 'lodash';
 
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
@@ -68,7 +68,8 @@ class ErrUnhandledChainEvent extends Error {
   constructor(params: {
     event?: ChainEvent,
     objective?: Objective,
-    reason?: string }) {
+    reason?: string
+  }) {
     super(`Chain event ${params.event} could not be handled by objective ${params.objective} due to: ${params.reason ?? ''}`);
     Object.assign(this);
   }
@@ -676,7 +677,7 @@ export class Engine {
   private async handlePaymentRequest(request: PaymentRequest): Promise<EngineEvent> {
     const ee = new EngineEvent();
 
-    if (request === {} as PaymentRequest) {
+    if (_.isEqual(request, {})) {
       throw new Error('handleAPIEvent: Empty payment request');
     }
 

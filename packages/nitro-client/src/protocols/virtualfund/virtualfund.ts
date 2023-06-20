@@ -139,11 +139,11 @@ export class Connection {
     //   return fmt.Errorf("nil connection should not handle proposals")
     // }
 
-    if (sp.proposal.ledgerID !== this.channel?.id) {
+    if (!_.isEqual(sp.proposal.ledgerID, this.channel?.id)) {
       throw ErrIncorrectChannelID;
     }
 
-    if (this.channel !== null) {
+    if (this.channel) {
       try {
         this.channel.receive(sp);
       } catch (err) {
@@ -343,12 +343,12 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     for (const outcome of initialStateOfV.outcome.value) {
       const { asset } = outcome;
 
-      if (outcome.allocations.value[0].destination !== Destination.addressToDestination(initialStateOfV.participants[0])) {
+      if (!_.isEqual(outcome.allocations.value[0].destination, Destination.addressToDestination(initialStateOfV.participants[0]))) {
         throw new Error('Allocation in slot 0 does not correspond to participant 0');
       }
       const amount0 = outcome.allocations.value[0].amount;
 
-      if (outcome.allocations.value[1].destination !== Destination.addressToDestination(initialStateOfV.participants[init.n + 1])) {
+      if (!_.isEqual(outcome.allocations.value[1].destination, Destination.addressToDestination(initialStateOfV.participants[init.n + 1]))) {
         throw new Error(`Allocation in slot 1 does not correspond to participant ${init.n + 1}`);
       }
       const amount1 = outcome.allocations.value[1].amount;
@@ -548,7 +548,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       toMyRightId = this.toMyRight!.channel!.id; // Avoid this if it is nil
     }
 
-    if (sp.proposal.target() === this.v!.id) {
+    if (_.isEqual(sp.proposal.target(), this.v!.id)) {
       let err: Error | undefined;
       switch (true) {
         case _.isEqual(sp.proposal.ledgerID, new Destination()):
@@ -676,11 +676,11 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   related(): Storable[] {
     const ret: Storable[] = [this.v!];
 
-    if (this.toMyLeft !== null) {
-      ret.push(this.toMyLeft!.channel!);
+    if (this.toMyLeft) {
+      ret.push(this.toMyLeft.channel!);
     }
-    if (this.toMyRight !== null) {
-      ret.push(this.toMyRight!.channel!);
+    if (this.toMyRight) {
+      ret.push(this.toMyRight.channel!);
     }
 
     return ret;
@@ -712,13 +712,13 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     const vClone = this.v!.clone();
     clone.v = vClone;
 
-    if (this.toMyLeft !== null) {
-      const lClone = this.toMyLeft?.channel?.clone();
+    if (this.toMyLeft) {
+      const lClone = this.toMyLeft.channel?.clone();
       clone.toMyLeft = new Connection({ channel: lClone, guaranteeInfo: this.toMyLeft?.guaranteeInfo });
     }
 
-    if (this.toMyRight !== null) {
-      const rClone = this.toMyRight?.channel?.clone();
+    if (this.toMyRight) {
+      const rClone = this.toMyRight.channel?.clone();
       clone.toMyRight = new Connection({ channel: rClone, guaranteeInfo: this.toMyRight?.guaranteeInfo });
     }
 
@@ -774,9 +774,9 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     const sideEffects = new SideEffects({});
 
     // ledger sideEffect
-    const proposals = ledger?.proposalQueue();
-    if (proposals!.length !== 0) {
-      sideEffects.proposalsToProcess.push(proposals![0].proposal);
+    const proposals = ledger!.proposalQueue();
+    if (proposals.length !== 0) {
+      sideEffects.proposalsToProcess.push(proposals[0].proposal);
     }
 
     // message sideEffect
@@ -807,7 +807,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       sideEffects = se;
     } else {
       // If the proposal is next in the queue we accept it
-      const proposedNext = ledger?.isProposedNext(g);
+      const proposedNext = ledger!.isProposedNext(g);
       if (proposedNext) {
         let se: SideEffects;
         try {
@@ -881,6 +881,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     });
   }
 
+  // Id returns the objective id for the request.
   id(myAddress: Address, chainId: bigint): ObjectiveId {
     const idStr = this.channelId(myAddress).string();
     return `${ObjectivePrefix}${idStr}`;
@@ -892,12 +893,13 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     await this.objectiveStarted.shift();
   }
 
+  // SignalObjectiveStarted is used by the engine to signal the objective has been started.
   signalObjectiveStarted(): void {
     assert(this.objectiveStarted);
     this.objectiveStarted.close();
   }
 
-  // response computes and returns the appropriate response from the request.
+  // Response computes and returns the appropriate response from the request.
   response(myAddress: Address): ObjectiveResponse {
     const channelId = this.channelId(myAddress);
 
