@@ -149,6 +149,16 @@ export class P2PMessageService implements MessageService {
       },
     );
 
+    assert(ms.p2pHost.node);
+    ms.p2pHost.node.addEventListener('peer:discovery', ms.handlePeerFound.bind(ms));
+    ms.p2pHost.node.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
+
+    ms.p2pHost.node.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
+      ms.receivePeerInfo(stream).then(() => {
+        stream.close();
+      });
+    });
+
     return ms;
   }
 
@@ -161,13 +171,30 @@ export class P2PMessageService implements MessageService {
   }
 
   // handlePeerFound is called by the mDNS service when a peer is found.
-  // TODO: Implement
-  async handlePeerFound({ detail: pi }: any) {
+  async handlePeerFound({ detail: pi }: CustomEvent<Libp2pPeerInfo>) {
     assert(this.p2pHost);
+    assert(this.p2pHost.node);
 
-    // TODO: Save peer that is found
+    const peerMultiaddrs: Multiaddr[] = pi.multiaddrs;
 
-    // TODO: call this.sendPeerInfo
+    await this.p2pHost.node.peerStore.addressBook.add(
+      pi.id,
+      peerMultiaddrs,
+      // TODO: Check if ttl option exists to set it like in go-nitro
+      // peerstore.PermanentAddrTTL
+    );
+
+    try {
+      const stream = await this.p2pHost.node.dialProtocol(
+        pi.id,
+        PEER_EXCHANGE_PROTOCOL_ID,
+      );
+
+      await this.sendPeerInfo(stream);
+      stream.close();
+    } catch (err) {
+      this.checkError(err as Error);
+    }
   }
 
   private async msgStreamHandler({ stream }: IncomingStreamData) {
@@ -306,21 +333,38 @@ export class P2PMessageService implements MessageService {
 
     assert(peerInfo);
     assert(this.p2pHost);
+    assert(this.p2pHost.node);
     const { pipe } = await import('it-pipe');
     const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
 
     /* eslint-disable no-await-in-loop */
-    // TODO: Dial protocol and send message with attempts
-    // for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
-    //   try {
+    for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const s = await this.p2pHost.node.dialProtocol(peerInfo.id, PROTOCOL_ID);
 
-    //     return;
-    //   } catch (err) {
-    //     this.logger(`Attempt ${i} - Could not open stream to ${msg.to}`);
-    //     // eslint-disable-next-line no-await-in-loop
-    //     await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
-    //   }
-    // }
+        // TODO: Implement buffered writer
+        // writer := bufio.NewWriter(s)
+        // // We don't care about the number of bytes written
+        // _, err = writer.WriteString(raw + string(DELIMITER))
+        // ms.checkError(err)
+        // writer.Flush()
+        // s.Close()
+
+        // Use await on pipe in place of writer.Flush()
+        await pipe(
+          [uint8ArrayFromString(raw + DELIMITER)],
+          s.sink,
+        );
+        s.close();
+
+        return;
+      } catch (err) {
+        this.logger(`Attempt ${i} - Could not open stream to ${msg.to}`);
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
+      }
+    }
   }
 
   // checkError panics if the message service is running and there is an error, otherwise it just returns
