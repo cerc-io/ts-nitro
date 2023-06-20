@@ -125,30 +125,30 @@ export class Client {
 
     assert(this.engine.objectiveRequestsFromAPI);
     // Send the event to the engine
-    this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
+    await this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
     await objectiveRequest.waitForObjectiveToStart();
     return objectiveRequest.response(this.address, this.chainId);
   }
 
   // CloseLedgerChannel attempts to close and defund the given directly funded channel.
-  closeLedgerChannel(channelId: Destination): ObjectiveId {
+  async closeLedgerChannel(channelId: Destination): Promise<ObjectiveId> {
     const objectiveRequest = DirectDefundObjectiveRequest.newObjectiveRequest(channelId);
 
     assert(this.engine.objectiveRequestsFromAPI);
     // Send the event to the engine
-    this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
-    objectiveRequest.waitForObjectiveToStart();
+    await this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
+    await objectiveRequest.waitForObjectiveToStart();
     return objectiveRequest.id(this.address, this.chainId);
   }
 
   // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
   // with the supplied intermediaries.
-  createVirtualPaymentChannel(
+  async createVirtualPaymentChannel(
     intermediaries: Address[],
     counterParty: Address,
     challengeDuration: number,
     outcome: Exit,
-  ): VirtualFundObjectiveResponse {
+  ): Promise<VirtualFundObjectiveResponse> {
     assert(this.engine);
 
     const objectiveRequest = VirtualFundObjectiveRequest.newObjectiveRequest(
@@ -162,28 +162,28 @@ export class Client {
 
     // Send the event to the engine
     assert(this.engine.objectiveRequestsFromAPI);
-    this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
+    await this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
 
-    objectiveRequest.waitForObjectiveToStart();
+    await objectiveRequest.waitForObjectiveToStart();
     return objectiveRequest.response(this.address);
   }
 
   // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
-  closeVirtualChannel(channelId: Destination): ObjectiveId {
+  async closeVirtualChannel(channelId: Destination): Promise<ObjectiveId> {
     const objectiveRequest = VirtualDefundObjectiveRequest.newObjectiveRequest(channelId);
 
     // Send the event to the engine
     assert(this.engine.objectiveRequestsFromAPI);
-    this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
-    objectiveRequest.waitForObjectiveToStart();
+    await this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
+    await objectiveRequest.waitForObjectiveToStart();
     return objectiveRequest.id(this.address, this.chainId);
   }
 
   // Pay will send a signed voucher to the payee that they can redeem for the given amount.
-  pay(channelId: Destination, amount: bigint) {
+  async pay(channelId: Destination, amount: bigint) {
     assert(this.engine.paymentRequestsFromAPI);
     // Send the event to the engine
-    this.engine.paymentRequestsFromAPI.push({ channelId, amount });
+    await this.engine.paymentRequestsFromAPI.push({ channelId, amount });
   }
 
   // GetPaymentChannel returns the payment channel with the given id.

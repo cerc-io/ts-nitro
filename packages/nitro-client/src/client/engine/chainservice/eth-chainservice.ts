@@ -237,7 +237,7 @@ export class EthChainService implements ChainService {
               nad.amountDeposited.toBigInt(),
               nad.destinationHoldings.toBigInt(),
             );
-            this.out.push(event);
+            await this.out.push(event);
           } catch (err) {
             this.fatalF(`error in ParseDeposited: ${err}`);
           }
@@ -280,14 +280,14 @@ export class EthChainService implements ChainService {
             assetAddress,
             amount,
           );
-          this.out.push(event);
+          await this.out.push(event);
           break;
         }
         case concludedTopic: {
           try {
             const ce = this.na.interface.parseLog(l).args as unknown as ConcludedEventObject;
             const event = new ConcludedEvent({ _channelID: new Destination(ce.channelId), blockNum: String(l.blockNumber) });
-            this.out.push(event);
+            await this.out.push(event);
           } catch (err) {
             this.fatalF(`error in ParseConcluded: ${err}`);
           }
@@ -377,7 +377,7 @@ export class EthChainService implements ChainService {
           //   sub.Unsubscribe()
 
           case logs:
-            this.dispatchChainEvents([logs.value()]);
+            await this.dispatchChainEvents([logs.value()]);
             break;
         }
       }
