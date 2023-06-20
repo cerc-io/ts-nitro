@@ -207,14 +207,66 @@ export class MemStore implements Store {
     }
   }
 
-  // TODO: Implement
+  // GetChannelsByIds returns a collection of channels with the given ids
   getChannelsByIds(ids: string[]): Channel[] {
-    return [];
+    const toReturn: Channel[] = [];
+
+    let err: Error;
+
+    this.channels.range((key: string, chJSON: Buffer): boolean => {
+      let ch: Channel;
+      try {
+        ch = Channel.fromJSON(chJSON.toString());
+      } catch (handleError) {
+        err = handleError as Error;
+        return false;
+      }
+
+      // If the channel is one of the ones we're looking for, add it to the list
+      if (contains(ids, ch.id.value)) {
+        toReturn.push(ch);
+      }
+
+      // If we've found all the channels we need, stop looking
+      if (toReturn.length === ids.length) {
+        return false;
+      }
+
+      return true; // otherwise, continue looking
+    });
+
+    if (err!) {
+      throw err;
+    }
+
+    return toReturn;
   }
 
-  // TODO: Implement
+  // GetChannelsByAppDefinition returns any channels that include the given app definition
   getChannelsByAppDefinition(appDef: Address): Channel[] {
-    return [];
+    const toReturn: Channel[] = [];
+    let err: Error;
+
+    this.channels.range((key: string, chJSON: Buffer): boolean => {
+      let ch: Channel;
+
+      try {
+        ch = Channel.fromJSON(chJSON.toString());
+      } catch (handleError) {
+        err = handleError as Error;
+        return false;
+      }
+
+      if (ch.appDefinition === appDef) {
+        toReturn.push(ch);
+      }
+      return true; // channel not found: continue looking
+    });
+
+    if (err!) {
+      throw err;
+    }
+    return toReturn;
   }
 
   // GetChannelsByParticipant returns any channels that include the given participant
@@ -238,7 +290,6 @@ export class MemStore implements Store {
 
       return true; // channel not found: continue looking
     });
-
     return toReturn;
   }
 
@@ -290,9 +341,28 @@ export class MemStore implements Store {
     return [channel, ok];
   }
 
-  // TODO: Implement
   getAllConsensusChannels(): ConsensusChannel[] {
-    return [];
+    const toReturn: ConsensusChannel[] = [];
+    let err: Error;
+
+    this.consensusChannels.range((key: string, chJSON: Buffer): boolean => {
+      let ch: ConsensusChannel;
+
+      try {
+        ch = ConsensusChannel.fromJSON(chJSON.toString());
+      } catch (handleError) {
+        err = handleError as Error;
+        return false;
+      }
+
+      toReturn.push(ch);
+      return true; // channel not found: continue looking
+    });
+
+    if (err!) {
+      throw err;
+    }
+    return toReturn;
   }
 
   getObjectiveByChannelId(channelId: Destination): [Objective | undefined, boolean] {
@@ -494,4 +564,14 @@ function decodeObjective(id: ObjectiveId, data: Buffer): Objective {
     default:
       throw new Error(`objective id ${id} does not correspond to a known Objective type`);
   }
+}
+
+// contains is a helper function which returns true if the given item is included in col
+function contains<T extends Destination | ObjectiveId>(col: T[], item: T): boolean {
+  for (const [, i] of col.entries()) {
+    if (i === item) {
+      return true;
+    }
+  }
+  return false;
 }

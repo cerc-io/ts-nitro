@@ -5,10 +5,10 @@ import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
 // paymentChannelListeners is a struct that holds a list of listeners for payment channel info.
 export class PaymentChannelListeners {
   // listeners is a list of listeners for payment channel info that we need to notify.
-  listeners?: ReadWriteChannel<PaymentChannelInfo>[];
+  listeners: ReadWriteChannel<PaymentChannelInfo>[] = [];
 
   // prev is the previous payment channel info that was sent to the listeners.
-  prev?: PaymentChannelInfo;
+  prev: PaymentChannelInfo = new PaymentChannelInfo({});
 
   // TODO: Implement
   // listenersLock is used to protect against concurrent access to the listeners slice.
@@ -29,7 +29,7 @@ export class PaymentChannelListeners {
   /* eslint-disable no-await-in-loop */
   // Notify notifies all listeners of a payment channel update.
   // It only notifies listeners if the new info is different from the previous info.
-  async Notify(info: PaymentChannelInfo): Promise<void> {
+  async notify(info: PaymentChannelInfo): Promise<void> {
     if (this.prev?.equal(info)) {
       return;
     }
@@ -44,10 +44,10 @@ export class PaymentChannelListeners {
 // ledgerChannelListeners is a struct that holds a list of listeners for ledger channel info.
 export class LedgerChannelListeners {
   // listeners is a list of listeners for ledger channel info that we need to notify.
-  listeners?: ReadWriteChannel<LedgerChannelInfo>[];
+  listeners: ReadWriteChannel<LedgerChannelInfo>[] = [];
 
   // prev is the previous ledger channel info that was sent to the listeners.
-  prev?: LedgerChannelInfo;
+  prev: LedgerChannelInfo = new LedgerChannelInfo({});
 
   // TODO: Implement
   // listenersLock is used to protect against concurrent access to the listeners slice.
@@ -68,7 +68,7 @@ export class LedgerChannelListeners {
   /* eslint-disable no-await-in-loop */
   // Notify notifies all listeners of a ledger channel update.
   // It only notifies listeners if the new info is different from the previous info.
-  async Notify(info: LedgerChannelInfo): Promise<void> {
+  async notify(info: LedgerChannelInfo): Promise<void> {
     if (this.prev?.equal(info)) {
       return;
     }

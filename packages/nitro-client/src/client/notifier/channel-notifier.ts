@@ -41,19 +41,19 @@ export class ChannelNotifier {
   // It should be called whenever a ledger channel is updated.
   notifyLedgerUpdated(info: LedgerChannelInfo): void {
     const [li] = this.ledgerListeners!.loadOrStore(info.iD.string(), LedgerChannelListeners.newLedgerChannelListeners());
-    li.Notify(info);
+    li.notify(info);
 
     const [allLi] = this.ledgerListeners!.loadOrStore(ALL_NOTIFICATIONS, LedgerChannelListeners.newLedgerChannelListeners());
-    allLi.Notify(info);
+    allLi.notify(info);
   }
 
   // NotifyPaymentUpdated notifies all listeners of a payment channel update.
   // It should be called whenever a payment channel is updated.
   notifyPaymentUpdated(info: PaymentChannelInfo): void {
     const [li] = this.paymentListeners!.loadOrStore(info.iD.string(), PaymentChannelListeners.newPaymentChannelListeners());
-    li.Notify(info);
+    li.notify(info);
 
     const [allLi] = this.paymentListeners!.loadOrStore(ALL_NOTIFICATIONS, PaymentChannelListeners.newPaymentChannelListeners());
-    allLi.Notify(info);
+    allLi.notify(info);
   }
 }
