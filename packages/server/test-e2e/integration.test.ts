@@ -2,9 +2,11 @@
 import assert from 'assert';
 import { expect } from 'chai';
 
-import { Client, P2PMessageService } from '@cerc-io/nitro-client';
+import { Client, MemStore } from '@cerc-io/nitro-client';
+import { hex2Bytes } from '@cerc-io/nitro-util';
+import { setupClient } from '@cerc-io/util';
 
-import { createOutcome, setupClient, waitForPeerInfoExchange } from '../src/utils/index';
+import { createOutcome, waitForPeerInfoExchange } from '../src/utils/index';
 import { DirectFundParams } from '../src/types';
 import {
   ALICE_ADDRESS,
@@ -17,19 +19,50 @@ import {
   BOB_CHAIN_PK,
   CHAIN_URL,
 } from './constants';
+import { createP2PMessageService } from '../src/utils';
+import {
+  nitroAdjudicatorAddress,
+  virtualPaymentAppAddress,
+  consensusAppAddress,
+} from './addresses.json';
 
 describe('test Client', () => {
   let aliceClient: Client;
   let bobClient: Client;
 
   it('should instantiate Clients', async () => {
-    let aliceMsgService: P2PMessageService;
-    let bobMsgService: P2PMessageService;
+    const aliceStore = new MemStore(hex2Bytes(ALICE_PK));
+    const aliceMsgService = await createP2PMessageService(ALICE_MESSAGING_PORT, aliceStore.getAddress());
 
-    [aliceClient, aliceMsgService] = await setupClient(ALICE_MESSAGING_PORT, ALICE_PK, ALICE_CHAIN_PK, CHAIN_URL);
+    aliceClient = await setupClient(
+      aliceMsgService,
+      aliceStore,
+      {
+        chainPk: ALICE_CHAIN_PK,
+        chainURL: CHAIN_URL,
+        naAddress: nitroAdjudicatorAddress,
+        vpaAddress: virtualPaymentAppAddress,
+        caAddress: consensusAppAddress,
+      },
+    );
+
     expect(aliceClient.address).to.equal(ALICE_ADDRESS);
 
-    [bobClient, bobMsgService] = await setupClient(BOB_MESSAGING_PORT, BOB_PK, BOB_CHAIN_PK, CHAIN_URL);
+    const bobStore = new MemStore(hex2Bytes(BOB_PK));
+    const bobMsgService = await createP2PMessageService(BOB_MESSAGING_PORT, bobStore.getAddress());
+
+    bobClient = await setupClient(
+      bobMsgService,
+      bobStore,
+      {
+        chainPk: BOB_CHAIN_PK,
+        chainURL: CHAIN_URL,
+        naAddress: nitroAdjudicatorAddress,
+        vpaAddress: virtualPaymentAppAddress,
+        caAddress: consensusAppAddress,
+      },
+    );
+
     expect(bobClient.address).to.equal(BOB_ADDRESS);
 
     await waitForPeerInfoExchange(1, [aliceMsgService, bobMsgService]);
