@@ -40,9 +40,9 @@ export const browserConfig: webpack.Configuration = merge(baseConfig, {
   // Packages are resolved properly in browser build tool; so not required in build output
   externals: {
     '@chainsafe/libp2p-yamux': '@chainsafe/libp2p-yamux',
-    '@libp2p/crypto': '@libp2p/crypto',
-    '@libp2p/mdns': '@libp2p/mdns',
-    '@libp2p/tcp': '@libp2p/tcp',
+    // TODO: Fix crypto export paths so that it can be resolved by react build
+    // '@libp2p/crypto/keys': '@libp2p/crypto/keys',
+    '@cerc-io/peer': '@cerc-io/peer',
     libp2p: 'libp2p',
   },
 });
