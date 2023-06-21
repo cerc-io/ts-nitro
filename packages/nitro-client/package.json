@@ -16,6 +16,7 @@
     "test": "mocha"
   },
   "devDependencies": {
+    "@libp2p/interface-peer-store": "1.2.9",
     "@typechain/ethers-v5": "^11.0.0",
     "@types/chai": "^4.3.5",
     "@types/debug": "^4.1.7",
@@ -60,6 +61,7 @@
     "ethers": "^5.7.2",
     "json-bigint": "^1.0.0",
     "libp2p": "^0.45.3",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "uint8arrays": "^4.0.3"
   }
 }

@@ -15,11 +15,9 @@ import type { Stream } from '@libp2p/interface-connection';
 // @ts-expect-error
 import type { IncomingStreamData } from '@libp2p/interface-registrar';
 // @ts-expect-error
-import type { PeerInfo as Libp2pPeerInfo } from '@libp2p/interface-peer-info';
-// @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error
-import type { Address as PeerAddress } from '@libp2p/interface-peer-store';
+import type { PeerProtocolsChangeData } from '@libp2p/interface-peer-store';
 // @ts-expect-error
 import type { Multiaddr } from '@multiformats/multiaddr';
 
@@ -151,7 +149,7 @@ export class P2PMessageService implements MessageService {
     );
 
     assert(ms.p2pHost.node);
-    ms.p2pHost.node.addEventListener('peer:discovery', ms.handlePeerFound.bind(ms));
+    ms.p2pHost.node.peerStore.addEventListener('change:protocols', ms.handlePeerProtocols.bind(ms));
     ms.p2pHost.node.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
 
     ms.p2pHost.node.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
@@ -171,23 +169,25 @@ export class P2PMessageService implements MessageService {
     return PeerIdFactory.createFromPrivKey(this.key);
   }
 
-  // handlePeerFound is called by the mDNS service when a peer is found.
-  async handlePeerFound({ detail: pi }: CustomEvent<Libp2pPeerInfo>) {
+  // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
+  async handlePeerProtocols({ detail: data }: CustomEvent<PeerProtocolsChangeData>) {
     assert(this.p2pHost);
     assert(this.p2pHost.node);
+    assert(this.p2pHost.peerId);
 
-    const peerMultiaddrs: Multiaddr[] = pi.multiaddrs;
+    // Ignore self protocol changes
+    if (data.peerId.equals(this.p2pHost.peerId)) {
+      return;
+    }
 
-    await this.p2pHost.node.peerStore.addressBook.add(
-      pi.id,
-      peerMultiaddrs,
-      // TODO: Check if ttl option exists to set it like in go-nitro
-      // peerstore.PermanentAddrTTL
-    );
+    // Ignore if PEER_EXCHANGE_PROTOCOL_ID is not handled by remote peer
+    if (!data.protocols.includes(PEER_EXCHANGE_PROTOCOL_ID)) {
+      return;
+    }
 
     try {
       const stream = await this.p2pHost.node.dialProtocol(
-        pi.id,
+        data.peerId,
         PEER_EXCHANGE_PROTOCOL_ID,
       );
 

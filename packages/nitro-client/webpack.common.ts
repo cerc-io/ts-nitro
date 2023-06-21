@@ -29,6 +29,11 @@ const baseConfig: webpack.Configuration = {
   externals: {
     '@nodeguy/channel': '@nodeguy/channel',
     '@cerc-io/nitro-util': '@cerc-io/nitro-util',
+    '@cerc-io/peer': '@cerc-io/peer',
+    '@statechannels/exit-format': '@statechannels/exit-format',
+    '@statechannels/nitro-protocol': '@statechannels/nitro-protocol',
+    lodash: 'lodash',
+    'json-bigint': 'json-bigint',
     assert: 'assert',
     debug: 'debug',
     ethers: 'ethers',
@@ -40,11 +45,15 @@ export const browserConfig: webpack.Configuration = merge(baseConfig, {
   // Packages are resolved properly in browser build tool; so not required in build output
   externals: {
     '@chainsafe/libp2p-yamux': '@chainsafe/libp2p-yamux',
-    // TODO: Fix crypto export paths so that it can be resolved by react build
+    '@chainsafe/libp2p-noise': '@chainsafe/libp2p-noise',
+
+    // TODO: Fix export paths so that it can be resolved by react build
+    'it-pipe': 'it-pipe',
     '@libp2p/crypto/keys': '@libp2p/crypto/keys',
     '@libp2p/peer-id-factory': '@libp2p/peer-id-factory',
-    '@cerc-io/peer': '@cerc-io/peer',
-    libp2p: 'libp2p',
+    '@libp2p/peer-id': '@libp2p/peer-id',
+    'uint8arrays/to-string': 'uint8arrays/to-string',
+    'uint8arrays/from-string': 'uint8arrays/from-string',
   },
 });
 

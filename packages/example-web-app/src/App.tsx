@@ -19,7 +19,7 @@ declare global {
 }
 
 function App() {
-  const [data, setData] = useState('')
+  const [data, setData] = useState('');
 
   useEffect(() => {
     const res = test();
@@ -29,10 +29,10 @@ function App() {
   const init = useCallback(async (pk: string, chainPk: string) => {
     const store = new MemStore(hex2Bytes(pk));
     assert(process.env.REACT_APP_RELAY_MULTIADDR);
-    const msgService = await createP2PMessageService(process.env.REACT_APP_RELAY_MULTIADDR, store.getAddress());
-  
-    const client = await setupClient(
-      msgService,
+    window.msgService = await createP2PMessageService(process.env.REACT_APP_RELAY_MULTIADDR, store.getAddress());
+
+    window.client = await setupClient(
+      window.msgService,
       store,
       {
         chainPk,
@@ -40,7 +40,6 @@ function App() {
         chainURL: CHAIN_URL,
         naAddress: NA_ADDRESS,
         vpaAddress: VPA_ADDRESS
-
       }
     );
   }, []);

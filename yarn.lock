@@ -2521,7 +2521,7 @@
     "@libp2p/interface-peer-info" "^1.0.0"
     "@libp2p/interfaces" "^3.0.0"
 
-"@libp2p/interface-peer-store@^1.0.0", "@libp2p/interface-peer-store@^1.2.2":
+"@libp2p/interface-peer-store@1.2.9", "@libp2p/interface-peer-store@^1.0.0", "@libp2p/interface-peer-store@^1.2.2":
   version "1.2.9"
   resolved "https://registry.yarnpkg.com/@libp2p/interface-peer-store/-/interface-peer-store-1.2.9.tgz#85173892e52ac230abfd45798bfab03dce20ae84"
   integrity sha512-jAAlbP1NXpEJOG6Dbr0QdP71TBYjHBc/65Ulwdn4J4f04PW1bI4JIMQeq6+/sLfaGVryvvUT/a52io8UUtB21Q==
