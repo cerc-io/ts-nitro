@@ -60,6 +60,7 @@
     "ethers": "^5.7.2",
     "it-pipe": "^2.0.5",
     "lodash": "^4.17.21",
-    "uint8arrays": "^4.0.3"
+    "uint8arrays": "^4.0.3",
+    "promjs": "^0.4.2"
   }
 }
