@@ -4,6 +4,7 @@ import { Address } from '../../types/types';
 import { ObjectiveId } from '../../protocols/messages';
 
 const registry = prom();
+
 // MetricsAPI is an interface for recording metrics
 // It is heavily based on https://github.com/testground/sdk-go/blob/master/runtime/metrics_api.go
 // It exposes some basic functionality that is useful for recording engine metrics
@@ -29,7 +30,9 @@ export interface MetricsApi {
   //   requests_received,tag1=value1,tag2=value2,tag3=value3
 
   // TODO: Implement
+  // promjs doesnot have timer
   // Timer(name string) metrics.Timer
+  timer(name: string): void
 
   // Gauge creates a measurement of gauge type (float64).
   // The returned type is an alias of go-metrics' GaugeFloat64 type. Refer to
@@ -40,35 +43,34 @@ export interface MetricsApi {
   // key-value pairs. Example:
   //
   //   requests_received,tag1=value1,tag2=value2,tag3=value3
-  guage(name: string, me: Address): Gauge;
+  guage(name: string): Gauge;
 }
 
 // NewNoOpMetrics returns a MetricsApi that does nothing.
 // TODO: Implement
 export class NoOpMetrics implements MetricsApi {
+  timer(name: string): void {}
+
   recordPoint(name: string, value: number): void {}
 
-  guage(name: string, me: Address): Gauge {
+  guage(name: string): Gauge {
     return new Gauge();
   }
 }
 
 // TODO: Implement
 export class Metrics implements MetricsApi {
+  timer(name: string): void {}
+
   recordPoint(name: string, value: number): void { }
 
-  guage(name: string, me: Address): Gauge {
-    return registry.create('gauge', this.addMyAddress(name, me));
-  }
-
-  private addMyAddress(name: string, me: Address): string {
-    return `${name},wallet=${me}`;
+  guage(name: string): Gauge {
+    return registry.create('gauge', name);
   }
 }
 
 // MetricsRecorder is used to record metrics about the engine
 // TODO: Implement
-// Doubt: extending or implementing interface
 export class MetricsRecorder {
   me: Address = '';
 
@@ -76,10 +78,21 @@ export class MetricsRecorder {
 
   metrics: Metrics = new Metrics();
 
-  // TODO: Implement
+  constructor(params: {
+    me: Address;
+    startTimes?: Map<ObjectiveId, Date>;
+    metrics: Metrics;
+  }) {
+    Object.assign(this, params);
+  }
+
   // NewMetricsRecorder returns a new MetricsRecorder that uses the metricsApi to record metrics
-  static newMetricsRecorder(me: Address, metrics: MetricsApi): MetricsRecorder {
-    return {} as MetricsRecorder;
+  static newMetricsRecorder(me: Address, metrics: Metrics): MetricsRecorder {
+    return new MetricsRecorder({
+      me,
+      startTimes: new Map(),
+      metrics,
+    });
   }
 
   // TODO: Implement
@@ -89,10 +102,11 @@ export class MetricsRecorder {
     return () => {};
   }
 
-  // TODO: Implement
   // RecordObjectiveStarted records metrics about the start of an objective
   // This should be called when an objective is first created
-  recordObjectiveStarted(id: ObjectiveId): void {}
+  recordObjectiveStarted(id: ObjectiveId): void {
+    this.startTimes.set(id, new Date());
+  }
 
   // TODO: Implement
   // RecordObjectiveCompleted records metrics about the completion of an objective
@@ -101,6 +115,10 @@ export class MetricsRecorder {
 
   // RecordQueueLength records metrics about the length of some queue
   recordQueueLength(name: string, queueLength: number): void {
-    this.metrics.guage(name, this.me).set(queueLength);
+    this.metrics.guage(this.addMyAddress(name)).set(queueLength);
+  }
+
+  private addMyAddress(name: string): string {
+    return `${name},wallet=${this.me}`;
   }
 }

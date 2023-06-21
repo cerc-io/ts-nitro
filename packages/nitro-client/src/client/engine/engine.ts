@@ -202,7 +202,10 @@ export class Engine {
       // eslint-disable-next-line no-param-reassign
       metricsApi = new NoOpMetrics();
     }
-    e.metrics = new MetricsRecorder();
+    e.metrics = new MetricsRecorder({
+      me: e.store.getAddress(),
+      metrics: metricsApi,
+    });
 
     return e;
   }
@@ -213,7 +216,7 @@ export class Engine {
   }
 
   // TODO: Can throw an error
-  close(): void {}
+  close(): void { }
 
   // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
   // The loop exits when a struct is received on the stop channel. Engine.Close() sends that signal.
@@ -226,10 +229,19 @@ export class Engine {
     assert(this.stop);
     assert(this._toApi);
 
-    // TODO: Implement metrics
-
     while (true) {
       let res = new EngineEvent();
+
+      this.metrics?.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.length());
+      this.metrics?.recordQueueLength('api_payment_request_queue', this.paymentRequestsFromAPI.length());
+
+      // TODO: Check working
+      assert('length' in this.fromChain && typeof this.fromChain.length === 'function');
+      assert('length' in this.fromMsg && typeof this.fromMsg.length === 'function');
+
+      this.metrics?.recordQueueLength('chain_events_queue', this.fromChain.length());
+      this.metrics?.recordQueueLength('messages_queue', this.fromMsg.length());
+      this.metrics?.recordQueueLength('proposal_queue', this.fromLedger.length());
 
       try {
         /* eslint-disable no-await-in-loop */
@@ -284,6 +296,7 @@ export class Engine {
           this.logger(`Objective ${obj.id()} is complete & returned to API`);
           // TODO: Implement metrics
           // e.metrics.RecordObjectiveCompleted(obj.Id())
+          // this.metrics?.recordObjectiveCompleted(obj.id())
         });
 
         await this._toApi.push(res);
@@ -508,6 +521,8 @@ export class Engine {
   //   - attempts progress.
   private async handleChainEvent(chainEvent: ChainEvent): Promise<EngineEvent> {
     // TODO: Implement metrics
+    // defer e.metrics.RecordFunctionDuration()()
+
     assert('string' in chainEvent && typeof chainEvent.string === 'function');
     this.logger(`handling chain event: ${chainEvent.string()}`);
 
@@ -564,8 +579,7 @@ export class Engine {
       const objectiveId = or.id(myAddress, chainId);
       this.logger(`handling new objective request for ${objectiveId}`);
 
-      // TODO: Implement metrics
-      // e.metrics.RecordObjectiveStarted(objectiveId);
+      this.metrics?.recordObjectiveStarted(objectiveId);
 
       deferredSignalObjectiveStarted = () => or.signalObjectiveStarted();
 
@@ -906,8 +920,7 @@ export class Engine {
           throw new Error(`error constructing objective from message: ${constructErr}`);
         }
 
-        // TODO: Implement metrics
-        // e.metrics.RecordObjectiveStarted(newObj.Id())
+        this.metrics?.recordObjectiveStarted(newObj.id());
 
         try {
           this.store.setObjective(newObj);
@@ -1040,8 +1053,20 @@ export class Engine {
   }
 
   // recordMessageMetrics records metrics for a message
-  // TODO: Implement
-  private recordMessageMetrics(message: Message): void {}
+  private recordMessageMetrics(message: Message): void {
+    this.metrics?.recordQueueLength(`msg_proposal_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.ledgerProposals.length);
+    this.metrics?.recordQueueLength(`msg_payment_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.payments.length);
+    this.metrics?.recordQueueLength(`msg_payload_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.objectivePayloads.length);
+
+    let totalPayloadsSize = 0;
+    for (const p of message.objectivePayloads) {
+      totalPayloadsSize += p.payloadData.length;
+    }
+
+    const raw = message.serialize();
+    this.metrics?.recordQueueLength(`msg_payload_size,sender=${this.store?.getAddress()},receiver=${message.to}`, totalPayloadsSize);
+    this.metrics?.recordQueueLength(`msg_size,sender=${this.store?.getAddress()},receiver=${message.to}`, raw.length);
+  }
 
   // eslint-disable-next-line n/handle-callback-err
   private async checkError(err: Error): Promise<void> {
