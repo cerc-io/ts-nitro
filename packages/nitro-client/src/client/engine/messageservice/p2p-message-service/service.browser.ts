@@ -1,5 +1,6 @@
 import assert from 'assert';
 import debug from 'debug';
+import { Buffer } from 'buffer';
 
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
@@ -125,7 +126,7 @@ export class P2PMessageService implements MessageService {
       logger: log,
     });
 
-    const { unmarshalPrivateKey } = await import('@libp2p/crypto/keys');
+    const { unmarshalPrivateKey, marshalPrivateKey, marshalPublicKey } = await import('@libp2p/crypto/keys');
 
     try {
       const messageKey = await unmarshalPrivateKey(pk);
@@ -144,8 +145,8 @@ export class P2PMessageService implements MessageService {
       {},
       {
         id: peerId.toString(),
-        privKey: (await ms.key.hash()).toString(),
-        pubKey: (await ms.key.public.hash()).toString(),
+        privKey: Buffer.from(marshalPrivateKey(ms.key)).toString('base64'),
+        pubKey: Buffer.from(marshalPublicKey(ms.key.public)).toString('base64'),
       },
     );
 

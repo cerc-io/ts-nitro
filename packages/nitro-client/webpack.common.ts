@@ -41,7 +41,8 @@ export const browserConfig: webpack.Configuration = merge(baseConfig, {
   externals: {
     '@chainsafe/libp2p-yamux': '@chainsafe/libp2p-yamux',
     // TODO: Fix crypto export paths so that it can be resolved by react build
-    // '@libp2p/crypto/keys': '@libp2p/crypto/keys',
+    '@libp2p/crypto/keys': '@libp2p/crypto/keys',
+    '@libp2p/peer-id-factory': '@libp2p/peer-id-factory',
     '@cerc-io/peer': '@cerc-io/peer',
     libp2p: 'libp2p',
   },

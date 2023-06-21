@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { Buffer } from 'buffer';
 
 // Bytes2Hex returns the hexadecimal encoding of d.
 export function bytes2Hex(d: Buffer): string {
