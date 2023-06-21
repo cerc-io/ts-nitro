@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import _ from 'lodash';
+import { Buffer } from 'buffer';
 
 import * as ExitFormat from '@statechannels/exit-format';
 import {

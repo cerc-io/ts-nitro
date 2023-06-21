@@ -1,5 +1,6 @@
 import assert from 'assert';
 import _ from 'lodash';
+import { Buffer } from 'buffer';
 
 import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
 

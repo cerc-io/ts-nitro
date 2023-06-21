@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { ethers, providers, EventFilter } from 'ethers';
+import { Buffer } from 'buffer';
 
 export class EthClient {
   provider: providers.JsonRpcProvider;

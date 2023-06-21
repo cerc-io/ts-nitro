@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { Buffer } from 'buffer';
 
 import { Destination } from '../types/destination';
 import { Address } from '../types/types';

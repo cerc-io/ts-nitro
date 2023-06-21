@@ -2,6 +2,7 @@
 import assert from 'assert';
 import _ from 'lodash';
 import { ethers } from 'ethers';
+import { Buffer } from 'buffer';
 
 import { JSONbigNative } from './types';
 

@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+
 import { Objective } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';

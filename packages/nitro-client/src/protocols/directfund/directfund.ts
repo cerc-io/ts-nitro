@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { Buffer } from 'buffer';
 
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';

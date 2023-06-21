@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import { Buffer } from 'buffer';
 
 import {
   FieldDescription, Uint64, fromJSON, toJSON,

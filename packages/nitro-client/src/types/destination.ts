@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { Buffer } from 'buffer';
 
 import { Bytes32, isExternalDestination } from '@statechannels/nitro-protocol';
 
