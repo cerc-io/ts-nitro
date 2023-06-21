@@ -19,7 +19,6 @@ import { DirectFundParams } from '../src/types';
 import {
   ALICE_MESSAGING_PORT,
   BOB_MESSAGING_PORT,
-
 } from './constants';
 import { createP2PMessageService, waitForPeerInfoExchange } from '../src/utils';
 

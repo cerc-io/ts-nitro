@@ -25,7 +25,7 @@ const getArgv = () => yargs.parserConfiguration({
     alias: 'f',
     type: 'string',
     describe: 'JSON file path to export addresses to',
-    default: './addresses.json',
+    default: './src/test/addresses.json',
   },
 }).argv;
 

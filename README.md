@@ -10,11 +10,33 @@ yarn
 
 ### NodeJS
 
+* Start chain
+
+	```
+	yarn chain
+	```
+
+* Deploy contracts for test
+
+	```
+	yarn test:deploy-contracts
+	```
+
 * Build packages
 
 	```
 	yarn build:node
 	```
+
+* Run test in server package
+
+	```
+	cd packages/server
+
+	yarn test:e2e
+	```
+
+### Browser
 
 * Start chain
 
@@ -28,26 +50,10 @@ yarn
 	yarn test:deploy-contracts
 	```
 
-* Run test in server package
-
-	```
-	cd packages/server
-
-	yarn test:e2e
-	```
-
-### Browser
-
 * Build packages
 
 	```
 	yarn build:browser --ignore @cerc-io/example-web-app
-	```
-
-* Deploy contracts for test
-
-	```
-	yarn test:deploy-contracts
 	```
 
 * Run browser app in dev mode
@@ -64,4 +70,4 @@ yarn
 
 	* Check `window.msgService.peers` in console to see if peers have exchanged info
 
-	* (IN PROGRESS) Call method `window.directFund`
+	* Call method `window.directFund` with peer id of other browser and check logs
