@@ -13,7 +13,7 @@ import _ from 'lodash';
 
 import { Bytes32, signVoucher } from '@statechannels/nitro-protocol';
 import {
-  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+  FieldDescription, fromJSON, hex2Bytes, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
 
 import { Signature } from '../channel/state/state';
@@ -77,8 +77,8 @@ export class Voucher {
     );
 
     this.signature = {
-      r: sig.r,
-      s: sig.s,
+      r: hex2Bytes(sig.r),
+      s: hex2Bytes(sig.s),
       v: sig.v,
     };
   }

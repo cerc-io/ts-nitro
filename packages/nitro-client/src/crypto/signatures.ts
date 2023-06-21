@@ -1,20 +1,20 @@
 import { ethers } from 'ethers';
 import _ from 'lodash';
 
-import { FieldDescription, bytes2Hex } from '@cerc-io/nitro-util';
+import { FieldDescription, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
 // TODO: Use forked @statechannels/nitro-protocol
 import { signData as utilSignData } from '@statechannels/nitro-protocol/dist/src/signatures';
 
 // Signature is an ECDSA signature
 export type Signature = {
-  r: string;
-  s: string;
+  r: Buffer;
+  s: Buffer;
   v: number;
 };
 
 export const signatureJsonEncodingMap: Record<string, FieldDescription> = {
-  r: { type: 'string' },
-  s: { type: 'string' },
+  r: { type: 'buffer' },
+  s: { type: 'buffer' },
   v: { type: 'number' },
 };
 
@@ -44,8 +44,8 @@ export const signEthereumMessage = (message: Buffer, secretKey: Buffer): Signatu
   }
 
   return {
-    r: sig.r,
-    s: sig.s,
+    r: hex2Bytes(sig.r),
+    s: hex2Bytes(sig.s),
     v: sig.v,
   };
 };
@@ -61,7 +61,18 @@ export const recoverEthereumMessageSigner = (message: Buffer, signature: Signatu
 
   const digest = computeEthereumSignedMessageDigest(message);
 
-  return ethers.utils.recoverAddress(digest.toString(), sig);
+  return ethers.utils.recoverAddress(
+    digest.toString(),
+    {
+      r: `0x${bytes2Hex(sig.r)}`,
+      s: `0x${bytes2Hex(sig.s)}`,
+      v: sig.v
+    }
+  );
 };
 
-export const equal = (s1: Signature, s2 :Signature): boolean => s1.r === s2.r && s1.s === s2.s && s1.v === s2.v;
+export const equal = (s1: Signature, s2 :Signature): boolean => {
+  return s1.r.compare(s2.r) === 0
+  && s1.s.compare(s2.s) === 0
+  && s1.v === s2.v;
+};
