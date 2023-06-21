@@ -3183,6 +3183,11 @@
   dependencies:
     "@octokit/openapi-types" "^17.1.2"
 
+"@openzeppelin/contracts@4.6.0":
+  version "4.6.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.6.0.tgz#c91cf64bc27f573836dba4122758b4743418c1b3"
+  integrity sha512-8vi4d50NNya/bQqCmaVzvHNmwHvS0OBKb7HNtuNwEE3scXWrP31fKQoGxNMT+KbzmrNZzatE3QK5p2gFONI/hg==
+
 "@openzeppelin/contracts@^4.7.3":
   version "4.9.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.9.0.tgz#683f33b6598970051bc5f0806fd8660da9e018dd"
@@ -3514,21 +3519,22 @@
     "@stablelib/random" "^1.0.2"
     "@stablelib/wipe" "^1.0.1"
 
-"@statechannels/exit-format@^0.0.6":
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/@statechannels/exit-format/-/exit-format-0.0.6.tgz#5566cf91123af7c574927c69ec6e7cfa6982fc9f"
-  integrity sha512-tzZqWENtSQLNEV7btigvnFnB7PRkwFagm+7tYgqbXrsHudRGjtetLAGGsJcrwGXxx1qqC2uZuDCvVdz0w2y8Nw==
+"@statechannels/exit-format@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@statechannels/exit-format/-/exit-format-0.2.0.tgz#b9362816c2a23d59e429b86b310021de1031a387"
+  integrity sha512-i+HIPy2P6ddwT/uP0O6AiTmBRTQ9+vLmLnfJtvXmtpTsB8OT1R9Jjj5iVKowGcWk+cg8koEtQuQDMxfrHq7LaQ==
   dependencies:
+    "@openzeppelin/contracts" "4.6.0"
     ethers "^5.1.4"
     lodash "^4.17.21"
 
-"@statechannels/nitro-protocol@^2.0.0-alpha.3":
-  version "2.0.0-alpha.3"
-  resolved "https://registry.yarnpkg.com/@statechannels/nitro-protocol/-/nitro-protocol-2.0.0-alpha.3.tgz#bef9092f79378fe06f1737dacece75ede7e24f54"
-  integrity sha512-m5L5IUTvEZlGo8P4fU6MorPAx+l2bwLbepMUp53ol/q/I26VrH8zYS+LDvZ7SYuwECmbEvnTYWjGlUD9l6rp8w==
+"@statechannels/nitro-protocol@^2.0.0-alpha.4":
+  version "2.0.0-alpha.4"
+  resolved "https://registry.yarnpkg.com/@statechannels/nitro-protocol/-/nitro-protocol-2.0.0-alpha.4.tgz#ff252e5cd7e73740ad25a35b2af7953b499db63d"
+  integrity sha512-Nmiyu0h7VjzoYPmzUOVWb7KzzdRRTjnF1YYVqsiHiCEVkjZVBtSK/J8RDL4Ozzn2MwyOIiA90Wlrl4KB+tB43g==
   dependencies:
     "@openzeppelin/contracts" "^4.7.3"
-    "@statechannels/exit-format" "^0.0.6"
+    "@statechannels/exit-format" "^0.2.0"
     "@typechain/ethers-v5" "^9.0.0"
 
 "@surma/rollup-plugin-off-main-thread@^2.2.3":
