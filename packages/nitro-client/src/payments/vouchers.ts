@@ -68,13 +68,19 @@ export class Voucher {
     const wallet = new ethers.Wallet(pk);
 
     // Using util method from nitro-protocol instead of go-nitro port
-    this.signature = await signVoucher(
+    const sig = await signVoucher(
       {
         amount: this.amount.toString(),
         channelId: this.channelId.string(),
       },
       wallet,
     );
+
+    this.signature = {
+      r: sig.r,
+      s: sig.s,
+      v: sig.v,
+    };
   }
 
   recoverSigner(): Address {

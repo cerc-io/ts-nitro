@@ -7,8 +7,6 @@ import {
   State as NitroState,
   hashState as utilHashState,
 } from '@statechannels/nitro-protocol';
-// TODO: Use forked @statechannels/nitro-protocol
-import { signState as utilSignState } from '@statechannels/nitro-protocol/dist/src/signatures';
 import {
   FieldDescription, bytes2Hex, fromJSON, hex2Bytes, toJSON,
 } from '@cerc-io/nitro-util';
@@ -197,6 +195,8 @@ export class State {
 
   // Hash returns the keccak256 hash of the State
   hash(): string {
+    // Use hashState method from @statechannels/nitro-protocol
+    // Create NitroState instance from State
     const state: NitroState = this._getNitroState();
     return utilHashState(state);
   }
@@ -205,18 +205,8 @@ export class State {
   // The state hash is prepended with \x19Ethereum Signed Message:\n32 and then rehashed
   // to create a digest to sign
   sign(secretKey: Buffer): Signature {
-    // Use signState method from @statechannels/nitro-protocol
-    // Create NitroState instance from State
-    const state: NitroState = this._getNitroState();
-
-    // TODO: Can avoid 0x prefix?
-    const { signature } = utilSignState(state, `0x${bytes2Hex(secretKey)}`);
-
-    return {
-      r: signature.r,
-      s: signature.s,
-      v: signature.v,
-    };
+    const hash = this.hash();
+    return nc.signEthereumMessage(Buffer.from(hash), secretKey);
   }
 
   // RecoverSigner computes the Ethereum address which generated Signature sig on State state
