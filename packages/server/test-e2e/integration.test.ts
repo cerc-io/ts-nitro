@@ -4,27 +4,24 @@ import { expect } from 'chai';
 
 import { Client, MemStore } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
-import { setupClient } from '@cerc-io/util';
-
-import { createOutcome, waitForPeerInfoExchange } from '../src/utils/index';
-import { DirectFundParams } from '../src/types';
 import {
+  setupClient,
+  createOutcome,
   ALICE_ADDRESS,
-  ALICE_MESSAGING_PORT,
   ALICE_PK,
   ALICE_CHAIN_PK,
   BOB_ADDRESS,
-  BOB_MESSAGING_PORT,
   BOB_PK,
   BOB_CHAIN_PK,
-  CHAIN_URL,
-} from './constants';
-import { createP2PMessageService } from '../src/utils';
+} from '@cerc-io/util';
+
+import { DirectFundParams } from '../src/types';
 import {
-  nitroAdjudicatorAddress,
-  virtualPaymentAppAddress,
-  consensusAppAddress,
-} from './addresses.json';
+  ALICE_MESSAGING_PORT,
+  BOB_MESSAGING_PORT,
+
+} from './constants';
+import { createP2PMessageService, waitForPeerInfoExchange } from '../src/utils';
 
 describe('test Client', () => {
   let aliceClient: Client;
@@ -39,10 +36,6 @@ describe('test Client', () => {
       aliceStore,
       {
         chainPk: ALICE_CHAIN_PK,
-        chainURL: CHAIN_URL,
-        naAddress: nitroAdjudicatorAddress,
-        vpaAddress: virtualPaymentAppAddress,
-        caAddress: consensusAppAddress,
       },
     );
 
@@ -56,10 +49,6 @@ describe('test Client', () => {
       bobStore,
       {
         chainPk: BOB_CHAIN_PK,
-        chainURL: CHAIN_URL,
-        naAddress: nitroAdjudicatorAddress,
-        vpaAddress: virtualPaymentAppAddress,
-        caAddress: consensusAppAddress,
       },
     );
 
@@ -74,23 +63,23 @@ describe('test Client', () => {
     const counterParty = BOB_ADDRESS;
     const asset = `0x${'00'.repeat(20)}`;
     const params: DirectFundParams = {
-      CounterParty: counterParty,
-      ChallengeDuration: 0,
-      Outcome: createOutcome(
+      counterParty,
+      challengeDuration: 0,
+      outcome: createOutcome(
         asset,
         aliceClient.address,
         counterParty,
         1_000_000,
       ),
-      AppDefinition: asset,
-      AppData: '0x00',
-      Nonce: Date.now(),
+      appDefinition: asset,
+      appData: '0x00',
+      nonce: Date.now(),
     };
 
     const response = await aliceClient.createLedgerChannel(
-      params.CounterParty,
-      params.ChallengeDuration,
-      params.Outcome,
+      params.counterParty,
+      params.challengeDuration,
+      params.outcome,
     );
 
     expect(response).to.have.property('id');

@@ -1,52 +1,59 @@
+import { Buffer } from 'buffer';
+
 import {
-  P2PMessageService,
-  Client,
-  MemStore,
-  EthChainService,
-  PermissivePolicy,
+  Allocation, Destination, Exit, SingleAssetExit, AllocationType, Allocations,
 } from '@cerc-io/nitro-client';
 
 /**
- * setupClient sets up a client using the given args
+ * Left pads a 20 byte address hex string with zeros until it is a 32 byte hex string
+ * e.g.,
+ * 0x9546E319878D2ca7a21b481F873681DF344E0Df8 becomes
+ * 0x0000000000000000000000009546E319878D2ca7a21b481F873681DF344E0Df8
  *
- * @param msgPort
- * @param pk
- * @param chainPk
+ * @param address - 20 byte hex string
+ * @returns 32 byte padded hex string
  */
-export async function setupClient(
-  messageService: P2PMessageService,
-  store: MemStore,
-  options: {
-    chainPk: string,
-    chainURL: string,
-    naAddress: string,
-    caAddress: string,
-    vpaAddress: string
-  },
-): Promise<Client> {
-  const {
-    chainPk,
-    chainURL,
-    naAddress,
-    caAddress,
-    vpaAddress,
-  } = options;
+export function convertAddressToBytes32(address: string): string {
+  const digits = address.startsWith('0x') ? address.substring(2) : address;
+  return `0x${digits.padStart(24, '0')}`;
+}
 
-  const chainService = await EthChainService.newEthChainService(
-    chainURL,
-    chainPk,
-    naAddress,
-    caAddress,
-    vpaAddress,
-  );
-
-  const client = await Client.new(
-    messageService,
-    chainService,
-    store,
-    undefined,
-    new PermissivePolicy(),
-  );
-
-  return client;
+/**
+ * createOutcome creates a basic outcome for a channel
+ *
+ * @param asset - The asset to fund the channel with
+ * @param alpha - The address of the first participant
+ * @param beta - The address of the second participant
+ * @param amount - The amount to allocate to each participant
+ * @returns An outcome for a directly funded channel with 100 wei allocated to each participant
+ */
+export function createOutcome(
+  asset: string,
+  alpha: string,
+  beta: string,
+  amount: number,
+): Exit {
+  return new Exit([
+    new SingleAssetExit({
+      asset,
+      assetMetadata: {
+        assetType: 0,
+        metadata: Buffer.alloc(0),
+      },
+      allocations: new Allocations([
+        new Allocation({
+          destination: Destination.addressToDestination(convertAddressToBytes32(alpha)),
+          amount: BigInt(amount),
+          allocationType: AllocationType.NormalAllocationType,
+          metadata: Buffer.alloc(0),
+        }),
+        new Allocation({
+          destination: Destination.addressToDestination(convertAddressToBytes32(beta)),
+          amount: BigInt(amount),
+          allocationType: AllocationType.NormalAllocationType,
+          metadata: Buffer.alloc(0),
+        }),
+      ]),
+    }),
+  ]);
 }

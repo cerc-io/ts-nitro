@@ -3,11 +3,17 @@ import assert from 'assert';
 
 import { test, Client, MemStore, P2PMessageService } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
-import { setupClient } from '@cerc-io/util';
+import {
+  setupClient,
+  createOutcome,
+  ALICE_PK,
+  ALICE_CHAIN_PK,
+  BOB_PK,
+  BOB_CHAIN_PK,
+} from '@cerc-io/util';
 
 import logo from './logo.svg';
 import './App.css';
-import { ALICE_CHAIN_PK, ALICE_PK, BOB_CHAIN_PK, BOB_PK, CA_ADDRESS, CHAIN_URL, NA_ADDRESS, VPA_ADDRESS } from './constants';
 import { createP2PMessageService } from './utils';
 
 declare global {
@@ -15,6 +21,7 @@ declare global {
     client: Client;
     msgService: P2PMessageService;
     setupClient: (name: string) => Promise<void>
+    directFund: (clientAddress: string) => Promise<void>
   }
 }
 
@@ -35,13 +42,30 @@ function App() {
       window.msgService,
       store,
       {
-        chainPk,
-        caAddress: CA_ADDRESS,
-        chainURL: CHAIN_URL,
-        naAddress: NA_ADDRESS,
-        vpaAddress: VPA_ADDRESS
+        chainPk
       }
     );
+
+    window.directFund = async (clientAddress: string) => {
+      const counterParty = clientAddress;
+      const challengeDuration = 0;
+      const asset = `0x${'00'.repeat(20)}`;
+
+      const outcome = createOutcome(
+        asset,
+        window.client.address,
+        counterParty,
+        1_000_000,
+      )
+      
+      const response = await window.client.createLedgerChannel(
+        counterParty,
+        challengeDuration,
+        outcome,
+      );
+
+      console.log(response)
+    }
   }, []);
 
   // TODO: Call direct-fund

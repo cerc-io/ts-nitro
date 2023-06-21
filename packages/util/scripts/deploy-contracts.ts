@@ -8,6 +8,8 @@ import nitroAdjudicatorArtifact from '@statechannels/nitro-protocol/dist/artifac
 import consensusAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 
+import { CHAIN_URL } from '../src/test/constants';
+
 const log = debug('ts-nitro:server');
 
 const getArgv = () => yargs.parserConfiguration({
@@ -17,7 +19,7 @@ const getArgv = () => yargs.parserConfiguration({
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
-    default: 'http://127.0.0.1:8545',
+    default: CHAIN_URL,
   },
   addressesFilePath: {
     alias: 'f',

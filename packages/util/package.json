@@ -6,9 +6,15 @@
   "dependencies": {
     "@cerc-io/nitro-client": "^0.1.0"
   },
+  "devDependencies": {
+    "yargs": "^17.7.2",
+    "ethers": "^5.7.2",
+    "@statechannels/nitro-protocol": "^2.0.0-alpha.4"
+  },
   "scripts": {
     "lint": "eslint .",
     "build": "yarn clean && tsc",
-    "clean": "rm -rf ./dist"
+    "clean": "rm -rf ./dist",
+    "test:deploy-contracts": "yarn ts-node scripts/deploy-contracts.ts"
   }
 }

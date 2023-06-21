@@ -9,8 +9,6 @@ import { Peer as PeerInterface } from '@cerc-io/peer';
 // @ts-expect-error
 import type { PrivateKey } from '@libp2p/interface-keys';
 // @ts-expect-error
-import type { PeerDiscovery } from '@libp2p/interface-peer-discovery';
-// @ts-expect-error
 import type { Stream } from '@libp2p/interface-connection';
 // @ts-expect-error
 import type { IncomingStreamData } from '@libp2p/interface-registrar';
@@ -18,8 +16,6 @@ import type { IncomingStreamData } from '@libp2p/interface-registrar';
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error
 import type { PeerProtocolsChangeData } from '@libp2p/interface-peer-store';
-// @ts-expect-error
-import type { Multiaddr } from '@multiformats/multiaddr';
 
 import { SafeSyncMap } from '../../../../internal/safesync/safesync';
 import { Message, deserializeMessage } from '../../../../protocols/messages';
