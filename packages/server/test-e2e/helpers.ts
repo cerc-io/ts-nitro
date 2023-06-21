@@ -8,12 +8,12 @@ import {
 import { hex2Bytes } from '@cerc-io/nitro-util';
 
 import { createP2PMessageService } from '../src/utils';
+import { CHAIN_URL } from './constants';
 import {
-  CHAIN_URL,
-  NA_ADDRESS,
-  CA_ADDRESS,
-  VPA_ADDRESS,
-} from './constants';
+  nitroAdjudicatorAddress,
+  virtualPaymentAppAddress,
+  consensusAppAddress,
+} from './addresses.json';
 
 /**
  * setupClient sets up a client using the given args
@@ -32,9 +32,9 @@ export async function setupClient(
   const chainService = await EthChainService.newEthChainService(
     CHAIN_URL,
     chainPk,
-    NA_ADDRESS,
-    CA_ADDRESS,
-    VPA_ADDRESS,
+    nitroAdjudicatorAddress,
+    consensusAppAddress,
+    virtualPaymentAppAddress,
   );
 
   const messageService = await createP2PMessageService(msgPort, store.getAddress());

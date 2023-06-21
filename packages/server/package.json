@@ -5,6 +5,7 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
+    "@statechannels/nitro-protocol": "^2.0.0-alpha.4",
     "@types/mocha": "^10.0.1",
     "@typescript-eslint/eslint-plugin": "^5.13.0",
     "@typescript-eslint/parser": "^5.0.0",
@@ -28,6 +29,7 @@
     "start": "DEBUG=ts-nitro:* node --enable-source-maps dist/index.js",
     "lint": "eslint .",
     "test:e2e": "DEBUG=ts-nitro:* mocha test-e2e/**/*.test.ts --bail",
+    "test:deploy-contracts": "yarn ts-node test-e2e/scripts/deploy-contracts.ts",
     "chain": "hardhat node"
   },
   "dependencies": {

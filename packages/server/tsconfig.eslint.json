@@ -1,4 +1,4 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts", "test-e2e/**/*.test.ts", "hardhat.config.ts"]
+  "include": ["src/**/*.ts", "test-e2e/**/*.ts", "hardhat.config.ts"]
 }

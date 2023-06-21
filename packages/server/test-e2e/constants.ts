@@ -17,8 +17,3 @@ export const BOB_PK = '0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad
 // First accounts from hardhat chain
 export const ALICE_CHAIN_PK = 'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 export const BOB_CHAIN_PK = '59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
-
-// Contracts deployed to hardhat chain using scripts/start-rpc-servers.go
-export const NA_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
-export const VPA_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
-export const CA_ADDRESS = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
