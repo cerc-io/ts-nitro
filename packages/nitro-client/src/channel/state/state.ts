@@ -269,16 +269,16 @@ export class State {
   // Custom method to create NitroState instance from state
   _getNitroState(): NitroState {
     const stateOutcome: ExitFormat.Exit = this.outcome.value.map((singleAssetExit): ExitFormat.SingleAssetExit => {
-      // Use 0x00 if empty as ethersjs doesn't accept '' as valid value
+      // Use 0x if empty as ethersjs doesn't accept '' as valid value
       // @statechannels/nitro-protocol uses string for Bytes
-      let exitMetadata = bytes2Hex(singleAssetExit.assetMetadata!.metadata);
-      exitMetadata = exitMetadata === '' ? '0x00' : exitMetadata;
+      let exitMetadata = bytes2Hex(singleAssetExit.assetMetadata.metadata);
+      exitMetadata = exitMetadata === '' ? '0x' : exitMetadata;
 
       return {
         asset: singleAssetExit.asset,
         allocations: singleAssetExit.allocations.value.map((allocation) => {
           let allocationMetadata = bytes2Hex(allocation.metadata);
-          allocationMetadata = allocationMetadata === '' ? '0x00' : allocationMetadata;
+          allocationMetadata = allocationMetadata === '' ? '0x' : allocationMetadata;
 
           return {
             destination: allocation.destination.value,
@@ -295,7 +295,7 @@ export class State {
     });
 
     let stateAppData = bytes2Hex(this.appData);
-    stateAppData = stateAppData === '' ? '0x00' : stateAppData;
+    stateAppData = stateAppData === '' ? '0x' : stateAppData;
 
     return {
       participants: this.participants,
