@@ -9,7 +9,7 @@ export interface FieldDescription {
 }
 
 function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
-  if (!fieldJsonValue) {
+  if (fieldJsonValue === undefined) {
     return fieldJsonValue;
   }
 
@@ -35,8 +35,8 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
     }
 
     case 'buffer': {
-      // TODO: Make buffer JSON marshalling similar to that in Go
-      return Buffer.from(fieldJsonValue);
+      const bufferValue = (fieldJsonValue === null) ? '' : fieldJsonValue;
+      return Buffer.from(bufferValue, 'base64');
     }
 
     case 'object': {
@@ -129,18 +129,40 @@ export function decodeMap(
   return mapFieldvalue;
 }
 
+function encodeObject(objectDescription: Record<string, FieldDescription>, objectValue: Object): any {
+  const resultObject: any = {};
+
+  Object.entries(objectValue).forEach(([key, value]) => {
+    const valueDescription = objectDescription[key];
+    resultObject[key] = encodeValue(valueDescription, value);
+  });
+
+  return resultObject;
+}
+
 function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
-  let jsonObjValue: any = fieldValue;
+  switch (fieldType.type) {
+    case 'map': {
+      // Create a custom object if field is of a map type
+      return encodeMap(fieldType.value as FieldDescription, fieldValue);
+    }
 
-  // Create a custom object if field is of a map type
-  if (fieldType.type === 'map') {
-    jsonObjValue = encodeMap(fieldType.value as FieldDescription, fieldValue);
+    case 'object': {
+      // Create a custom object if field is of a object type
+      return encodeObject(fieldType.value as Record<string, FieldDescription>, fieldValue);
+    }
+
+    case 'bigint': {
+      // Marshall bigint as a string
+      return (fieldValue as bigint).toString();
+    }
+
+    case 'buffer': {
+      // Marshall buffer as a base64 string
+      return ((fieldValue as Buffer).length === 0) ? null : (fieldValue as Buffer).toString('base64');
+    }
+
+    default:
+      return fieldValue;
   }
-
-  // Marshall bigint as a string
-  if (fieldType.type === 'bigint') {
-    jsonObjValue = (fieldValue as bigint).toString();
-  }
-
-  return jsonObjValue;
 }
