@@ -1,7 +1,7 @@
 import yargs from 'yargs';
 import debug from 'debug';
 
-import { setupClient, createOutcome } from './utils/index';
+import { setupClient, createOutcome, waitForPeerInfoExchange } from './utils/index';
 import { DirectFundParams } from './types';
 
 const log = debug('ts-nitro:server');
@@ -45,11 +45,12 @@ const getArgv = () => yargs.parserConfiguration({
 const main = async () => {
   const argv = getArgv();
 
-  const [client] = await setupClient(argv.port, argv.pk, argv.chainpk, argv.chainurl);
+  const [client, msgService] = await setupClient(argv.port, argv.pk, argv.chainpk, argv.chainurl);
   log('Started P2PMessageService');
-  // await waitForPeerInfoExchange(1, [msgService]);
 
   if (argv.directFund) {
+    await waitForPeerInfoExchange(1, [msgService]);
+
     const counterParty = argv.directFund;
     const asset = `0x${'00'.repeat(20)}`;
     const params: DirectFundParams = {
