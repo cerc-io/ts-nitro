@@ -1,11 +1,14 @@
 import yargs from 'yargs';
 import fs from 'fs';
 import path from 'path';
+import debug from 'debug';
 import { ContractFactory, providers } from 'ethers';
 
 import nitroAdjudicatorArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
 import consensusAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
+
+const log = debug('ts-nitro:server');
 
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
@@ -64,15 +67,15 @@ async function main() {
 
   const outputFilePath = path.resolve(argv.addressesFilePath);
   fs.writeFileSync(outputFilePath, JSON.stringify(output, null, 2));
-  console.log('Contrats deployed, addresses written to', outputFilePath);
+  log('Contrats deployed, addresses written to', outputFilePath);
 }
 
 main()
   .then(() => {})
   .catch((err) => {
-    console.log(err);
+    log(err);
   });
 
 process.on('uncaughtException', (err) => {
-  console.log('uncaughtException', err);
+  log('uncaughtException', err);
 });

@@ -54,7 +54,6 @@ import {
 import { PAYER_INDEX, getPayee, getPayer } from '../../payments/helpers';
 import { Destination } from '../../types/destination';
 
-const JSONbigNative = JSONbig({ useNativeBigInt: true });
 const log = debug('ts-nitro:engine');
 
 class ErrUnhandledChainEvent extends Error {
