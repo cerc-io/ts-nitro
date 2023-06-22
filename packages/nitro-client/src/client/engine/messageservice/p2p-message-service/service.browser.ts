@@ -68,6 +68,7 @@ interface ConstructorOptions {
 }
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
+// TODO: Refactor common methods with service.ts used for NodeJS
 export class P2PMessageService implements MessageService {
   // For forwarding processed messages to the engine
   private toEngine: ReadWriteChannel<Message>;

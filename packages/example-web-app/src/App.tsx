@@ -70,8 +70,6 @@ function App() {
     }
   }, []);
 
-  // TODO: Call direct-fund
-
   useEffect(() => {
     window.setupClient = async (name: string) => {
       if (name === 'alice') {

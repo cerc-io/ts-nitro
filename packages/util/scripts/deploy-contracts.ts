@@ -69,7 +69,7 @@ async function main() {
 
   const outputFilePath = path.resolve(argv.addressesFilePath);
   fs.writeFileSync(outputFilePath, JSON.stringify(output, null, 2));
-  log('Contrats deployed, addresses written to', outputFilePath);
+  log('Contracts deployed, addresses written to', outputFilePath);
 }
 
 main()

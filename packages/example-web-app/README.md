@@ -26,14 +26,14 @@ Run relay node using v2 watcher
   yarn test:deploy-contracts
 
   # Expected output:
-  # Contrats deployed, addresses written to ~/ts-nitro/packages/util/src/test/addresses.json
+  # Contracts deployed, addresses written to ~/ts-nitro/packages/util/src/test/addresses.json
   ```
 
 * Build packages for browser environment
 
   ```
-	yarn build:browser --ignore @cerc-io/example-web-app
-	```
+  yarn build:browser --ignore @cerc-io/example-web-app
+  ```
 
 * Run script to workaround build issue in react app with ESM modules
 
@@ -45,11 +45,11 @@ Run relay node using v2 watcher
 
 * Run browser app in dev mode
 
-	```
-	cd packages/example-web-app
+  ```
+  cd packages/example-web-app
 
-	yarn start
-	```
+  yarn start
+  ```
 ## Run
 
 * Open app in 2 different browsers
