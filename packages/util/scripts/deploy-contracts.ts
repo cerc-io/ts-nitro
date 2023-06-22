@@ -10,7 +10,7 @@ import virtualPaymentAppArtifact from '@statechannels/nitro-protocol/dist/artifa
 
 import { DEFAULT_CHAIN_URL } from '../src/test/constants';
 
-const log = debug('ts-nitro:server');
+const log = debug('ts-nitro:util');
 
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
