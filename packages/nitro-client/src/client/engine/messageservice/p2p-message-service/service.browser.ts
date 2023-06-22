@@ -133,7 +133,9 @@ export class P2PMessageService implements MessageService {
     const PeerIdFactory = await import('@libp2p/peer-id-factory');
 
     const { Peer } = await import('@cerc-io/peer');
-    ms.p2pHost = new Peer(relayMultiAddr);
+    // TODO: Debug connection issue with webrtc enabled
+    // Disabled by setting nodejs option to true below
+    ms.p2pHost = new Peer(relayMultiAddr, true);
     const peerId = await PeerIdFactory.createFromPrivKey(ms.key);
     await ms.p2pHost.init(
       {},

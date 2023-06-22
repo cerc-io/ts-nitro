@@ -59,7 +59,7 @@ yarn
 * Run browser app in dev mode
 
 	```
-	cd example-web-app
+	cd packages/example-web-app
 
 	yarn start
 	```
