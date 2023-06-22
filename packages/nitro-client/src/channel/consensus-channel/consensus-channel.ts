@@ -1348,15 +1348,16 @@ export class SignedProposal {
 
   turnNum: Uint64 = BigInt(0);
 
+  // TODO: Check serialization
   static fromJSON(data: string): SignedProposal {
     // jsonValue has Signature properties
     // Construct SignedProposal with inidividual field values
     const jsonValue = JSONbigNative.parse(data);
 
     const props: SignedProposalParams = {
-      signature: { r: jsonValue.r, s: jsonValue.s, v: jsonValue.v },
-      proposal: Proposal.fromJSON(JSONbigNative.stringify(jsonValue.proposal)),
-      turnNum: jsonValue.turnNum,
+      signature: { r: jsonValue.R, s: jsonValue.S, v: jsonValue.V },
+      proposal: Proposal.fromJSON(JSONbigNative.stringify(jsonValue.Proposal)),
+      turnNum: jsonValue.TurnNum,
     };
 
     return new SignedProposal(props);
@@ -1366,9 +1367,9 @@ export class SignedProposal {
     // Return a custom object
     // (SignedProposal composes/embeds Signature in go-nitro)
     return {
-      ...this.signature,
-      proposal: this.proposal,
-      turnNum: this.turnNum,
+      ...{ R: this.signature.r, S: this.signature.s, V: this.signature.v },
+      Proposal: this.proposal,
+      TurnNum: this.turnNum,
     };
   }
 

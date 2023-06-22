@@ -52,7 +52,8 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
 
       const objFieldValue: any = {};
       Object.keys(fieldJsonValue).forEach((key) => {
-        objFieldValue[key] = decodeValue(objectTypeEncodingMap[key], fieldJsonValue[key]);
+        const lowercaseFieldKey = lowercaseFirstLetter(key);
+        objFieldValue[lowercaseFieldKey] = decodeValue(objectTypeEncodingMap[lowercaseFieldKey], fieldJsonValue[key]);
       });
 
       return objFieldValue;
@@ -87,7 +88,8 @@ export function fromJSON(jsonEncodingMap: Record<string, any>, data: string, key
 
     // Use mapped key in props
     const propsKey = keysMap.get(fieldKey) ?? fieldKey;
-    props[propsKey] = decodeValue(fieldType, jsonValue[fieldKey]);
+    const capitalizedFieldKey = capitalizeFirstLetter(fieldKey);
+    props[propsKey] = decodeValue(fieldType, jsonValue[capitalizedFieldKey]);
   });
 
   return props;
@@ -97,12 +99,14 @@ export function fromJSON(jsonEncodingMap: Record<string, any>, data: string, key
 export function toJSON(jsonEncodingMap: Record<string, any>, obj: any, keysMap: Map<string, string> = new Map()): any {
   let jsonObj: any = { ...obj };
 
-  // Replace object keys with mapped keys
-  jsonObj = _.mapKeys(jsonObj, (value, key) => keysMap.get(key) ?? key);
+  // Replace object keys with mapped & capitalized keys
+  jsonObj = _.mapKeys(jsonObj, (value, key) => capitalizeFirstLetter(keysMap.get(key) ?? key));
 
   Object.keys(jsonEncodingMap).forEach((fieldKey) => {
     const fieldType = jsonEncodingMap[fieldKey];
-    jsonObj[fieldKey] = encodeValue(fieldType, jsonObj[fieldKey]);
+    const capitalizedFieldKey = capitalizeFirstLetter(fieldKey);
+
+    jsonObj[capitalizedFieldKey] = encodeValue(fieldType, jsonObj[capitalizedFieldKey]);
   });
 
   return jsonObj;
@@ -113,7 +117,8 @@ export function encodeMap(valueDescription: FieldDescription, mapValue: Map<any,
 
   mapValue.forEach((value: any, key: any) => {
     // Use .toString() for keys (key type should have .toString() method)
-    mapObject[key.toString()] = encodeValue(valueDescription, value);
+    const capitalizedKey = capitalizeFirstLetter(key.toString());
+    mapObject[capitalizedKey] = encodeValue(valueDescription, value);
   });
 
   return mapObject;
@@ -124,16 +129,17 @@ export function decodeMap(
   valueDescription: FieldDescription,
   jsonMapValue: any,
 ): Map<any, any> {
-  const mapFieldvalue = new Map();
+  const mapValue = new Map();
 
   Object.keys(jsonMapValue).forEach((mapKey) => {
-    mapFieldvalue.set(
-      decodeValue(keyDescription, mapKey),
+    const mapFieldKey = (keyDescription.type === 'string') ? lowercaseFirstLetter(mapKey) : decodeValue(keyDescription, mapKey);
+    mapValue.set(
+      mapFieldKey,
       decodeValue(valueDescription, jsonMapValue[mapKey]),
     );
   });
 
-  return mapFieldvalue;
+  return mapValue;
 }
 
 function encodeObject(objectDescription: Record<string, FieldDescription>, objectValue: Object): any {
@@ -141,7 +147,8 @@ function encodeObject(objectDescription: Record<string, FieldDescription>, objec
 
   Object.entries(objectValue).forEach(([key, value]) => {
     const valueDescription = objectDescription[key];
-    resultObject[key] = encodeValue(valueDescription, value);
+    const capitalizedKey = capitalizeFirstLetter(key);
+    resultObject[capitalizedKey] = encodeValue(valueDescription, value);
   });
 
   return resultObject;
@@ -186,4 +193,12 @@ function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
     default:
       return fieldValue;
   }
+}
+
+export function capitalizeFirstLetter(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function lowercaseFirstLetter(str: string): string {
+  return str.charAt(0).toLowerCase() + str.slice(1);
 }
