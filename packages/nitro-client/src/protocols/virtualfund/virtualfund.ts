@@ -855,7 +855,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     counterParty: Address;
     challengeDuration: number;
     outcome?: Exit;
-    nonce: string;
+    nonce: Uint64;
     appDefinition: Address;
     objectiveStarted?: ReadWriteChannel<null>;
   }) {
@@ -868,7 +868,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     counterparty: Address,
     challengeDuration: number,
     outcome: Exit,
-    nonce: string,
+    nonce: Uint64,
     appDefinition: Address,
   ): ObjectiveRequest {
     return new ObjectiveRequest({

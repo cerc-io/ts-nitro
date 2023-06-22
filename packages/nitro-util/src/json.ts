@@ -158,10 +158,10 @@ function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
       return encodeObject(fieldType.value as Record<string, FieldDescription>, fieldValue);
     }
 
-    case 'bigint': {
-      // Marshall bigint as a string
-      return (fieldValue as bigint).toString();
-    }
+    // TODO: Handle nil pointer case
+    // case 'bigint': {
+    //   return fieldValue;
+    // }
 
     case 'buffer': {
       // Marshall buffer as a base64 string
