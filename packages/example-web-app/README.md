@@ -1,4 +1,64 @@
-# Getting Started with Create React App
+# example-web-app
+
+Instructions to run two instances of `ts-nitro` clients in a browser environment and create a ledger channel between them
+
+## Prerequisite
+
+Run relay node using v2 watcher
+
+## Setup
+
+* In root of the repo, install depedencies:
+
+  ```bash
+  yarn
+  ```
+
+* Start a Hardhat chain:
+
+  ```bash
+  yarn chain
+  ```
+
+* Deploy the Nitro protocol contracts:
+
+  ```bash
+  yarn test:deploy-contracts
+
+  # Expected output:
+  # Contrats deployed, addresses written to ~/ts-nitro/packages/util/src/test/addresses.json
+  ```
+
+* Build packages for browser environment
+
+  ```
+	yarn build:browser --ignore @cerc-io/example-web-app
+	```
+
+* Set the relay node multiaddr in example-web-app [.env](./.env)
+
+* Run browser app in dev mode
+
+	```
+	cd packages/example-web-app
+
+	yarn start
+	```
+## Run
+
+* Open app in 2 different browsers
+
+* Open console in browser inspect and enable debug logs by setting `localStorage.debug = 'ts-nitro:*'`
+
+* Restart the apps for enabling logs
+
+* Call methods `setupClient('alice')` and `setupClient('bob')` in different browsers
+
+* Wait for `New peer found` log in console and check `window.msgService.peers` to see if peers have exchanged info
+
+* Call method `window.directFund` with peer id of other browser and check logs
+
+## Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 

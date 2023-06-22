@@ -1,12 +1,18 @@
 import yargs from 'yargs';
 import debug from 'debug';
 
-import { setupClient, createOutcome, waitForPeerInfoExchange } from './utils/index';
+import {
+  setupClient,
+  createOutcome,
+  DEFAULT_CHAIN_URL,
+} from '@cerc-io/util';
+
+import { MemStore } from '@cerc-io/nitro-client';
+import { hex2Bytes } from '@cerc-io/nitro-util';
+import { createP2PMessageService, waitForPeerInfoExchange } from './utils/index';
 import { DirectFundParams } from './types';
 
 const log = debug('ts-nitro:server');
-
-const DEFAULT_CHAIN_URL = 'http://127.0.0.1:8545';
 
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
@@ -45,7 +51,18 @@ const getArgv = () => yargs.parserConfiguration({
 const main = async () => {
   const argv = getArgv();
 
-  const [client, msgService] = await setupClient(argv.port, argv.pk, argv.chainpk, argv.chainurl);
+  const store = new MemStore(hex2Bytes(argv.pk));
+  const msgService = await createP2PMessageService(argv.port, store.getAddress());
+
+  const client = await setupClient(
+    msgService,
+    store,
+    {
+      chainURL: argv.chainurl,
+      chainPk: argv.chainpk,
+    },
+  );
+
   log('Started P2PMessageService');
 
   if (argv.directFund) {
@@ -54,23 +71,23 @@ const main = async () => {
     const counterParty = argv.directFund;
     const asset = `0x${'00'.repeat(20)}`;
     const params: DirectFundParams = {
-      CounterParty: counterParty,
-      ChallengeDuration: 0,
-      Outcome: createOutcome(
+      counterParty,
+      challengeDuration: 0,
+      outcome: createOutcome(
         asset,
         client.address,
         counterParty,
         1_000_000,
       ),
-      AppDefinition: asset,
-      AppData: '0x00',
-      Nonce: Date.now(),
+      appDefinition: asset,
+      appData: '0x00',
+      nonce: Date.now(),
     };
 
     await client.createLedgerChannel(
-      params.CounterParty,
-      params.ChallengeDuration,
-      params.Outcome,
+      params.counterParty,
+      params.challengeDuration,
+      params.outcome,
     );
   }
 };

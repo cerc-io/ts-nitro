@@ -6,7 +6,6 @@ import {
   PermissivePolicy,
 } from '@cerc-io/nitro-client';
 
-import { CHAIN_URL } from './constants';
 import {
   nitroAdjudicatorAddress,
   virtualPaymentAppAddress,
@@ -25,14 +24,16 @@ export async function setupClient(
   store: MemStore,
   options: {
     chainPk: string,
+    chainURL: string
   },
 ): Promise<Client> {
   const {
     chainPk,
+    chainURL,
   } = options;
 
   const chainService = await EthChainService.newEthChainService(
-    CHAIN_URL,
+    chainURL,
     chainPk,
     nitroAdjudicatorAddress,
     consensusAppAddress,

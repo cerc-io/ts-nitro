@@ -10,6 +10,7 @@ import {
   ALICE_CHAIN_PK,
   BOB_PK,
   BOB_CHAIN_PK,
+  DEFAULT_CHAIN_URL
 } from '@cerc-io/util';
 
 import logo from './logo.svg';
@@ -42,7 +43,8 @@ function App() {
       window.msgService,
       store,
       {
-        chainPk
+        chainPk,
+        chainURL: DEFAULT_CHAIN_URL
       }
     );
 

@@ -1,6 +1,6 @@
 // RPC endpoint for the chain
 // Chain should be running locally
-export const CHAIN_URL = 'http://127.0.0.1:8545';
+export const DEFAULT_CHAIN_URL = 'http://127.0.0.1:8545';
 
 // https://github.com/cerc-io/go-nitro/blob/ts-port-v1.0/scripts/test-configs/alice.toml
 export const ALICE_ADDRESS = '0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE';

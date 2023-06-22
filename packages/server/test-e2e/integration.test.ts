@@ -7,6 +7,7 @@ import { hex2Bytes } from '@cerc-io/nitro-util';
 import {
   setupClient,
   createOutcome,
+  DEFAULT_CHAIN_URL,
   ALICE_ADDRESS,
   ALICE_PK,
   ALICE_CHAIN_PK,
@@ -35,6 +36,7 @@ describe('test Client', () => {
       aliceStore,
       {
         chainPk: ALICE_CHAIN_PK,
+        chainURL: DEFAULT_CHAIN_URL,
       },
     );
 
@@ -48,6 +50,7 @@ describe('test Client', () => {
       bobStore,
       {
         chainPk: BOB_CHAIN_PK,
+        chainURL: DEFAULT_CHAIN_URL,
       },
     );
 
