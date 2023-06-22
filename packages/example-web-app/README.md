@@ -35,6 +35,12 @@ Run relay node using v2 watcher
 	yarn build:browser --ignore @cerc-io/example-web-app
 	```
 
+* Run script to workaround build issue in react app with ESM modules
+
+  ```
+  yarn build:fix-modules
+  ```
+
 * Set the relay node multiaddr in example-web-app [.env](./.env)
 
 * Run browser app in dev mode
