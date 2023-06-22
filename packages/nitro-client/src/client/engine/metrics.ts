@@ -1,14 +1,13 @@
 import prom from 'promjs';
 import { Gauge } from 'promjs/gauge';
+import { Registry } from 'promjs/registry';
+import assert from 'assert';
 import { Address } from '../../types/types';
 import { ObjectiveId } from '../../protocols/messages';
-
-const registry = prom();
 
 // MetricsAPI is an interface for recording metrics
 // It is heavily based on https://github.com/testground/sdk-go/blob/master/runtime/metrics_api.go
 // It exposes some basic functionality that is useful for recording engine metrics
-// TODO: Add interface fields
 export interface MetricsApi {
   // RecordPoint records a float64 point under the provided metric name + tags.
   //
@@ -47,7 +46,6 @@ export interface MetricsApi {
 }
 
 // NewNoOpMetrics returns a MetricsApi that does nothing.
-// TODO: Implement
 export class NoOpMetrics implements MetricsApi {
   timer(name: string): void {}
 
@@ -58,36 +56,52 @@ export class NoOpMetrics implements MetricsApi {
   }
 }
 
-// TODO: Implement
+export interface GetMetrics {
+  metrics: string;
+}
+
 export class Metrics implements MetricsApi {
+  registry?: Registry;
+
+  constructor() {
+    this.registry = prom();
+  }
+
   timer(name: string): void {}
 
   recordPoint(name: string, value: number): void { }
 
   guage(name: string): Gauge {
-    return registry.create('gauge', name);
+    assert(this.registry);
+    return this.registry.create('gauge', name);
+  }
+
+  getMetrics(): GetMetrics {
+    assert(this.registry);
+    return {
+      metrics: this.registry.metrics(),
+    };
   }
 }
 
 // MetricsRecorder is used to record metrics about the engine
-// TODO: Implement
 export class MetricsRecorder {
   me: Address = '';
 
   startTimes: Map<ObjectiveId, Date> = new Map();
 
-  metrics: Metrics = new Metrics();
+  metrics?: MetricsApi;
 
   constructor(params: {
     me: Address;
     startTimes?: Map<ObjectiveId, Date>;
-    metrics: Metrics;
+    metrics: MetricsApi;
   }) {
     Object.assign(this, params);
   }
 
   // NewMetricsRecorder returns a new MetricsRecorder that uses the metricsApi to record metrics
-  static newMetricsRecorder(me: Address, metrics: Metrics): MetricsRecorder {
+  static newMetricsRecorder(me: Address, metrics: MetricsApi): MetricsRecorder {
     return new MetricsRecorder({
       me,
       startTimes: new Map(),
@@ -115,6 +129,7 @@ export class MetricsRecorder {
 
   // RecordQueueLength records metrics about the length of some queue
   recordQueueLength(name: string, queueLength: number): void {
+    assert(this.metrics);
     this.metrics.guage(this.addMyAddress(name)).set(queueLength);
   }
 

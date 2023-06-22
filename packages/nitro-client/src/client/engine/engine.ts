@@ -202,10 +202,10 @@ export class Engine {
       // eslint-disable-next-line no-param-reassign
       metricsApi = new NoOpMetrics();
     }
-    e.metrics = new MetricsRecorder({
-      me: e.store.getAddress(),
-      metrics: metricsApi,
-    });
+    e.metrics = MetricsRecorder.newMetricsRecorder(
+      e.store.getAddress(),
+      metricsApi,
+    );
 
     return e;
   }
@@ -234,7 +234,6 @@ export class Engine {
 
       this.metrics?.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.length());
       this.metrics?.recordQueueLength('api_payment_request_queue', this.paymentRequestsFromAPI.length());
-
       // TODO: Check working
       assert('length' in this.fromChain && typeof this.fromChain.length === 'function');
       assert('length' in this.fromMsg && typeof this.fromMsg.length === 'function');
