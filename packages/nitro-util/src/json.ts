@@ -67,6 +67,10 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
     }
 
     case 'array': {
+      if (fieldJsonValue === null) {
+        return [];
+      }
+
       assert(fieldType.value);
       return fieldJsonValue.map((value: any) => decodeValue(fieldType.value as FieldDescription, value));
     }
@@ -154,8 +158,10 @@ function encodeObject(objectDescription: Record<string, FieldDescription>, objec
   return resultObject;
 }
 
-function encodeArray(valueDescription: FieldDescription, arrayValue: Array<any>): any[] {
-  return arrayValue.map((value) => encodeValue(valueDescription, value));
+function encodeArray(valueDescription: FieldDescription, arrayValue: Array<any>): any {
+  return arrayValue.length === 0
+    ? null
+    : arrayValue.map((value) => encodeValue(valueDescription, value));
 }
 
 function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
