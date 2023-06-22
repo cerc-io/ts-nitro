@@ -114,7 +114,7 @@ export function validateFinalOutcome(
   }
 
   // if we're Bob we want to make sure the final state Alice sent is equal to or larger than the payment we already have
-  if (me === bob) {
+  if (me.toLowerCase() === bob.toLowerCase()) {
     if (paidToBob < minAmount) {
       throw new Error(`payment amount ${paidToBob} is less than the minimum payment amount ${minAmount}`);
     }
@@ -237,14 +237,14 @@ export class Objective implements ObjectiveInterface {
     let rightLedger: ConsensusChannel | undefined;
     let ok: boolean;
 
-    if (myAddress === alice) {
+    if (myAddress.toLowerCase() === alice.toLowerCase()) {
       const rightOfAlice = v.participants[1];
       [rightLedger, ok] = getConsensusChannel(rightOfAlice);
 
       if (!ok) {
         throw new Error(`Could not find a ledger channel between ${alice} and ${rightOfAlice}`);
       }
-    } else if (myAddress === bob) {
+    } else if (myAddress.toLowerCase() === bob.toLowerCase()) {
       const leftOfBob = v.participants[v.participants.length - 2];
       [leftLedger, ok] = getConsensusChannel(leftOfBob);
 
@@ -258,7 +258,7 @@ export class Objective implements ObjectiveInterface {
       for (let i = 0; i < intermediaries.length; i += 1) {
         const intermediary = intermediaries[i];
 
-        if (myAddress === intermediary) {
+        if (myAddress.toLowerCase() === intermediary.toLowerCase()) {
           foundMyself = true;
           // I am intermediary `i` and participant `p`
           const p = i + 1; // participants[p] === intermediaries[i]

@@ -41,9 +41,9 @@ export class FixedPart {
   }
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    participants: { type: 'array', value: { type: 'string' } },
+    participants: { type: 'array', value: { type: 'address' } },
     channelNonce: { type: 'uint64' },
-    appDefinition: { type: 'string' },
+    appDefinition: { type: 'address' },
     challengeDuration: { type: 'number' },
   };
 
@@ -121,9 +121,9 @@ export class State {
   isFinal: boolean = false;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    participants: { type: 'array', value: { type: 'string' } },
+    participants: { type: 'array', value: { type: 'address' } },
     channelNonce: { type: 'uint64' },
-    appDefinition: { type: 'string' },
+    appDefinition: { type: 'address' },
     challengeDuration: { type: 'number' },
     appData: { type: 'buffer' },
     outcome: { type: 'class', value: Exit },
@@ -218,7 +218,7 @@ export class State {
     /* eslint-disable @typescript-eslint/no-use-before-define */
     return equalParticipants(this.participants, r.participants)
     && this.channelNonce === r.channelNonce
-    && this.appDefinition === r.appDefinition
+    && this.appDefinition.toLowerCase() === r.appDefinition.toLowerCase()
     && this.challengeDuration === r.challengeDuration
     && this.appData.compare(r.appData) === 0
     && this.outcome.equal(r.outcome)
@@ -305,7 +305,7 @@ function equalParticipants(p: Address[], q: Address[]): boolean {
   }
 
   for (let i = 0; i < p.length; i += 1) {
-    if (p[i] !== q[i]) {
+    if (p[i].toLowerCase() !== q[i].toLowerCase()) {
       return false;
     }
   }

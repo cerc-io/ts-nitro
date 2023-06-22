@@ -10,7 +10,7 @@ export class Funds {
   value: Map<Address, bigint>;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    value: { type: 'map', key: { type: 'string' }, value: { type: 'bigint' } },
+    value: { type: 'map', key: { type: 'address' }, value: { type: 'bigint' } },
   };
 
   static fromJSON(data: string): Funds {

@@ -203,7 +203,7 @@ export class LedgerOutcome {
   guarantees: Map<Destination, Guarantee> = new Map();
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    assetAddress: { type: 'string' },
+    assetAddress: { type: 'address' },
     leader: { type: 'class', value: Balance },
     follower: { type: 'class', value: Balance },
     guarantees: { type: 'map', key: { type: 'class', value: Destination }, value: { type: 'class', value: Guarantee } },
@@ -684,13 +684,13 @@ export class ConsensusChannel {
     try {
       leaderAddr = vars.asState(fp).recoverSigner(signatures[Leader]);
 
-      if (leaderAddr !== fp.participants[Leader]) {
+      if (leaderAddr.toLowerCase() !== fp.participants[Leader].toLowerCase()) {
         throw new Error(`Leader did not sign initial state: ${leaderAddr}, ${fp.participants[Leader]}`);
       }
 
       followerAddr = vars.asState(fp).recoverSigner(signatures[Follower]);
 
-      if (followerAddr !== fp.participants[Follower]) {
+      if (followerAddr.toLowerCase() !== fp.participants[Follower].toLowerCase()) {
         throw new Error(`Follower did not sign initial state: ${followerAddr}, ${fp.participants[Follower]}`);
       }
     } catch (err) {
@@ -852,7 +852,7 @@ export class ConsensusChannel {
   // values. It signs the resulting state using sk.
   private sign(vars: Vars, sk: Buffer): Signature {
     const signer = getAddressFromSecretKeyBytes(sk);
-    if (this.fp.participants[this.myIndex] !== signer) {
+    if (this.fp.participants[this.myIndex].toLowerCase() !== signer.toLowerCase()) {
       throw new Error(`attempting to sign from wrong address: ${signer}`);
     }
 
@@ -986,7 +986,7 @@ export class ConsensusChannel {
           throw new Error(`unable to recover signer: ${err}`);
         }
 
-        if (signer !== this.fp.participants[Follower]) {
+        if (signer.toLowerCase() !== this.fp.participants[Follower].toLowerCase()) {
           throw ErrWrongSigner;
         }
 
@@ -1087,7 +1087,7 @@ export class ConsensusChannel {
       throw new Error(`receive could not recover signature: ${err}`);
     }
 
-    if (signer !== this.leader()) {
+    if (signer.toLowerCase() !== this.leader().toLowerCase()) {
       throw ErrInvalidProposalSignature;
     }
 

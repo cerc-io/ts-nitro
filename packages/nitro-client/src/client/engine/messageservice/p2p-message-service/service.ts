@@ -334,7 +334,7 @@ export class P2PMessageService implements MessageService {
     }
     assert(peerInfo);
 
-    const [, foundPeer] = this.peers.loadOrStore(peerInfo.address, peerInfo);
+    const [, foundPeer] = this.peers.loadOrStore(peerInfo.address.toLowerCase(), peerInfo);
     if (!foundPeer) {
       this.logger(`New peer found ${JSON.stringify(peerInfo)}`);
 
@@ -354,7 +354,7 @@ export class P2PMessageService implements MessageService {
       this.checkError(err as Error);
     }
 
-    const [peerInfo, ok] = this.peers.load(msg.to);
+    const [peerInfo, ok] = this.peers.load(msg.to.toLowerCase());
     if (!ok) {
       throw new Error(`Could not load peer ${msg.to}`);
     }
@@ -427,7 +427,7 @@ export class P2PMessageService implements MessageService {
   async addPeers(peers: PeerInfo[]) {
     for (const [, p] of peers.entries()) {
       // Ignore ourselves
-      if (p.address === this.me) {
+      if (p.address.toLowerCase() === this.me.toLowerCase()) {
         continue;
       }
 
@@ -441,7 +441,7 @@ export class P2PMessageService implements MessageService {
           // peerstore.PermanentAddrTTL
         },
       );
-      this.peers.store(p.address.toString(), { id: p.id, address: p.address });
+      this.peers.store(p.address.toLowerCase(), { id: p.id, address: p.address.toLowerCase() });
     }
   }
 }

@@ -28,7 +28,7 @@ export const createP2PMessageService = async (port: number, me: string): Promise
   return P2PMessageService.newMessageService(
     '127.0.0.1',
     port,
-    me,
+    me.toLowerCase(),
     privateKey.bytes,
     true,
   );

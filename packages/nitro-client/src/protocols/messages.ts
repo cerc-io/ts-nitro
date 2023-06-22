@@ -113,8 +113,8 @@ export class Message {
   rejectedObjectives: ObjectiveId[] = [];
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    to: { type: 'string' },
-    from: { type: 'string' },
+    to: { type: 'address' },
+    from: { type: 'address' },
     objectivePayloads: { type: 'array', value: { type: 'object', value: objectivePayloadJsonEncodingMap } },
     ledgerProposals: { type: 'array', value: { type: 'class', value: SignedProposal } },
     payments: { type: 'array', value: { type: 'class', value: Voucher } },

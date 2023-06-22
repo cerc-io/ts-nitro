@@ -71,7 +71,7 @@ export class VoucherManager {
       throw new Error('unable to pay amount: insufficient funds');
     }
 
-    if (vInfo.channelPayer !== this.me) {
+    if (vInfo.channelPayer.toLowerCase() !== this.me.toLowerCase()) {
       throw new Error("can only sign vouchers if we're the payer");
     }
 

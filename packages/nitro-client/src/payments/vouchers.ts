@@ -108,8 +108,8 @@ export class VoucherInfo {
   largestVoucher: Voucher = new Voucher({});
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    channelPayer: { type: 'string' },
-    channelPayee: { type: 'string' },
+    channelPayer: { type: 'address' },
+    channelPayee: { type: 'address' },
     startingBalance: { type: 'bigint' },
     largestVoucher: { type: 'class', value: Voucher },
   };

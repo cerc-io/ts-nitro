@@ -36,7 +36,7 @@ export class SingleAssetExit {
   allocations: Allocations = new Allocations([]);
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    asset: { type: 'string' },
+    asset: { type: 'address' },
     assetMetadata: { type: 'object', value: assetMetadataJsonEncodingMap },
     allocations: { type: 'class', value: Allocations },
   };
@@ -64,7 +64,7 @@ export class SingleAssetExit {
   equal(r: SingleAssetExit): boolean {
     return this.assetMetadata.metadata.compare(r.assetMetadata.metadata) === 0
     && this.assetMetadata.assetType === r.assetMetadata.assetType
-    && this.asset === r.asset
+    && this.asset.toLowerCase() === r.asset.toLowerCase()
     && this.allocations.equal(r.allocations);
   }
 

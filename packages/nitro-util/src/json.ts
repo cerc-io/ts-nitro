@@ -5,7 +5,7 @@ import _ from 'lodash';
 import { JSONbigNative } from './types';
 
 export interface FieldDescription {
-  type: 'class' | 'string' | 'number' | 'bigint' | 'uint64' | 'boolean' | 'buffer' | 'object' | 'array' | 'map';
+  type: 'class' | 'string' | 'address' | 'number' | 'bigint' | 'uint64' | 'boolean' | 'buffer' | 'object' | 'array' | 'map';
   key?: FieldDescription;
   value?: FieldDescription | Record<string, FieldDescription> | any;
 }
@@ -20,6 +20,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
       return fieldType.value.fromJSON(JSONbigNative.stringify(fieldJsonValue));
     }
 
+    case 'address':
     case 'string': {
       return String(fieldJsonValue);
     }
@@ -146,6 +147,10 @@ function encodeObject(objectDescription: Record<string, FieldDescription>, objec
   return resultObject;
 }
 
+function encodeArray(valueDescription: FieldDescription, arrayValue: Array<any>): any[] {
+  return arrayValue.map((value) => encodeValue(valueDescription, value));
+}
+
 function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
   switch (fieldType.type) {
     case 'map': {
@@ -154,8 +159,13 @@ function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
     }
 
     case 'object': {
-      // Create a custom object if field is of a object type
+      // Create a custom object if field is of an object type
       return encodeObject(fieldType.value as Record<string, FieldDescription>, fieldValue);
+    }
+
+    case 'array': {
+      // Create a custom array if field is of an array type
+      return encodeArray(fieldType.value as FieldDescription, fieldValue);
     }
 
     // TODO: Handle nil pointer case
@@ -166,6 +176,11 @@ function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
     case 'buffer': {
       // Marshall buffer as a base64 string
       return ((fieldValue as Buffer).length === 0) ? null : (fieldValue as Buffer).toString('base64');
+    }
+
+    case 'address': {
+      // Marshall address strings in lowercase
+      return (fieldValue as string).toLowerCase();
     }
 
     default:

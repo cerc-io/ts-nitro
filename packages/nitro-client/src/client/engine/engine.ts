@@ -696,7 +696,7 @@ export class Engine {
     const payer = getPayer(c.participants);
     const payee = getPayee(c.participants);
 
-    if (payer !== this.store!.getAddress()) {
+    if (payer.toLowerCase() !== this.store!.getAddress().toLowerCase()) {
       throw new Error(`handleAPIEvent: Not the sender in channel ${cId}`);
     }
 

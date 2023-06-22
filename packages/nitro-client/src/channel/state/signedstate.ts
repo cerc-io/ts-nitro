@@ -61,7 +61,7 @@ export class SignedState {
     for (let i = 0; i < this.state().participants.length; i += 1) {
       const p = this.state().participants[i];
 
-      if (p === signer) {
+      if (p.toLowerCase() === signer.toLowerCase()) {
         const found = this.sigs.has(i);
         if (found) {
           throw new Error('Signature already exists for participant');

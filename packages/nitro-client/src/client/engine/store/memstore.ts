@@ -38,7 +38,7 @@ export class MemStore implements Store {
 
   constructor(key: Buffer) {
     this.key = bytes2Hex(key);
-    this.address = getAddressFromSecretKeyBytes(key);
+    this.address = getAddressFromSecretKeyBytes(key).toLowerCase();
 
     this.objectives = new SafeSyncMap();
     this.channels = new SafeSyncMap();
@@ -257,7 +257,7 @@ export class MemStore implements Store {
         return false;
       }
 
-      if (ch.appDefinition === appDef) {
+      if (ch.appDefinition.toLowerCase() === appDef.toLowerCase()) {
         toReturn.push(ch);
       }
       return true; // channel not found: continue looking
@@ -283,7 +283,7 @@ export class MemStore implements Store {
 
       const { participants } = ch;
       for (const p of participants) {
-        if (p === participant) {
+        if (p.toLowerCase() === participant.toLowerCase()) {
           toReturn.push(ch);
         }
       }
