@@ -1,10 +1,12 @@
 import yargs from 'yargs';
 import debug from 'debug';
 
-import { EthChainService } from '@cerc-io/nitro-client';
-import { createP2PMessageService } from './utils';
+import { setupClient, createOutcome, waitForPeerInfoExchange } from './utils/index';
+import { DirectFundParams } from './types';
 
 const log = debug('ts-nitro:server');
+
+const DEFAULT_CHAIN_URL = 'http://127.0.0.1:8545';
 
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
@@ -16,46 +18,67 @@ const getArgv = () => yargs.parserConfiguration({
     demandOption: true,
     describe: 'Message service port',
   },
-  address: {
-    alias: 'a',
+  pk: {
     type: 'string',
     require: true,
     demandOption: true,
-    describe: 'Account address for the client',
+    describe: 'Private key for the client',
+  },
+  chainpk: {
+    type: 'string',
+    require: true,
+    demandOption: true,
+    describe: 'Private key to use when interacting with the chain',
   },
   chainurl: {
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
-    default: 'http://127.0.0.1:8545',
+    default: DEFAULT_CHAIN_URL,
+  },
+  directFund: {
+    type: 'string',
+    describe: 'Counterparty to create a ledger channel against',
   },
 }).argv;
 
 const main = async () => {
   const argv = getArgv();
 
-  const p2pMessageService = await createP2PMessageService(argv.port, argv.address);
+  const [client, msgService] = await setupClient(argv.port, argv.pk, argv.chainpk, argv.chainurl);
+  log('Started P2PMessageService');
 
-  log('p2pMessageService', p2pMessageService.constructor.name);
+  if (argv.directFund) {
+    await waitForPeerInfoExchange(1, [msgService]);
 
-  // TODO: Pass a pk and contract addresses
-  const ethChainService = await EthChainService.newEthChainService(
-    argv.chainurl,
-    '',
-    'naaddress',
-    'caAddress',
-    'vpaAddress',
-  );
-  const chainId = await ethChainService.getChainId();
+    const counterParty = argv.directFund;
+    const asset = `0x${'00'.repeat(20)}`;
+    const params: DirectFundParams = {
+      CounterParty: counterParty,
+      ChallengeDuration: 0,
+      Outcome: createOutcome(
+        asset,
+        client.address,
+        counterParty,
+        1_000_000,
+      ),
+      AppDefinition: asset,
+      AppData: '0x00',
+      Nonce: Date.now(),
+    };
 
-  log('Connected to chain with chain ID: ', chainId.toString());
+    await client.createLedgerChannel(
+      params.CounterParty,
+      params.ChallengeDuration,
+      params.Outcome,
+    );
+  }
 };
 
-main().then(() => {
-  log('Started P2PMessageService');
-}).catch((err) => {
-  log(err);
-});
+main()
+  .catch((err) => {
+    log(err);
+  });
 
 process.on('uncaughtException', (err) => {
   log('uncaughtException', err);

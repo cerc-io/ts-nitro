@@ -4,9 +4,8 @@ import { expect } from 'chai';
 
 import { Client, P2PMessageService } from '@cerc-io/nitro-client';
 
-import { createOutcome } from './utils';
-import { DirectFundParams } from './types';
-import { setupClient, waitForPeerInfoExchange } from './helpers';
+import { createOutcome, setupClient, waitForPeerInfoExchange } from '../src/utils/index';
+import { DirectFundParams } from '../src/types';
 import {
   ALICE_ADDRESS,
   ALICE_MESSAGING_PORT,
@@ -16,6 +15,7 @@ import {
   BOB_MESSAGING_PORT,
   BOB_PK,
   BOB_CHAIN_PK,
+  CHAIN_URL,
 } from './constants';
 
 describe('test Client', () => {
@@ -26,10 +26,10 @@ describe('test Client', () => {
     let aliceMsgService: P2PMessageService;
     let bobMsgService: P2PMessageService;
 
-    [aliceClient, aliceMsgService] = await setupClient(ALICE_MESSAGING_PORT, ALICE_PK, ALICE_CHAIN_PK);
+    [aliceClient, aliceMsgService] = await setupClient(ALICE_MESSAGING_PORT, ALICE_PK, ALICE_CHAIN_PK, CHAIN_URL);
     expect(aliceClient.address).to.equal(ALICE_ADDRESS);
 
-    [bobClient, bobMsgService] = await setupClient(BOB_MESSAGING_PORT, BOB_PK, BOB_CHAIN_PK);
+    [bobClient, bobMsgService] = await setupClient(BOB_MESSAGING_PORT, BOB_PK, BOB_CHAIN_PK, CHAIN_URL);
     expect(bobClient.address).to.equal(BOB_ADDRESS);
 
     await waitForPeerInfoExchange(1, [aliceMsgService, bobMsgService]);
