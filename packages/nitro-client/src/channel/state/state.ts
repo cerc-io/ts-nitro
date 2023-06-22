@@ -8,7 +8,7 @@ import {
   hashState as utilHashState,
 } from '@statechannels/nitro-protocol';
 import {
-  FieldDescription, bytes2Hex, fromJSON, hex2Bytes, toJSON,
+  FieldDescription, Uint64, bytes2Hex, fromJSON, hex2Bytes, toJSON,
 } from '@cerc-io/nitro-util';
 
 import * as nc from '../../crypto/signatures';
@@ -20,7 +20,7 @@ export type Signature = nc.Signature;
 
 export interface ConstructorOptions {
   participants?: Address[];
-  channelNonce?: string;
+  channelNonce?: Uint64;
   appDefinition?: Address;
   challengeDuration?: number;
 }
@@ -29,12 +29,11 @@ export interface ConstructorOptions {
 export class FixedPart {
   participants: Address[] = [];
 
-  // TODO: unit64 replacement
-  channelNonce: string = '0';
+  channelNonce: Uint64 = BigInt(0);
 
   appDefinition: Address = ethers.constants.AddressZero;
 
-  // TODO: unit64 replacement
+  // TODO: uint32 replacement
   challengeDuration: number = 0;
 
   constructor(params: ConstructorOptions) {
@@ -43,7 +42,7 @@ export class FixedPart {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     participants: { type: 'array', value: { type: 'string' } },
-    channelNonce: { type: 'string' },
+    channelNonce: { type: 'uint64' },
     appDefinition: { type: 'string' },
     challengeDuration: { type: 'number' },
   };
@@ -58,7 +57,7 @@ export class FixedPart {
   }
 
   channelId(): Destination {
-    return new Destination(utilGetChannelId(this));
+    return new Destination(utilGetChannelId({ ...this, channelNonce: this.channelNonce.toString() }));
   }
 
   // Clone returns a deep copy of the receiver.
@@ -86,8 +85,7 @@ export class VariablePart {
 
   outcome: Exit = new Exit([]);
 
-  // TODO: unit64 replacement
-  turnNum: number = 0;
+  turnNum: Uint64 = BigInt(0);
 
   isFinal: boolean = false;
 
@@ -95,7 +93,7 @@ export class VariablePart {
     params: {
       appData?: Buffer,
       outcome?: Exit,
-      turnNum?: number,
+      turnNum?: Uint64,
       isFinal?: boolean
     },
   ) {
@@ -107,29 +105,29 @@ export class VariablePart {
 export class State {
   participants: Address[] = [];
 
-  channelNonce: string = '0';
+  channelNonce: Uint64 = BigInt(0);
 
   appDefinition: Address = '';
 
+  // TODO: uint32 replacement
   challengeDuration: number = 0;
 
   appData: Buffer = Buffer.alloc(0);
 
   outcome: Exit = new Exit([]);
 
-  // TODO: unit64 replacement
-  turnNum : number = 0;
+  turnNum : Uint64 = BigInt(0);
 
   isFinal: boolean = false;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     participants: { type: 'array', value: { type: 'string' } },
-    channelNonce: { type: 'string' },
+    channelNonce: { type: 'uint64' },
     appDefinition: { type: 'string' },
     challengeDuration: { type: 'number' },
     appData: { type: 'buffer' },
     outcome: { type: 'class', value: Exit },
-    turnNum: { type: 'number' },
+    turnNum: { type: 'uint64' },
     isFinal: { type: 'boolean' },
   };
 
@@ -145,12 +143,12 @@ export class State {
   constructor(
     params: {
       participants?: Address[],
-      channelNonce?: string,
+      channelNonce?: Uint64,
       appDefinition?: Address,
       challengeDuration?: number,
       appData?: Buffer,
       outcome?: Exit,
-      turnNum?: number,
+      turnNum?: Uint64,
       isFinal?: boolean
     },
   ) {
@@ -289,12 +287,12 @@ export class State {
 
     return {
       participants: this.participants,
-      channelNonce: this.channelNonce,
+      channelNonce: this.channelNonce.toString(),
       appDefinition: this.appDefinition,
       challengeDuration: this.challengeDuration,
       outcome: stateOutcome,
       appData: stateAppData,
-      turnNum: this.turnNum,
+      turnNum: Number(this.turnNum),
       isFinal: this.isFinal,
     };
   }

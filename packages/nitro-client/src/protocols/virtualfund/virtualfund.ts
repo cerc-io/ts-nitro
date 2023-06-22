@@ -4,7 +4,9 @@ import _ from 'lodash';
 
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
-import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON,
+} from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
 import {
@@ -282,7 +284,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       channelNonce: request.nonce,
       challengeDuration: request.challengeDuration,
       outcome: request.outcome,
-      turnNum: 0,
+      turnNum: BigInt(0),
       isFinal: false,
     });
 
@@ -526,7 +528,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   private getPayload(raw: ObjectivePayload): SignedState {
-    return SignedState.fromJSON(JSON.stringify(raw));
+    return SignedState.fromJSON(JSONbigNative.stringify(raw));
   }
 
   receiveProposal(sp: SignedProposal): ProposalReceiver {
@@ -842,7 +844,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
   outcome?: Exit;
 
-  nonce: string = '0';
+  nonce: Uint64 = BigInt(0);
 
   appDefinition: Address = ethers.constants.AddressZero;
 

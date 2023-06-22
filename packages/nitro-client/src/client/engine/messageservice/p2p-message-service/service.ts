@@ -17,8 +17,6 @@ import type { Stream } from '@libp2p/interface-connection';
 // @ts-expect-error
 import type { IncomingStreamData } from '@libp2p/interface-registrar';
 // @ts-expect-error
-import type { PeerInfo as Libp2pPeerInfo } from '@libp2p/interface-peer-info';
-// @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error
 import type { Address as PeerAddress } from '@libp2p/interface-peer-store';

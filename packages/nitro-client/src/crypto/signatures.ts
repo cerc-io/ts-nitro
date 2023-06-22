@@ -66,8 +66,8 @@ export const recoverEthereumMessageSigner = (message: Buffer, signature: Signatu
     {
       r: `0x${bytes2Hex(sig.r)}`,
       s: `0x${bytes2Hex(sig.s)}`,
-      v: sig.v
-    }
+      v: sig.v,
+    },
   );
 };
 

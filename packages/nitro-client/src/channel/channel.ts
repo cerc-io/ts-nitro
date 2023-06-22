@@ -1,7 +1,9 @@
 import assert from 'assert';
 import _ from 'lodash';
 
-import { fromJSON, toJSON, FieldDescription } from '@cerc-io/nitro-util';
+import {
+  fromJSON, toJSON, FieldDescription, Uint64,
+} from '@cerc-io/nitro-util';
 
 import { Signature } from '../crypto/signatures';
 import { Destination } from '../types/destination';
@@ -17,8 +19,8 @@ interface ConstructorOptions extends FixedPartConstructorOptions {
   myIndex?: number;
   onChainFunding?: Funds;
   fixedPart?: FixedPart;
-  signedStateForTurnNum?: Map<number, SignedState>;
-  latestSupportedStateTurnNum?: number;
+  signedStateForTurnNum?: Map<Uint64, SignedState>;
+  latestSupportedStateTurnNum?: Uint64;
 }
 
 // Channel contains states and metadata and exposes convenience methods.
@@ -33,22 +35,20 @@ export class Channel extends FixedPart {
   // Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
   // It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
-  // TODO: unit64 replacement
-  signedStateForTurnNum: Map<number, SignedState> = new Map();
+  signedStateForTurnNum: Map<Uint64, SignedState> = new Map();
   // Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 
   // largest uint64 value reserved for "no supported state"
-  // TODO: unit64 replacement
   // Can't make it private as access required when constructing VirtualChannel from an existing Channel instance
-  latestSupportedStateTurnNum: number = 0;
+  latestSupportedStateTurnNum: Uint64 = BigInt(0);
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     ...super.jsonEncodingMap,
     id: { type: 'class', value: Destination },
     myIndex: { type: 'number' },
     onChainFunding: { type: 'class', value: Funds },
-    signedStateForTurnNum: { type: 'map', key: { type: 'number' }, value: { type: 'class', value: SignedState } },
-    latestSupportedStateTurnNum: { type: 'number' },
+    signedStateForTurnNum: { type: 'map', key: { type: 'uint64' }, value: { type: 'class', value: SignedState } },
+    latestSupportedStateTurnNum: { type: 'uint64' },
   };
 
   static fromJSON(data: string): Channel {
@@ -218,7 +218,7 @@ export class Channel extends FixedPart {
     if (this.signedStateForTurnNum.size === 0) {
       throw new Error('no states are signed');
     }
-    let latestTurn: number = 0;
+    let latestTurn: Uint64 = BigInt(0);
     for (const [k] of this.signedStateForTurnNum) {
       if (k > latestTurn) {
         latestTurn = k;

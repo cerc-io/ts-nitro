@@ -1,7 +1,9 @@
 import assert from 'assert';
 import _ from 'lodash';
 
-import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, JSONbigNative, fromJSON, toJSON,
+} from '@cerc-io/nitro-util';
 
 import { Destination } from '../../../types/destination';
 import { GuaranteeMetadata } from './guarantee';
@@ -78,11 +80,11 @@ export class Allocations {
   static fromJSON(data: string): Allocations {
     // jsonValue is a JSON array of Allocation
     // Call fromJSON on individual elements of the array
-    const jsonValue = JSON.parse(data);
+    const jsonValue = JSONbigNative.parse(data);
     assert(Array.isArray(jsonValue));
 
     const value = jsonValue.map((allocation): Allocation => {
-      return Allocation.fromJSON(JSON.stringify(allocation));
+      return Allocation.fromJSON(JSONbigNative.stringify(allocation));
     });
 
     return new Allocations(value);

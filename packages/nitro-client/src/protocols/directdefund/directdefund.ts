@@ -2,7 +2,9 @@ import assert from 'assert';
 import isEqual from 'lodash/isEqual';
 
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
-import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, Uint64, fromJSON, toJSON,
+} from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
@@ -84,14 +86,14 @@ export class Objective implements ObjectiveInterface {
 
   c?: channel.Channel;
 
-  private finalTurnNum: number = 0;
+  private finalTurnNum: Uint64 = BigInt(0);
 
   private transactionSubmitted: boolean = false; // whether a transition for the objective has been submitted or not
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
     c: { type: 'class', value: channel.Channel },
-    finalTurnNum: { type: 'number' },
+    finalTurnNum: { type: 'uint64' },
     transactionSubmitted: { type: 'boolean' },
   };
 
@@ -155,7 +157,7 @@ export class Objective implements ObjectiveInterface {
     const latestSS = c.latestSupportedState();
 
     if (!latestSS.isFinal) {
-      init.finalTurnNum = latestSS.turnNum + 1;
+      init.finalTurnNum = latestSS.turnNum + BigInt(1);
     } else {
       init.finalTurnNum = latestSS.turnNum;
     }
@@ -307,7 +309,7 @@ export class Objective implements ObjectiveInterface {
     if (!latestSignedState.state().isFinal || !latestSignedState.hasSignatureForParticipant(updated.c!.myIndex)) {
       const stateToSign = latestSignedState.state().clone();
       if (!stateToSign.isFinal) {
-        stateToSign.turnNum += 1;
+        stateToSign.turnNum += BigInt(1);
         stateToSign.isFinal = true;
       }
 

@@ -4,7 +4,7 @@ import assert from 'assert';
 import _ from 'lodash';
 
 import {
-  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+  FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
 
 import { Signature, signatureJsonEncodingMap } from '../../crypto/signatures';
@@ -400,19 +400,18 @@ export class LedgerOutcome {
 }
 
 interface VarsConstructorOptions {
-  turnNum?: number;
+  turnNum?: Uint64;
   outcome?: LedgerOutcome;
 }
 
 // Vars stores the turn number and outcome for a state in a consensus channel.
 export class Vars {
-  // TODO: uint64 replacement
-  turnNum: number = 0;
+  turnNum: Uint64 = BigInt(0);
 
   outcome: LedgerOutcome = new LedgerOutcome({});
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    turnNum: { type: 'number' },
+    turnNum: { type: 'uint64' },
     outcome: { type: 'class', value: LedgerOutcome },
   };
 
@@ -511,7 +510,7 @@ export class Vars {
     // EFFECTS
 
     // Increase the turn number
-    this.turnNum += 1;
+    this.turnNum += BigInt(1);
 
     const rightDeposit = p.rightDeposit();
 
@@ -556,7 +555,7 @@ export class Vars {
     // EFFECTS
 
     // Increase the turn number
-    this.turnNum += 1;
+    this.turnNum += BigInt(1);
 
     const rightAmount = guarantee.amount - p.leftAmount;
 
@@ -669,7 +668,7 @@ export class ConsensusChannel {
   static newConsensusChannel(
     fp: FixedPart,
     myIndex: LedgerIndex,
-    initialTurnNum: number,
+    initialTurnNum: Uint64,
     outcome: LedgerOutcome,
     signatures: [Signature, Signature],
   ): ConsensusChannel {
@@ -715,13 +714,13 @@ export class ConsensusChannel {
 
   // NewLeaderChannel constructs a new LeaderChannel
   // TODO: Refactor to leader-channel file
-  static newLeaderChannel(fp: FixedPart, turnNum: number, outcome: LedgerOutcome, signatures: [Signature, Signature]): ConsensusChannel {
+  static newLeaderChannel(fp: FixedPart, turnNum: Uint64, outcome: LedgerOutcome, signatures: [Signature, Signature]): ConsensusChannel {
     return ConsensusChannel.newConsensusChannel(fp, Leader, turnNum, outcome, signatures);
   }
 
   // NewFollowerChannel constructs a new FollowerChannel
   // TODO: Refactor to follower-channel file
-  static newFollowerChannel(fp: FixedPart, turnNum: number, outcome: LedgerOutcome, signatures: [Signature, Signature]): ConsensusChannel {
+  static newFollowerChannel(fp: FixedPart, turnNum: Uint64, outcome: LedgerOutcome, signatures: [Signature, Signature]): ConsensusChannel {
     return ConsensusChannel.newConsensusChannel(fp, Follower, turnNum, outcome, signatures);
   }
 
@@ -780,8 +779,7 @@ export class ConsensusChannel {
   }
 
   // ConsensusTurnNum returns the turn number of the current consensus state.
-  // TODO: uint64 replacement
-  consensusTurnNum(): number {
+  consensusTurnNum(): Uint64 {
     return this.current.turnNum;
   }
 
@@ -1046,7 +1044,7 @@ export class ConsensusChannel {
   // appendToProposalQueue safely appends the given SignedProposal to the proposal queue of the receiver.
   // It will panic if the turn number of the signedproposal is not consecutive with the existing queue.
   private appendToProposalQueue(signed: SignedProposal) {
-    if (this._proposalQueue.length > 0 && this._proposalQueue[this._proposalQueue.length - 1].turnNum + 1 !== signed.turnNum) {
+    if (this._proposalQueue.length > 0 && this._proposalQueue[this._proposalQueue.length - 1].turnNum + BigInt(1) !== signed.turnNum) {
       throw new Error('Appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum');
     }
     this._proposalQueue.push(signed);
@@ -1070,7 +1068,7 @@ export class ConsensusChannel {
       throw new Error(`could not generate the current proposal: ${err}`);
     }
 
-    if (p.turnNum !== vars.turnNum + 1) {
+    if (p.turnNum !== vars.turnNum + BigInt(1)) {
       throw ErrInvalidTurnNum;
     }
 
@@ -1339,7 +1337,7 @@ export class Proposal {
 type SignedProposalParams = {
   signature?: Signature;
   proposal?: Proposal;
-  turnNum?: number;
+  turnNum?: Uint64;
 };
 
 // SignedProposal is a Proposal with a signature on it.
@@ -1348,17 +1346,16 @@ export class SignedProposal {
 
   proposal: Proposal = new Proposal({});
 
-  // TODO: uint64 replacement
-  turnNum: number = 0;
+  turnNum: Uint64 = BigInt(0);
 
   static fromJSON(data: string): SignedProposal {
     // jsonValue has Signature properties
     // Construct SignedProposal with inidividual field values
-    const jsonValue = JSON.parse(data);
+    const jsonValue = JSONbigNative.parse(data);
 
     const props: SignedProposalParams = {
       signature: { r: jsonValue.r, s: jsonValue.s, v: jsonValue.v },
-      proposal: Proposal.fromJSON(JSON.stringify(jsonValue.proposal)),
+      proposal: Proposal.fromJSON(JSONbigNative.stringify(jsonValue.proposal)),
       turnNum: jsonValue.turnNum,
     };
 
@@ -1394,7 +1391,7 @@ export class SignedProposal {
   }
 
   // SortInfo returns the channelId and turn number so the proposal can be easily sorted.
-  sortInfo(): [Destination, number] {
+  sortInfo(): [Destination, Uint64] {
     const cId = this.proposal.ledgerID;
     const { turnNum } = this;
     return [cId, turnNum];

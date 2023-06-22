@@ -2,8 +2,10 @@
 import assert from 'assert';
 import _ from 'lodash';
 
+import { JSONbigNative } from './types';
+
 export interface FieldDescription {
-  type: 'class' | 'string' | 'number' | 'bigint' | 'boolean' | 'buffer' | 'object' | 'array' | 'map';
+  type: 'class' | 'string' | 'number' | 'bigint' | 'uint64' | 'boolean' | 'buffer' | 'object' | 'array' | 'map';
   key?: FieldDescription;
   value?: FieldDescription | Record<string, FieldDescription> | any;
 }
@@ -15,7 +17,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
 
   switch (fieldType.type) {
     case 'class': {
-      return fieldType.value.fromJSON(JSON.stringify(fieldJsonValue));
+      return fieldType.value.fromJSON(JSONbigNative.stringify(fieldJsonValue));
     }
 
     case 'string': {
@@ -31,6 +33,10 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
     }
 
     case 'bigint': {
+      return BigInt(fieldJsonValue);
+    }
+
+    case 'uint64': {
       return BigInt(fieldJsonValue);
     }
 
@@ -71,7 +77,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
 // Go compatible JSON unmarshalling utility method
 export function fromJSON(jsonEncodingMap: Record<string, any>, data: string, keysMap: Map<string, string> = new Map()): any {
   // Parse the JSON data string
-  const jsonValue = JSON.parse(data);
+  const jsonValue = JSONbigNative.parse(data);
 
   const props: any = {};
 

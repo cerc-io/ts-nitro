@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 import {
-  FieldDescription, fromJSON, toJSON,
+  FieldDescription, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Signature, signatureJsonEncodingMap, equal } from '../../crypto/signatures';
@@ -162,8 +162,7 @@ export class SignedState {
   }
 
   // SortInfo returns the channel id and turn number of the state, so the state can be easily sorted.
-  // TODO: unit64 replacement
-  sortInfo(): [Destination, number] {
+  sortInfo(): [Destination, Uint64] {
     const cId = this._state.channelId();
     const { turnNum } = this._state;
     return [cId, turnNum];

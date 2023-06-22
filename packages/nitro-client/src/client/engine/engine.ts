@@ -3,12 +3,11 @@
 
 import debug from 'debug';
 import assert from 'assert';
-import JSONbig from 'json-bigint';
 import _ from 'lodash';
 
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
-import { go } from '@cerc-io/nitro-util';
+import { JSONbigNative, go } from '@cerc-io/nitro-util';
 
 import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent, ChainEventHandler } from './chainservice/chainservice';
@@ -338,7 +337,7 @@ export class Engine {
       }
 
       if (objective.getStatus() === ObjectiveStatus.Unapproved) {
-        this.logger('Policymaker is', this.policymaker);
+        this.logger('Policymaker is', this.policymaker.constructor.name);
 
         if (this.policymaker.shouldApprove(objective)) {
           objective = objective.approve();
@@ -609,7 +608,7 @@ export class Engine {
 
               minAmount = paid;
             } catch (err) {
-              throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(request)}: ${err}`);
+              throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(request)}: ${err}`);
             }
           }
 
@@ -655,7 +654,7 @@ export class Engine {
               this.store.getConsensusChannelById.bind(this.store),
             );
           } catch (err) {
-            throw new Error(`handleAPIEvent: Could not create objective for ${JSON.stringify(request)}: ${err}`);
+            throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(request)}: ${err}`);
           }
           // If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
           this.store.destroyConsensusChannel(request.channelId);
