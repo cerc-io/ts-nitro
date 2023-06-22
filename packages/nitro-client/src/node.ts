@@ -6,3 +6,4 @@ export { PermissivePolicy } from './client/engine/policy-maker';
 export { SingleAssetExit, Exit } from './channel/state/outcome/exit';
 export { Allocation, AllocationType, Allocations } from './channel/state/outcome/allocation';
 export { Destination } from './types/destination';
+export { Metrics, GetMetrics } from './client/engine/metrics';

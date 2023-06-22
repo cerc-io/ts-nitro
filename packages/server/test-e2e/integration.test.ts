@@ -2,7 +2,7 @@
 import assert from 'assert';
 import { expect } from 'chai';
 
-import { Client, MemStore } from '@cerc-io/nitro-client';
+import { Client, MemStore, Metrics } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
 import {
   setupClient,
@@ -21,6 +21,8 @@ import { createP2PMessageService, waitForPeerInfoExchange } from '../src/utils';
 describe('test Client', () => {
   let aliceClient: Client;
   let bobClient: Client;
+  let metricsAlice: Metrics;
+  let metricsBob: Metrics;
 
   it('should instantiate Clients', async () => {
     assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
@@ -28,7 +30,7 @@ describe('test Client', () => {
     const aliceStore = new MemStore(hex2Bytes(ACTORS.alice.privateKey));
     const aliceMsgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, ALICE_MESSAGING_PORT, aliceStore.getAddress());
 
-    aliceClient = await setupClient(
+    [aliceClient, metricsAlice] = await setupClient(
       aliceMsgService,
       aliceStore,
       {
@@ -42,7 +44,7 @@ describe('test Client', () => {
     const bobStore = new MemStore(hex2Bytes(ACTORS.bob.privateKey));
     const bobMsgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, BOB_MESSAGING_PORT, bobStore.getAddress());
 
-    bobClient = await setupClient(
+    [bobClient,metricsBob ] = await setupClient(
       bobMsgService,
       bobStore,
       {
@@ -54,6 +56,7 @@ describe('test Client', () => {
     expect(bobClient.address).to.equal(ACTORS.bob.address);
 
     await waitForPeerInfoExchange(1, [aliceMsgService, bobMsgService]);
+    console.log({ metricsAlice: metricsAlice.getMetrics(), metricsBob: metricsBob.getMetrics() });
   });
 
   it('should create ledger channel', async () => {

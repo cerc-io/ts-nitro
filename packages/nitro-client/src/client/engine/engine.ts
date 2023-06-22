@@ -231,16 +231,15 @@ export class Engine {
 
     while (true) {
       let res = new EngineEvent();
-
-      this.metrics?.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.length());
-      this.metrics?.recordQueueLength('api_payment_request_queue', this.paymentRequestsFromAPI.length());
-      // TODO: Check working
-      assert('length' in this.fromChain && typeof this.fromChain.length === 'function');
-      assert('length' in this.fromMsg && typeof this.fromMsg.length === 'function');
-
-      this.metrics?.recordQueueLength('chain_events_queue', this.fromChain.length());
-      this.metrics?.recordQueueLength('messages_queue', this.fromMsg.length());
-      this.metrics?.recordQueueLength('proposal_queue', this.fromLedger.length());
+      // @ts-expect-error
+      this.metrics?.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.length);
+      // @ts-expect-error
+      this.metrics?.recordQueueLength('api_payment_request_queue', this.paymentRequestsFromAPI.length);
+      // TODO: Read channel is not having length
+      this.metrics?.recordQueueLength('chain_events_queue', 0);
+      this.metrics?.recordQueueLength('messages_queue', 0);
+      // @ts-expect-error
+      this.metrics?.recordQueueLength('proposal_queue', this.fromLedger.length);
 
       try {
         /* eslint-disable no-await-in-loop */
