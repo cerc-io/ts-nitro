@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import assert from 'assert';
 import _ from 'lodash';
+import { ethers } from 'ethers';
 
 import { JSONbigNative } from './types';
 
@@ -20,9 +21,12 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
       return fieldType.value.fromJSON(JSONbigNative.stringify(fieldJsonValue));
     }
 
-    case 'address':
     case 'string': {
       return String(fieldJsonValue);
+    }
+
+    case 'address': {
+      return ethers.utils.getAddress(fieldJsonValue);
     }
 
     case 'number': {
@@ -201,7 +205,7 @@ function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
   }
 }
 
-export function capitalizeFirstLetter(str: string): string {
+function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 

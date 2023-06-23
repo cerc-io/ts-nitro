@@ -108,7 +108,7 @@ export class EthChainService implements ChainService {
     vpaAddress: Address,
     logDestination?: WritableStream,
   ): Promise<EthChainService> {
-    if (vpaAddress.toLowerCase() === caAddress.toLowerCase()) {
+    if (vpaAddress === caAddress) {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
     }
 
@@ -168,7 +168,7 @@ export class EthChainService implements ChainService {
           const txOpts: ethers.PayableOverrides = {};
           const ethTokenAddress = ethers.constants.AddressZero;
 
-          if (tokenAddress.toLowerCase() === ethTokenAddress.toLowerCase()) {
+          if (tokenAddress === ethTokenAddress) {
             txOpts.value = ethers.BigNumber.from(amount);
           } else {
             const tokenTransactor = Token__factory.connect(tokenAddress, this.txSigner);

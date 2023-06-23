@@ -684,13 +684,13 @@ export class ConsensusChannel {
     try {
       leaderAddr = vars.asState(fp).recoverSigner(signatures[Leader]);
 
-      if (leaderAddr.toLowerCase() !== fp.participants[Leader].toLowerCase()) {
+      if (leaderAddr !== fp.participants[Leader]) {
         throw new Error(`Leader did not sign initial state: ${leaderAddr}, ${fp.participants[Leader]}`);
       }
 
       followerAddr = vars.asState(fp).recoverSigner(signatures[Follower]);
 
-      if (followerAddr.toLowerCase() !== fp.participants[Follower].toLowerCase()) {
+      if (followerAddr !== fp.participants[Follower]) {
         throw new Error(`Follower did not sign initial state: ${followerAddr}, ${fp.participants[Follower]}`);
       }
     } catch (err) {
@@ -852,7 +852,7 @@ export class ConsensusChannel {
   // values. It signs the resulting state using sk.
   private sign(vars: Vars, sk: Buffer): Signature {
     const signer = getAddressFromSecretKeyBytes(sk);
-    if (this.fp.participants[this.myIndex].toLowerCase() !== signer.toLowerCase()) {
+    if (this.fp.participants[this.myIndex] !== signer) {
       throw new Error(`attempting to sign from wrong address: ${signer}`);
     }
 
@@ -986,7 +986,7 @@ export class ConsensusChannel {
           throw new Error(`unable to recover signer: ${err}`);
         }
 
-        if (signer.toLowerCase() !== this.fp.participants[Follower].toLowerCase()) {
+        if (signer !== this.fp.participants[Follower]) {
           throw ErrWrongSigner;
         }
 
@@ -1087,7 +1087,7 @@ export class ConsensusChannel {
       throw new Error(`receive could not recover signature: ${err}`);
     }
 
-    if (signer.toLowerCase() !== this.leader().toLowerCase()) {
+    if (signer !== this.leader()) {
       throw ErrInvalidProposalSignature;
     }
 

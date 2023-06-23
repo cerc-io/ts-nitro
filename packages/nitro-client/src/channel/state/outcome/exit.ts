@@ -64,7 +64,7 @@ export class SingleAssetExit {
   equal(r: SingleAssetExit): boolean {
     return this.assetMetadata.metadata.compare(r.assetMetadata.metadata) === 0
     && this.assetMetadata.assetType === r.assetMetadata.assetType
-    && this.asset.toLowerCase() === r.asset.toLowerCase()
+    && this.asset === r.asset
     && this.allocations.equal(r.allocations);
   }
 

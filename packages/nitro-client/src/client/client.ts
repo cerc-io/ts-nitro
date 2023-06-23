@@ -116,7 +116,7 @@ export class Client {
     assert(this.chainId);
 
     const objectiveRequest = DirectFundObjectiveRequest.newObjectiveRequest(
-      counterparty,
+      ethers.utils.getAddress(counterparty),
       challengeDuration,
       outcome,
       randUint64(),
@@ -153,7 +153,7 @@ export class Client {
 
     const objectiveRequest = VirtualFundObjectiveRequest.newObjectiveRequest(
       intermediaries,
-      counterParty,
+      ethers.utils.getAddress(counterParty),
       challengeDuration,
       outcome,
       randUint64(),

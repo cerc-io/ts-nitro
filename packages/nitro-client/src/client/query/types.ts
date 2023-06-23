@@ -35,9 +35,9 @@ export class PaymentChannelBalance {
 
   // Equal returns true if the other PaymentChannelBalance is equal to this one
   equal(other: PaymentChannelBalance): boolean {
-    return this.assetAddress.toLowerCase() === other.assetAddress.toLowerCase()
-    && this.payee.toLowerCase() === other.payee.toLowerCase()
-    && this.payer.toLowerCase() === other.payer.toLowerCase()
+    return this.assetAddress === other.assetAddress
+    && this.payee === other.payee
+    && this.payer === other.payer
     && this.paidSoFar === other.paidSoFar
     && this.remainingFunds === other.remainingFunds;
   }
@@ -91,9 +91,9 @@ export class LedgerChannelBalance {
 
   // Equal returns true if the other LedgerChannelBalance is equal to this one
   equal(other: LedgerChannelBalance): boolean {
-    return this.assetAddress.toLowerCase() === other.assetAddress.toLowerCase()
-    && this.hub.toLowerCase() === other.hub.toLowerCase()
-    && this.client.toLowerCase() === other.client.toLowerCase()
+    return this.assetAddress === other.assetAddress
+    && this.hub === other.hub
+    && this.client === other.client
     && this.hubBalance === other.hubBalance
     && this.clientBalance === other.clientBalance;
   }

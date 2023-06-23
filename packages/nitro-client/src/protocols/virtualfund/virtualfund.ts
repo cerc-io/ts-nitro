@@ -323,7 +323,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     let found = false;
     for (let i = 0; i < initialStateOfV.participants.length; i += 1) {
       const addr = initialStateOfV.participants[i];
-      if (addr.toLowerCase() === myAddress.toLowerCase()) {
+      if (addr === myAddress) {
         init.myRole = i;
         found = true;
       }
@@ -435,10 +435,10 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     let rightC: ConsensusChannel | undefined;
     let ok: boolean;
 
-    if (myAddress.toLowerCase() === participants[0].toLowerCase()) {
+    if (myAddress === participants[0]) {
       // I am Alice
       throw new Error('participant[0] should not construct objectives from peer messages');
-    } else if (myAddress.toLowerCase() === participants[participants.length - 1].toLowerCase()) {
+    } else if (myAddress === participants[participants.length - 1]) {
       // I am Bob
       const leftOfBob = participants[participants.length - 2];
       ([leftC, ok] = getTwoPartyConsensusLedger(leftOfBob));
@@ -450,7 +450,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       let foundMyself = false;
 
       for (const [i, intermediary] of intermediaries.entries()) {
-        if (myAddress.toLowerCase() === intermediary.toLowerCase()) {
+        if (myAddress === intermediary) {
           foundMyself = true;
           // I am intermediary `i` and participant `p`
           // Error: Changed variable from p to e

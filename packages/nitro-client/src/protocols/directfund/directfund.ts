@@ -211,7 +211,7 @@ export class Objective implements ObjectiveInterface {
     let myIndex = 0;
     let foundMyAddress = false;
     for (let i = 0; i < initialState.participants.length; i += 1) {
-      if (initialState.participants[i].toLowerCase() === myAddress.toLowerCase()) {
+      if (initialState.participants[i] === myAddress) {
         myIndex = i;
         foundMyAddress = true;
         break;
