@@ -89,6 +89,7 @@ describe('test Client', () => {
 
     // Check that channelId value is present as a substring in id
     expect(response.id).to.contain(response.channelId.value);
+    console.log({ metricsAlice: metricsAlice.getMetrics(), metricsBob: metricsBob.getMetrics() });
 
     // TODO: Implement and close services
     // client.close();

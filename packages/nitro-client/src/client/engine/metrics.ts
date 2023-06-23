@@ -1,7 +1,7 @@
-import prom from 'promjs';
+import prom, { RegistryType } from 'promjs';
 import { Gauge } from 'promjs/gauge';
-import { Registry } from 'promjs/registry';
 import assert from 'assert';
+
 import { Address } from '../../types/types';
 import { ObjectiveId } from '../../protocols/messages';
 
@@ -56,12 +56,15 @@ export class NoOpMetrics implements MetricsApi {
   }
 }
 
-export interface GetMetrics {
+export interface GetMetricsString {
   metrics: string;
 }
 
+export interface GetMetrics {
+  [key: string]: number;
+}
 export class Metrics implements MetricsApi {
-  registry?: Registry;
+  registry?: RegistryType;
 
   constructor() {
     this.registry = prom();
@@ -76,11 +79,26 @@ export class Metrics implements MetricsApi {
     return this.registry.create('gauge', name);
   }
 
-  getMetrics(): GetMetrics {
+  getMetricsString(): GetMetricsString {
     assert(this.registry);
     return {
       metrics: this.registry.metrics(),
     };
+  }
+
+  getMetrics(): GetMetrics {
+    const obj = (this.registry as any).data;
+
+    const result: { [key: string]: number } = {};
+    /* eslint-disable guard-for-in */
+
+    for (const key in obj.gauge) {
+      const { instance } = obj.gauge[key];
+      const { value } = instance.data[0];
+      result[key] = value;
+    }
+
+    return result;
   }
 }
 

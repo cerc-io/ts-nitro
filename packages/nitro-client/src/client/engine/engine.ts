@@ -350,8 +350,8 @@ export class Engine {
           return [new EngineEvent(), err as Error];
         }
 
-      if (objective.getStatus() === ObjectiveStatus.Unapproved) {
-        this.logger('Policymaker is', this.policymaker.constructor.name);
+        if (objective.getStatus() === ObjectiveStatus.Unapproved) {
+          this.logger('Policymaker is', this.policymaker.constructor.name);
 
           if (this.policymaker.shouldApprove(objective)) {
             objective = objective.approve();
