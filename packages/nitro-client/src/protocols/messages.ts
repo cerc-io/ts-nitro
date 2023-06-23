@@ -1,4 +1,6 @@
-import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, JSONbigNative, Uint64, bytes2Hex, fromJSON, toJSON,
+} from '@cerc-io/nitro-util';
 
 import { SignedProposal, Proposal } from '../channel/consensus-channel/consensus-channel';
 import { Voucher } from '../payments/vouchers';
@@ -32,7 +34,7 @@ const objectivePayloadJsonEncodingMap: Record<string, FieldDescription> = {
 // CreateObjectivePayload handles serializing `p` into json.
 const createObjectivePayload = (id: ObjectiveId, payloadType: PayloadType, p: any): ObjectivePayload => {
   try {
-    const payloadData: Buffer = Buffer.from(JSON.stringify(p));
+    const payloadData: Buffer = Buffer.from(JSONbigNative.stringify(p));
     return { payloadData, objectiveId: id, type: payloadType };
   } catch (err) {
     throw new Error(`Failed to create objective payload: ${err}`);
@@ -61,12 +63,12 @@ interface ProposalSummary {
   objectiveId: string;
   ledgerId: string;
   proposalType: string;
-  turnNum: number;
+  turnNum: Uint64;
 }
 
 // PaymentSummary is a summary of a payment voucher suitable for logging.
 interface PaymentSummary {
-  amount: number;
+  amount: Uint64;
   channelId: string;
 }
 
@@ -111,8 +113,8 @@ export class Message {
   rejectedObjectives: ObjectiveId[] = [];
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    to: { type: 'string' },
-    from: { type: 'string' },
+    to: { type: 'address' },
+    from: { type: 'address' },
     objectivePayloads: { type: 'array', value: { type: 'object', value: objectivePayloadJsonEncodingMap } },
     ledgerProposals: { type: 'array', value: { type: 'class', value: SignedProposal } },
     payments: { type: 'array', value: { type: 'class', value: Voucher } },
@@ -190,7 +192,7 @@ export class Message {
 
   // Serialize serializes the message into a string.
   serialize(): string {
-    const bytes = Buffer.from(JSON.stringify(this));
+    const bytes = Buffer.from(JSONbigNative.stringify(this));
     return bytes.toString();
   }
 
@@ -220,7 +222,7 @@ export class Message {
         };
       }),
       payments: this.payments.map((p): PaymentSummary => ({
-        amount: Number(p.amount),
+        amount: p.amount,
         channelId: p.channelId.toString(),
       })),
       rejectedObjectives: this.rejectedObjectives.map((o) => o.toString()),

@@ -1,7 +1,7 @@
 import assert from 'assert';
 import _ from 'lodash';
 
-import { bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
+import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
 
 import { ErrNoSuchChannel, ErrNoSuchObjective, Store } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
@@ -94,7 +94,7 @@ export class MemStore implements Store {
     // todo: locking
     let objJSON: Buffer;
     try {
-      objJSON = Buffer.from(JSON.stringify(obj), 'utf-8');
+      objJSON = Buffer.from(JSONbigNative.stringify(obj), 'utf-8');
     } catch (err) {
       throw new Error(`error setting objective ${obj.id()}: ${err}`);
     }
@@ -155,7 +155,7 @@ export class MemStore implements Store {
   }
 
   public setChannel(ch: Channel): void {
-    const chJSON = Buffer.from(JSON.stringify(ch), 'utf-8');
+    const chJSON = Buffer.from(JSONbigNative.stringify(ch), 'utf-8');
 
     this.channels.store(ch.id.string(), chJSON);
   }
@@ -171,7 +171,7 @@ export class MemStore implements Store {
       throw new Error('cannot store a channel with a zero id');
     }
 
-    const chJSON = Buffer.from(JSON.stringify(ch), 'utf-8');
+    const chJSON = Buffer.from(JSONbigNative.stringify(ch), 'utf-8');
 
     this.consensusChannels.store(ch.id.string(), chJSON);
   }
@@ -514,7 +514,7 @@ export class MemStore implements Store {
   }
 
   setVoucherInfo(channelId: Destination, v: VoucherInfo): void {
-    const jsonData = Buffer.from(JSON.stringify(v));
+    const jsonData = Buffer.from(JSONbigNative.stringify(v));
 
     this.vouchers.store(channelId.string(), jsonData);
   }

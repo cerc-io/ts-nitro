@@ -1,7 +1,9 @@
 import assert from 'assert';
 import { ethers } from 'ethers';
 
-import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, JSONbigNative, fromJSON, toJSON,
+} from '@cerc-io/nitro-util';
 
 import { Destination } from '../../../types/destination';
 import { Address } from '../../../types/types';
@@ -34,7 +36,7 @@ export class SingleAssetExit {
   allocations: Allocations = new Allocations([]);
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    asset: { type: 'string' },
+    asset: { type: 'address' },
     assetMetadata: { type: 'object', value: assetMetadataJsonEncodingMap },
     allocations: { type: 'class', value: Allocations },
   };
@@ -101,11 +103,11 @@ export class Exit {
   static fromJSON(data: string): Exit {
     // jsonValue is a JSON array of SingleAssetExit
     // Call fromJSON on individual elements of the array
-    const jsonValue = JSON.parse(data);
+    const jsonValue = JSONbigNative.parse(data);
     assert(Array.isArray(jsonValue));
 
     const value = jsonValue.map((singleAssetExitValue): SingleAssetExit => {
-      return SingleAssetExit.fromJSON(JSON.stringify(singleAssetExitValue));
+      return SingleAssetExit.fromJSON(JSONbigNative.stringify(singleAssetExitValue));
     });
 
     return new Exit(value);

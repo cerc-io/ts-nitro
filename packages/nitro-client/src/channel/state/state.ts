@@ -7,10 +7,8 @@ import {
   State as NitroState,
   hashState as utilHashState,
 } from '@statechannels/nitro-protocol';
-// TODO: Use forked @statechannels/nitro-protocol
-import { signState as utilSignState } from '@statechannels/nitro-protocol/dist/src/signatures';
 import {
-  FieldDescription, bytes2Hex, fromJSON, hex2Bytes, toJSON,
+  FieldDescription, Uint64, bytes2Hex, fromJSON, hex2Bytes, toJSON,
 } from '@cerc-io/nitro-util';
 
 import * as nc from '../../crypto/signatures';
@@ -22,7 +20,7 @@ export type Signature = nc.Signature;
 
 export interface ConstructorOptions {
   participants?: Address[];
-  channelNonce?: string;
+  channelNonce?: Uint64;
   appDefinition?: Address;
   challengeDuration?: number;
 }
@@ -31,12 +29,11 @@ export interface ConstructorOptions {
 export class FixedPart {
   participants: Address[] = [];
 
-  // TODO: unit64 replacement
-  channelNonce: string = '0';
+  channelNonce: Uint64 = BigInt(0);
 
   appDefinition: Address = ethers.constants.AddressZero;
 
-  // TODO: unit64 replacement
+  // TODO: uint32 replacement
   challengeDuration: number = 0;
 
   constructor(params: ConstructorOptions) {
@@ -44,9 +41,9 @@ export class FixedPart {
   }
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    participants: { type: 'array', value: { type: 'string' } },
-    channelNonce: { type: 'string' },
-    appDefinition: { type: 'string' },
+    participants: { type: 'array', value: { type: 'address' } },
+    channelNonce: { type: 'uint64' },
+    appDefinition: { type: 'address' },
     challengeDuration: { type: 'number' },
   };
 
@@ -60,7 +57,7 @@ export class FixedPart {
   }
 
   channelId(): Destination {
-    return new Destination(utilGetChannelId(this));
+    return new Destination(utilGetChannelId({ ...this, channelNonce: this.channelNonce.toString() }));
   }
 
   // Clone returns a deep copy of the receiver.
@@ -88,8 +85,7 @@ export class VariablePart {
 
   outcome: Exit = new Exit([]);
 
-  // TODO: unit64 replacement
-  turnNum: number = 0;
+  turnNum: Uint64 = BigInt(0);
 
   isFinal: boolean = false;
 
@@ -97,7 +93,7 @@ export class VariablePart {
     params: {
       appData?: Buffer,
       outcome?: Exit,
-      turnNum?: number,
+      turnNum?: Uint64,
       isFinal?: boolean
     },
   ) {
@@ -109,29 +105,29 @@ export class VariablePart {
 export class State {
   participants: Address[] = [];
 
-  channelNonce: string = '0';
+  channelNonce: Uint64 = BigInt(0);
 
   appDefinition: Address = '';
 
+  // TODO: uint32 replacement
   challengeDuration: number = 0;
 
   appData: Buffer = Buffer.alloc(0);
 
   outcome: Exit = new Exit([]);
 
-  // TODO: unit64 replacement
-  turnNum : number = 0;
+  turnNum : Uint64 = BigInt(0);
 
   isFinal: boolean = false;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    participants: { type: 'array', value: { type: 'string' } },
-    channelNonce: { type: 'string' },
-    appDefinition: { type: 'string' },
+    participants: { type: 'array', value: { type: 'address' } },
+    channelNonce: { type: 'uint64' },
+    appDefinition: { type: 'address' },
     challengeDuration: { type: 'number' },
     appData: { type: 'buffer' },
     outcome: { type: 'class', value: Exit },
-    turnNum: { type: 'number' },
+    turnNum: { type: 'uint64' },
     isFinal: { type: 'boolean' },
   };
 
@@ -147,12 +143,12 @@ export class State {
   constructor(
     params: {
       participants?: Address[],
-      channelNonce?: string,
+      channelNonce?: Uint64,
       appDefinition?: Address,
       challengeDuration?: number,
       appData?: Buffer,
       outcome?: Exit,
-      turnNum?: number,
+      turnNum?: Uint64,
       isFinal?: boolean
     },
   ) {
@@ -197,6 +193,8 @@ export class State {
 
   // Hash returns the keccak256 hash of the State
   hash(): string {
+    // Use hashState method from @statechannels/nitro-protocol
+    // Create NitroState instance from State
     const state: NitroState = this._getNitroState();
     return utilHashState(state);
   }
@@ -205,18 +203,8 @@ export class State {
   // The state hash is prepended with \x19Ethereum Signed Message:\n32 and then rehashed
   // to create a digest to sign
   sign(secretKey: Buffer): Signature {
-    // Use signState method from @statechannels/nitro-protocol
-    // Create NitroState instance from State
-    const state: NitroState = this._getNitroState();
-
-    // TODO: Can avoid 0x prefix?
-    const { signature } = utilSignState(state, `0x${bytes2Hex(secretKey)}`);
-
-    return {
-      r: signature.r,
-      s: signature.s,
-      v: signature.v,
-    };
+    const hash = this.hash();
+    return nc.signEthereumMessage(Buffer.from(hash), secretKey);
   }
 
   // RecoverSigner computes the Ethereum address which generated Signature sig on State state
@@ -269,16 +257,16 @@ export class State {
   // Custom method to create NitroState instance from state
   _getNitroState(): NitroState {
     const stateOutcome: ExitFormat.Exit = this.outcome.value.map((singleAssetExit): ExitFormat.SingleAssetExit => {
-      // Use 0x00 if empty as ethersjs doesn't accept '' as valid value
+      // Use 0x if empty as ethersjs doesn't accept '' as valid value
       // @statechannels/nitro-protocol uses string for Bytes
-      let exitMetadata = bytes2Hex(singleAssetExit.assetMetadata!.metadata);
-      exitMetadata = exitMetadata === '' ? '0x00' : exitMetadata;
+      let exitMetadata = bytes2Hex(singleAssetExit.assetMetadata.metadata);
+      exitMetadata = exitMetadata === '' ? '0x' : exitMetadata;
 
       return {
         asset: singleAssetExit.asset,
         allocations: singleAssetExit.allocations.value.map((allocation) => {
           let allocationMetadata = bytes2Hex(allocation.metadata);
-          allocationMetadata = allocationMetadata === '' ? '0x00' : allocationMetadata;
+          allocationMetadata = allocationMetadata === '' ? '0x' : allocationMetadata;
 
           return {
             destination: allocation.destination.value,
@@ -295,16 +283,16 @@ export class State {
     });
 
     let stateAppData = bytes2Hex(this.appData);
-    stateAppData = stateAppData === '' ? '0x00' : stateAppData;
+    stateAppData = stateAppData === '' ? '0x' : stateAppData;
 
     return {
       participants: this.participants,
-      channelNonce: this.channelNonce,
+      channelNonce: this.channelNonce.toString(),
       appDefinition: this.appDefinition,
       challengeDuration: this.challengeDuration,
       outcome: stateOutcome,
       appData: stateAppData,
-      turnNum: this.turnNum,
+      turnNum: Number(this.turnNum),
       isFinal: this.isFinal,
     };
   }

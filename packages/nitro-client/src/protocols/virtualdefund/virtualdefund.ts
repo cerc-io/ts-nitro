@@ -4,6 +4,7 @@ import _ from 'lodash';
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
 import {
   FieldDescription,
+  Uint64,
   fromJSON,
   toJSON,
   zeroValueSignature,
@@ -48,7 +49,7 @@ const SignedStatePayload: PayloadType = 'SignedStatePayload';
 const RequestFinalStatePayload: PayloadType = 'RequestFinalStatePayload';
 
 // The turn number used for the final state
-const FinalTurnNum = 2;
+const FinalTurnNum: Uint64 = BigInt(2);
 
 export const ObjectivePrefix = 'VirtualDefund-';
 

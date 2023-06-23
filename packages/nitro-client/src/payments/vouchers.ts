@@ -13,7 +13,7 @@ import _ from 'lodash';
 
 import { Bytes32, signVoucher } from '@statechannels/nitro-protocol';
 import {
-  FieldDescription, fromJSON, toJSON, zeroValueSignature,
+  FieldDescription, fromJSON, hex2Bytes, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
 
 import { Signature } from '../channel/state/state';
@@ -68,13 +68,19 @@ export class Voucher {
     const wallet = new ethers.Wallet(pk);
 
     // Using util method from nitro-protocol instead of go-nitro port
-    this.signature = await signVoucher(
+    const sig = await signVoucher(
       {
         amount: this.amount.toString(),
         channelId: this.channelId.string(),
       },
       wallet,
     );
+
+    this.signature = {
+      r: hex2Bytes(sig.r),
+      s: hex2Bytes(sig.s),
+      v: sig.v,
+    };
   }
 
   recoverSigner(): Address {
@@ -102,8 +108,8 @@ export class VoucherInfo {
   largestVoucher: Voucher = new Voucher({});
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    channelPayer: { type: 'string' },
-    channelPayee: { type: 'string' },
+    channelPayer: { type: 'address' },
+    channelPayee: { type: 'address' },
     startingBalance: { type: 'bigint' },
     largestVoucher: { type: 'class', value: Voucher },
   };

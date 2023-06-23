@@ -1,5 +1,6 @@
 import assert from 'assert';
 import debug from 'debug';
+import { ethers } from 'ethers';
 // https://github.com/microsoft/TypeScript/issues/49721
 // @ts-expect-error
 import type { Libp2p, Libp2pOptions } from 'libp2p';
@@ -16,8 +17,6 @@ import type { PeerDiscovery } from '@libp2p/interface-peer-discovery';
 import type { Stream } from '@libp2p/interface-connection';
 // @ts-expect-error
 import type { IncomingStreamData } from '@libp2p/interface-registrar';
-// @ts-expect-error
-import type { PeerInfo as Libp2pPeerInfo } from '@libp2p/interface-peer-info';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error
@@ -130,7 +129,7 @@ export class P2PMessageService implements MessageService {
       toEngine: Channel<Message>(BUFFER_SIZE),
       newPeerInfo: Channel<BasicPeerInfo>(BUFFER_SIZE),
       peers: new SafeSyncMap<BasicPeerInfo>(),
-      me,
+      me: ethers.utils.getAddress(me),
       logger: log,
     });
 
@@ -443,7 +442,7 @@ export class P2PMessageService implements MessageService {
           // peerstore.PermanentAddrTTL
         },
       );
-      this.peers.store(p.address.toString(), { id: p.id, address: p.address });
+      this.peers.store(p.address, { id: p.id, address: p.address });
     }
   }
 }

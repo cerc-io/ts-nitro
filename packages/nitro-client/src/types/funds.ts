@@ -1,4 +1,6 @@
-import { FieldDescription, decodeMap, encodeMap } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, JSONbigNative, decodeMap, encodeMap,
+} from '@cerc-io/nitro-util';
 
 import { Address } from './types';
 
@@ -8,12 +10,12 @@ export class Funds {
   value: Map<Address, bigint>;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    value: { type: 'map', key: { type: 'string' }, value: { type: 'bigint' } },
+    value: { type: 'map', key: { type: 'address' }, value: { type: 'bigint' } },
   };
 
   static fromJSON(data: string): Funds {
     // jsonValue has the value for 'value' map
-    const jsonValue = JSON.parse(data);
+    const jsonValue = JSONbigNative.parse(data);
     const value = decodeMap(Funds.jsonEncodingMap.value.key!, Funds.jsonEncodingMap.value.value, jsonValue);
     return new Funds(value);
   }

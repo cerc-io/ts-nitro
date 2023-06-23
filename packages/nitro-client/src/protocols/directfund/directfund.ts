@@ -2,7 +2,9 @@ import assert from 'assert';
 
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
-import { FieldDescription, fromJSON, toJSON } from '@cerc-io/nitro-util';
+import {
+  FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON,
+} from '@cerc-io/nitro-util';
 
 import { Exit } from '../../channel/state/outcome/exit';
 import { Address } from '../../types/types';
@@ -92,8 +94,7 @@ export class Objective implements ObjectiveInterface {
 
   private fullyFundedThreshold: Funds = new Funds();
 
-  // TODO: uint64 replacement
-  private latestBlockNumber: number = 0;
+  private latestBlockNumber: Uint64 = BigInt(0);
 
   private transactionSubmitted: boolean = false;
 
@@ -143,14 +144,14 @@ export class Objective implements ObjectiveInterface {
       challengeDuration: request.challengeDuration,
       appData: request.appData,
       outcome: request.outcome,
-      turnNum: 0,
+      turnNum: BigInt(0),
       isFinal: false,
     });
 
     const signedInitial = SignedState.newSignedState(initialState);
     let b: Buffer;
     try {
-      b = Buffer.from(JSON.stringify(signedInitial), 'utf-8');
+      b = Buffer.from(JSONbigNative.stringify(signedInitial), 'utf-8');
     } catch (err) {
       throw new Error(`could not create new objective: ${err}`);
     }
@@ -192,7 +193,7 @@ export class Objective implements ObjectiveInterface {
     const initialState = initialSignedState.state();
     initialState.fixedPart().validate();
 
-    if (initialState.turnNum !== 0) {
+    if (initialState.turnNum !== BigInt(0)) {
       throw new Error('cannot construct direct fund objective without prefund state');
     }
     if (initialState.isFinal) {
@@ -340,10 +341,9 @@ export class Objective implements ObjectiveInterface {
 
     const de = event;
 
-    // TODO: uint64 comparison
-    if (Number(de.blockNum) > updated.latestBlockNumber) {
+    if (BigInt(de.blockNum) > updated.latestBlockNumber) {
       updated.c!.onChainFunding.value.set(de.assetAndAmount.assetAddress, de.nowHeld);
-      updated.latestBlockNumber = Number(de.blockNum);
+      updated.latestBlockNumber = BigInt(de.blockNum);
     }
 
     return updated;
@@ -556,7 +556,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
   appData: Buffer = Buffer.alloc(0);
 
-  nonce: string = '0';
+  nonce: Uint64 = BigInt(0);
 
   private objectiveStarted?: ReadWriteChannel<void>;
 
@@ -566,7 +566,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     outcome: Exit,
     appDefinition: Address,
     appData?: Buffer,
-    nonce: string,
+    nonce: Uint64,
     objectiveStarted?: ReadWriteChannel<void>
   }) {
     Object.assign(this, params);
@@ -577,7 +577,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     counterparty: Address,
     challengeDuration: number,
     outcome: Exit,
-    nonce: string,
+    nonce: Uint64,
     appDefinition: Address,
   ): ObjectiveRequest {
     return new ObjectiveRequest({
