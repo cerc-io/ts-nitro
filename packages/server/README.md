@@ -4,27 +4,31 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
 ## Setup
 
-* In root of the repo, install depedencies and build for node environment:
+* In root of the repo, install depedencies:
 
   ```bash
-  yarn && yarn build:node
+  yarn
   ```
 
 * Start a Hardhat chain:
 
   ```bash
-  # In packages/server
   yarn chain
   ```
 
 * Deploy the Nitro protocol contracts:
 
   ```bash
-  # In packages/server
   yarn test:deploy-contracts
 
   # Expected output:
-  # Contrats deployed, addresses written to ~/ts-nitro/packages/server/addresses.json
+  # Contracts deployed, addresses written to ~/ts-nitro/packages/util/src/test/addresses.json
+  ```
+
+* Build packages for node environment
+
+  ```
+  yarn build:node
   ```
 
 ## Run

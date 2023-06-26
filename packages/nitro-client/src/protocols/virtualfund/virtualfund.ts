@@ -1,6 +1,7 @@
 import assert from 'assert';
 import { ethers } from 'ethers';
 import _ from 'lodash';
+import { Buffer } from 'buffer';
 
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';

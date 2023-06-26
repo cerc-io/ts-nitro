@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import _ from 'lodash';
+import { Buffer } from 'buffer';
 
 import { FieldDescription, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
 // TODO: Use forked @statechannels/nitro-protocol

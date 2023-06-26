@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import {
   FieldDescription, JSONbigNative, Uint64, bytes2Hex, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';

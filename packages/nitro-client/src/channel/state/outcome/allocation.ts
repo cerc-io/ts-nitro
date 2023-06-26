@@ -1,5 +1,6 @@
 import assert from 'assert';
 import _ from 'lodash';
+import { Buffer } from 'buffer';
 
 import {
   FieldDescription, JSONbigNative, fromJSON, toJSON,

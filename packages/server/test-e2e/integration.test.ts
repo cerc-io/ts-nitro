@@ -2,34 +2,58 @@
 import assert from 'assert';
 import { expect } from 'chai';
 
-import { Client, P2PMessageService } from '@cerc-io/nitro-client';
-
-import { createOutcome, setupClient, waitForPeerInfoExchange } from '../src/utils/index';
-import { DirectFundParams } from '../src/types';
+import { Client, MemStore } from '@cerc-io/nitro-client';
+import { hex2Bytes } from '@cerc-io/nitro-util';
 import {
+  setupClient,
+  createOutcome,
+  DEFAULT_CHAIN_URL,
   ALICE_ADDRESS,
-  ALICE_MESSAGING_PORT,
   ALICE_PK,
   ALICE_CHAIN_PK,
   BOB_ADDRESS,
-  BOB_MESSAGING_PORT,
   BOB_PK,
   BOB_CHAIN_PK,
-  CHAIN_URL,
+} from '@cerc-io/util';
+
+import { DirectFundParams } from '../src/types';
+import {
+  ALICE_MESSAGING_PORT,
+  BOB_MESSAGING_PORT,
 } from './constants';
+import { createP2PMessageService, waitForPeerInfoExchange } from '../src/utils';
 
 describe('test Client', () => {
   let aliceClient: Client;
   let bobClient: Client;
 
   it('should instantiate Clients', async () => {
-    let aliceMsgService: P2PMessageService;
-    let bobMsgService: P2PMessageService;
+    const aliceStore = new MemStore(hex2Bytes(ALICE_PK));
+    const aliceMsgService = await createP2PMessageService(ALICE_MESSAGING_PORT, aliceStore.getAddress());
 
-    [aliceClient, aliceMsgService] = await setupClient(ALICE_MESSAGING_PORT, ALICE_PK, ALICE_CHAIN_PK, CHAIN_URL);
+    aliceClient = await setupClient(
+      aliceMsgService,
+      aliceStore,
+      {
+        chainPk: ALICE_CHAIN_PK,
+        chainURL: DEFAULT_CHAIN_URL,
+      },
+    );
+
     expect(aliceClient.address).to.equal(ALICE_ADDRESS);
 
-    [bobClient, bobMsgService] = await setupClient(BOB_MESSAGING_PORT, BOB_PK, BOB_CHAIN_PK, CHAIN_URL);
+    const bobStore = new MemStore(hex2Bytes(BOB_PK));
+    const bobMsgService = await createP2PMessageService(BOB_MESSAGING_PORT, bobStore.getAddress());
+
+    bobClient = await setupClient(
+      bobMsgService,
+      bobStore,
+      {
+        chainPk: BOB_CHAIN_PK,
+        chainURL: DEFAULT_CHAIN_URL,
+      },
+    );
+
     expect(bobClient.address).to.equal(BOB_ADDRESS);
 
     await waitForPeerInfoExchange(1, [aliceMsgService, bobMsgService]);
@@ -41,23 +65,23 @@ describe('test Client', () => {
     const counterParty = BOB_ADDRESS;
     const asset = `0x${'00'.repeat(20)}`;
     const params: DirectFundParams = {
-      CounterParty: counterParty,
-      ChallengeDuration: 0,
-      Outcome: createOutcome(
+      counterParty,
+      challengeDuration: 0,
+      outcome: createOutcome(
         asset,
         aliceClient.address,
         counterParty,
         1_000_000,
       ),
-      AppDefinition: asset,
-      AppData: '0x00',
-      Nonce: Date.now(),
+      appDefinition: asset,
+      appData: '0x00',
+      nonce: Date.now(),
     };
 
     const response = await aliceClient.createLedgerChannel(
-      params.CounterParty,
-      params.ChallengeDuration,
-      params.Outcome,
+      params.counterParty,
+      params.challengeDuration,
+      params.outcome,
     );
 
     expect(response).to.have.property('id');

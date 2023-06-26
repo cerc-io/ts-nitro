@@ -8,7 +8,9 @@ import nitroAdjudicatorArtifact from '@statechannels/nitro-protocol/dist/artifac
 import consensusAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 
-const log = debug('ts-nitro:server');
+import { DEFAULT_CHAIN_URL } from '../src/test/constants';
+
+const log = debug('ts-nitro:util');
 
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
@@ -17,13 +19,13 @@ const getArgv = () => yargs.parserConfiguration({
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
-    default: 'http://127.0.0.1:8545',
+    default: DEFAULT_CHAIN_URL,
   },
   addressesFilePath: {
     alias: 'f',
     type: 'string',
     describe: 'JSON file path to export addresses to',
-    default: './addresses.json',
+    default: './src/test/addresses.json',
   },
 }).argv;
 
@@ -67,7 +69,7 @@ async function main() {
 
   const outputFilePath = path.resolve(argv.addressesFilePath);
   fs.writeFileSync(outputFilePath, JSON.stringify(output, null, 2));
-  log('Contrats deployed, addresses written to', outputFilePath);
+  log('Contracts deployed, addresses written to', outputFilePath);
 }
 
 main()

@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { Buffer } from 'buffer';
 import isEqual from 'lodash/isEqual';
 
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';

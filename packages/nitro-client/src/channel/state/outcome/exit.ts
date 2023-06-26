@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { ethers } from 'ethers';
+import { Buffer } from 'buffer';
 
 import {
   FieldDescription, JSONbigNative, fromJSON, toJSON,

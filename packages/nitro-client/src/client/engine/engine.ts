@@ -1032,6 +1032,7 @@ export class Engine {
   // logMessage logs a message to the engine's logger
   private logMessage(msg: Message, direction: MessageDirection): void {
     if (direction === Incoming) {
+      // TODO: Implement go logger EmbedObject (Implement MessageSummary.MarshalZerologObject)
       this.logger(`Received message: ${msg.summarize()}`);
     } else {
       this.logger(`Sending message: ${msg.summarize()}`);

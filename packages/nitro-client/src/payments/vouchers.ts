@@ -10,6 +10,7 @@
 
 import { ethers } from 'ethers';
 import _ from 'lodash';
+import { Buffer } from 'buffer';
 
 import { Bytes32, signVoucher } from '@statechannels/nitro-protocol';
 import {

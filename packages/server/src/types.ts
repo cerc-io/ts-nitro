@@ -4,10 +4,10 @@ import { Exit } from '@cerc-io/nitro-client';
  * Objective params
  */
 export type DirectFundParams = {
-  CounterParty: string;
-  ChallengeDuration: number;
-  Outcome: Exit;
-  Nonce: number;
-  AppDefinition: string;
-  AppData: string;
+  counterParty: string;
+  challengeDuration: number;
+  outcome: Exit;
+  nonce: number;
+  appDefinition: string;
+  appData: string;
 };
