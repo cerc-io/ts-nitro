@@ -147,6 +147,12 @@ export class Client {
     return objectiveRequest.id(this.address, this.chainId);
   }
 
+  // ObjectiveCompleteChan returns a chan that is closed when the objective with given id is completed
+  objectiveCompleteChan(id: ObjectiveId): ReadWriteChannel<null> {
+    const [d] = this.completedObjectives!.loadOrStore(id, Channel<null>());
+    return d;
+  }
+
   // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
   // with the supplied intermediaries.
   async createVirtualPaymentChannel(

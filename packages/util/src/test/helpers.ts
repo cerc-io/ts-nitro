@@ -4,7 +4,7 @@ import {
   MemStore,
   EthChainService,
   PermissivePolicy,
-  Metrics
+  Metrics,
 } from '@cerc-io/nitro-client';
 
 import {

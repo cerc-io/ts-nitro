@@ -76,8 +76,9 @@ export class Metrics implements MetricsApi {
 
   guage(name: string): Gauge {
     assert(this.registry);
-    if (this.registry.get('gauge', name)) {
-      return this.registry.get('gauge', name)!;
+    const gauge = this.registry.get('gauge', name);
+    if (gauge) {
+      return gauge;
     }
     return this.registry.create('gauge', name);
   }

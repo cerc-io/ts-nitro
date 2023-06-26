@@ -15,8 +15,11 @@ import { DirectFundParams } from '../src/types';
 import {
   ALICE_MESSAGING_PORT,
   BOB_MESSAGING_PORT,
+  METRICS_CHANNEL_KEYS,
+  METRICS_MESSAGE_KEYS_VALUES,
 } from './constants';
 import { createP2PMessageService, waitForPeerInfoExchange } from '../src/utils';
+import { getMetricsKey, getMetricsMessageObj, getMetricsMessage } from './utils';
 
 describe('test Client', () => {
   let aliceClient: Client;
@@ -44,7 +47,7 @@ describe('test Client', () => {
     const bobStore = new MemStore(hex2Bytes(ACTORS.bob.privateKey));
     const bobMsgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, BOB_MESSAGING_PORT, bobStore.getAddress());
 
-    [bobClient,metricsBob ] = await setupClient(
+    [bobClient, metricsBob] = await setupClient(
       bobMsgService,
       bobStore,
       {
@@ -59,7 +62,6 @@ describe('test Client', () => {
 
     expect(metricsAlice.getMetrics()).to.have.keys(...getMetricsKey(METRICS_CHANNEL_KEYS, ALICE_ADDRESS));
     expect(metricsBob.getMetrics()).to.have.keys(...getMetricsKey(METRICS_CHANNEL_KEYS, BOB_ADDRESS));
-    console.log({ metricsAlice: metricsAlice.getMetrics(), metricsBob: metricsBob.getMetrics() });
   });
 
   it('should create ledger channel', async () => {
@@ -87,13 +89,19 @@ describe('test Client', () => {
       params.outcome,
     );
 
+    await aliceClient.objectiveCompleteChan(response.id).shift();
+
     expect(response).to.have.property('id');
     expect(response).to.have.property('channelId');
 
     // Check that channelId value is present as a substring in id
     expect(response.id).to.contain(response.channelId.value);
-    console.log({ metricsAlice: metricsAlice.getMetrics(), metricsBob: metricsBob.getMetrics() });
 
+    expect(metricsAlice.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ALICE_ADDRESS, BOB_ADDRESS));
+    expect(metricsBob.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', BOB_ADDRESS, ALICE_ADDRESS));
+
+    expect(metricsAlice.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, ALICE_ADDRESS, BOB_ADDRESS));
+    expect(metricsBob.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, BOB_ADDRESS, ALICE_ADDRESS));
     // TODO: Implement and close services
     // client.close();
   });

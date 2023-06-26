@@ -231,8 +231,7 @@ export class Engine {
 
     while (true) {
       let res = new EngineEvent();
-      // TODO: NodeGuy/channel is not measuring length of channel
-      // They are only measuring size of channel
+      // TODO: @nodeguy/channel is measuring size instead of channel length; make changes to get length
       this.metrics?.recordQueueLength('api_objective_request_queue', 0);
       this.metrics?.recordQueueLength('api_payment_request_queue', 0);
       this.metrics?.recordQueueLength('chain_events_queue', 0);
