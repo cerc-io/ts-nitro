@@ -7,9 +7,9 @@ import {
   createOutcome,
   DEFAULT_CHAIN_URL,
 } from '@cerc-io/util';
-
 import { MemStore } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
+
 import { createP2PMessageService, waitForPeerInfoExchange } from './utils/index';
 import { DirectFundParams } from './types';
 
@@ -61,7 +61,8 @@ const main = async () => {
   const argv = getArgv();
 
   const store = new MemStore(hex2Bytes(argv.pk));
-  const msgService = await createP2PMessageService(argv.port, store.getAddress());
+  // TODO: Add arg for relay address
+  const msgService = await createP2PMessageService('', argv.port, store.getAddress());
 
   const client = await setupClient(
     msgService,

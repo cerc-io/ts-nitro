@@ -8,6 +8,8 @@ import type { Libp2p, Libp2pOptions } from 'libp2p';
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 // @ts-expect-error
+import { Peer as PeerInterface, PeerInitConfig } from '@cerc-io/peer';
+// @ts-expect-error
 import type { PrivateKey } from '@libp2p/interface-keys';
 // @ts-expect-error
 import type { MulticastDNSComponents } from '@libp2p/mdns';
@@ -20,7 +22,7 @@ import type { IncomingStreamData } from '@libp2p/interface-registrar';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error
-import type { Address as PeerAddress } from '@libp2p/interface-peer-store';
+import type { PeerProtocolsChangeData } from '@libp2p/interface-peer-store';
 // @ts-expect-error
 import type { Multiaddr } from '@multiformats/multiaddr';
 
@@ -71,7 +73,7 @@ interface ConstructorOptions {
   newPeerInfo: ReadWriteChannel<BasicPeerInfo>;
   logger: debug.Debugger;
   key?: PrivateKey;
-  p2pHost?: Libp2p;
+  p2pHost?: PeerInterface;
   mdns?: (components: MulticastDNSComponents) => PeerDiscovery;
 }
 
@@ -86,7 +88,7 @@ export class P2PMessageService implements MessageService {
 
   private key?: PrivateKey;
 
-  private p2pHost?: Libp2p;
+  private p2pHost?: PeerInterface;
 
   private mdns?: (components: MulticastDNSComponents) => PeerDiscovery;
 
@@ -118,6 +120,7 @@ export class P2PMessageService implements MessageService {
   // If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
   // Otherwise, peers must be added manually via `AddPeers`.
   static async newMessageService(
+    relayMultiAddr: string,
     ip: string,
     port: number,
     me: Address,
@@ -129,11 +132,11 @@ export class P2PMessageService implements MessageService {
       toEngine: Channel<Message>(BUFFER_SIZE),
       newPeerInfo: Channel<BasicPeerInfo>(BUFFER_SIZE),
       peers: new SafeSyncMap<BasicPeerInfo>(),
-      me: ethers.utils.getAddress(me),
+      me,
       logger: log,
     });
 
-    const { unmarshalPrivateKey } = await import('@libp2p/crypto/keys');
+    const { unmarshalPrivateKey, marshalPrivateKey, marshalPublicKey } = await import('@libp2p/crypto/keys');
 
     try {
       const messageKey = await unmarshalPrivateKey(pk);
@@ -144,39 +147,49 @@ export class P2PMessageService implements MessageService {
 
     assert(ms.key);
     const PeerIdFactory = await import('@libp2p/peer-id-factory');
-    const { tcp } = await import('@libp2p/tcp');
-    const { yamux } = await import('@chainsafe/libp2p-yamux');
-    const { noise } = await import('@chainsafe/libp2p-noise');
 
-    const options: Libp2pOptions = {
-      peerId: await PeerIdFactory.createFromPrivKey(ms.key),
-      addresses: { listen: [`/ip4/${ip}/tcp/${port}`] },
-      transports: [tcp()],
-      streamMuxers: [yamux()],
-      // libp2p.NoSecurity,
-      // Use noise() instead
-      connectionEncryption: [noise()],
+    const { Peer } = await import('@cerc-io/peer');
+    // TODO: Debug connection issue with webrtc enabled
+    // Disabled by setting nodejs option to true below
+    ms.p2pHost = new Peer(relayMultiAddr, true);
+    const peerId = await PeerIdFactory.createFromPrivKey(ms.key);
+    const { tcp } = await import('@libp2p/tcp');
+
+    const initOptions: PeerInitConfig = {
+      transports: [
+        // @ts-expect-error
+        tcp(),
+      ],
+      listenMultiaddrs: [`/ip4/${ip}/tcp/${port}`],
     };
 
     if (useMdnsPeerDiscovery) {
       const { mdns } = await import('@libp2p/mdns');
 
-      options.peerDiscovery = [
+      initOptions.peerDiscovery = [
+        // @ts-expect-error
         mdns({
           interval: 20e3,
         }),
       ];
     }
 
-    const { createLibp2p } = await import('libp2p');
-    const host = await createLibp2p(options);
-    ms.p2pHost = host;
+    await ms.p2pHost.init(
+      initOptions,
+      {
+        id: peerId.toString(),
+        privKey: Buffer.from(marshalPrivateKey(ms.key)).toString('base64'),
+        pubKey: Buffer.from(marshalPublicKey(ms.key.public)).toString('base64'),
+      },
+    );
 
-    ms.p2pHost.addEventListener('peer:discovery', ms.handlePeerFound.bind(ms));
+    assert(ms.p2pHost.node);
+    ms.p2pHost.node.peerStore.addEventListener('change:protocols', ms.handlePeerProtocols.bind(ms));
+    // @ts-expect-error
+    ms.p2pHost.node.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
 
-    await ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
-
-    await ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
+    ms.p2pHost.node.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
+      // @ts-expect-error
       ms.receivePeerInfo(stream).then(() => {
         stream.close();
       });
@@ -193,26 +206,29 @@ export class P2PMessageService implements MessageService {
     return PeerIdFactory.createFromPrivKey(this.key);
   }
 
-  // handlePeerFound is called by the mDNS service when a peer is found.
-  async handlePeerFound({ detail: pi }: any) {
+  // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
+  async handlePeerProtocols({ detail: data }: CustomEvent<PeerProtocolsChangeData>) {
     assert(this.p2pHost);
+    assert(this.p2pHost.node);
+    assert(this.p2pHost.peerId);
 
-    const peerMultiaddrs: Multiaddr[] = pi.addresses.map((address: PeerAddress) => address.multiaddr);
-    const peer = await this.p2pHost.peerStore.save(
-      pi.id,
-      {
-        multiaddrs: peerMultiaddrs,
-        // TODO: Check if ttl option exists to set it like in go-nitro
-        // peerstore.PermanentAddrTTL
-      },
-    );
+    // Ignore self protocol changes
+    if (data.peerId.equals(this.p2pHost.peerId)) {
+      return;
+    }
+
+    // Ignore if PEER_EXCHANGE_PROTOCOL_ID is not handled by remote peer
+    if (!data.protocols.includes(PEER_EXCHANGE_PROTOCOL_ID)) {
+      return;
+    }
 
     try {
-      const stream = await this.p2pHost.dialProtocol(
-        peer.id,
+      const stream = await this.p2pHost.node.dialProtocol(
+        data.peerId,
         PEER_EXCHANGE_PROTOCOL_ID,
       );
 
+      // @ts-expect-error
       await this.sendPeerInfo(stream);
       stream.close();
     } catch (err) {
@@ -356,6 +372,7 @@ export class P2PMessageService implements MessageService {
 
     assert(peerInfo);
     assert(this.p2pHost);
+    assert(this.p2pHost.node);
     const { pipe } = await import('it-pipe');
     const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
 
@@ -363,7 +380,7 @@ export class P2PMessageService implements MessageService {
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        const s = await this.p2pHost.dialProtocol(peerInfo.id, PROTOCOL_ID);
+        const s = await this.p2pHost.node.dialProtocol(peerInfo.id, PROTOCOL_ID);
 
         // TODO: Implement buffered writer
         // writer := bufio.NewWriter(s)
@@ -402,13 +419,11 @@ export class P2PMessageService implements MessageService {
 
   // Closes the P2PMessageService
   close(): void {
-    // The mdns service is optional so we only close it if it exists
-    // if s.mdns != nil {
-    //   s.mdns.Close()
-    // }
+    assert(this.p2pHost);
+    assert(this.p2pHost.node);
 
-    this.p2pHost!.unhandle(PROTOCOL_ID);
-    this.p2pHost!.stop();
+    this.p2pHost.node.unhandle(PROTOCOL_ID);
+    this.p2pHost.node.stop();
   }
 
   // peerInfoReceived returns a channel that receives a PeerInfo when a peer is discovered
@@ -420,6 +435,9 @@ export class P2PMessageService implements MessageService {
   // AddPeers adds the peers to the message service.
   // We ignore peers that are ourselves.
   async addPeers(peers: PeerInfo[]) {
+    assert(this.p2pHost);
+    assert(this.p2pHost.node);
+
     for (const [, p] of peers.entries()) {
       // Ignore ourselves
       if (p.address === this.me) {
@@ -428,13 +446,11 @@ export class P2PMessageService implements MessageService {
 
       const { multiaddr } = await import('@multiformats/multiaddr');
       const multi = multiaddr(`/ip4/${p.ipAddress}/tcp/${p.port}/p2p/${p.id}`);
-      await this.p2pHost!.peerStore.merge(
+      await this.p2pHost.node.peerStore.addressBook.add(
         p.id,
-        {
-          multiaddrs: [multi],
-          // TODO: Check if ttl option exists to set it like in go-nitro
-          // peerstore.PermanentAddrTTL
-        },
+        [multi],
+        // TODO: Check if ttl option exists to set it like in go-nitro
+        // peerstore.PermanentAddrTTL
       );
       this.peers.store(p.address, { id: p.id, address: p.address });
     }

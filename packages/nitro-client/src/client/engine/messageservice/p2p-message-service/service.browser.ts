@@ -149,9 +149,11 @@ export class P2PMessageService implements MessageService {
 
     assert(ms.p2pHost.node);
     ms.p2pHost.node.peerStore.addEventListener('change:protocols', ms.handlePeerProtocols.bind(ms));
+    // @ts-expect-error
     ms.p2pHost.node.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
 
     ms.p2pHost.node.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
+      // @ts-expect-error
       ms.receivePeerInfo(stream).then(() => {
         stream.close();
       });
@@ -190,6 +192,7 @@ export class P2PMessageService implements MessageService {
         PEER_EXCHANGE_PROTOCOL_ID,
       );
 
+      // @ts-expect-error
       await this.sendPeerInfo(stream);
       stream.close();
     } catch (err) {

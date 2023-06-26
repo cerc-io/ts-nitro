@@ -29,7 +29,6 @@ const baseConfig: webpack.Configuration = {
   externals: {
     '@nodeguy/channel': '@nodeguy/channel',
     '@cerc-io/nitro-util': '@cerc-io/nitro-util',
-    '@cerc-io/peer': '@cerc-io/peer',
     '@statechannels/exit-format': '@statechannels/exit-format',
     '@statechannels/nitro-protocol': '@statechannels/nitro-protocol',
     lodash: 'lodash',
@@ -46,6 +45,7 @@ export const browserConfig: webpack.Configuration = merge(baseConfig, {
   externals: {
     '@chainsafe/libp2p-yamux': '@chainsafe/libp2p-yamux',
     '@chainsafe/libp2p-noise': '@chainsafe/libp2p-noise',
+    '@cerc-io/peer': '@cerc-io/peer',
 
     // TODO: Fix export paths so that it can be resolved by react build
     'it-pipe': 'it-pipe',

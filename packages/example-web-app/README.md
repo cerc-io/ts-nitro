@@ -56,7 +56,7 @@ Run relay node using v2 watcher
 
 * Open console in browser inspect and enable debug logs by setting `localStorage.debug = 'ts-nitro:*'`
 
-* Restart the apps for enabling logs
+* Refresh the apps for enabling logs
 
 * Call methods `setupClient('alice')` and `setupClient('bob')` separately in the 2 browsers
 
@@ -75,6 +75,7 @@ Run relay node using v2 watcher
     ```
     ts-nitro:engine Objective DirectFunding-0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978 is complete & returned to API +22ms
     ```
+
 ## Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
