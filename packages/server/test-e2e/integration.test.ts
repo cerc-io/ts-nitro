@@ -28,11 +28,10 @@ describe('test Client', () => {
   let bobClient: Client;
 
   it('should instantiate Clients', async () => {
-    const relayMultiaddr = process.env.RELAY_MULTIADDR;
-    assert(relayMultiaddr, 'RELAY_MULTIADDR should be set in .env');
+    assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
     const aliceStore = new MemStore(hex2Bytes(ALICE_PK));
-    const aliceMsgService = await createP2PMessageService(relayMultiaddr, ALICE_MESSAGING_PORT, aliceStore.getAddress());
+    const aliceMsgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, ALICE_MESSAGING_PORT, aliceStore.getAddress());
 
     aliceClient = await setupClient(
       aliceMsgService,
@@ -46,7 +45,7 @@ describe('test Client', () => {
     expect(aliceClient.address).to.equal(ALICE_ADDRESS);
 
     const bobStore = new MemStore(hex2Bytes(BOB_PK));
-    const bobMsgService = await createP2PMessageService(relayMultiaddr, BOB_MESSAGING_PORT, bobStore.getAddress());
+    const bobMsgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, BOB_MESSAGING_PORT, bobStore.getAddress());
 
     bobClient = await setupClient(
       bobMsgService,

@@ -60,14 +60,14 @@ Run relay node using v2 watcher
 
 * Call methods `setupClient('alice')` and `setupClient('bob')` separately in the 2 browsers
 
-* Wait for `New peer found` log in console and check `window.msgService.peers` to see if peers have exchanged info
+* Wait for `New peer found` log in console and check `msgService.peers` to see if peers have exchanged info
 
-* Call method `window.directFund` with address of the other browser client and check logs
+* Call method `directFund` with address of the other browser client and check logs
 
   * For example, call directFund in Alice browser with Bob's address
     
     ```
-    window.directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94')
+    directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94')
     ```
 
   * Final expected log

@@ -1,6 +1,7 @@
 import yargs from 'yargs';
 import debug from 'debug';
 import assert from 'assert';
+import 'dotenv/config';
 
 import {
   setupClient,
@@ -59,10 +60,10 @@ const getArgv = () => yargs.parserConfiguration({
 
 const main = async () => {
   const argv = getArgv();
+  assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
   const store = new MemStore(hex2Bytes(argv.pk));
-  // TODO: Add arg for relay address
-  const msgService = await createP2PMessageService('', argv.port, store.getAddress());
+  const msgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, argv.port, store.getAddress());
 
   const client = await setupClient(
     msgService,
