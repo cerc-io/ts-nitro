@@ -56,6 +56,9 @@ describe('test Client', () => {
     expect(bobClient.address).to.equal(ACTORS.bob.address);
 
     await waitForPeerInfoExchange(1, [aliceMsgService, bobMsgService]);
+
+    expect(metricsAlice.getMetrics()).to.have.keys(...getMetricsKey(METRICS_CHANNEL_KEYS, ALICE_ADDRESS));
+    expect(metricsBob.getMetrics()).to.have.keys(...getMetricsKey(METRICS_CHANNEL_KEYS, BOB_ADDRESS));
     console.log({ metricsAlice: metricsAlice.getMetrics(), metricsBob: metricsBob.getMetrics() });
   });
 

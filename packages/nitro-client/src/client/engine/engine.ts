@@ -231,15 +231,13 @@ export class Engine {
 
     while (true) {
       let res = new EngineEvent();
-      // @ts-expect-error
-      this.metrics?.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.length);
-      // @ts-expect-error
-      this.metrics?.recordQueueLength('api_payment_request_queue', this.paymentRequestsFromAPI.length);
-      // TODO: Read channel is not having length
+      // TODO: NodeGuy/channel is not measuring length of channel
+      // They are only measuring size of channel
+      this.metrics?.recordQueueLength('api_objective_request_queue', 0);
+      this.metrics?.recordQueueLength('api_payment_request_queue', 0);
       this.metrics?.recordQueueLength('chain_events_queue', 0);
       this.metrics?.recordQueueLength('messages_queue', 0);
-      // @ts-expect-error
-      this.metrics?.recordQueueLength('proposal_queue', this.fromLedger.length);
+      this.metrics?.recordQueueLength('proposal_queue', 0);
 
       try {
         /* eslint-disable no-await-in-loop */
