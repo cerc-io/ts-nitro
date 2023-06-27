@@ -16,7 +16,7 @@ export function convertAssetMetadata(am: AssetMetadata): ExitFormat.AssetMetadat
 export function convertAllocations(as: Allocations): ExitFormat.AllocationStruct[] {
   return as.value.map((a): ExitFormat.AllocationStruct => ({
     destination: a.destination.value,
-    amount: a.amount,
+    amount: a.amount!,
     allocationType: a.allocationType,
     metadata: a.metadata,
   }));

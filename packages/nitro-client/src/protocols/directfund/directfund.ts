@@ -135,7 +135,7 @@ export class Objective implements ObjectiveInterface {
     request: ObjectiveRequest,
     preApprove: boolean,
     myAddress: Address,
-    chainId: bigint,
+    chainId: bigint | undefined,
     getChannels: GetChannelsByParticipantFunction,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
   ): Objective {
@@ -344,7 +344,7 @@ export class Objective implements ObjectiveInterface {
     const de = event;
 
     if (BigInt(de.blockNum) > updated.latestBlockNumber) {
-      updated.c!.onChainFunding.value.set(de.assetAndAmount.assetAddress, de.nowHeld);
+      updated.c!.onChainFunding.value.set(de.assetAndAmount.assetAddress, de.nowHeld!);
       updated.latestBlockNumber = BigInt(de.blockNum);
     }
 
@@ -605,7 +605,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   // Id returns the objective id for the request.
-  id(myAddress: Address, chainId: bigint): ObjectiveId {
+  id(myAddress: Address, chainId?: bigint): ObjectiveId {
     const fixedPart: FixedPart = new FixedPart({
       participants: [myAddress, this.counterParty],
       channelNonce: this.nonce,
@@ -617,7 +617,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   // Response computes and returns the appropriate response from the request.
-  response(myAddress: Address, chainId: bigint): ObjectiveResponse {
+  response(myAddress: Address, chainId?: bigint): ObjectiveResponse {
     const fixedPart = new FixedPart({
       participants: [myAddress, this.counterParty],
       channelNonce: this.nonce,

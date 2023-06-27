@@ -78,7 +78,7 @@ const Outgoing: MessageDirection = 'Outgoing';
 
 export type PaymentRequest = {
   channelId: Destination
-  amount: bigint
+  amount?: bigint
 };
 
 // EngineEvent is a struct that contains a list of changes caused by handling a message/chain event/api event
@@ -495,8 +495,8 @@ export class Engine {
           return [new EngineEvent(), new Error(`could not fetch channel for voucher ${voucher}`)];
         }
 
-        let paid: bigint;
-        let remaining: bigint;
+        let paid: bigint | undefined;
+        let remaining: bigint | undefined;
         try {
           [paid, remaining] = getVoucherBalance(c.id, this.vm);
         } catch (err) {
@@ -628,7 +628,7 @@ export class Engine {
         }
 
         case or instanceof VirtualDefundObjectiveRequest: {
-          let minAmount = BigInt(0);
+          let minAmount: bigint | undefined = BigInt(0);
           const request = or as VirtualDefundObjectiveRequest;
 
           if (this.vm!.channelRegistered(request.channelId)) {
@@ -906,9 +906,10 @@ export class Engine {
   private registerPaymentChannel(vfo: VirtualFundObjective): void {
     assert(vfo.v);
     const postfund = vfo.v.postFundState();
+    let startingBalance: bigint = BigInt(0);
 
     // TODO: Assumes one asset for now
-    const startingBalance = BigInt(postfund.outcome.value[0].allocations.value[0].amount);
+    startingBalance = BigInt(postfund.outcome.value[0].allocations.value[0].amount!);
 
     assert(this.vm);
 
@@ -1041,9 +1042,9 @@ export class Engine {
             throw new Error(`could not determine virtual channel id from objective ${id}: ${err}`);
           }
 
-          let minAmount = BigInt(0);
+          let minAmount: bigint | undefined = BigInt(0);
           if (this.vm.channelRegistered(vId)) {
-            let paid: bigint;
+            let paid: bigint | undefined;
             try {
               paid = this.vm.paid(vId);
             } catch (err) {

@@ -17,7 +17,7 @@ export const singleAssetExitDepositSafetyThreshold = (singleAssetExit: SingleAss
       return sum;
     }
 
-    sum += allocation.amount;
+    sum += BigInt(allocation.amount!);
   }
 
   return sum;

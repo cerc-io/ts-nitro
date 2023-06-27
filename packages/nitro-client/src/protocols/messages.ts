@@ -225,7 +225,7 @@ export class Message {
         };
       }),
       payments: this.payments.map((p): PaymentSummary => ({
-        amount: p.amount,
+        amount: p.amount!,
         channelId: p.channelId.string(),
       })),
       rejectedObjectives: this.rejectedObjectives,

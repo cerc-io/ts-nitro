@@ -7,7 +7,12 @@ import { Address } from '../../../types/types';
 import { Destination } from '../../../types/destination';
 
 // getAssetHoldings reads on-chain holdings for a channel,asset address, and block number
-async function getAssetHoldings(na: NitroAdjudicator, assetAddress: Address, blockNumber: bigint, channelId: Destination): Promise<bigint> {
+async function getAssetHoldings(
+  na: NitroAdjudicator,
+  assetAddress: Address,
+  blockNumber: bigint | undefined,
+  channelId: Destination,
+): Promise<bigint> {
   const amount = await na.holdings(assetAddress, channelId.value, { blockTag: Number(blockNumber) });
   return amount.toBigInt();
 }
@@ -29,7 +34,7 @@ export async function getChainHolding(
 }
 
 // assetAddressForIndex uses the input parameters of a transaction to map an asset index to an asset address
-function assetAddressForIndex(na: NitroAdjudicator, tx: Transaction, index: bigint): Address {
+function assetAddressForIndex(na: NitroAdjudicator, tx: Transaction, index?: bigint): Address {
   const abiInterface = na.interface;
   const params = decodeTxParams(abiInterface, tx);
 

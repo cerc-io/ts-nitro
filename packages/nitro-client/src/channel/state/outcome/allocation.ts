@@ -20,7 +20,7 @@ export class Allocation {
   destination: Destination = new Destination();
 
   // An amount of a particular asset
-  amount: bigint = BigInt(0);
+  amount?: bigint;
 
   // Directs calling code on how to interpret the allocation
   allocationType: AllocationType = AllocationType.NormalAllocationType;
@@ -132,7 +132,7 @@ export class Allocations {
   total(): bigint {
     let total = BigInt(0);
     this.value.forEach((allocation) => {
-      total += allocation.amount;
+      total += BigInt(allocation.amount!);
     });
 
     return total;
@@ -143,7 +143,7 @@ export class Allocations {
     let total = BigInt(0);
     this.value.forEach((allocation) => {
       if (_.isEqual(allocation.destination, dest)) {
-        total += allocation.amount;
+        total += BigInt(allocation.amount!);
       }
     });
 
@@ -155,18 +155,18 @@ export class Allocations {
   // To afford the given allocation, the allocations must include something equal-in-value to it,
   // as well as having sufficient funds left over for it after reserving funds from the input funding for all allocations with higher priority.
   // Note that "equal-in-value" implies the same allocation type and metadata (if any).
-  affords(given: Allocation, funding: bigint): boolean {
+  affords(given: Allocation, funding?: bigint): boolean {
     const bigZero = BigInt(0);
     let surplus = funding;
 
     for (const allocation of this.value) {
       if (allocation.equal(given)) {
-        return surplus >= given.amount;
+        return surplus! >= given.amount!;
       }
 
-      surplus -= allocation.amount;
+      surplus = BigInt(surplus!) - BigInt(allocation.amount!);
 
-      if (!(surplus > 0)) {
+      if (!(surplus > BigInt(0))) {
         break; // no funds remain for further allocations
       }
     }
@@ -178,12 +178,11 @@ export class Allocations {
   // the leftDestination's amount reduced by leftAmount,
   // the rightDestination's amount reduced by rightAmount,
   // and a Guarantee appended for the guaranteeDestination
-  // TODO: Can throw an error
   divertToGuarantee(
     leftDestination: Destination,
     rightDestination: Destination,
-    leftAmount: bigint,
-    rightAmount: bigint,
+    leftAmount: bigint | undefined,
+    rightAmount: bigint | undefined,
     guaranteeDestination: Destination,
   ): Allocations {
     if (_.isEqual(leftDestination, rightDestination)) {
@@ -197,14 +196,14 @@ export class Allocations {
       /* eslint-disable default-case */
       switch (newAllocations[i].destination) {
         case leftDestination:
-          newAllocations[i].amount -= leftAmount;
+          newAllocations[i].amount = BigInt(newAllocations[i].amount!) - BigInt(leftAmount!);
           break;
         case rightDestination:
-          newAllocations[i].amount -= rightAmount;
+          newAllocations[i].amount = BigInt(newAllocations[i].amount!) - BigInt(rightAmount!);
           break;
       }
 
-      if (newAllocations[i].amount < 0) {
+      if (BigInt(0) > BigInt(newAllocations[i].amount!)) {
         throw new Error('insufficient funds');
       }
     }
@@ -221,7 +220,7 @@ export class Allocations {
 
     newAllocations.push(new Allocation({
       destination: guaranteeDestination,
-      amount: leftAmount + rightAmount,
+      amount: BigInt(leftAmount!) + BigInt(rightAmount!),
       allocationType: AllocationType.GuaranteeAllocationType,
       metadata: encodedGuaranteeMetadata,
     }));

@@ -108,8 +108,8 @@ export function validateFinalOutcome(
   const initialBobAmount = initialOutcome.allocations.value[1].amount;
   const finalAliceAmount = finalOutcome.allocations.value[0].amount;
   const finalBobAmount = finalOutcome.allocations.value[1].amount;
-  const paidToBob = finalBobAmount - initialBobAmount;
-  const paidFromAlice = initialAliceAmount - finalAliceAmount;
+  const paidToBob = BigInt(finalBobAmount!) - BigInt(initialBobAmount!);
+  const paidFromAlice = BigInt(initialAliceAmount!) - BigInt(finalAliceAmount!);
 
   if (paidToBob !== paidFromAlice) {
     throw new Error(`final outcome is not balanced: Alice paid ${paidFromAlice}, Bob received ${paidToBob}`);
@@ -213,7 +213,7 @@ export class Objective implements ObjectiveInterface {
     request: ObjectiveRequest,
     preApprove: boolean,
     myAddress: Address,
-    largestPaymentAmount: bigint,
+    largestPaymentAmount: bigint | undefined,
     getChannel: GetChannelByIdFunction,
     getConsensusChannel: GetTwoPartyConsensusLedgerFunction,
   ): Objective {
@@ -374,8 +374,8 @@ export class Objective implements ObjectiveInterface {
     // Since Alice is responsible for issuing vouchers she always has the largest payment amount
     // This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
     const finalOutcome = this.initialOutcome().clone();
-    finalOutcome.allocations.value[0].amount -= this.minimumPaymentAmount;
-    finalOutcome.allocations.value[1].amount += this.minimumPaymentAmount;
+    finalOutcome.allocations.value[0].amount = BigInt(finalOutcome.allocations.value[0].amount!) - this.minimumPaymentAmount;
+    finalOutcome.allocations.value[1].amount = BigInt(finalOutcome.allocations.value[1].amount!) + this.minimumPaymentAmount;
     return finalOutcome;
   }
 

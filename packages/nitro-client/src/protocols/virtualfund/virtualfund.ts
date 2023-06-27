@@ -360,8 +360,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       if (!init.b0.value.has(asset)) {
         init.b0.value.set(asset, BigInt(0));
       }
-      init.a0.value.set(asset, init.a0.value.get(asset)! + amount0);
-      init.b0.value.set(asset, init.b0.value.get(asset)! + amount1);
+      init.a0.value.set(asset, BigInt(init.a0.value.get(asset)!) + BigInt(amount0!));
+      init.b0.value.set(asset, BigInt(init.b0.value.get(asset)!) + BigInt(amount1!));
     }
 
     // Setup Ledger Channel Connections and expected guarantees

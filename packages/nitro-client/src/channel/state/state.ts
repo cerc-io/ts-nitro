@@ -263,7 +263,7 @@ export class State {
         allocations: singleAssetExit.allocations.value.map((allocation) => {
           return {
             destination: allocation.destination.value,
-            amount: allocation.amount.toString(),
+            amount: allocation.amount!.toString(),
             allocationType: allocation.allocationType,
             metadata: `0x${bytes2Hex(allocation.metadata)}`,
           };

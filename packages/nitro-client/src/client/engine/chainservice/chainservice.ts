@@ -39,20 +39,20 @@ interface AssetAndAmountConstructorOptions {
 class AssetAndAmount {
   assetAddress: Address = ethers.constants.AddressZero;
 
-  assetAmount: bigint = BigInt(0);
+  assetAmount?: bigint;
 
   constructor(params: AssetAndAmountConstructorOptions) {
     Object.assign(this, params);
   }
 
   string(): string {
-    return `${this.assetAmount.toString()} units of ${this.assetAddress} token`;
+    return `${this.assetAmount!.toString()} units of ${this.assetAddress} token`;
   }
 }
 
 // DepositedEvent is an internal representation of the deposited blockchain event
 export class DepositedEvent extends CommonEvent {
-  nowHeld: bigint = BigInt(0);
+  nowHeld?: bigint;
 
   // Workaround for extending multiple classes in TypeScript
   assetAndAmount: AssetAndAmount;
@@ -68,7 +68,7 @@ export class DepositedEvent extends CommonEvent {
     this.assetAndAmount = new AssetAndAmount(assetAndAmountParams);
   }
 
-  static newDepositedEvent(channelId: Destination, blockNum: string, assetAddress: Address, assetAmount: bigint, nowHeld: bigint): DepositedEvent {
+  static newDepositedEvent(channelId: Destination, blockNum: string, assetAddress: Address, assetAmount?: bigint, nowHeld?: bigint): DepositedEvent {
     return new DepositedEvent(
       {
         _channelID: channelId,
@@ -84,7 +84,7 @@ export class DepositedEvent extends CommonEvent {
 
   string(): string {
     /* eslint-disable max-len */
-    return `Deposited ${this.assetAndAmount.string()} leaving ${this.nowHeld.toString()} now held against channel ${this.channelID().string()} at Block ${this.blockNum}`;
+    return `Deposited ${this.assetAndAmount.string()} leaving ${this.nowHeld!.toString()} now held against channel ${this.channelID().string()} at Block ${this.blockNum}`;
   }
 }
 
@@ -128,7 +128,7 @@ export class AllocationUpdatedEvent extends CommonEvent {
     return `Channel ${this.channelID().string()} has had allocation updated to ${this.assetAndAmount.string()} at Block ${this.blockNum}`;
   }
 
-  static newAllocationUpdatedEvent(channelId: Destination, blockNum: string, assetAddress: Address, assetAmount: bigint): AllocationUpdatedEvent {
+  static newAllocationUpdatedEvent(channelId: Destination, blockNum: string, assetAddress: Address, assetAmount: bigint | undefined): AllocationUpdatedEvent {
     return new AllocationUpdatedEvent({ _channelID: channelId, blockNum }, { assetAddress, assetAmount });
   }
 
