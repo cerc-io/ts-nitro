@@ -9,7 +9,6 @@ export const createP2PMessageService = async (relayMultiAddr: string, me: string
   return P2PMessageService.newMessageService(
     relayMultiAddr,
     me,
-    privateKey.bytes,
-    true,
+    privateKey.bytes
   );
 };

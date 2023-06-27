@@ -1,20 +1,16 @@
 import assert from 'assert';
 import debug from 'debug';
 import { ethers } from 'ethers';
-// https://github.com/microsoft/TypeScript/issues/49721
+import { Buffer } from 'buffer';
 // @ts-expect-error
-import type { Libp2p, Libp2pOptions } from 'libp2p';
+import type { Libp2p } from 'libp2p';
 
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
 // @ts-expect-error
-import { Peer as PeerInterface, PeerInitConfig } from '@cerc-io/peer';
+import { PeerInitConfig } from '@cerc-io/peer';
 // @ts-expect-error
 import type { PrivateKey } from '@libp2p/interface-keys';
-// @ts-expect-error
-import type { MulticastDNSComponents } from '@libp2p/mdns';
-// @ts-expect-error
-import type { PeerDiscovery } from '@libp2p/interface-peer-discovery';
 // @ts-expect-error
 import type { Stream } from '@libp2p/interface-connection';
 // @ts-expect-error
@@ -23,8 +19,6 @@ import type { IncomingStreamData } from '@libp2p/interface-registrar';
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error
 import type { PeerProtocolsChangeData } from '@libp2p/interface-peer-store';
-// @ts-expect-error
-import type { Multiaddr } from '@multiformats/multiaddr';
 
 import { SafeSyncMap } from '../../../../internal/safesync/safesync';
 import { Message, deserializeMessage } from '../../../../protocols/messages';
@@ -41,7 +35,7 @@ const NUM_CONNECT_ATTEMPTS = 20;
 const RETRY_SLEEP_DURATION = 5 * 1000; // milliseconds
 
 // BasicPeerInfo contains the basic information about a peer
-interface BasicPeerInfo {
+export interface BasicPeerInfo {
   id: PeerId;
   address: Address;
 }
@@ -59,7 +53,7 @@ async function parseBasicPeerInfo(raw: string): Promise<BasicPeerInfo> {
 }
 
 // PeerInfo contains peer information and the ip address/port
-interface PeerInfo {
+export interface PeerInfo {
   port: number;
   id: PeerId;
   address: Address;
@@ -73,47 +67,28 @@ interface ConstructorOptions {
   newPeerInfo: ReadWriteChannel<BasicPeerInfo>;
   logger: debug.Debugger;
   key?: PrivateKey;
-  p2pHost?: PeerInterface;
-  mdns?: (components: MulticastDNSComponents) => PeerDiscovery;
+  p2pHost?: Libp2p;
 }
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
-export class P2PMessageService implements MessageService {
+export class BaseP2PMessageService implements MessageService {
   // For forwarding processed messages to the engine
-  private toEngine: ReadWriteChannel<Message>;
+  private toEngine?: ReadWriteChannel<Message>;
 
-  private peers: SafeSyncMap<BasicPeerInfo>;
+  private peers?: SafeSyncMap<BasicPeerInfo>;
 
-  private me: Address;
+  private me: Address = ethers.constants.AddressZero;
 
   private key?: PrivateKey;
 
-  private p2pHost?: PeerInterface;
+  private p2pHost?: Libp2p;
 
-  private mdns?: (components: MulticastDNSComponents) => PeerDiscovery;
+  private newPeerInfo?: ReadWriteChannel<BasicPeerInfo>;
 
-  private newPeerInfo: ReadWriteChannel<BasicPeerInfo>;
+  private logger: debug.Debugger = log;
 
-  private logger: debug.Debugger;
-
-  constructor({
-    toEngine,
-    peers,
-    me,
-    key,
-    p2pHost,
-    mdns,
-    newPeerInfo,
-    logger,
-  }: ConstructorOptions) {
-    this.toEngine = toEngine;
-    this.peers = peers;
-    this.me = me;
-    this.key = key;
-    this.p2pHost = p2pHost;
-    this.mdns = mdns;
-    this.newPeerInfo = newPeerInfo;
-    this.logger = logger;
+  constructor(params: ConstructorOptions) {
+    Object.assign(this, params);
   }
 
   // newMessageService returns a running P2PMessageService listening on the given ip, port and message key.
@@ -121,14 +96,12 @@ export class P2PMessageService implements MessageService {
   // Otherwise, peers must be added manually via `AddPeers`.
   static async newMessageService(
     relayMultiAddr: string,
-    ip: string,
-    port: number,
     me: Address,
     pk: Uint8Array,
-    useMdnsPeerDiscovery: boolean,
+    initOptions: PeerInitConfig = {},
     logWriter?: WritableStream,
-  ): Promise<P2PMessageService> {
-    const ms = new P2PMessageService({
+  ): Promise<BaseP2PMessageService> {
+    const ms = new BaseP2PMessageService({
       toEngine: Channel<Message>(BUFFER_SIZE),
       newPeerInfo: Channel<BasicPeerInfo>(BUFFER_SIZE),
       peers: new SafeSyncMap<BasicPeerInfo>(),
@@ -151,30 +124,10 @@ export class P2PMessageService implements MessageService {
     const { Peer } = await import('@cerc-io/peer');
     // TODO: Debug connection issue with webrtc enabled
     // Disabled by setting nodejs option to true below
-    ms.p2pHost = new Peer(relayMultiAddr, true);
+    const peer = new Peer(relayMultiAddr, true);
     const peerId = await PeerIdFactory.createFromPrivKey(ms.key);
-    const { tcp } = await import('@libp2p/tcp');
 
-    const initOptions: PeerInitConfig = {
-      transports: [
-        // @ts-expect-error
-        tcp(),
-      ],
-      listenMultiaddrs: [`/ip4/${ip}/tcp/${port}`],
-    };
-
-    if (useMdnsPeerDiscovery) {
-      const { mdns } = await import('@libp2p/mdns');
-
-      initOptions.peerDiscovery = [
-        // @ts-expect-error
-        mdns({
-          interval: 20e3,
-        }),
-      ];
-    }
-
-    await ms.p2pHost.init(
+    await peer.init(
       initOptions,
       {
         id: peerId.toString(),
@@ -183,13 +136,16 @@ export class P2PMessageService implements MessageService {
       },
     );
 
-    assert(ms.p2pHost.node);
-    ms.p2pHost.node.peerStore.addEventListener('change:protocols', ms.handlePeerProtocols.bind(ms));
+    assert(peer.node);
     // @ts-expect-error
-    ms.p2pHost.node.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
+    ms.p2pHost = peer.node;
+    assert(ms.p2pHost);
+    // @ts-expect-error
+    ms.p2pHost.peerStore.addEventListener('change:protocols', ms.handlePeerProtocols.bind(ms));
 
-    ms.p2pHost.node.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
-      // @ts-expect-error
+    ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
+
+    ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
       ms.receivePeerInfo(stream).then(() => {
         stream.close();
       });
@@ -207,10 +163,9 @@ export class P2PMessageService implements MessageService {
   }
 
   // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
-  async handlePeerProtocols({ detail: data }: CustomEvent<PeerProtocolsChangeData>) {
+  private async handlePeerProtocols({ detail: data }: CustomEvent<PeerProtocolsChangeData>) {
     assert(this.p2pHost);
-    assert(this.p2pHost.node);
-    assert(this.p2pHost.peerId);
+    assert(this.p2pHost);
 
     // Ignore self protocol changes
     if (data.peerId.equals(this.p2pHost.peerId)) {
@@ -223,12 +178,11 @@ export class P2PMessageService implements MessageService {
     }
 
     try {
-      const stream = await this.p2pHost.node.dialProtocol(
+      const stream = await this.p2pHost.dialProtocol(
         data.peerId,
         PEER_EXCHANGE_PROTOCOL_ID,
       );
 
-      // @ts-expect-error
       await this.sendPeerInfo(stream);
       stream.close();
     } catch (err) {
@@ -276,7 +230,7 @@ export class P2PMessageService implements MessageService {
     }
     assert(m);
 
-    await this.toEngine.push(m);
+    await this.toEngine!.push(m);
     stream.close();
   }
 
@@ -345,12 +299,12 @@ export class P2PMessageService implements MessageService {
     }
     assert(peerInfo);
 
-    const [, foundPeer] = this.peers.loadOrStore(peerInfo.address, peerInfo);
+    const [, foundPeer] = this.peers!.loadOrStore(peerInfo.address, peerInfo);
     if (!foundPeer) {
       this.logger(`New peer found ${JSON.stringify(peerInfo)}`);
 
       // Use a non-blocking send in case no one is listening
-      this.newPeerInfo.push(peerInfo);
+      this.newPeerInfo!.push(peerInfo);
     }
   }
 
@@ -365,14 +319,13 @@ export class P2PMessageService implements MessageService {
       this.checkError(err as Error);
     }
 
-    const [peerInfo, ok] = this.peers.load(msg.to);
+    const [peerInfo, ok] = this.peers!.load(msg.to);
     if (!ok) {
       throw new Error(`Could not load peer ${msg.to}`);
     }
 
     assert(peerInfo);
     assert(this.p2pHost);
-    assert(this.p2pHost.node);
     const { pipe } = await import('it-pipe');
     const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
 
@@ -380,7 +333,7 @@ export class P2PMessageService implements MessageService {
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        const s = await this.p2pHost.node.dialProtocol(peerInfo.id, PROTOCOL_ID);
+        const s = await this.p2pHost.dialProtocol(peerInfo.id, PROTOCOL_ID);
 
         // TODO: Implement buffered writer
         // writer := bufio.NewWriter(s)
@@ -414,21 +367,20 @@ export class P2PMessageService implements MessageService {
 
   // out returns a channel that can be used to receive messages from the message service
   out(): ReadChannel<Message> {
-    return this.toEngine.readOnly();
+    return this.toEngine!.readOnly();
   }
 
   // Closes the P2PMessageService
   close(): void {
     assert(this.p2pHost);
-    assert(this.p2pHost.node);
 
-    this.p2pHost.node.unhandle(PROTOCOL_ID);
-    this.p2pHost.node.stop();
+    this.p2pHost.unhandle(PROTOCOL_ID);
+    this.p2pHost.stop();
   }
 
   // peerInfoReceived returns a channel that receives a PeerInfo when a peer is discovered
   peerInfoReceived(): ReadChannel<BasicPeerInfo> {
-    return this.newPeerInfo.readOnly();
+    return this.newPeerInfo!.readOnly();
   }
 
   /* eslint-disable no-continue */
@@ -436,7 +388,6 @@ export class P2PMessageService implements MessageService {
   // We ignore peers that are ourselves.
   async addPeers(peers: PeerInfo[]) {
     assert(this.p2pHost);
-    assert(this.p2pHost.node);
 
     for (const [, p] of peers.entries()) {
       // Ignore ourselves
@@ -446,13 +397,14 @@ export class P2PMessageService implements MessageService {
 
       const { multiaddr } = await import('@multiformats/multiaddr');
       const multi = multiaddr(`/ip4/${p.ipAddress}/tcp/${p.port}/p2p/${p.id}`);
-      await this.p2pHost.node.peerStore.addressBook.add(
+      // @ts-expect-error
+      await this.p2pHost.peerStore.addressBook.add(
         p.id,
         [multi],
         // TODO: Check if ttl option exists to set it like in go-nitro
         // peerstore.PermanentAddrTTL
       );
-      this.peers.store(p.address, { id: p.id, address: p.address });
+      this.peers!.store(p.address, { id: p.id, address: p.address });
     }
   }
 }
