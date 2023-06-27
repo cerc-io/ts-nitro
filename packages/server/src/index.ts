@@ -1,5 +1,6 @@
 import yargs from 'yargs';
 import debug from 'debug';
+import assert from 'assert';
 
 import {
   setupClient,
@@ -46,6 +47,14 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'Counterparty to create a ledger channel against',
   },
+  cpPeerId: {
+    type: 'string',
+    describe: "Counterparty's peer id",
+  },
+  cpPort: {
+    type: 'number',
+    describe: "Counterparty's message service port",
+  },
 }).argv;
 
 const main = async () => {
@@ -66,7 +75,24 @@ const main = async () => {
   log('Started P2PMessageService');
 
   if (argv.directFund) {
-    await waitForPeerInfoExchange(1, [msgService]);
+    if (argv.cpPeerId) {
+      assert(argv.cpPort, 'Specify counterparty message service port');
+
+      const { peerIdFromString } = await import('@libp2p/peer-id');
+
+      const peerInfo = {
+        port: argv.cpPort,
+        id: peerIdFromString(argv.cpPeerId),
+        address: argv.directFund,
+        ipAddress: '127.0.0.1',
+      };
+
+      log('Adding peer', peerInfo);
+      await msgService.addPeers([peerInfo]);
+    } else {
+      // Wait for a peer to be discovered
+      await waitForPeerInfoExchange(1, [msgService]);
+    }
 
     const counterParty = argv.directFund;
     const asset = `0x${'00'.repeat(20)}`;

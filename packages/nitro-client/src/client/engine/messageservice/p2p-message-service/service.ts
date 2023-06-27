@@ -150,15 +150,9 @@ export class P2PMessageService implements MessageService {
 
     const options: Libp2pOptions = {
       peerId: await PeerIdFactory.createFromPrivKey(ms.key),
-      addresses: {
-        listen: [`/ip4/${ip}/tcp/${port}`],
-      },
-      transports: [
-        tcp(),
-      ],
-      streamMuxers: [
-        yamux(),
-      ],
+      addresses: { listen: [`/ip4/${ip}/tcp/${port}`] },
+      transports: [tcp()],
+      streamMuxers: [yamux()],
       // libp2p.NoSecurity,
       // Use noise() instead
       connectionEncryption: [noise()],
