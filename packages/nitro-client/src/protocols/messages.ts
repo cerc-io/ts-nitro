@@ -1,4 +1,6 @@
 import { Buffer } from 'buffer';
+import { ethers } from 'ethers';
+
 import {
   FieldDescription, JSONbigNative, Uint64, bytes2Hex, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
@@ -94,9 +96,9 @@ export function getProposalObjectiveId(p: Proposal): ObjectiveId {
 
 // Message is an object to be sent across the wire.
 export class Message {
-  to: Address = '';
+  to: Address = ethers.constants.AddressZero;
 
-  from: Address = '';
+  from: Address = ethers.constants.AddressZero;
 
   // ObjectivePayloads contains a collection of payloads for various objectives.
   // Protocols are responsible for parsing the payload.

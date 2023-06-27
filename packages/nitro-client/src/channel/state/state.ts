@@ -108,7 +108,7 @@ export class State {
 
   channelNonce: Uint64 = BigInt(0);
 
-  appDefinition: Address = '';
+  appDefinition: Address = ethers.constants.AddressZero;
 
   // TODO: uint32 replacement
   challengeDuration: number = 0;

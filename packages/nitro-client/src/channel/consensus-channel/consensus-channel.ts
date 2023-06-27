@@ -3,6 +3,7 @@
 import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
+import { ethers } from 'ethers';
 
 import {
   FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON, zeroValueSignature,
@@ -193,7 +194,7 @@ export class Guarantee {
 // [leader, follower, ...guaranteesSortedbyTargetDestination]
 export class LedgerOutcome {
   // Address of the asset type
-  private assetAddress: Address = '';
+  private assetAddress: Address = ethers.constants.AddressZero;
 
   // Balance of participants[0]
   _leader: Balance = new Balance({});
