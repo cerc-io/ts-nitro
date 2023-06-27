@@ -4,6 +4,10 @@
 
 Instructions to run two instances of `ts-nitro` clients in a node environment and create a ledger channel between them
 
+### Prerequisite
+
+Run relay node using v2 watcher
+
 ### Setup
 
 * In root of the repo, install depedencies:
@@ -68,7 +72,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 
 ### Setup
 
-* Follow the setup steps in the [`ts-nitro`-`ts-nitro`](#setup) section
+* Follow the setup steps in the [`ts-nitro`-`ts-nitro`](#ts-nitro---ts-nitro) section
 
 * In `statechannels/go-nitro`, install dependencies:
 
