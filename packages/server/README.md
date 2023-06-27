@@ -33,9 +33,9 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   yarn build:node
   ```
 
-### Run
-
 * Set the relay node multiaddr (`RELAY_MULTIADDR`) in [.env](./.env)
+
+### Run
 
 * Run a client for Bob (`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`):
 

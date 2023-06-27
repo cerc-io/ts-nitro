@@ -12,7 +12,7 @@ import { PeerInitConfig } from '@cerc-io/peer';
 // @ts-expect-error
 import type { PrivateKey } from '@libp2p/interface-keys';
 // @ts-expect-error
-import type { Stream } from '@libp2p/interface-connection';
+import type { Stream, Connection } from '@libp2p/interface-connection';
 // @ts-expect-error
 import type { IncomingStreamData } from '@libp2p/interface-registrar';
 // @ts-expect-error
@@ -86,6 +86,9 @@ export class BaseP2PMessageService implements MessageService {
   private newPeerInfo?: ReadWriteChannel<BasicPeerInfo>;
 
   private logger: debug.Debugger = log;
+
+  // Custom channel to push peer info after sending to remote peer
+  private sentPeerInfo = Channel<BasicPeerInfo>(BUFFER_SIZE);
 
   constructor(params: ConstructorOptions) {
     Object.assign(this, params);
@@ -237,13 +240,14 @@ export class BaseP2PMessageService implements MessageService {
   // sendPeerInfo sends our peer info over the given stream
   private async sendPeerInfo(stream: Stream): Promise<void> {
     let raw: string = '';
-    try {
-      const peerId = await this.id();
-      const peerInfo: BasicPeerInfo = {
-        id: peerId,
-        address: this.me,
-      };
+    const peerId = await this.id();
 
+    const peerInfo: BasicPeerInfo = {
+      id: peerId,
+      address: this.me,
+    };
+
+    try {
       raw = JSON.stringify(peerInfo);
     } catch (err) {
       this.checkError(err as Error);
@@ -256,6 +260,9 @@ export class BaseP2PMessageService implements MessageService {
       [uint8ArrayFromString(raw + DELIMITER)],
       stream.sink,
     );
+
+    // Use a non-blocking channel send in case no one is listening
+    this.sentPeerInfo.push(peerInfo);
   }
 
   // receivePeerInfo receives peer info from the given stream
@@ -405,6 +412,37 @@ export class BaseP2PMessageService implements MessageService {
         // peerstore.PermanentAddrTTL
       );
       this.peers!.store(p.address, { id: p.id, address: p.address });
+
+      // Call custom method to send self info to remote peers so that they can send messages
+      await this.connectAndSendPeerInfos(peers);
+    }
+  }
+
+  // Custom method to dial and connect to peers
+  // It also waits for self to send info to remote peer
+  // This method is only required by addPeers method to exchange peer info
+  private async connectAndSendPeerInfos(peers: PeerInfo[]) {
+    const connectionPromises = peers.map(async (peerInfo) => {
+      // Dial peer to connect and then trigger change:protocols event which would send peer info
+      return this.p2pHost!.dial(peerInfo.id);
+    });
+
+    const connectionPromisesResult = await Promise.allSettled(connectionPromises);
+
+    // Filter out only successfully connected peers
+    let connections: Connection[] = connectionPromisesResult.filter((result, index) => {
+      if (result.status === 'rejected') {
+        this.logger(`Connection unsuccesful for ${peers[index].id}: ${result.reason}`);
+      }
+
+      return result.status === 'fulfilled';
+    })
+      .map((result) => (result as PromiseFulfilledResult<Connection>).value);
+
+    // Wait for sending self info to all connected remote peers
+    while (connections.length) {
+      const peerInfo = await this.sentPeerInfo.shift();
+      connections = connections.filter((connection) => peerInfo.id.equals(connection.remotePeer));
     }
   }
 }
