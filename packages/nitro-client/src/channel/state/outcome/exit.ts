@@ -1,6 +1,7 @@
 import assert from 'assert';
 import { ethers } from 'ethers';
 import { Buffer } from 'buffer';
+import _ from 'lodash';
 
 import {
   FieldDescription, JSONbigNative, fromJSON, toJSON,
@@ -73,7 +74,7 @@ export class SingleAssetExit {
   clone(): SingleAssetExit {
     return new SingleAssetExit({
       asset: this.asset,
-      assetMetadata: this.assetMetadata,
+      assetMetadata: _.cloneDeep(this.assetMetadata),
       allocations: this.allocations.clone(),
     });
   }

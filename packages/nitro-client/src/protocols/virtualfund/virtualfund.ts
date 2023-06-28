@@ -727,8 +727,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     clone.n = this.n;
     clone.myRole = this.myRole;
 
-    clone.a0 = this.a0;
-    clone.b0 = this.b0;
+    clone.a0 = this.a0?.clone();
+    clone.b0 = this.b0?.clone();
     return clone;
   }
 

@@ -98,7 +98,7 @@ export class Balance {
   // Clone returns a deep copy of the receiver.
   clone(): Balance {
     return new Balance({
-      destination: this.destination,
+      destination: _.cloneDeep(this.destination),
       amount: BigInt(this.amount),
     });
   }
@@ -153,9 +153,9 @@ export class Guarantee {
   clone(): Guarantee {
     return new Guarantee({
       amount: BigInt(this.amount),
-      _target: this._target,
-      left: this.left,
-      right: this.right,
+      _target: _.cloneDeep(this._target),
+      left: _.cloneDeep(this.left),
+      right: _.cloneDeep(this.right),
     });
   }
 
@@ -331,12 +331,12 @@ export class LedgerOutcome {
     const { assetAddress } = this;
 
     const leader = new Balance({
-      destination: this._leader.destination,
+      destination: _.cloneDeep(this._leader.destination),
       amount: BigInt(this._leader.amount), // Create a new BigInt instance
     });
 
     const follower = new Balance({
-      destination: this._follower.destination,
+      destination: _.cloneDeep(this._follower.destination),
       amount: BigInt(this._follower.amount), // Create a new BigInt instance
     });
 
@@ -359,8 +359,8 @@ export class LedgerOutcome {
   clone(): LedgerOutcome {
     const clonedGuarantees: Map<Destination, Guarantee> = new Map<Destination, Guarantee>();
 
-    for (const [key, g] of clonedGuarantees) {
-      clonedGuarantees.set(key, g.clone());
+    for (const [key, g] of this.guarantees) {
+      clonedGuarantees.set(_.cloneDeep(key), g.clone());
     }
 
     return new LedgerOutcome({
@@ -482,7 +482,7 @@ export class Vars {
     // CHECKS
     const o = this.outcome;
 
-    if (o.guarantees.has(p.target())) {
+    if (o.guarantees.has(p._target)) {
       throw ErrDuplicateGuarantee;
     }
 
@@ -608,7 +608,10 @@ export class SignedVars extends Vars {
 
   // clone returns a deep copy of the receiver.
   clone(): SignedVars {
-    const clonedSignatures: [Signature, Signature] = [this.signatures[0], this.signatures[1]];
+    const clonedSignatures: [Signature, Signature] = [
+      _.cloneDeep(this.signatures[0]),
+      _.cloneDeep(this.signatures[1]),
+    ];
     return new SignedVars({
       ...super.clone(),
       signatures: clonedSignatures,
@@ -920,7 +923,7 @@ export class ConsensusChannel {
     const d = new ConsensusChannel({
       myIndex: this.myIndex,
       fp: this.fp.clone(),
-      id: this.id,
+      id: _.cloneDeep(this.id),
       onChainFunding: this.onChainFunding.clone(),
       current: this.current.clone(),
       _proposalQueue: clonedProposalQueue,
@@ -967,7 +970,10 @@ export class ConsensusChannel {
 
     this.validateProposalID(countersigned.proposal);
 
-    const consensusCandidate = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome._clone() });
+    const consensusCandidate = new Vars({
+      turnNum: this.current.turnNum,
+      outcome: this.current.outcome._clone(),
+    });
     const consensusTurnNum = countersigned.turnNum;
 
     if (consensusTurnNum <= consensusCandidate.turnNum) {
@@ -1189,7 +1195,7 @@ export class Add extends Guarantee {
   }
 
   equal(a2: Add): boolean {
-    return _.isEqual((this as Guarantee), (a2 as Guarantee)) && this.leftDeposit === a2.leftDeposit;
+    return _.isEqual(this, a2);
   }
 
   // NewAdd constructs a new Add proposal.
@@ -1243,7 +1249,7 @@ export class Remove {
     // }
 
     return new Remove({
-      target: this.target,
+      target: _.cloneDeep(this.target),
       leftAmount: BigInt(this.leftAmount),
     });
   }
@@ -1305,7 +1311,7 @@ export class Proposal {
   // Clone returns a deep copy of the receiver.
   clone(): Proposal {
     return new Proposal({
-      ledgerID: this.ledgerID,
+      ledgerID: _.cloneDeep(this.ledgerID),
       toAdd: this.toAdd.clone(),
       toRemove: this.toRemove.clone(),
     });
@@ -1382,7 +1388,7 @@ export class SignedProposal {
   // Clone returns a deep copy of the receiver.
   clone(): SignedProposal {
     return new SignedProposal({
-      signature: this.signature,
+      signature: _.cloneDeep(this.signature),
       proposal: this.proposal.clone(),
       turnNum: this.turnNum,
     });
