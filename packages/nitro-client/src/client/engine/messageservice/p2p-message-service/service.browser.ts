@@ -1,6 +1,8 @@
 import type { ReadChannel } from '@nodeguy/channel';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
+// @ts-expect-error
+import { Multiaddr } from '@multiformats/multiaddr';
 
 import { Message } from '../../../../protocols/messages';
 import { Address } from '../../../../types/types';
@@ -71,5 +73,11 @@ export class P2PMessageService implements MessageService {
   // We ignore peers that are ourselves.
   async addPeers(peers: PeerInfo[]) {
     return this.baseP2PMessageService.addPeers(peers);
+  }
+
+  // Custom method to add peer using multiaddr
+  // Used for adding peers that support transports other than tcp
+  async addPeerByMultiaddr(clientAddress: Address, multiaddr: Multiaddr) {
+    return this.baseP2PMessageService.addPeerByMultiaddr(clientAddress, multiaddr);
   }
 }
