@@ -89,8 +89,8 @@ export class BaseP2PMessageService implements MessageService {
 
   private logger: debug.Debugger = log;
 
-  // Custom channel for pushing peer id to which self info was sent
-  private sentPeerInfo = Channel<PeerId>(BUFFER_SIZE);
+  // Custom channel storing ids of peers to whom self info has been sent
+  private sentInfoToPeer = Channel<PeerId>(BUFFER_SIZE);
 
   constructor(params: ConstructorOptions) {
     Object.assign(this, params);
@@ -190,7 +190,7 @@ export class BaseP2PMessageService implements MessageService {
       stream.close();
 
       // Use a non-blocking channel send in case no one is listening
-      this.sentPeerInfo.push(data.peerId);
+      this.sentInfoToPeer.push(data.peerId);
     } catch (err) {
       this.checkError(err as Error);
     }
@@ -470,7 +470,7 @@ export class BaseP2PMessageService implements MessageService {
 
     // Wait for sending self info to all connected remote peers
     while (connections.length) {
-      const peerId = await this.sentPeerInfo.shift();
+      const peerId = await this.sentInfoToPeer.shift();
       connections = connections.filter((connection) => !peerId.equals(connection.remotePeer));
       this.logger(`Connected and sent info to peer ${peerId.toString()}`);
     }
