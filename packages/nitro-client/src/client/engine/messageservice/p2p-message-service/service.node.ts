@@ -1,3 +1,5 @@
+import assert from 'assert';
+
 import type { ReadChannel } from '@nodeguy/channel';
 // @ts-expect-error
 import { PeerInitConfig } from '@cerc-io/peer';
@@ -54,13 +56,14 @@ export class P2PMessageService implements MessageService {
     };
 
     if (useMdnsPeerDiscovery) {
+      // @ts-expect-error
       const { mdns } = await import('@libp2p/mdns');
       mdnsService = mdns({
         interval: 20e3,
       });
 
+      assert(mdnsService);
       initOptions.peerDiscovery = [
-        // @ts-expect-error
         mdnsService,
       ];
     }

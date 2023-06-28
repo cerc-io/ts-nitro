@@ -2,11 +2,11 @@ import assert from 'assert';
 import debug from 'debug';
 import { ethers } from 'ethers';
 import { Buffer } from 'buffer';
-// @ts-expect-error
-import type { Libp2p } from 'libp2p';
 
 import Channel from '@nodeguy/channel';
 import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
+// @ts-expect-error
+import type { Libp2p } from '@cerc-io/libp2p';
 // @ts-expect-error
 import { PeerInitConfig } from '@cerc-io/peer';
 // @ts-expect-error
@@ -140,15 +140,13 @@ export class BaseP2PMessageService implements MessageService {
     );
 
     assert(peer.node);
-    // @ts-expect-error
     ms.p2pHost = peer.node;
     assert(ms.p2pHost);
-    // @ts-expect-error
     ms.p2pHost.peerStore.addEventListener('change:protocols', ms.handlePeerProtocols.bind(ms));
 
     ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
 
-    ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }) => {
+    ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }: IncomingStreamData) => {
       ms.receivePeerInfo(stream).then(() => {
         stream.close();
       });
@@ -404,7 +402,7 @@ export class BaseP2PMessageService implements MessageService {
 
       const { multiaddr } = await import('@multiformats/multiaddr');
       const multi = multiaddr(`/ip4/${p.ipAddress}/tcp/${p.port}/p2p/${p.id}`);
-      // @ts-expect-error
+
       await this.p2pHost.peerStore.addressBook.add(
         p.id,
         [multi],
