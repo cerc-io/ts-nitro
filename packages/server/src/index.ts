@@ -1,15 +1,16 @@
 import yargs from 'yargs';
 import debug from 'debug';
 import assert from 'assert';
+import 'dotenv/config';
 
 import {
   setupClient,
   createOutcome,
   DEFAULT_CHAIN_URL,
 } from '@cerc-io/util';
-
 import { MemStore } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
+
 import { createP2PMessageService, waitForPeerInfoExchange } from './utils/index';
 import { DirectFundParams } from './types';
 
@@ -59,9 +60,10 @@ const getArgv = () => yargs.parserConfiguration({
 
 const main = async () => {
   const argv = getArgv();
+  assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
   const store = new MemStore(hex2Bytes(argv.pk));
-  const msgService = await createP2PMessageService(argv.port, store.getAddress());
+  const msgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, argv.port, store.getAddress());
 
   const client = await setupClient(
     msgService,

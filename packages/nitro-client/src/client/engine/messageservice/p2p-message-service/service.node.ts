@@ -1,4 +1,12 @@
+import assert from 'assert';
+
 import type { ReadChannel } from '@nodeguy/channel';
+// @ts-expect-error
+import { PeerInitConfig } from '@cerc-io/peer';
+// @ts-expect-error
+import type { MulticastDNSComponents } from '@libp2p/mdns';
+// @ts-expect-error
+import type { PeerDiscovery } from '@libp2p/interface-peer-discovery';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
 
@@ -11,31 +19,65 @@ import { BaseP2PMessageService, BasicPeerInfo, PeerInfo } from './service';
 export class P2PMessageService implements MessageService {
   private baseP2PMessageService: BaseP2PMessageService;
 
+  private mdns?: (components: MulticastDNSComponents) => PeerDiscovery;
+
   constructor({
     baseP2PMessageService,
+    mdns,
   }: {
     baseP2PMessageService: BaseP2PMessageService
+    mdns?: (components: MulticastDNSComponents) => PeerDiscovery;
   }) {
     this.baseP2PMessageService = baseP2PMessageService;
+    this.mdns = mdns;
   }
 
-  // newMessageService returns a running P2PMessageService listening on the given message key.
+  // newMessageService returns a running P2PMessageService listening on the given ip, port and message key.
+  // If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
+  // Otherwise, peers must be added manually via `AddPeers`.
   static async newMessageService(
     relayMultiAddr: string,
+    ip: string,
+    port: number,
     me: Address,
     pk: Uint8Array,
+    useMdnsPeerDiscovery: boolean,
     logWriter?: WritableStream,
   ): Promise<P2PMessageService> {
+    const { tcp } = await import('@libp2p/tcp');
+    let mdnsService: ((components: MulticastDNSComponents) => PeerDiscovery) | undefined;
+
+    const initOptions: PeerInitConfig = {
+      transports: [
+        tcp(),
+      ],
+      listenMultiaddrs: [`/ip4/${ip}/tcp/${port}`],
+    };
+
+    if (useMdnsPeerDiscovery) {
+      // @ts-expect-error
+      const { mdns } = await import('@libp2p/mdns');
+      mdnsService = mdns({
+        interval: 20e3,
+      });
+
+      assert(mdnsService);
+      initOptions.peerDiscovery = [
+        mdnsService,
+      ];
+    }
+
     const baseP2PMessageService = await BaseP2PMessageService.newMessageService(
       relayMultiAddr,
       me,
       pk,
-      {},
+      initOptions,
       logWriter,
     );
 
     return new P2PMessageService({
       baseP2PMessageService,
+      mdns: mdnsService,
     });
   }
 

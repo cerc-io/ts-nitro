@@ -1,5 +1,9 @@
 # server
 
+### Prerequisite
+
+Run relay node using v2 watcher
+
 ## `ts-nitro` - `ts-nitro`
 
 Instructions to run two instances of `ts-nitro` clients in a node environment and create a ledger channel between them
@@ -32,6 +36,8 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   ```bash
   yarn build:node
   ```
+
+* Set the relay node multiaddr (`RELAY_MULTIADDR`) in [.env](./.env)
 
 ### Run
 

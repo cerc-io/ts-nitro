@@ -56,18 +56,18 @@ Run relay node using v2 watcher
 
 * Open console in browser inspect and enable debug logs by setting `localStorage.debug = 'ts-nitro:*'`
 
-* Restart the apps for enabling logs
+* Refresh the apps for enabling logs
 
 * Call methods `setupClient('alice')` and `setupClient('bob')` separately in the 2 browsers
 
-* Wait for `New peer found` log in console and check `window.msgService.peers` to see if peers have exchanged info
+* Wait for `New peer found` log in console and check `msgService.peers` to see if peers have exchanged info
 
-* Call method `window.directFund` with address of the other browser client and check logs
+* Call method `directFund` with address of the other browser client and check logs
 
   * For example, call directFund in Alice browser with Bob's address
     
     ```
-    window.directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94')
+    directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94')
     ```
 
   * Final expected log
@@ -75,6 +75,7 @@ Run relay node using v2 watcher
     ```
     ts-nitro:engine Objective DirectFunding-0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978 is complete & returned to API +22ms
     ```
+
 ## Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
