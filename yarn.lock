@@ -2510,7 +2510,7 @@
     "@libp2p/interfaces" "^3.0.0"
     it-stream-types "^1.0.4"
 
-"@libp2p/interface-stream-muxer@^4.0.0", "@libp2p/interface-stream-muxer@^4.1.2":
+"@libp2p/interface-stream-muxer@^4.1.2":
   version "4.1.2"
   resolved "https://registry.yarnpkg.com/@libp2p/interface-stream-muxer/-/interface-stream-muxer-4.1.2.tgz#f0a5edb906ec784d991b9421a024f0f21ebdaab4"
   integrity sha512-dQJcn67UaAa8YQFRJDhbo4uT453z/2lCzD/ZwTk1YOqJxATXbXgVcB8dXDQFEUiUX3ZjVQ1IBu+NlQd+IZ++zw==
@@ -2534,17 +2534,6 @@
     "@libp2p/interfaces" "^3.0.0"
     "@multiformats/multiaddr" "^12.0.0"
     it-stream-types "^1.0.4"
-
-"@libp2p/interface-transport@^4.0.0":
-  version "4.0.3"
-  resolved "https://registry.yarnpkg.com/@libp2p/interface-transport/-/interface-transport-4.0.3.tgz#8cc63bb4863ece507cbc54bff167fc7588fd3a85"
-  integrity sha512-jXFQ3blhFMEyQbFw/U8Glo3F/fUO5LEaX5HIdeqNpCliK+XnwTfpkcaG+WsJrcApWK4FFyUHc+GGqiWR0hAFFg==
-  dependencies:
-    "@libp2p/interface-connection" "^5.0.0"
-    "@libp2p/interface-stream-muxer" "^4.0.0"
-    "@libp2p/interfaces" "^3.0.0"
-    "@multiformats/multiaddr" "^12.0.0"
-    it-stream-types "^2.0.1"
 
 "@libp2p/interfaces@^3.0.0", "@libp2p/interfaces@^3.0.2", "@libp2p/interfaces@^3.0.3", "@libp2p/interfaces@^3.2.0", "@libp2p/interfaces@^3.3.1", "@libp2p/interfaces@^3.3.2":
   version "3.3.2"
@@ -2757,14 +2746,14 @@
     uint8arraylist "^2.0.0"
     uint8arrays "^4.0.2"
 
-"@libp2p/tcp@^7.0.1":
-  version "7.0.1"
-  resolved "https://registry.yarnpkg.com/@libp2p/tcp/-/tcp-7.0.1.tgz#116b311deb89e70a04ab31f70c783f2224ef3d48"
-  integrity sha512-But+0FiTBNjIpFeYMpq5QetSLK0MKQaRjDYsYC0AUIE61TmrWE4tpxnW57rl/hKJprVbYs/9lYxgflL9Mo33Wg==
+"@libp2p/tcp@^6.0.0":
+  version "6.2.2"
+  resolved "https://registry.yarnpkg.com/@libp2p/tcp/-/tcp-6.2.2.tgz#9262e284037f0951aca22f0fb3d488e3515ff6fd"
+  integrity sha512-5pLQDSUI+6qtAvh7pYgjqXFuFqzZ/AGL3BSX4C2oa+vWGIbooTZK3Mizp+iO0yHomVJ1y3V8AXXH8ddWdFqDpQ==
   dependencies:
-    "@libp2p/interface-connection" "^5.0.0"
+    "@libp2p/interface-connection" "^4.0.0"
     "@libp2p/interface-metrics" "^4.0.0"
-    "@libp2p/interface-transport" "^4.0.0"
+    "@libp2p/interface-transport" "^2.0.0"
     "@libp2p/interfaces" "^3.2.0"
     "@libp2p/logger" "^2.0.0"
     "@libp2p/utils" "^3.0.2"

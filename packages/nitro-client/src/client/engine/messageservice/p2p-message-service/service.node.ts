@@ -49,7 +49,6 @@ export class P2PMessageService implements MessageService {
 
     const initOptions: PeerInitConfig = {
       transports: [
-        // @ts-expect-error
         tcp(),
       ],
       listenMultiaddrs: [`/ip4/${ip}/tcp/${port}`],
