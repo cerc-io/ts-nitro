@@ -1033,9 +1033,9 @@ export class Engine {
   private logMessage(msg: Message, direction: MessageDirection): void {
     if (direction === Incoming) {
       // TODO: Implement go logger EmbedObject (Implement MessageSummary.MarshalZerologObject)
-      this.logger(`Received message: ${JSONbigNative.stringify(msg.summarize(), null, 2)}`);
+      this.logger(`Received message: ${JSONbigNative.stringify(msg.summarize())}`);
     } else {
-      this.logger(`Sending message: ${JSONbigNative.stringify(msg.summarize(), null, 2)}`);
+      this.logger(`Sending message: ${JSONbigNative.stringify(msg.summarize())}`);
     }
   }
 
