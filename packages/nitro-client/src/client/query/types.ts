@@ -75,6 +75,7 @@ export class LedgerChannelBalance {
 
   client: Address = ethers.constants.AddressZero;
 
+  // TODO: hexutil.Big replacement
   hubBalance: bigint = BigInt(0);
 
   clientBalance: bigint = BigInt(0);

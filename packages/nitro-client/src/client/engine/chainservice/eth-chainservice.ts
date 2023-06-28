@@ -261,8 +261,8 @@ export class EthChainService implements ChainService {
             this.fatalF(`error in TransactionByHash: ${err}`);
           }
 
-          assert(tx);
-          assert(au);
+          assert(tx !== undefined);
+          assert(au !== undefined);
           let assetAddress;
           let amount;
           try {
@@ -271,8 +271,8 @@ export class EthChainService implements ChainService {
             this.fatalF(`error in getChainHoldings: ${err}`);
           }
 
-          assert(assetAddress);
-          assert(amount);
+          assert(assetAddress !== undefined);
+          assert(amount !== undefined);
           const event = AllocationUpdatedEvent.newAllocationUpdatedEvent(
             new Destination(au.channelId),
             String(l.blockNumber),
