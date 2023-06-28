@@ -75,7 +75,7 @@ Run relay node using v2 watcher
 
   * Call method `setupClient('brian')`
 
-  * Wait for `New peer found` log in console and check `msgService.peers` to see if peers have exchanged info
+  * Wait for `New peer found` log in console
 
   * Call method `directFund` with address of client Alice and check logs
 

@@ -64,7 +64,7 @@ Instructions to run two instances of `ts-nitro` clients in browser environment a
 
 * Call methods `setupClient('brian')` and `setupClient('charlie')` separately in the 2 browsers
 
-* Wait for `New peer found` log in console and check `msgService.peers` to see if peers have exchanged info
+* Wait for `New peer found` log in console
 
 * Call method `directFund` with address of the other browser client and check logs
 
