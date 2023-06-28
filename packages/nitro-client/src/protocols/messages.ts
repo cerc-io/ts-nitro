@@ -217,9 +217,9 @@ export class Message {
         }
         return {
           objectiveId: objIdString,
-          ledgerId: p.channelID.toString(),
+          ledgerId: p.channelID().toString(),
           turnNum: p.turnNum,
-          proposalType: p.proposal.type.toString(),
+          proposalType: p.proposal.type().toString(),
         };
       }),
       payments: this.payments.map((p): PaymentSummary => ({
