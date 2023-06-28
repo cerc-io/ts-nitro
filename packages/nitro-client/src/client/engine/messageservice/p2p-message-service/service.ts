@@ -19,6 +19,8 @@ import type { IncomingStreamData } from '@libp2p/interface-registrar';
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error
 import type { PeerProtocolsChangeData } from '@libp2p/interface-peer-store';
+// @ts-expect-error
+import { Multiaddr } from '@multiformats/multiaddr';
 
 import { SafeSyncMap } from '../../../../internal/safesync/safesync';
 import { Message, deserializeMessage } from '../../../../protocols/messages';
@@ -87,8 +89,8 @@ export class BaseP2PMessageService implements MessageService {
 
   private logger: debug.Debugger = log;
 
-  // Custom channel to push peer info after sending to remote peer
-  private sentPeerInfo = Channel<BasicPeerInfo>(BUFFER_SIZE);
+  // Custom channel storing ids of peers to whom self info has been sent
+  private sentInfoToPeer = Channel<PeerId>(BUFFER_SIZE);
 
   constructor(params: ConstructorOptions) {
     Object.assign(this, params);
@@ -186,6 +188,9 @@ export class BaseP2PMessageService implements MessageService {
 
       await this.sendPeerInfo(stream);
       stream.close();
+
+      // Use a non-blocking channel send in case no one is listening
+      this.sentInfoToPeer.push(data.peerId);
     } catch (err) {
       this.checkError(err as Error);
     }
@@ -258,9 +263,6 @@ export class BaseP2PMessageService implements MessageService {
       [uint8ArrayFromString(raw + DELIMITER)],
       stream.sink,
     );
-
-    // Use a non-blocking channel send in case no one is listening
-    this.sentPeerInfo.push(peerInfo);
   }
 
   // receivePeerInfo receives peer info from the given stream
@@ -416,10 +418,39 @@ export class BaseP2PMessageService implements MessageService {
     }
   }
 
+  // Custom method to add peer using multiaddr
+  // Used for adding peers that support transports other than tcp
+  async addPeerByMultiaddr(clientAddress: Address, multiaddr: Multiaddr) {
+    // Ignore ourselves
+    if (clientAddress === this.me) {
+      return;
+    }
+
+    const peerIdString = multiaddr.getPeerId();
+    assert(peerIdString);
+    const { peerIdFromString } = await import('@libp2p/peer-id');
+    const peerId = peerIdFromString(peerIdString);
+
+    await this.p2pHost.peerStore.addressBook.add(
+      peerId,
+      [multiaddr],
+    );
+
+    this.peers!.store(clientAddress, { id: peerId, address: clientAddress });
+
+    // Call custom method to send self info to remote peers so that they can send messages
+    await this.connectAndSendPeerInfos([
+      {
+        id: peerId,
+        address: clientAddress,
+      },
+    ]);
+  }
+
   // Custom method to dial and connect to peers
   // It also waits for self to send info to remote peer
   // This method is only required by addPeers method to exchange peer info
-  private async connectAndSendPeerInfos(peers: PeerInfo[]) {
+  private async connectAndSendPeerInfos(peers: BasicPeerInfo[]) {
     const connectionPromises = peers.map(async (peerInfo) => {
       // Dial peer to connect and then trigger change:protocols event which would send peer info
       return this.p2pHost!.dial(peerInfo.id);
@@ -439,8 +470,9 @@ export class BaseP2PMessageService implements MessageService {
 
     // Wait for sending self info to all connected remote peers
     while (connections.length) {
-      const peerInfo = await this.sentPeerInfo.shift();
-      connections = connections.filter((connection) => peerInfo.id.equals(connection.remotePeer));
+      const peerId = await this.sentInfoToPeer.shift();
+      connections = connections.filter((connection) => !peerId.equals(connection.remotePeer));
+      this.logger(`Connected and sent info to peer ${peerId.toString()}`);
     }
   }
 }

@@ -12,6 +12,7 @@ import {
   BOB_CHAIN_PK,
   DEFAULT_CHAIN_URL
 } from '@cerc-io/util';
+import { multiaddr } from '@multiformats/multiaddr';
 
 import logo from './logo.svg';
 import './App.css';
@@ -19,10 +20,11 @@ import { createP2PMessageService } from './utils';
 
 declare global {
   interface Window {
-    client: Client;
-    msgService: P2PMessageService;
     setupClient: (name: string) => Promise<void>
-    directFund: (clientAddress: string) => Promise<void>
+    client?: Client;
+    msgService?: P2PMessageService;
+    directFund?: (clientAddress: string) => Promise<void>
+    addPeerByMultiaddr?: (address: string, multiaddrString: string) => Promise<void>
   }
 }
 
@@ -55,18 +57,23 @@ function App() {
 
       const outcome = createOutcome(
         asset,
-        window.client.address,
+        window.client!.address,
         counterParty,
         1_000_000,
       )
       
-      const response = await window.client.createLedgerChannel(
+      const response = await window.client!.createLedgerChannel(
         counterParty,
         challengeDuration,
         outcome,
       );
 
       console.log(response)
+    }
+
+    window.addPeerByMultiaddr = async (address: string, multiaddrString: string) => {
+      const multi = multiaddr(multiaddrString);
+      await window.msgService!.addPeerByMultiaddr(address, multi);
     }
   }, []);
 
