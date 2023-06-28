@@ -640,21 +640,39 @@ export class ConsensusChannel {
   private _proposalQueue: SignedProposal[] = [];
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    id: { type: 'class', value: Destination },
     myIndex: { type: 'number' },
+    fP: { type: 'class', value: FixedPart },
+    id: { type: 'class', value: Destination },
     onChainFunding: { type: 'class', value: Funds },
-    fp: { type: 'class', value: FixedPart },
     current: { type: 'class', value: SignedVars },
     proposalQueue: { type: 'array', value: { type: 'class', value: SignedState } },
   };
 
   static fromJSON(data: string): ConsensusChannel {
-    const props = fromJSON(this.jsonEncodingMap, data, new Map([['proposalQueue', '_proposalQueue']]));
-    return new ConsensusChannel(props);
+    // props has fp as fP and _proposalQueue as proposalQueue
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new ConsensusChannel({
+      id: props.id,
+      myIndex: props.myIndex,
+      onChainFunding: props.onChainFunding,
+      fp: props.fP,
+      current: props.current,
+      _proposalQueue: props.proposalQueue,
+    });
   }
 
   toJSON(): any {
-    return toJSON(ConsensusChannel.jsonEncodingMap, this, new Map([['_proposalQueue', 'proposalQueue']]));
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+    const jsonConsensusChannel = {
+      myIndex: this.myIndex,
+      fP: this.fp,
+      id: this.id,
+      onChainFunding: this.onChainFunding,
+      current: this.current,
+      proposalQueue: this._proposalQueue,
+    };
+    return toJSON(ConsensusChannel.jsonEncodingMap, jsonConsensusChannel);
   }
 
   constructor(params: {
@@ -1156,17 +1174,24 @@ export class Add extends Guarantee {
   leftDeposit: bigint = BigInt(0);
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    ...super.jsonEncodingMap,
+    guarantee: { type: 'class', value: Guarantee },
     leftDeposit: { type: 'bigint' },
   };
 
   static fromJSON(data: string): Add {
-    const props = fromJSON(this.jsonEncodingMap, data, new Map([['target', '_target']]));
-    return new Add(props);
+    // props holds guarantee in a field
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Add({ ...props.guaranatee, leftDeposit: props.leftDeposit });
   }
 
   toJSON(): any {
-    return toJSON(Add.jsonEncodingMap, this, new Map([['_target', 'target']]));
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+    const jsonAdd = {
+      guarantee: Guarantee.newGuarantee(this.amount, this._target, this.left, this.right),
+      leftDeposit: this.leftDeposit,
+    };
+    return toJSON(Add.jsonEncodingMap, jsonAdd);
   }
 
   constructor(params: AddOptions) {
