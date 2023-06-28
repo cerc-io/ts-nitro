@@ -181,7 +181,7 @@ export class Guarantee {
     return new Allocation({
       destination: this._target,
       amount,
-      allocationType: AllocationType.NormalAllocationType,
+      allocationType: 1,
       metadata: Buffer.concat([this.left.bytes(), this.right.bytes()]),
     });
   }
@@ -313,7 +313,7 @@ export class LedgerOutcome {
     ];
 
     // Followed by guarantees, sorted by the target destination
-    const keys = Array.from(this.guarantees.keys()).sort((a, b) => a.string().localeCompare(b.string()));
+    const keys = Array.from(this.guarantees.keys()).sort((a, b) => (a.string() < b.string() ? -1 : 1));
     for (const target of keys) {
       allocations.push(this.guarantees.get(target)!.asAllocation());
     }
@@ -526,7 +526,10 @@ export class Vars {
     }
 
     // Include guarantee
-    o.guarantees.set(p._target, p as Guarantee);
+    o.guarantees.set(
+      p._target,
+      Guarantee.newGuarantee(p.amount, p._target, p.left, p.right),
+    );
   }
 
   // Remove mutates Vars by
@@ -1055,7 +1058,6 @@ export class ConsensusChannel {
     }
 
     let signature: Signature;
-
     try {
       signature = this.sign(vars, sk);
     } catch (err) {
@@ -1381,29 +1383,31 @@ export class SignedProposal {
 
   turnNum: Uint64 = BigInt(0);
 
-  // TODO: Check serialization
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    ...signatureJsonEncodingMap,
+    proposal: { type: 'class', value: Proposal },
+    turnNum: { type: 'uint64' },
+  };
+
   static fromJSON(data: string): SignedProposal {
-    // jsonValue has Signature properties
-    // Construct SignedProposal with inidividual field values
-    const jsonValue = JSONbigNative.parse(data);
-
-    const props: SignedProposalParams = {
-      signature: { r: jsonValue.R, s: jsonValue.S, v: jsonValue.V },
-      proposal: Proposal.fromJSON(JSONbigNative.stringify(jsonValue.Proposal)),
-      turnNum: jsonValue.TurnNum,
-    };
-
-    return new SignedProposal(props);
+    // props has Signature properties
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new SignedProposal({
+      signature: { r: props.r, s: props.s, v: props.v },
+      proposal: props.proposal,
+      turnNum: props.turnNum,
+    });
   }
 
   toJSON(): any {
-    // Return a custom object
+    // Use a custom object
     // (SignedProposal composes/embeds Signature in go-nitro)
-    return {
-      ...{ R: this.signature.r, S: this.signature.s, V: this.signature.v },
-      Proposal: this.proposal,
-      TurnNum: this.turnNum,
+    const jsonSignedProposal = {
+      ...this.signature,
+      proposal: this.proposal,
+      turnNum: this.turnNum,
     };
+    return toJSON(SignedProposal.jsonEncodingMap, jsonSignedProposal);
   }
 
   constructor(params: SignedProposalParams) {

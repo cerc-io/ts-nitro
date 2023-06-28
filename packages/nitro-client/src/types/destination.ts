@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 import { Buffer } from 'buffer';
 
 import { Bytes32, isExternalDestination } from '@statechannels/nitro-protocol';
+import { hex2Bytes } from '@cerc-io/nitro-util';
 
 import { Address } from './types';
 
@@ -57,7 +58,13 @@ export class Destination {
     return this.value;
   }
 
+  // An additional method required for serialization
+  // as Destination is used as a key type in a Map in LedgerOutcome
+  toString(): string {
+    return this.value;
+  }
+
   bytes(): Buffer {
-    return Buffer.from(this.value, 'utf-8');
+    return hex2Bytes(this.value);
   }
 }
