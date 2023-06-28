@@ -41,11 +41,11 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
 ### Run
 
-* Run a client for Bob (`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`):
+* Run a client for Irene (`0x111A00868581f73AB42FEEF67D235Ca09ca1E8db`):
 
   ```bash
   # In packages/server
-  yarn start -p 3006 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+  yarn start -p 3006 --pk febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781 --chainpk 5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
