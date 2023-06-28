@@ -529,7 +529,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   private getPayload(raw: ObjectivePayload): SignedState {
-    return SignedState.fromJSON(JSONbigNative.stringify(raw));
+    return SignedState.fromJSON(raw.payloadData.toString());
   }
 
   receiveProposal(sp: SignedProposal): ProposalReceiver {
@@ -758,9 +758,10 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
     // to create a valid message with ordered proposals:
-
     const message = Message.createSignedProposalMessage(receipient, ...connection.channel!.proposalQueue());
+
     sideEffects.messagesToSend.push(message);
+
     return sideEffects;
   }
 

@@ -46,7 +46,7 @@ export class VoucherManager {
     });
 
     const [v] = this.store.getVoucherInfo(channelId);
-    if (!v) {
+    if (v !== undefined) {
       throw new Error('Channel already registered');
     }
 

@@ -163,7 +163,7 @@ export class EthChainService implements ChainService {
     switch (tx.constructor) {
       case DepositTransaction: {
         const depositTx = tx as DepositTransaction;
-        assert(depositTx.deposit);
+
         for await (const [tokenAddress, amount] of depositTx.deposit.value.entries()) {
           const txOpts: ethers.PayableOverrides = {};
           const ethTokenAddress = ethers.constants.AddressZero;
@@ -185,7 +185,6 @@ export class EthChainService implements ChainService {
 
       case WithdrawAllTransaction: {
         const withdrawAllTx = tx as WithdrawAllTransaction;
-        assert(withdrawAllTx.signedState);
 
         const state = withdrawAllTx.signedState.state();
         const signatures = withdrawAllTx.signedState.signatures();
