@@ -263,17 +263,16 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     chainId: bigint,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
   ): Objective {
-    let rightCC: ConsensusChannel | undefined;
-    let ok: boolean = false;
-
+    let toMyRight: string;
     if (request.intermediaries.length > 0) {
-      [rightCC, ok] = getTwoPartyConsensusLedger(request.intermediaries[0]);
+      [toMyRight] = request.intermediaries;
     } else {
-      [rightCC, ok] = getTwoPartyConsensusLedger(request.counterParty);
+      toMyRight = request.counterParty;
     }
 
+    const [rightCC, ok] = getTwoPartyConsensusLedger(toMyRight);
     if (!ok) {
-      throw new Error(`Could not find ledger for ${myAddress} and ${request.intermediaries[0]}`);
+      throw new Error(`Could not find ledger for ${myAddress} and ${toMyRight}`);
     }
 
     let leftCC: ConsensusChannel | undefined;

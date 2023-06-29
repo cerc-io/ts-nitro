@@ -11,3 +11,12 @@ export type DirectFundParams = {
   appDefinition: string;
   appData: string;
 };
+
+export type VirtualFundParams = {
+  intermediaries: string[];
+  counterParty: string;
+  challengeDuration: number;
+  outcome: Exit;
+  nonce: number;
+  appDefinition: string;
+};

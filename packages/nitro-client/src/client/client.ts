@@ -107,6 +107,12 @@ export class Client {
     return c;
   }
 
+  // ObjectiveCompleteChan returns a chan that is closed when the objective with given id is completed
+  objectiveCompleteChan(id: ObjectiveId): ReadWriteChannel<null> {
+    const [d] = this.completedObjectives!.loadOrStore(id, Channel<null>());
+    return d;
+  }
+
   // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
   // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
   // TODO: uint32 replacement

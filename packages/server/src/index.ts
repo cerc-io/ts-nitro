@@ -12,7 +12,7 @@ import { MemStore } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
 
 import { createP2PMessageService, waitForPeerInfoExchange } from './utils/index';
-import { DirectFundParams } from './types';
+import { DirectFundParams, VirtualFundParams } from './types';
 
 const log = debug('ts-nitro:server');
 
@@ -44,9 +44,9 @@ const getArgv = () => yargs.parserConfiguration({
     describe: 'RPC endpoint for the chain',
     default: DEFAULT_CHAIN_URL,
   },
-  directFund: {
+  counterparty: {
     type: 'string',
-    describe: 'Counterparty to create a ledger channel against',
+    describe: 'Counterparty to create a ledger and a virtual channel against',
   },
   cpPeerId: {
     type: 'string',
@@ -76,7 +76,7 @@ const main = async () => {
 
   log('Started P2PMessageService');
 
-  if (argv.directFund) {
+  if (argv.counterparty) {
     if (argv.cpPeerId) {
       assert(argv.cpPort, 'Specify counterparty message service port');
 
@@ -85,7 +85,7 @@ const main = async () => {
       const peerInfo = {
         port: argv.cpPort,
         id: peerIdFromString(argv.cpPeerId),
-        address: argv.directFund,
+        address: argv.counterparty,
         ipAddress: '127.0.0.1',
       };
 
@@ -96,9 +96,10 @@ const main = async () => {
       await waitForPeerInfoExchange(1, [msgService]);
     }
 
-    const counterParty = argv.directFund;
+    const counterParty = argv.counterparty;
     const asset = `0x${'00'.repeat(20)}`;
-    const params: DirectFundParams = {
+
+    const directFundparams: DirectFundParams = {
       counterParty,
       challengeDuration: 0,
       outcome: createOutcome(
@@ -112,11 +113,41 @@ const main = async () => {
       nonce: Date.now(),
     };
 
-    await client.createLedgerChannel(
-      params.counterParty,
-      params.challengeDuration,
-      params.outcome,
+    const ledgerChannelResponse = await client.createLedgerChannel(
+      directFundparams.counterParty,
+      directFundparams.challengeDuration,
+      directFundparams.outcome,
     );
+
+    await client.objectiveCompleteChan(ledgerChannelResponse.id).shift();
+    log(`Leger channel created with id ${ledgerChannelResponse.channelId.string()}\n`);
+
+    const virtualFundparams: VirtualFundParams = {
+      counterParty,
+      intermediaries: [],
+      challengeDuration: 0,
+      outcome: createOutcome(
+        asset,
+        client.address,
+        counterParty,
+        1_000,
+      ),
+      appDefinition: asset,
+      nonce: Date.now(),
+    };
+
+    const virtualPaymentChannelResponse = await client.createVirtualPaymentChannel(
+      virtualFundparams.intermediaries,
+      virtualFundparams.counterParty,
+      virtualFundparams.challengeDuration,
+      virtualFundparams.outcome,
+    );
+
+    await client.objectiveCompleteChan(virtualPaymentChannelResponse.id).shift();
+    log(`Virtual payment channel created with id ${virtualPaymentChannelResponse.channelId.string()}\n`);
+
+    // TODO: Update instructions in browser setup
+    // TODO: Update instructions for ts-nitro - go-nitro setup
   }
 };
 
