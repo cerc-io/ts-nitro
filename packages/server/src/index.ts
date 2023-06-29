@@ -46,7 +46,7 @@ const getArgv = () => yargs.parserConfiguration({
   },
   counterparty: {
     type: 'string',
-    describe: 'Counterparty to create a ledger and a virtual channel against',
+    describe: 'Counterparty to create channel(s) against',
   },
   cpPeerId: {
     type: 'string',
@@ -55,6 +55,16 @@ const getArgv = () => yargs.parserConfiguration({
   cpPort: {
     type: 'number',
     describe: "Counterparty's message service port",
+  },
+  directFund: {
+    type: 'boolean',
+    default: false,
+    describe: 'Whether to create a ledger with the given counterparty',
+  },
+  virtualFund: {
+    type: 'boolean',
+    default: false,
+    describe: 'Whether to create a virtual payment with the given counterparty',
   },
 }).argv;
 
@@ -99,52 +109,56 @@ const main = async () => {
     const counterParty = argv.counterparty;
     const asset = `0x${'00'.repeat(20)}`;
 
-    const directFundparams: DirectFundParams = {
-      counterParty,
-      challengeDuration: 0,
-      outcome: createOutcome(
-        asset,
-        client.address,
+    if (argv.directFund) {
+      const directFundparams: DirectFundParams = {
         counterParty,
-        1_000_000,
-      ),
-      appDefinition: asset,
-      appData: '0x00',
-      nonce: Date.now(),
-    };
+        challengeDuration: 0,
+        outcome: createOutcome(
+          asset,
+          client.address,
+          counterParty,
+          1_000_000,
+        ),
+        appDefinition: asset,
+        appData: '0x00',
+        nonce: Date.now(),
+      };
 
-    const ledgerChannelResponse = await client.createLedgerChannel(
-      directFundparams.counterParty,
-      directFundparams.challengeDuration,
-      directFundparams.outcome,
-    );
+      const ledgerChannelResponse = await client.createLedgerChannel(
+        directFundparams.counterParty,
+        directFundparams.challengeDuration,
+        directFundparams.outcome,
+      );
 
-    await client.objectiveCompleteChan(ledgerChannelResponse.id).shift();
-    log(`Leger channel created with id ${ledgerChannelResponse.channelId.string()}\n`);
+      await client.objectiveCompleteChan(ledgerChannelResponse.id).shift();
+      log(`Leger channel created with id ${ledgerChannelResponse.channelId.string()}\n`);
+    }
 
-    const virtualFundparams: VirtualFundParams = {
-      counterParty,
-      intermediaries: [],
-      challengeDuration: 0,
-      outcome: createOutcome(
-        asset,
-        client.address,
+    if (argv.virtualFund) {
+      const virtualFundparams: VirtualFundParams = {
         counterParty,
-        1_000,
-      ),
-      appDefinition: asset,
-      nonce: Date.now(),
-    };
+        intermediaries: [],
+        challengeDuration: 0,
+        outcome: createOutcome(
+          asset,
+          client.address,
+          counterParty,
+          1_000,
+        ),
+        appDefinition: asset,
+        nonce: Date.now(),
+      };
 
-    const virtualPaymentChannelResponse = await client.createVirtualPaymentChannel(
-      virtualFundparams.intermediaries,
-      virtualFundparams.counterParty,
-      virtualFundparams.challengeDuration,
-      virtualFundparams.outcome,
-    );
+      const virtualPaymentChannelResponse = await client.createVirtualPaymentChannel(
+        virtualFundparams.intermediaries,
+        virtualFundparams.counterParty,
+        virtualFundparams.challengeDuration,
+        virtualFundparams.outcome,
+      );
 
-    await client.objectiveCompleteChan(virtualPaymentChannelResponse.id).shift();
-    log(`Virtual payment channel created with id ${virtualPaymentChannelResponse.channelId.string()}\n`);
+      await client.objectiveCompleteChan(virtualPaymentChannelResponse.id).shift();
+      log(`Virtual payment channel created with id ${virtualPaymentChannelResponse.channelId.string()}\n`);
+    }
 
     // TODO: Update instructions in browser setup
     // TODO: Update instructions for ts-nitro - go-nitro setup
