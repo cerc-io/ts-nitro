@@ -6,11 +6,8 @@ import { hex2Bytes } from '@cerc-io/nitro-util';
 import {
   setupClient,
   createOutcome,
-  ALICE_PK,
-  ALICE_CHAIN_PK,
-  BOB_PK,
-  BOB_CHAIN_PK,
-  DEFAULT_CHAIN_URL
+  DEFAULT_CHAIN_URL,
+  ACTORS
 } from '@cerc-io/util';
 import { multiaddr } from '@multiformats/multiaddr';
 
@@ -79,12 +76,10 @@ function App() {
 
   useEffect(() => {
     window.setupClient = async (name: string) => {
-      if (name === 'alice') {
-        await init(ALICE_PK, ALICE_CHAIN_PK);
-        return;
-      }
-
-      await init(BOB_PK, BOB_CHAIN_PK);
+      const actor = ACTORS[name];
+      assert(actor, `Actor with name ${name} does not exists`);
+      
+      await init(actor.privateKey, actor.chainPrivateKey);
     }
   }, [init])
 

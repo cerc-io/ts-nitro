@@ -62,16 +62,16 @@ Instructions to run two instances of `ts-nitro` clients in browser environment a
 
 * Refresh the apps for enabling logs
 
-* Call methods `setupClient('alice')` and `setupClient('bob')` separately in the 2 browsers
+* Call methods `setupClient('erin')` and `setupClient('charlie')` separately in the 2 browsers
 
-* Wait for `New peer found` log in console and check `msgService.peers` to see if peers have exchanged info
+* Wait for `New peer found` log in console
 
 * Call method `directFund` with address of the other browser client and check logs
 
-  * For example, call directFund in Alice browser with Bob's address
+  * For example, call directFund in Erin browser with Charlie's address
     
     ```
-    directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94')
+    directFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
     ```
 
   * Final expected log
@@ -119,7 +119,7 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 
 * Refresh the app for enabling logs
 
-* Call method `setupClient('alice')`
+* Call method `setupClient('erin')`
 
 * Call method `addPeerByMultiaddr` to connect to client Bob
 
