@@ -61,6 +61,11 @@ const getArgv = () => yargs.parserConfiguration({
     default: false,
     describe: 'Whether to create a ledger with the given counterparty',
   },
+  directDefund: {
+    type: 'boolean',
+    default: false,
+    describe: 'Whether to close a ledger with the given counterparty',
+  },
   virtualFund: {
     type: 'boolean',
     default: false,
@@ -132,6 +137,13 @@ const main = async () => {
 
       await client.objectiveCompleteChan(ledgerChannelResponse.id).shift();
       log(`Leger channel created with id ${ledgerChannelResponse.channelId.string()}\n`);
+
+      if (argv.directDefund) {
+        const closeLedgerChannelObjectiveId = await client.closeLedgerChannel(ledgerChannelResponse.channelId);
+
+        await client.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
+        log(`Leger channel with id ${ledgerChannelResponse.channelId.string()} closed\n`);
+      }
     }
 
     if (argv.virtualFund) {
