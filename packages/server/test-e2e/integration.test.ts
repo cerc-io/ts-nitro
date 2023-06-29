@@ -8,12 +8,7 @@ import {
   setupClient,
   createOutcome,
   DEFAULT_CHAIN_URL,
-  ALICE_ADDRESS,
-  ALICE_PK,
-  ALICE_CHAIN_PK,
-  BOB_ADDRESS,
-  BOB_PK,
-  BOB_CHAIN_PK,
+  ACTORS,
 } from '@cerc-io/util';
 
 import { DirectFundParams } from '../src/types';
@@ -30,33 +25,33 @@ describe('test Client', () => {
   it('should instantiate Clients', async () => {
     assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
-    const aliceStore = new MemStore(hex2Bytes(ALICE_PK));
+    const aliceStore = new MemStore(hex2Bytes(ACTORS.alice.privateKey));
     const aliceMsgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, ALICE_MESSAGING_PORT, aliceStore.getAddress());
 
     aliceClient = await setupClient(
       aliceMsgService,
       aliceStore,
       {
-        chainPk: ALICE_CHAIN_PK,
+        chainPk: ACTORS.alice.chainPrivateKey,
         chainURL: DEFAULT_CHAIN_URL,
       },
     );
 
-    expect(aliceClient.address).to.equal(ALICE_ADDRESS);
+    expect(aliceClient.address).to.equal(ACTORS.alice.address);
 
-    const bobStore = new MemStore(hex2Bytes(BOB_PK));
+    const bobStore = new MemStore(hex2Bytes(ACTORS.bob.privateKey));
     const bobMsgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, BOB_MESSAGING_PORT, bobStore.getAddress());
 
     bobClient = await setupClient(
       bobMsgService,
       bobStore,
       {
-        chainPk: BOB_CHAIN_PK,
+        chainPk: ACTORS.bob.chainPrivateKey,
         chainURL: DEFAULT_CHAIN_URL,
       },
     );
 
-    expect(bobClient.address).to.equal(BOB_ADDRESS);
+    expect(bobClient.address).to.equal(ACTORS.bob.address);
 
     await waitForPeerInfoExchange(1, [aliceMsgService, bobMsgService]);
   });
@@ -64,7 +59,7 @@ describe('test Client', () => {
   it('should create ledger channel', async () => {
     assert(aliceClient.address);
 
-    const counterParty = BOB_ADDRESS;
+    const counterParty = ACTORS.bob.address;
     const asset = `0x${'00'.repeat(20)}`;
     const params: DirectFundParams = {
       counterParty,
