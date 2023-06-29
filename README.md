@@ -73,7 +73,7 @@ Run relay node using v2 watcher
 
   * Refresh the app for enabling logs
 
-  * Call method `setupClient('brian')`
+  * Call method `setupClient('erin')`
 
   * Wait for `New peer found` log in console
 

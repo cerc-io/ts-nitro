@@ -41,7 +41,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
 ### Run
 
-* Run a client for Irene (`0x111A00868581f73AB42FEEF67D235Ca09ca1E8db`):
+* Run a client for David (`0x111A00868581f73AB42FEEF67D235Ca09ca1E8db`):
 
   ```bash
   # In packages/server
