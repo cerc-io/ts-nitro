@@ -58,12 +58,6 @@ export class Destination {
     return this.value;
   }
 
-  // An additional method required for serialization
-  // as Destination is used as a key type in a Map in LedgerOutcome
-  toString(): string {
-    return this.value;
-  }
-
   bytes(): Buffer {
     return hex2Bytes(this.value);
   }

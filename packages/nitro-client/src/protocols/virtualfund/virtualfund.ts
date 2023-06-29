@@ -818,6 +818,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         } catch (err) {
           throw new Error(`error proposing ledger update: ${err}`);
         }
+
         sideEffects = se;
       }
     }

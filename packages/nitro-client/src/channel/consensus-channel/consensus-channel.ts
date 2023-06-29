@@ -8,6 +8,7 @@ import { ethers } from 'ethers';
 import {
   FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
+import { Bytes32 } from '@statechannels/nitro-protocol';
 
 import { Signature, signatureJsonEncodingMap } from '../../crypto/signatures';
 import { getAddressFromSecretKeyBytes } from '../../crypto/keys';
@@ -202,13 +203,13 @@ export class LedgerOutcome {
   // Balance of participants[1]
   _follower: Balance = new Balance({});
 
-  guarantees: Map<Destination, Guarantee> = new Map();
+  guarantees: Map<Bytes32, Guarantee> = new Map();
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     assetAddress: { type: 'address' },
     leader: { type: 'class', value: Balance },
     follower: { type: 'class', value: Balance },
-    guarantees: { type: 'map', key: { type: 'class', value: Destination }, value: { type: 'class', value: Guarantee } },
+    guarantees: { type: 'map', key: { type: 'string' }, value: { type: 'class', value: Guarantee } },
   };
 
   static fromJSON(data: string): LedgerOutcome {
@@ -238,7 +239,7 @@ export class LedgerOutcome {
     assetAddress?: Address;
     _leader?: Balance;
     _follower?: Balance
-    guarantees?: Map<Destination, Guarantee>;
+    guarantees?: Map<Bytes32, Guarantee>;
   }) {
     Object.assign(this, params);
   }
@@ -255,10 +256,10 @@ export class LedgerOutcome {
 
   // NewLedgerOutcome creates a new ledger outcome with the given asset address, balances, and guarantees.
   static newLedgerOutcome(assetAddress: Address, leader: Balance, follower: Balance, guarantees: Guarantee[]): LedgerOutcome {
-    const guaranteeMap: Map<Destination, Guarantee> = new Map<Destination, Guarantee>();
+    const guaranteeMap: Map<Bytes32, Guarantee> = new Map<Bytes32, Guarantee>();
 
     for (const g of guarantees) {
-      guaranteeMap.set(g._target, g);
+      guaranteeMap.set(g._target.value, g);
     }
 
     return new LedgerOutcome({
@@ -278,7 +279,7 @@ export class LedgerOutcome {
   static fromExit(sae: SingleAssetExit): LedgerOutcome {
     const leader = new Balance({ destination: sae.allocations.value[0].destination, amount: sae.allocations.value[0].amount });
     const follower = new Balance({ destination: sae.allocations.value[1].destination, amount: sae.allocations.value[1].amount });
-    const guarantees: Map<Destination, Guarantee> = new Map();
+    const guarantees: Map<Bytes32, Guarantee> = new Map();
 
     for (const allocation of sae.allocations.value) {
       if (allocation.allocationType === AllocationType.GuaranteeAllocationType) {
@@ -290,7 +291,7 @@ export class LedgerOutcome {
           right: gM.right,
         });
 
-        guarantees.set(allocation.destination, guarantee);
+        guarantees.set(allocation.destination.value, guarantee);
       }
     }
 
@@ -313,7 +314,7 @@ export class LedgerOutcome {
     ];
 
     // Followed by guarantees, sorted by the target destination
-    const keys = Array.from(this.guarantees.keys()).sort((a, b) => (a.string() < b.string() ? -1 : 1));
+    const keys = Array.from(this.guarantees.keys()).sort((a, b) => (a < b ? -1 : 1));
     for (const target of keys) {
       allocations.push(this.guarantees.get(target)!.asAllocation());
     }
@@ -340,7 +341,7 @@ export class LedgerOutcome {
       amount: BigInt(this._follower.amount), // Create a new BigInt instance
     });
 
-    const guarantees = new Map<Destination, Guarantee>();
+    const guarantees = new Map<Bytes32, Guarantee>();
     for (const [d, g] of this.guarantees.entries()) {
       const g2 = g;
       g2.amount = BigInt(g.amount);
@@ -357,10 +358,10 @@ export class LedgerOutcome {
 
   // Clone returns a deep copy of the receiver.
   clone(): LedgerOutcome {
-    const clonedGuarantees: Map<Destination, Guarantee> = new Map<Destination, Guarantee>();
+    const clonedGuarantees: Map<Bytes32, Guarantee> = new Map<Bytes32, Guarantee>();
 
     for (const [key, g] of this.guarantees) {
-      clonedGuarantees.set(_.cloneDeep(key), g.clone());
+      clonedGuarantees.set(key, g.clone());
     }
 
     return new LedgerOutcome({
@@ -376,7 +377,7 @@ export class LedgerOutcome {
     const targets: Destination[] = [];
 
     for (const [dest] of this.guarantees) {
-      targets.push(dest);
+      targets.push(new Destination(dest));
     }
 
     return targets;
@@ -384,7 +385,7 @@ export class LedgerOutcome {
 
   // Includes returns true when the receiver includes g in its list of guarantees.
   includes(g: Guarantee): boolean {
-    const existing = this.guarantees.get(g._target);
+    const existing = this.guarantees.get(g._target.value);
     if (!existing) {
       return false;
     }
@@ -397,7 +398,7 @@ export class LedgerOutcome {
 
   // IncludesTarget returns true when the receiver includes a guarantee that targets the given destination.
   includesTarget(target: Destination): boolean {
-    return this.guarantees.has(target);
+    return this.guarantees.has(target.value);
   }
 }
 
@@ -482,7 +483,7 @@ export class Vars {
     // CHECKS
     const o = this.outcome;
 
-    if (o.guarantees.has(p._target)) {
+    if (o.guarantees.has(p._target.value)) {
       throw ErrDuplicateGuarantee;
     }
 
@@ -527,7 +528,7 @@ export class Vars {
 
     // Include guarantee
     o.guarantees.set(
-      p._target,
+      p._target.value,
       Guarantee.newGuarantee(p.amount, p._target, p.left, p.right),
     );
   }
@@ -547,7 +548,7 @@ export class Vars {
     // CHECKS
     const o = this.outcome;
 
-    const guarantee = o.guarantees.get(p.target);
+    const guarantee = o.guarantees.get(p.target.value);
 
     if (!guarantee) {
       throw ErrGuaranteeNotFound;
@@ -575,7 +576,7 @@ export class Vars {
     }
 
     // Remove the guarantee
-    o.guarantees.delete(p.target);
+    o.guarantees.delete(p.target.value);
   }
 }
 
@@ -1183,7 +1184,7 @@ export class Add extends Guarantee {
   static fromJSON(data: string): Add {
     // props holds guarantee in a field
     const props = fromJSON(this.jsonEncodingMap, data);
-    return new Add({ ...props.guaranatee, leftDeposit: props.leftDeposit });
+    return new Add({ ...props.guarantee, leftDeposit: props.leftDeposit });
   }
 
   toJSON(): any {
