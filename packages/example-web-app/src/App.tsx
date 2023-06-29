@@ -20,13 +20,16 @@ declare global {
     setupClient: (name: string) => Promise<void>
     client?: Client;
     msgService?: P2PMessageService;
-    directFund?: (clientAddress: string) => Promise<void>
     addPeerByMultiaddr?: (address: string, multiaddrString: string) => Promise<void>
+    directFund?: (clientAddress: string) => Promise<void>
+    virtualFund?: (clientAddress: string) => Promise<void>
   }
 }
 
-function App() {
+function App () {
   const [data, setData] = useState('');
+  const [client, setClient] = useState<Client>();
+  const [msgService, setMsgService] = useState<P2PMessageService>();
 
   useEffect(() => {
     const res = test();
@@ -36,10 +39,12 @@ function App() {
   const init = useCallback(async (pk: string, chainPk: string) => {
     const store = new MemStore(hex2Bytes(pk));
     assert(process.env.REACT_APP_RELAY_MULTIADDR);
-    window.msgService = await createP2PMessageService(process.env.REACT_APP_RELAY_MULTIADDR, store.getAddress());
+    const msgService = await createP2PMessageService(process.env.REACT_APP_RELAY_MULTIADDR, store.getAddress());
 
-    window.client = await setupClient(
-      window.msgService,
+    setMsgService(msgService);
+
+    const client = await setupClient(
+      msgService,
       store,
       {
         chainPk,
@@ -47,41 +52,78 @@ function App() {
       }
     );
 
-    window.directFund = async (clientAddress: string) => {
-      const counterParty = clientAddress;
-      const challengeDuration = 0;
-      const asset = `0x${'00'.repeat(20)}`;
-
-      const outcome = createOutcome(
-        asset,
-        window.client!.address,
-        counterParty,
-        1_000_000,
-      )
-      
-      const response = await window.client!.createLedgerChannel(
-        counterParty,
-        challengeDuration,
-        outcome,
-      );
-
-      console.log(response)
-    }
-
-    window.addPeerByMultiaddr = async (address: string, multiaddrString: string) => {
-      const multi = multiaddr(multiaddrString);
-      await window.msgService!.addPeerByMultiaddr(address, multi);
-    }
+    setClient(client);
   }, []);
 
   useEffect(() => {
     window.setupClient = async (name: string) => {
       const actor = ACTORS[name];
       assert(actor, `Actor with name ${name} does not exists`);
-      
+
       await init(actor.privateKey, actor.chainPrivateKey);
+    };
+  }, [init]);
+
+  useEffect(() => {
+    if (!msgService) {
+      return;
     }
-  }, [init])
+
+    window.msgService = msgService;
+
+    window.addPeerByMultiaddr = async (address: string, multiaddrString: string) => {
+      const multi = multiaddr(multiaddrString);
+      await msgService!.addPeerByMultiaddr(address, multi);
+    };
+  }, [msgService]);
+
+  useEffect(() => {
+    if (!client) {
+      return;
+    }
+
+    window.client = client;
+    const challengeDuration = 0;
+    const asset = `0x${'00'.repeat(20)}`;
+
+    window.directFund = async (counterParty: string) => {
+      const outcome = createOutcome(
+        asset,
+        window.client!.address,
+        counterParty,
+        1_000_000
+      );
+
+      const response = await client!.createLedgerChannel(
+        counterParty,
+        challengeDuration,
+        outcome
+      );
+
+      await client.objectiveCompleteChan(response.id).shift();
+      console.log(`Leger channel created with id ${response.channelId.string()}\n`);
+    };
+
+    window.virtualFund = async (counterParty: string) => {
+      const intermediaries: string[] = [];
+      const outcome = createOutcome(
+        asset,
+        client.address,
+        counterParty,
+        1_000
+      );
+
+      const response = await client.createVirtualPaymentChannel(
+        intermediaries,
+        counterParty,
+        challengeDuration,
+        outcome
+      );
+
+      await client.objectiveCompleteChan(response.id).shift();
+      console.log(`Virtual payment channel created with id ${response.channelId.string()}\n`);
+    };
+  }, [client]);
 
   return (
     <div className="App">
