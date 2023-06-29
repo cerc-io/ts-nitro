@@ -586,7 +586,9 @@ export class Engine {
       const objectiveId = or.id(myAddress, chainId);
       this.logger(`handling new objective request for ${objectiveId}`);
 
-      this.metrics?.recordObjectiveStarted(objectiveId);
+      // Need to pass objective id instead of objective request id
+      // Implemented in attempt progress
+      // this.metrics?.recordObjectiveStarted(objectiveId);
 
       deferredSignalObjectiveStarted = () => or.signalObjectiveStarted();
 
@@ -798,6 +800,10 @@ export class Engine {
     let deferredRecordFunctionDuration;
     try {
       deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
+
+      // Code shifted from handleObjectiveRequest
+      this.metrics?.recordObjectiveStarted(objective.id());
+
       const outgoing = new EngineEvent();
 
       assert(this.store);

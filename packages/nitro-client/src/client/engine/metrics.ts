@@ -31,7 +31,7 @@ export interface MetricsApi {
   // TODO: Implement
   // promjs doesnot have timer
   // Timer(name string) metrics.Timer
-  timer(name: string): void
+  timer(name: string): Gauge;
 
   // Gauge creates a measurement of gauge type (float64).
   // The returned type is an alias of go-metrics' GaugeFloat64 type. Refer to
@@ -47,7 +47,9 @@ export interface MetricsApi {
 
 // NewNoOpMetrics returns a MetricsApi that does nothing.
 export class NoOpMetrics implements MetricsApi {
-  timer(name: string): void {}
+  timer(name: string): Gauge {
+    return new Gauge();
+  }
 
   recordPoint(name: string, value: number): void {}
 
@@ -70,7 +72,14 @@ export class Metrics implements MetricsApi {
     this.registry = prom();
   }
 
-  timer(name: string): void {}
+  timer(name: string): Gauge {
+    assert(this.registry);
+    const gauge = this.registry.get('gauge', name);
+    if (gauge) {
+      return gauge;
+    }
+    return this.registry.create('gauge', name);
+  }
 
   recordPoint(name: string, value: number): void { }
 
@@ -144,10 +153,19 @@ export class MetricsRecorder {
     this.startTimes.set(id, new Date());
   }
 
-  // TODO: Implement
   // RecordObjectiveCompleted records metrics about the completion of an objective
   // This should be called when an objective is completed
-  recordObjectiveCompleted(id: ObjectiveId): void {}
+  recordObjectiveCompleted(id: ObjectiveId): void {
+    const start = this.startTimes.get(id);
+    assert(start);
+
+    const elapsed = new Date().getTime() - start.getTime();
+    const oType = id.split('-')[0];
+    const timer = this.metrics?.timer(this.addMyAddress(`objective_complete_time,type=${oType}`));
+
+    timer!.set(elapsed);
+    this.startTimes.delete(id);
+  }
 
   // RecordQueueLength records metrics about the length of some queue
   recordQueueLength(name: string, queueLength: number): void {
