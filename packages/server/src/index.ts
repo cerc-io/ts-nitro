@@ -59,17 +59,21 @@ const getArgv = () => yargs.parserConfiguration({
   directFund: {
     type: 'boolean',
     default: false,
-    describe: 'Whether to create a ledger with the given counterparty',
+    describe: 'Whether to create a ledger channel with the given counterparty',
   },
   directDefund: {
     type: 'boolean',
     default: false,
-    describe: 'Whether to close a ledger with the given counterparty',
+    describe: 'Whether to close a ledger channel with the given counterparty',
   },
   virtualFund: {
     type: 'boolean',
     default: false,
-    describe: 'Whether to create a virtual payment with the given counterparty',
+    describe: 'Whether to create a virtual payment channel with the given counterparty',
+  },
+  pay: {
+    type: 'number',
+    describe: 'Amount to pay on the virtual payment channel with the given counterparty',
   },
 }).argv;
 
@@ -170,6 +174,10 @@ const main = async () => {
 
       await client.objectiveCompleteChan(virtualPaymentChannelResponse.id).shift();
       log(`Virtual payment channel created with id ${virtualPaymentChannelResponse.channelId.string()}\n`);
+
+      if (argv.pay !== undefined) {
+        await client.pay(virtualPaymentChannelResponse.channelId, BigInt(argv.pay));
+      }
     }
 
     // TODO: Update instructions in browser setup

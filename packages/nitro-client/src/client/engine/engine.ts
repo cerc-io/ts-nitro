@@ -682,7 +682,7 @@ export class Engine {
     const cId = request.channelId;
     let voucher: Voucher;
     try {
-      voucher = this.vm!.pay(cId, request.amount, this.store!.getChannelSecretKey());
+      voucher = await this.vm!.pay(cId, request.amount, this.store!.getChannelSecretKey());
     } catch (err) {
       throw new Error(`handleAPIEvent: Error making payment: ${err}`);
     }

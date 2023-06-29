@@ -59,7 +59,7 @@ export class VoucherManager {
 
   // Pay will deduct amount from balance and add it to paid, returning a signed voucher for the
   // total amount paid.
-  pay(channelId: Destination, amount: bigint, pk: Buffer): Voucher {
+  async pay(channelId: Destination, amount: bigint, pk: Buffer): Promise<Voucher> {
     const [vInfo, ok] = this.store.getVoucherInfo(channelId);
 
     if (!ok) {
@@ -81,7 +81,7 @@ export class VoucherManager {
 
     vInfo.largestVoucher = voucher;
 
-    voucher.sign(pk);
+    await voucher.sign(pk);
 
     this.store.setVoucherInfo(channelId, vInfo);
 
