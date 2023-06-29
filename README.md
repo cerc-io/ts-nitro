@@ -83,8 +83,22 @@ Run relay node using v2 watcher
     directFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
     ```
 
-  * Final expected log
+    Final expected log
 
     ```
     ts-nitro:engine Objective DirectFunding-0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978 is complete & returned to API +22ms
+    Leger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
+    ```
+
+  * Call method `virtualFund` with address of client Alice
+
+    ```
+    virtualFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
+    ```
+
+    Final expected log
+
+    ```
+    # ts-nitro:engine Objective VirtualFund-0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af is complete & returned to API +0ms
+    Virtual payment channel created with id 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
     ```
