@@ -436,7 +436,7 @@ export class MemStore implements Store {
 
         if (o.toMyLeft
           && o.toMyLeft.channel
-          && _.isEqual(o.toMyLeft.channel.id, zeroAddress)
+          && !_.isEqual(o.toMyLeft.channel.id, zeroAddress)
         ) {
           let left: ConsensusChannel;
           try {
@@ -450,7 +450,7 @@ export class MemStore implements Store {
 
         if (o.toMyRight
           && o.toMyRight.channel
-          && _.isEqual(o.toMyRight.channel.id, zeroAddress)
+          && !_.isEqual(o.toMyRight.channel.id, zeroAddress)
         ) {
           let right: ConsensusChannel;
           try {
@@ -478,7 +478,7 @@ export class MemStore implements Store {
         const zeroAddress = new Destination();
 
         if (o.toMyLeft
-          && _.isEqual(o.toMyLeft.id, zeroAddress)
+          && !_.isEqual(o.toMyLeft.id, zeroAddress)
         ) {
           let left: ConsensusChannel;
           try {
@@ -491,7 +491,7 @@ export class MemStore implements Store {
         }
 
         if (o.toMyRight
-          && _.isEqual(o.toMyRight.id, zeroAddress)
+          && !_.isEqual(o.toMyRight.id, zeroAddress)
         ) {
           let right: ConsensusChannel;
           try {
