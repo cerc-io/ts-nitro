@@ -28,7 +28,6 @@ export interface MetricsApi {
   //
   //   requests_received,tag1=value1,tag2=value2,tag3=value3
 
-  // TODO: Implement
   // promjs doesnot have timer
   // Timer(name string) metrics.Timer
   timer(name: string): Gauge;
@@ -140,11 +139,30 @@ export class MetricsRecorder {
     });
   }
 
-  // TODO: Implement
   // RecordFunctionDuration records the duration of the function
   // It should be called at the start of the function like so  `defer e.metrics.RecordFunctionDuration()()`
-  recordFunctionDuration(): () => void {
-    return () => {};
+  recordFunctionDuration(name: string): () => void {
+    const start = new Date();
+    return () => {
+      const elapsed = new Date().getTime() - start.getTime();
+
+      // Skip this function, and fetch the PC for its parent.
+      // pc, _, _, _ := runtime.Caller(1)
+
+      // Retrieve a function object this function's parent.
+      // funcObj := runtime.FuncForPC(pc)
+
+      // Use a regex to strip out the module path
+      // funcNameRegex := regexp.MustCompile(`^.*\.(.*)$`)
+      // name := funcNameRegex.ReplaceAllString(funcObj.Name(), "$1")
+
+      // get name of currently running function deprecated in javascript
+      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/caller
+      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/arguments/callee#description
+
+      const timer = this.metrics!.timer(this.addMyAddress(name));
+      timer!.add(elapsed / 1000);
+    };
   }
 
   // RecordObjectiveStarted records metrics about the start of an objective
@@ -163,7 +181,7 @@ export class MetricsRecorder {
     const oType = id.split('-')[0];
     const timer = this.metrics?.timer(this.addMyAddress(`objective_complete_time,type=${oType}`));
 
-    timer!.set(elapsed);
+    timer!.set(elapsed / 1000);
     this.startTimes.delete(id);
   }
 

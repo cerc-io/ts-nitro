@@ -301,11 +301,12 @@ export class Engine {
   // a running ledger channel by pulling its corresponding objective
   // from the store and attempting progress.
   private async handleProposal(proposal: Proposal): Promise<EngineEvent> {
-    let deferredRecordFunctionDuration;
+    let deferredCompleteRecordFunction;
     try {
-      deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
-      assert(this.store);
+      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleProposal.name);
+      deferredCompleteRecordFunction = () => completeRecordFunction();
 
+      assert(this.store);
       const id = getProposalObjectiveId(proposal);
       const obj = this.store.getObjectiveById(id);
 
@@ -316,8 +317,8 @@ export class Engine {
 
       return await this.attemptProgress(obj);
     } finally {
-      if (deferredRecordFunctionDuration) {
-        deferredRecordFunctionDuration();
+      if (deferredCompleteRecordFunction) {
+        deferredCompleteRecordFunction();
       }
     }
   }
@@ -329,9 +330,11 @@ export class Engine {
   //   - attempts progress on the target Objective,
   //   - attempts progress on related objectives which may have become unblocked.
   private async handleMessage(message: Message): Promise<[EngineEvent, Error | undefined]> {
-    let deferredRecordFunctionDuration;
+    let deferredCompleteRecordFunction;
     try {
-      deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
+      const completeRecordFunction = () => this.metrics?.recordFunctionDuration(this.handleMessage.name);
+      deferredCompleteRecordFunction = () => completeRecordFunction();
+
       assert(this.policymaker);
       assert(this.store);
       assert(this.vm);
@@ -512,8 +515,8 @@ export class Engine {
 
       return [allCompleted, undefined];
     } finally {
-      if (deferredRecordFunctionDuration) {
-        deferredRecordFunctionDuration();
+      if (deferredCompleteRecordFunction) {
+        deferredCompleteRecordFunction();
       }
     }
   }
@@ -524,9 +527,11 @@ export class Engine {
   //   - generates an updated objective, and
   //   - attempts progress.
   private async handleChainEvent(chainEvent: ChainEvent): Promise<EngineEvent> {
-    let deferredRecordFunctionDuration;
+    let deferredCompleteRecordFunction;
     try {
-      deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
+      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleChainEvent.name);
+      deferredCompleteRecordFunction = () => completeRecordFunction();
+
       assert('string' in chainEvent && typeof chainEvent.string === 'function');
       this.logger(`handling chain event: ${chainEvent.string()}`);
 
@@ -556,8 +561,8 @@ export class Engine {
 
       return await this.attemptProgress(updatedEventHandler);
     } finally {
-      if (deferredRecordFunctionDuration) {
-        deferredRecordFunctionDuration();
+      if (deferredCompleteRecordFunction) {
+        deferredCompleteRecordFunction();
       }
     }
   }
@@ -567,9 +572,11 @@ export class Engine {
   // TODO: Can throw an error
   private async handleObjectiveRequest(or: ObjectiveRequest): Promise<EngineEvent> {
     let deferredSignalObjectiveStarted;
-    let deferredRecordFunctionDuration;
+    let deferredCompleteRecordFunction;
     try {
-      deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
+      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleObjectiveRequest.name);
+      deferredCompleteRecordFunction = () => completeRecordFunction();
+
       assert(this.store);
       assert(this.chain);
       assert(this.logger);
@@ -587,7 +594,6 @@ export class Engine {
       this.logger(`handling new objective request for ${objectiveId}`);
 
       // Need to pass objective id instead of objective request id
-      // Implemented in attempt progress
       // this.metrics?.recordObjectiveStarted(objectiveId);
 
       deferredSignalObjectiveStarted = () => or.signalObjectiveStarted();
@@ -606,6 +612,7 @@ export class Engine {
           } catch (err) {
             throw new Error(`handleAPIEvent: Could not create objective for ${or}: ${err}`);
           }
+          this.metrics!.recordObjectiveStarted(vfo.id());
 
           // Only Alice or Bob care about registering the objective and keeping track of vouchers
           const lastParticipant = vfo.v!.participants.length - 1;
@@ -644,6 +651,7 @@ export class Engine {
               this.store.getConsensusChannel.bind(this.store),
             );
 
+            this.metrics!.recordObjectiveStarted(vdfo.id());
             return await this.attemptProgress(vdfo);
           } catch (err) {
             throw new Error(`handleAPIEvent: Could not create objective for ${request}: ${err}`);
@@ -661,6 +669,7 @@ export class Engine {
               this.store.getConsensusChannel.bind(this.store),
             );
 
+            this.metrics!.recordObjectiveStarted(dfo.id());
             return await this.attemptProgress(dfo);
           } catch (err) {
             throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(or)}: ${err}`);
@@ -678,6 +687,7 @@ export class Engine {
           } catch (err) {
             throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(request)}: ${err}`);
           }
+          this.metrics!.recordObjectiveStarted(ddfo.id());
           // If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
           this.store.destroyConsensusChannel(request.channelId);
           return await this.attemptProgress(ddfo);
@@ -690,8 +700,8 @@ export class Engine {
       if (deferredSignalObjectiveStarted) {
         deferredSignalObjectiveStarted();
       }
-      if (deferredRecordFunctionDuration) {
-        deferredRecordFunctionDuration();
+      if (deferredCompleteRecordFunction) {
+        deferredCompleteRecordFunction();
       }
     }
   }
@@ -745,9 +755,11 @@ export class Engine {
 
   // sendMessages sends out the messages and records the metrics.
   private async sendMessages(msgs: Message[]): Promise<void> {
-    let deferredRecordFunctionDuration;
+    let deferredCompleteRecordFunction;
     try {
-      deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
+      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.sendMessages.name);
+      deferredCompleteRecordFunction = () => completeRecordFunction();
+
       assert(this.store);
       assert(this.msg);
       for await (const message of msgs) {
@@ -757,17 +769,19 @@ export class Engine {
         await this.msg.send(message);
       }
     } finally {
-      if (deferredRecordFunctionDuration) {
-        deferredRecordFunctionDuration();
+      if (deferredCompleteRecordFunction) {
+        deferredCompleteRecordFunction();
       }
     }
   }
 
   // executeSideEffects executes the SideEffects declared by cranking an Objective or handling a payment request.
   private async executeSideEffects(sideEffects: SideEffects): Promise<void> {
-    let deferredRecordFunctionDuration;
+    let deferredCompleteRecordFunction;
     try {
-      deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
+      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.executeSideEffects.name);
+      deferredCompleteRecordFunction = () => completeRecordFunction();
+
       // Send messages in a go routine so that we don't block on message delivery
       go(this.sendMessages.bind(this), sideEffects.messagesToSend);
 
@@ -783,8 +797,8 @@ export class Engine {
         await this.fromLedger.push(proposal);
       }
     } finally {
-      if (deferredRecordFunctionDuration) {
-        deferredRecordFunctionDuration();
+      if (deferredCompleteRecordFunction) {
+        deferredCompleteRecordFunction();
       }
     }
   }
@@ -797,12 +811,10 @@ export class Engine {
   //  4. It executes any side effects that were declared during cranking
   //  5. It updates progress metadata in the store
   private async attemptProgress(objective: Objective): Promise<EngineEvent> {
-    let deferredRecordFunctionDuration;
+    let deferredCompleteRecordFunction;
     try {
-      deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
-
-      // Code shifted from handleObjectiveRequest
-      this.metrics?.recordObjectiveStarted(objective.id());
+      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.attemptProgress.name);
+      deferredCompleteRecordFunction = () => completeRecordFunction();
 
       const outgoing = new EngineEvent();
 
@@ -845,8 +857,8 @@ export class Engine {
 
       return outgoing;
     } finally {
-      if (deferredRecordFunctionDuration) {
-        deferredRecordFunctionDuration();
+      if (deferredCompleteRecordFunction) {
+        deferredCompleteRecordFunction();
       }
     }
   }
@@ -914,9 +926,11 @@ export class Engine {
   // The associated Channel will remain in the store.
   // TODO: Can throw an error
   private spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): void {
-    let deferredRecordFunctionDuration;
+    let deferredCompleteRecordFunction;
     try {
-      deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
+      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.spawnConsensusChannelIfDirectFundObjective.name);
+      deferredCompleteRecordFunction = () => completeRecordFunction();
+
       if (crankedObjective instanceof DirectFundObjective) {
         const dfo = crankedObjective as DirectFundObjective;
         const c: ConsensusChannel = dfo.createConsensusChannel();
@@ -929,8 +943,8 @@ export class Engine {
         }
       }
     } finally {
-      if (deferredRecordFunctionDuration) {
-        deferredRecordFunctionDuration();
+      if (deferredCompleteRecordFunction) {
+        deferredCompleteRecordFunction();
       }
     }
   }
@@ -938,9 +952,11 @@ export class Engine {
   // getOrCreateObjective retrieves the objective from the store.
   // If the objective does not exist, it creates the objective using the supplied payload and stores it in the store
   private getOrCreateObjective(p: ObjectivePayload): Objective {
-    let deferredRecordFunctionDuration;
+    let deferredCompleteRecordFunction;
     try {
-      deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
+      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.getOrCreateObjective.name);
+      deferredCompleteRecordFunction = () => completeRecordFunction();
+
       assert(this.store);
 
       const id = p.objectiveId;
@@ -974,18 +990,20 @@ export class Engine {
         throw new ErrGetObjective({ wrappedError: err as Error, objectiveId: id });
       }
     } finally {
-      if (deferredRecordFunctionDuration) {
-        deferredRecordFunctionDuration();
+      if (deferredCompleteRecordFunction) {
+        deferredCompleteRecordFunction();
       }
     }
   }
 
   // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied payload.
   private constructObjectiveFromMessage(id: ObjectiveId, p: ObjectivePayload): Objective {
-    let deferredRecordFunctionDuration;
+    let deferredCompleteRecordFunction;
     try {
       this.logger(`Constructing objective ${id} from message`);
-      deferredRecordFunctionDuration = () => this.metrics?.recordFunctionDuration()();
+      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.constructObjectiveFromMessage.name);
+      deferredCompleteRecordFunction = () => completeRecordFunction();
+
       assert(this.store);
       assert(this.vm);
 
@@ -1070,8 +1088,8 @@ export class Engine {
           throw new Error('cannot handle unimplemented objective type');
       }
     } finally {
-      if (deferredRecordFunctionDuration) {
-        deferredRecordFunctionDuration();
+      if (deferredCompleteRecordFunction) {
+        deferredCompleteRecordFunction();
       }
     }
   }
