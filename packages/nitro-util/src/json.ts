@@ -106,16 +106,18 @@ export function fromJSON(jsonEncodingMap: Record<string, any>, data: string, key
 
 // Go compatible JSON marshalling utility method
 export function toJSON(jsonEncodingMap: Record<string, any>, obj: any, keysMap: Map<string, string> = new Map()): any {
-  let jsonObj: any = { ...obj };
+  let mappedObj: any = { ...obj };
 
   // Replace object keys with mapped & capitalized keys
-  jsonObj = _.mapKeys(jsonObj, (value, key) => capitalizeFirstLetter(keysMap.get(key) ?? key));
+  mappedObj = _.mapKeys(mappedObj, (value, key) => capitalizeFirstLetter(keysMap.get(key) ?? key));
 
+  // Create a new object having keys in order of jsonEncodingMap keys
+  const jsonObj: any = {};
   Object.keys(jsonEncodingMap).forEach((fieldKey) => {
     const fieldType = jsonEncodingMap[fieldKey];
     const capitalizedFieldKey = capitalizeFirstLetter(fieldKey);
 
-    jsonObj[capitalizedFieldKey] = encodeValue(fieldType, jsonObj[capitalizedFieldKey]);
+    jsonObj[capitalizedFieldKey] = encodeValue(fieldType, mappedObj[capitalizedFieldKey]);
   });
 
   return jsonObj;
