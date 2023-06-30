@@ -39,7 +39,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
     }
 
     case 'bigint': {
-      return BigInt(fieldJsonValue);
+      return fieldJsonValue === null ? undefined : BigInt(fieldJsonValue);
     }
 
     case 'uint64': {
@@ -188,10 +188,9 @@ function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
       return encodeArray(fieldType.value as FieldDescription, fieldValue);
     }
 
-    // TODO: Handle nil pointer case
-    // case 'bigint': {
-    //   return fieldValue;
-    // }
+    case 'bigint': {
+      return fieldValue === undefined ? null : fieldValue;
+    }
 
     case 'buffer': {
       // Marshall buffer as a base64 string
