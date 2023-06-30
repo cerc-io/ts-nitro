@@ -847,7 +847,7 @@ export class SignedProposal {
     proposal: { type: 'class', value: Proposal },
     turnNum: { type: 'uint64' },
   };
-  
+
   static fromJSON(data: string): SignedProposal {
     // props has Signature properties
     const props = fromJSON(this.jsonEncodingMap, data);
