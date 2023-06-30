@@ -93,18 +93,35 @@ export class Connection {
 
   guaranteeInfo: GuaranteeInfo = new GuaranteeInfo({});
 
+  // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+  // other than the ID is dropped
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    channel: { type: 'class', value: ConsensusChannel },
+    channel: { type: 'class', value: Destination },
     guaranteeInfo: { type: 'class', value: GuaranteeInfo },
   };
 
-  static fromJSON(data: string): Connection {
+  static fromJSON(data: string): Connection | undefined {
+    if (data === 'null') {
+      return undefined;
+    }
+
+    // props has channel.id as channel
     const props = fromJSON(this.jsonEncodingMap, data);
-    return new Connection(props);
+    return new Connection({
+      channel: new ConsensusChannel({ id: props.channel }),
+      guaranteeInfo: props.guaranteeInfo,
+    });
   }
 
   toJSON(): any {
-    return toJSON(Connection.jsonEncodingMap, this);
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+    const jsonConnection = {
+      channel: this.channel!.id,
+      guaranteeInfo: this.guaranteeInfo,
+    };
+
+    return toJSON(Connection.jsonEncodingMap, jsonConnection);
   }
 
   constructor(params: {
@@ -218,15 +235,18 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
   myRole: number = 0; // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
 
+  // TODO: Handle undefined in serialization
   private a0?: Funds; // Initial balance for Alice
 
   private b0?: Funds; // Initial balance for Bob
 
+  // NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
+  // the virtual and ledger channels (other than Ids) is discarded
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
-    v: { type: 'class', value: VirtualChannel },
-    toMyLeft: { type: 'class', value: Connection },
-    toMyRight: { type: 'class', value: Connection },
+    v: { type: 'class', value: Destination },
+    toMyLeft: { type: 'buffer' },
+    toMyRight: { type: 'buffer' },
     n: { type: 'number' },
     myRole: { type: 'number' },
     a0: { type: 'class', value: Funds },
@@ -234,12 +254,40 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   };
 
   static fromJSON(data: string): Objective {
+    // props has v.id as v and JSON buffers for toMyLeft and toMyRight
     const props = fromJSON(this.jsonEncodingMap, data);
-    return new Objective(props);
+
+    return new Objective({
+      status: props.status,
+      v: new VirtualChannel({ id: props.v }),
+      toMyLeft: Connection.fromJSON((props.toMyLeft as Buffer).toString()),
+      toMyRight: Connection.fromJSON((props.toMyRight as Buffer).toString()),
+      n: props.n,
+      myRole: props.myRole,
+      a0: props.a0,
+      b0: props.b0,
+    });
   }
 
   toJSON(): any {
-    return toJSON(Objective.jsonEncodingMap, this);
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+
+    const left = this.toMyLeft ? Buffer.from(JSONbigNative.stringify(this.toMyLeft)) : Buffer.from('null');
+    const right = this.toMyRight ? Buffer.from(JSONbigNative.stringify(this.toMyRight)) : Buffer.from('null');
+
+    const jsonObjective = {
+      status: this.status,
+      v: this.v!.id,
+      toMyLeft: left,
+      toMyRight: right,
+      n: this.n,
+      myRole: this.myRole,
+      a0: this.a0,
+      b0: this.b0,
+    };
+
+    return toJSON(Objective.jsonEncodingMap, jsonObjective);
   }
 
   constructor(params: {

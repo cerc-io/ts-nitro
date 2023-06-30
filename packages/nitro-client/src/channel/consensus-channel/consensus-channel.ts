@@ -946,6 +946,7 @@ export class ConsensusChannel {
       current: this.current,
       proposalQueue: this._proposalQueue,
     };
+
     return toJSON(ConsensusChannel.jsonEncodingMap, jsonConsensusChannel);
   }
 

@@ -437,7 +437,6 @@ export class Engine {
 
         let updatedObjective: Objective;
         try {
-          // TODO: Implement for all protocols
           updatedObjective = objective.receiveProposal(entry);
         } catch (err) {
           return [new EngineEvent(), err as Error];
