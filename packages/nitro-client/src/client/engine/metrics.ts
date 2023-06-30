@@ -156,7 +156,7 @@ export class MetricsRecorder {
       // funcNameRegex := regexp.MustCompile(`^.*\.(.*)$`)
       // name := funcNameRegex.ReplaceAllString(funcObj.Name(), "$1")
 
-      // get name of currently running function deprecated in javascript
+      // Get name of currently running function deprecated in javascript
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/caller
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/arguments/callee#description
 

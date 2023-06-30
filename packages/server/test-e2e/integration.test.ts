@@ -15,8 +15,10 @@ import { DirectFundParams } from '../src/types';
 import {
   ALICE_MESSAGING_PORT,
   BOB_MESSAGING_PORT,
-  METRICS_CHANNEL_KEYS,
+  METRICS_KEYS_CLIENT_INSTANTIATION,
   METRICS_MESSAGE_KEYS_VALUES,
+  METRICS_KEYS_DIRECT_FUND,
+  METRICS_KEYS_FUNCTIONS,
 } from './constants';
 import { createP2PMessageService, waitForPeerInfoExchange } from '../src/utils';
 import { getMetricsKey, getMetricsMessageObj, getMetricsMessage } from './utils';
@@ -60,8 +62,8 @@ describe('test Client', () => {
 
     await waitForPeerInfoExchange(1, [aliceMsgService, bobMsgService]);
 
-    expect(metricsAlice.getMetrics()).to.have.keys(...getMetricsKey(METRICS_CHANNEL_KEYS, ALICE_ADDRESS));
-    expect(metricsBob.getMetrics()).to.have.keys(...getMetricsKey(METRICS_CHANNEL_KEYS, BOB_ADDRESS));
+    expect(metricsAlice.getMetrics()).to.have.keys(...getMetricsKey(METRICS_KEYS_CLIENT_INSTANTIATION, ACTORS.alice.address));
+    expect(metricsBob.getMetrics()).to.have.keys(...getMetricsKey(METRICS_KEYS_CLIENT_INSTANTIATION, ACTORS.bob.address));
   });
 
   it('should create ledger channel', async () => {
@@ -97,11 +99,25 @@ describe('test Client', () => {
     // Check that channelId value is present as a substring in id
     expect(response.id).to.contain(response.channelId.value);
 
-    expect(metricsAlice.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ALICE_ADDRESS, BOB_ADDRESS));
-    expect(metricsBob.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', BOB_ADDRESS, ALICE_ADDRESS));
+    expect(metricsAlice.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.alice.address, ACTORS.bob.address));
+    expect(metricsBob.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.bob.address, ACTORS.alice.address));
 
-    expect(metricsAlice.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, ALICE_ADDRESS, BOB_ADDRESS));
-    expect(metricsBob.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, BOB_ADDRESS, ALICE_ADDRESS));
+    expect(metricsAlice.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, ACTORS.alice.address, ACTORS.bob.address));
+    expect(metricsBob.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, ACTORS.bob.address, ACTORS.alice.address));
+
+    expect(metricsAlice.getMetrics()).to.include.keys(...getMetricsKey(METRICS_KEYS_DIRECT_FUND, ACTORS.alice.address));
+
+    getMetricsKey(METRICS_KEYS_FUNCTIONS, ACTORS.alice.address).forEach((key) => {
+      expect(metricsAlice.getMetrics()[key]).to.be.above(0);
+    });
+
+    getMetricsKey(METRICS_KEYS_FUNCTIONS, ACTORS.bob.address).forEach((key) => {
+      expect(metricsBob.getMetrics()[key]).to.be.above(0);
+    });
+
+    expect(metricsAlice.getMetrics()[getMetricsKey(['handleObjectiveRequest'], ACTORS.alice.address)[0]]).to.be.above(0);
+    expect(metricsBob.getMetrics()[getMetricsKey(['constructObjectiveFromMessage'], ACTORS.bob.address)[0]]).to.be.above(0);
+
     // TODO: Implement and close services
     // client.close();
   });
