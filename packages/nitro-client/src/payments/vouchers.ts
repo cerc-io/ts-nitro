@@ -26,7 +26,7 @@ import * as nitroAbi from '../abi/types';
 export class Voucher {
   channelId: Destination = new Destination();
 
-  amount: bigint = BigInt(0);
+  amount?: bigint = undefined;
 
   signature: Signature = zeroValueSignature;
 
@@ -71,7 +71,7 @@ export class Voucher {
     // Using util method from nitro-protocol instead of go-nitro port
     const sig = await signVoucher(
       {
-        amount: this.amount.toString(),
+        amount: this.amount!.toString(),
         channelId: this.channelId.string(),
       },
       wallet,
@@ -104,7 +104,7 @@ export class VoucherInfo {
 
   channelPayee: Address = ethers.constants.AddressZero;
 
-  startingBalance: bigint = BigInt(0);
+  startingBalance?: bigint = undefined;
 
   largestVoucher: Voucher = new Voucher({});
 
@@ -134,12 +134,12 @@ export class VoucherInfo {
   }
 
   // Paid is the amount of funds that already have been used as payments
-  paid(): bigint {
+  paid(): bigint | undefined {
     return this.largestVoucher.amount;
   }
 
   // Remaining returns the amount of funds left to be used as payments
-  remaining(): bigint {
-    return this.startingBalance - this.paid();
+  remaining(): bigint | undefined {
+    return BigInt(this.startingBalance!) - BigInt(this.paid()!);
   }
 }

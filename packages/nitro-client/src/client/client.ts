@@ -180,7 +180,7 @@ export class Client {
   }
 
   // Pay will send a signed voucher to the payee that they can redeem for the given amount.
-  async pay(channelId: Destination, amount: bigint) {
+  async pay(channelId: Destination, amount?: bigint) {
     assert(this.engine.paymentRequestsFromAPI);
     // Send the event to the engine
     await this.engine.paymentRequestsFromAPI.push({ channelId, amount });

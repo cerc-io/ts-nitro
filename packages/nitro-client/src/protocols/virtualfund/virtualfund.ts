@@ -173,7 +173,7 @@ export class Connection {
     // We only expect a single asset type, and we want to know how much is to be
     // diverted for that asset type.
     // So, we loop through amountFunds and break after the first asset type ...
-    let amount: bigint = BigInt(0);
+    let amount: bigint | undefined;
 
     /* eslint-disable no-unreachable-loop */
     for (const [, val] of amountFunds.value) {
@@ -191,7 +191,7 @@ export class Connection {
   expectedProposal(): Proposal {
     const g = this.getExpectedGuarantee();
 
-    let leftAmount: bigint = BigInt(0);
+    let leftAmount: bigint | undefined;
 
     /* eslint-disable no-unreachable-loop */
     for (const [, val] of this.guaranteeInfo.leftAmount!.value) {
@@ -260,7 +260,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     request: ObjectiveRequest,
     preApprove: boolean,
     myAddress: Address,
-    chainId: bigint,
+    chainId: bigint | undefined,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
   ): Objective {
     let toMyRight: string;
@@ -360,8 +360,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       if (!init.b0.value.has(asset)) {
         init.b0.value.set(asset, BigInt(0));
       }
-      init.a0.value.set(asset, init.a0.value.get(asset)! + amount0);
-      init.b0.value.set(asset, init.b0.value.get(asset)! + amount1);
+      init.a0.value.set(asset, BigInt(init.a0.value.get(asset)!) + BigInt(amount0!));
+      init.b0.value.set(asset, BigInt(init.b0.value.get(asset)!) + BigInt(amount1!));
     }
 
     // Setup Ledger Channel Connections and expected guarantees
@@ -885,7 +885,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   // Id returns the objective id for the request.
-  id(myAddress: Address, chainId: bigint): ObjectiveId {
+  id(myAddress: Address, chainId?: bigint): ObjectiveId {
     const idStr = this.channelId(myAddress).string();
     return `${ObjectivePrefix}${idStr}`;
   }

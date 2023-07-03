@@ -39,7 +39,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
     }
 
     case 'bigint': {
-      return BigInt(fieldJsonValue);
+      return fieldJsonValue === null ? undefined : BigInt(fieldJsonValue);
     }
 
     case 'uint64': {
@@ -47,8 +47,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
     }
 
     case 'buffer': {
-      const bufferValue = (fieldJsonValue === null) ? '' : fieldJsonValue;
-      return Buffer.from(bufferValue, 'base64');
+      return fieldJsonValue === null ? null : Buffer.from(fieldJsonValue, 'base64');
     }
 
     case 'object': {
@@ -106,16 +105,18 @@ export function fromJSON(jsonEncodingMap: Record<string, any>, data: string, key
 
 // Go compatible JSON marshalling utility method
 export function toJSON(jsonEncodingMap: Record<string, any>, obj: any, keysMap: Map<string, string> = new Map()): any {
-  let jsonObj: any = { ...obj };
+  let mappedObj: any = { ...obj };
 
   // Replace object keys with mapped & capitalized keys
-  jsonObj = _.mapKeys(jsonObj, (value, key) => capitalizeFirstLetter(keysMap.get(key) ?? key));
+  mappedObj = _.mapKeys(mappedObj, (value, key) => capitalizeFirstLetter(keysMap.get(key) ?? key));
 
+  // Create a new object having keys in order of jsonEncodingMap keys
+  const jsonObj: any = {};
   Object.keys(jsonEncodingMap).forEach((fieldKey) => {
     const fieldType = jsonEncodingMap[fieldKey];
     const capitalizedFieldKey = capitalizeFirstLetter(fieldKey);
 
-    jsonObj[capitalizedFieldKey] = encodeValue(fieldType, jsonObj[capitalizedFieldKey]);
+    jsonObj[capitalizedFieldKey] = encodeValue(fieldType, mappedObj[capitalizedFieldKey]);
   });
 
   return jsonObj;
@@ -186,14 +187,13 @@ function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
       return encodeArray(fieldType.value as FieldDescription, fieldValue);
     }
 
-    // TODO: Handle nil pointer case
-    // case 'bigint': {
-    //   return fieldValue;
-    // }
+    case 'bigint': {
+      return fieldValue === undefined ? null : fieldValue;
+    }
 
     case 'buffer': {
       // Marshall buffer as a base64 string
-      return ((fieldValue as Buffer).length === 0) ? null : (fieldValue as Buffer).toString('base64');
+      return (fieldValue === null) ? null : (fieldValue as Buffer).toString('base64');
     }
 
     case 'address': {

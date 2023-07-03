@@ -36,12 +36,12 @@ export class VoucherManager {
   }
 
   // Register registers a channel for use, given the payer, payee and starting balance of the channel
-  register(channelId: Destination, payer: string, payee: string, startingBalance: bigint): void {
+  register(channelId: Destination, payer: string, payee: string, startingBalance?: bigint): void {
     const voucher = new Voucher({ channelId, amount: BigInt(0) });
     const data = new VoucherInfo({
       channelPayer: payer,
       channelPayee: payee,
-      startingBalance: BigInt(startingBalance),
+      startingBalance: BigInt(startingBalance!),
       largestVoucher: voucher,
     });
 
@@ -59,7 +59,7 @@ export class VoucherManager {
 
   // Pay will deduct amount from balance and add it to paid, returning a signed voucher for the
   // total amount paid.
-  async pay(channelId: Destination, amount: bigint, pk: Buffer): Promise<Voucher> {
+  async pay(channelId: Destination, amount: bigint | undefined, pk: Buffer): Promise<Voucher> {
     const [vInfo, ok] = this.store.getVoucherInfo(channelId);
 
     if (!ok) {
@@ -68,7 +68,7 @@ export class VoucherManager {
 
     assert(vInfo);
 
-    if (amount > vInfo.remaining()) {
+    if (amount! > vInfo.remaining()!) {
       throw new Error('unable to pay amount: insufficient funds');
     }
 
@@ -76,7 +76,7 @@ export class VoucherManager {
       throw new Error("can only sign vouchers if we're the payer");
     }
 
-    const newAmount: bigint = vInfo.largestVoucher.amount + amount;
+    const newAmount: bigint = BigInt(vInfo.largestVoucher.amount!) + BigInt(amount!);
     const voucher = new Voucher({ amount: newAmount, channelId });
 
     vInfo.largestVoucher = voucher;
@@ -90,7 +90,7 @@ export class VoucherManager {
 
   // Receive validates the incoming voucher, and returns the total amount received so far
   // TODO: Can throw an error
-  receive(voucher: Voucher): bigint {
+  receive(voucher: Voucher): bigint | undefined {
     return BigInt(0);
   }
 
@@ -101,7 +101,7 @@ export class VoucherManager {
   }
 
   // Paid returns the total amount paid so far on a channel
-  paid(chanId: Destination): bigint {
+  paid(chanId: Destination): bigint | undefined {
     const [v, ok] = this.store.getVoucherInfo(chanId);
     if (!ok) {
       throw new Error('channel not registered');
@@ -112,14 +112,14 @@ export class VoucherManager {
   }
 
   // Remaining returns the remaining amount of funds in the channel
-  remaining(chanId: Destination): bigint {
+  remaining(chanId: Destination): bigint | undefined {
     const [v, ok] = this.store.getVoucherInfo(chanId);
     if (!ok) {
       throw new Error('channel not registered');
     }
     assert(v);
 
-    const remaining = v.startingBalance - v.largestVoucher.amount;
+    const remaining = BigInt(v.startingBalance!) - BigInt(v.largestVoucher.amount!);
     return remaining;
   }
 }

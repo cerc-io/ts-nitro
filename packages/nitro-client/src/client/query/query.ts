@@ -31,8 +31,8 @@ const getPaymentChannelBalance = (participants: Address[], outcome: Exit): Payme
   const { asset } = sao;
   const payer = participants[0];
   const payee = participants[numParticipants - 1];
-  const paidSoFar = BigInt(sao.allocations.value[1].amount);
-  const remaining = BigInt(sao.allocations.value[0].amount);
+  const paidSoFar = BigInt(sao.allocations.value[1].amount!);
+  const remaining = BigInt(sao.allocations.value[0].amount!);
   return new PaymentChannelBalance({
     assetAddress: asset,
     payer,
@@ -47,9 +47,9 @@ const getLedgerBalanceFromState = (latest: State): LedgerChannelBalance => {
   const outcome = latest.outcome.value[0];
   const { asset } = outcome;
   const client = latest.participants[0];
-  const clientBalance = BigInt(outcome.allocations.value[0].amount);
+  const clientBalance = BigInt(outcome.allocations.value[0].amount!);
   const hub = latest.participants[1];
-  const hubBalance = BigInt(outcome.allocations.value[1].amount);
+  const hubBalance = BigInt(outcome.allocations.value[1].amount!);
 
   return new LedgerChannelBalance({
     assetAddress: asset,
@@ -68,9 +68,9 @@ const getLatestSupportedOrPreFund = (channel: Channel): State => {
   return channel.preFundState();
 };
 
-export const getVoucherBalance = (id: Destination, vm: VoucherManager): [bigint, bigint] => {
-  let paid: bigint = BigInt(0);
-  let remaining: bigint = BigInt(0);
+export const getVoucherBalance = (id: Destination, vm: VoucherManager): [bigint | undefined, bigint | undefined] => {
+  let paid: bigint | undefined = BigInt(0);
+  let remaining: bigint | undefined = BigInt(0);
 
   if (!vm.channelRegistered(id)) {
     return [paid, remaining];
@@ -82,7 +82,7 @@ export const getVoucherBalance = (id: Destination, vm: VoucherManager): [bigint,
   return [paid, remaining];
 };
 
-export const constructPaymentInfo = (c: Channel, paid: bigint, remaining: bigint): PaymentChannelInfo => {
+export const constructPaymentInfo = (c: Channel, paid?: bigint, remaining?: bigint): PaymentChannelInfo => {
   let status = getStatusFromChannel(c);
 
   // ADR 0009 allows for intermediaries to exit the protocol before receiving all signed post funds
@@ -95,9 +95,9 @@ export const constructPaymentInfo = (c: Channel, paid: bigint, remaining: bigint
   const latest = getLatestSupportedOrPreFund(c);
   const balance = getPaymentChannelBalance(c.participants, latest.outcome);
 
-  balance.paidSoFar = BigInt(paid);
+  balance.paidSoFar = paid;
 
-  balance.remainingFunds = BigInt(remaining);
+  balance.remainingFunds = remaining;
 
   return new PaymentChannelInfo({
     iD: c.id,

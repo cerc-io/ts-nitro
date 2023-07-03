@@ -82,7 +82,7 @@ export class FixedPart {
 
 // VariablePart contains the subset of State data which can change with each state update.
 export class VariablePart {
-  appData: Buffer = Buffer.alloc(0);
+  appData: Buffer | null = null;
 
   outcome: Exit = new Exit([]);
 
@@ -92,7 +92,7 @@ export class VariablePart {
 
   constructor(
     params: {
-      appData?: Buffer,
+      appData?: Buffer | null,
       outcome?: Exit,
       turnNum?: Uint64,
       isFinal?: boolean
@@ -113,7 +113,7 @@ export class State {
   // TODO: uint32 replacement
   challengeDuration: number = 0;
 
-  appData: Buffer = Buffer.alloc(0);
+  appData: Buffer | null = null;
 
   outcome: Exit = new Exit([]);
 
@@ -147,7 +147,7 @@ export class State {
       channelNonce?: Uint64,
       appDefinition?: Address,
       challengeDuration?: number,
-      appData?: Buffer,
+      appData?: Buffer | null,
       outcome?: Exit,
       turnNum?: Uint64,
       isFinal?: boolean
@@ -169,8 +169,8 @@ export class State {
   // VariablePart returns the VariablePart of the State
   variablePart(): VariablePart {
     return new VariablePart({
-      appData: Buffer.from(this.appData),
-      outcome: _.cloneDeep(this.outcome),
+      appData: this.appData,
+      outcome: this.outcome,
       turnNum: this.turnNum,
       isFinal: this.isFinal,
     });
@@ -221,7 +221,7 @@ export class State {
     && this.channelNonce === r.channelNonce
     && this.appDefinition === r.appDefinition
     && this.challengeDuration === r.challengeDuration
-    && this.appData.compare(r.appData) === 0
+    && _.isEqual(this.appData, r.appData)
     && this.outcome.equal(r.outcome)
     && this.turnNum === r.turnNum
     && this.isFinal === r.isFinal;
@@ -263,14 +263,14 @@ export class State {
         allocations: singleAssetExit.allocations.value.map((allocation) => {
           return {
             destination: allocation.destination.value,
-            amount: allocation.amount.toString(),
+            amount: allocation.amount!.toString(),
             allocationType: allocation.allocationType,
-            metadata: `0x${bytes2Hex(allocation.metadata)}`,
+            metadata: `0x${bytes2Hex(allocation.metadata ?? Buffer.alloc(0))}`,
           };
         }),
         assetMetadata: {
           assetType: singleAssetExit.assetMetadata.assetType,
-          metadata: `0x${bytes2Hex(singleAssetExit.assetMetadata.metadata)}`,
+          metadata: `0x${bytes2Hex(singleAssetExit.assetMetadata.metadata ?? Buffer.alloc(0))}`,
         },
       };
     });
@@ -281,7 +281,7 @@ export class State {
       appDefinition: this.appDefinition,
       challengeDuration: this.challengeDuration,
       outcome: stateOutcome,
-      appData: `0x${bytes2Hex(this.appData)}`,
+      appData: `0x${bytes2Hex(this.appData ?? Buffer.alloc(0))}`,
       turnNum: Number(this.turnNum),
       isFinal: this.isFinal,
     };

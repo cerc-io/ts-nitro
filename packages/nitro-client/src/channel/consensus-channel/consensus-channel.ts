@@ -58,7 +58,7 @@ export const Follower: LedgerIndex = 1;
 export class Balance {
   destination: Destination = new Destination();
 
-  amount: bigint = BigInt(0);
+  amount?: bigint = undefined;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     destination: { type: 'class', value: Destination },
@@ -83,7 +83,7 @@ export class Balance {
 
   // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type.
   asAllocation(): Allocation {
-    const amount = BigInt(this.amount);
+    const amount = BigInt(this.amount!);
     return new Allocation({
       destination: this.destination,
       amount,
@@ -100,7 +100,7 @@ export class Balance {
   clone(): Balance {
     return new Balance({
       destination: _.cloneDeep(this.destination),
-      amount: BigInt(this.amount),
+      amount: BigInt(this.amount!),
     });
   }
 }
@@ -115,7 +115,7 @@ interface GuaranteeOptions {
 // Guarantee is a convenient, ergonomic representation of a
 // single-asset Allocation of type 1, ie. a guarantee.
 export class Guarantee {
-  amount: bigint = BigInt(0);
+  amount?: bigint = undefined;
 
   _target: Destination = new Destination();
 
@@ -136,7 +136,7 @@ export class Guarantee {
   }
 
   // NewGuarantee constructs a new guarantee.
-  static newGuarantee(amount: bigint, target: Destination, left: Destination, right: Destination): Guarantee {
+  static newGuarantee(amount: bigint | undefined, target: Destination, left: Destination, right: Destination): Guarantee {
     return new Guarantee({
       amount, _target: target, left, right,
     });
@@ -153,7 +153,7 @@ export class Guarantee {
   // Clone returns a deep copy of the receiver.
   clone(): Guarantee {
     return new Guarantee({
-      amount: BigInt(this.amount),
+      amount: BigInt(this.amount!),
       _target: _.cloneDeep(this._target),
       left: _.cloneDeep(this.left),
       right: _.cloneDeep(this.right),
@@ -177,7 +177,7 @@ export class Guarantee {
 
   // AsAllocation converts a Balance struct into the on-chain outcome.Allocation type
   asAllocation(): Allocation {
-    const amount = BigInt(this.amount);
+    const amount = BigInt(this.amount!);
 
     return new Allocation({
       destination: this._target,
@@ -333,18 +333,18 @@ export class LedgerOutcome {
 
     const leader = new Balance({
       destination: _.cloneDeep(this._leader.destination),
-      amount: BigInt(this._leader.amount), // Create a new BigInt instance
+      amount: BigInt(this._leader.amount!), // Create a new BigInt instance
     });
 
     const follower = new Balance({
       destination: _.cloneDeep(this._follower.destination),
-      amount: BigInt(this._follower.amount), // Create a new BigInt instance
+      amount: BigInt(this._follower.amount!), // Create a new BigInt instance
     });
 
     const guarantees = new Map<Bytes32, Guarantee>();
     for (const [d, g] of this.guarantees.entries()) {
       const g2 = g;
-      g2.amount = BigInt(g.amount);
+      g2.amount = BigInt(g.amount!);
       guarantees.set(d, g2);
     }
 
@@ -498,15 +498,15 @@ export class Vars {
       right = o._leader;
     }
 
-    if (p.leftDeposit > p.amount) {
+    if (p.leftDeposit! > p.amount!) {
       throw ErrInvalidDeposit;
     }
 
-    if (p.leftDeposit > left.amount) {
+    if (p.leftDeposit! > left.amount!) {
       throw ErrInsufficientFunds;
     }
 
-    if (p.rightDeposit() > right.amount) {
+    if (p.rightDeposit() > right.amount!) {
       throw ErrInsufficientFunds;
     }
 
@@ -519,11 +519,11 @@ export class Vars {
 
     // Adjust balances
     if (_.isEqual(o._leader.destination, p.left)) {
-      o._leader.amount -= p.leftDeposit;
-      o._follower.amount -= rightDeposit;
+      o._leader.amount = BigInt(o._leader.amount!) - BigInt(p.leftDeposit!);
+      o._follower.amount = BigInt(o._follower.amount!) - rightDeposit;
     } else {
-      o._follower.amount -= p.leftDeposit;
-      o._leader.amount -= rightDeposit;
+      o._follower.amount = BigInt(o._follower.amount!) - BigInt(p.leftDeposit!);
+      o._leader.amount = BigInt(o._leader.amount!) - rightDeposit;
     }
 
     // Include guarantee
@@ -554,7 +554,7 @@ export class Vars {
       throw ErrGuaranteeNotFound;
     }
 
-    if (p.leftAmount > guarantee.amount) {
+    if (p.leftAmount! > guarantee.amount!) {
       throw ErrInvalidAmount;
     }
 
@@ -563,16 +563,16 @@ export class Vars {
     // Increase the turn number
     this.turnNum += BigInt(1);
 
-    const rightAmount = guarantee.amount - p.leftAmount;
+    const rightAmount = BigInt(guarantee.amount!) - BigInt(p.leftAmount!);
 
     // Adjust balances
 
     if (_.isEqual(o._leader.destination, guarantee.left)) {
-      o._leader.amount += p.leftAmount;
-      o._follower.amount += rightAmount;
+      o._leader.amount = BigInt(o._leader.amount!) + BigInt(p.leftAmount!);
+      o._follower.amount = BigInt(o._follower.amount!) + rightAmount;
     } else {
-      o._leader.amount += rightAmount;
-      o._follower.amount += p.leftAmount;
+      o._leader.amount = BigInt(o._leader.amount!) + rightAmount;
+      o._follower.amount = BigInt(o._follower.amount!) + BigInt(p.leftAmount!);
     }
 
     // Remove the guarantee
@@ -632,7 +632,7 @@ export class Add extends Guarantee {
   // LeftDeposit is the portion of the Add's amount that will be deducted from left participant's ledger balance.
   //
   // The right participant's deduction is computed as the difference between the guarantee amount and LeftDeposit.
-  leftDeposit: bigint = BigInt(0);
+  leftDeposit?: bigint = undefined;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     guarantee: { type: 'class', value: Guarantee },
@@ -662,30 +662,29 @@ export class Add extends Guarantee {
 
   // Clone returns a deep copy of the receiver.
   clone(): Add {
-    // TODO: Make bigint fields optional?
-    // if a == nil || a.LeftDeposit == nil {
-    //   return Add{}
-    // }
+    if (this.leftDeposit === undefined) {
+      return new Add({});
+    }
 
     return new Add({
       ...super.clone(),
-      leftDeposit: BigInt(this.leftDeposit),
+      leftDeposit: BigInt(this.leftDeposit!),
     });
   }
 
   // RightDeposit computes the deposit from the right participant such that
   // a.LeftDeposit + a.RightDeposit() fully funds a's guarantee.BalanceBalance
   rightDeposit(): bigint {
-    const result = this.amount - this.leftDeposit;
+    const result = BigInt(this.amount!) - BigInt(this.leftDeposit!);
     return result;
   }
 
   equal(a2: Add): boolean {
-    return _.isEqual(this, a2);
+    return _.isEqual((this as Guarantee), (a2 as Guarantee)) && this.leftDeposit === a2.leftDeposit;
   }
 
   // NewAdd constructs a new Add proposal.
-  static newAdd(g: Guarantee, leftDeposit: bigint): Add {
+  static newAdd(g: Guarantee, leftDeposit?: bigint): Add {
     return new Add({
       _target: g._target, amount: g.amount, left: g.left, right: g.right, leftDeposit,
     });
@@ -700,7 +699,7 @@ export class Remove {
   // LeftAmount is the amount to be credited (in the ledger channel) to the participant specified as the "left" in the guarantee.
   //
   // The amount for the "right" participant is calculated as the difference between the guarantee amount and LeftAmount.
-  leftAmount: bigint = BigInt(0);
+  leftAmount?: bigint = undefined;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     target: { type: 'class', value: Destination },
@@ -729,19 +728,18 @@ export class Remove {
 
   // Clone returns a deep copy of the receiver.
   clone(): Remove {
-    // TODO: Make bigint fields optional?
-    // if r == nil || r.LeftAmount == nil {
-    //   return Remove{}
-    // }
+    if (this.leftAmount === undefined) {
+      return new Remove({});
+    }
 
     return new Remove({
       target: _.cloneDeep(this.target),
-      leftAmount: BigInt(this.leftAmount),
+      leftAmount: BigInt(this.leftAmount!),
     });
   }
 
   // NewRemove constructs a new Remove proposal.
-  static newRemove(target: Destination, leftAmount: bigint): Remove {
+  static newRemove(target: Destination, leftAmount?: bigint): Remove {
     return new Remove({ target, leftAmount });
   }
 }
@@ -818,12 +816,12 @@ export class Proposal {
   }
 
   // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
-  static newAddProposal(ledgerID: Destination, g: Guarantee, leftDeposit: bigint): Proposal {
+  static newAddProposal(ledgerID: Destination, g: Guarantee, leftDeposit?: bigint): Proposal {
     return new Proposal({ toAdd: Add.newAdd(g, leftDeposit), ledgerID });
   }
 
   // NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
-  static newRemoveProposal(ledgerID: Destination, target: Destination, leftAmount: bigint): Proposal {
+  static newRemoveProposal(ledgerID: Destination, target: Destination, leftAmount?: bigint): Proposal {
     return new Proposal({ toRemove: Remove.newRemove(target, leftAmount), ledgerID });
   }
 }

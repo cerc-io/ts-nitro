@@ -157,7 +157,7 @@ export enum ObjectiveStatus {
 
 // ObjectiveRequest is a request to create a new objective.
 export interface ObjectiveRequest {
-  id (address: Address, chainId: bigint): ObjectiveId
+  id (address: Address, chainId?: bigint): ObjectiveId
   waitForObjectiveToStart (): void
   signalObjectiveStarted (): void
 }

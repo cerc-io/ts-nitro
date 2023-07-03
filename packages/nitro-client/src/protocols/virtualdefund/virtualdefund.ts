@@ -90,7 +90,7 @@ export function validateFinalOutcome(
   initialOutcome: SingleAssetExit,
   finalOutcome: SingleAssetExit,
   me: Address,
-  minAmount: bigint,
+  minAmount?: bigint,
 ): void {
   // Check the outcome participants are correct
   const alice = vFixed.participants[0];
@@ -108,8 +108,8 @@ export function validateFinalOutcome(
   const initialBobAmount = initialOutcome.allocations.value[1].amount;
   const finalAliceAmount = finalOutcome.allocations.value[0].amount;
   const finalBobAmount = finalOutcome.allocations.value[1].amount;
-  const paidToBob = finalBobAmount - initialBobAmount;
-  const paidFromAlice = initialAliceAmount - finalAliceAmount;
+  const paidToBob = BigInt(finalBobAmount!) - BigInt(initialBobAmount!);
+  const paidFromAlice = BigInt(initialAliceAmount!) - BigInt(finalAliceAmount!);
 
   if (paidToBob !== paidFromAlice) {
     throw new Error(`final outcome is not balanced: Alice paid ${paidFromAlice}, Bob received ${paidToBob}`);
@@ -117,7 +117,7 @@ export function validateFinalOutcome(
 
   // if we're Bob we want to make sure the final state Alice sent is equal to or larger than the payment we already have
   if (me === bob) {
-    if (paidToBob < minAmount) {
+    if (paidToBob < BigInt(minAmount!)) {
       throw new Error(`payment amount ${paidToBob} is less than the minimum payment amount ${minAmount}`);
     }
   }
@@ -165,7 +165,7 @@ export class Objective implements ObjectiveInterface {
   // MinimumPaymentAmount is the latest payment amount we have received from Alice before starting defunding.
   // This is set by Bob so he can ensure he receives the latest amount from any vouchers he's received.
   // If this is not set then virtual defunding will accept any final outcome from Alice.
-  minimumPaymentAmount: bigint = BigInt(0);
+  minimumPaymentAmount?: bigint = undefined;
 
   v?: VirtualChannel;
 
@@ -213,7 +213,7 @@ export class Objective implements ObjectiveInterface {
     request: ObjectiveRequest,
     preApprove: boolean,
     myAddress: Address,
-    largestPaymentAmount: bigint,
+    largestPaymentAmount: bigint | undefined,
     getChannel: GetChannelByIdFunction,
     getConsensusChannel: GetTwoPartyConsensusLedgerFunction,
   ): Objective {
@@ -309,11 +309,12 @@ export class Objective implements ObjectiveInterface {
     myAddress: Address,
     getChannel: GetChannelByIdFunction,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
-    latestVoucherAmount: bigint = BigInt(0),
+    latestVoucherAmount?: bigint,
   ): Objective {
-    // if latestVoucherAmount == nil {
-    //   latestVoucherAmount = big.NewInt(0)
-    // }
+    if (!latestVoucherAmount) {
+      // eslint-disable-next-line no-param-reassign
+      latestVoucherAmount = BigInt(0);
+    }
 
     let cId: Destination;
     let err: Error | undefined;
@@ -374,8 +375,8 @@ export class Objective implements ObjectiveInterface {
     // Since Alice is responsible for issuing vouchers she always has the largest payment amount
     // This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
     const finalOutcome = this.initialOutcome().clone();
-    finalOutcome.allocations.value[0].amount -= this.minimumPaymentAmount;
-    finalOutcome.allocations.value[1].amount += this.minimumPaymentAmount;
+    finalOutcome.allocations.value[0].amount = BigInt(finalOutcome.allocations.value[0].amount!) - BigInt(this.minimumPaymentAmount!);
+    finalOutcome.allocations.value[1].amount = BigInt(finalOutcome.allocations.value[1].amount!) + BigInt(this.minimumPaymentAmount!);
     return finalOutcome;
   }
 

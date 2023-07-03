@@ -28,8 +28,8 @@ export class GuaranteeMetadata {
   }
 
   // Decode returns a GuaranteeMetaData from an abi encoding
-  static decodeIntoGuaranteeMetadata(m: Buffer): GuaranteeMetadata {
-    const { left, right } = decodeGuaranteeData(m.toString());
+  static decodeIntoGuaranteeMetadata(m: Buffer | null): GuaranteeMetadata {
+    const { left, right } = decodeGuaranteeData((m ?? Buffer.alloc(0)).toString());
     return new GuaranteeMetadata({
       left: new Destination(left),
       right: new Destination(right),

@@ -50,8 +50,8 @@ interface EthChain {
 }
 
 interface BlockRange {
-  from: bigint;
-  to: bigint;
+  from?: bigint;
+  to?: bigint;
 }
 
 export class EthChainService implements ChainService {
@@ -385,7 +385,7 @@ export class EthChainService implements ChainService {
 
   // splitBlockRange takes a BlockRange and chunks it into a slice of BlockRanges, each having an interval no larger than the passed interval.
   // TODO: Implement and remove void
-  private splitBlockRange(total: BlockRange, maxInterval: bigint): BlockRange[] | void {}
+  private splitBlockRange(total: BlockRange, maxInterval?: bigint): BlockRange[] | void {}
 
   // eventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
   eventFeed(): ReadChannel<ChainEvent> {
