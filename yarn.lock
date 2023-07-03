@@ -1229,6 +1229,11 @@
     it-stream-types "^1.0.4"
     promjs "^0.4.2"
 
+"@cerc-io/ts-channel@1.0.3-ts-nitro-0.1.1":
+  version "1.0.3-ts-nitro-0.1.1"
+  resolved "https://git.vdb.to/api/packages/cerc-io/npm/%40cerc-io%2Fts-channel/-/1.0.3-ts-nitro-0.1.1/ts-channel-1.0.3-ts-nitro-0.1.1.tgz#0768781313a167295c0bf21307f47e02dc17e936"
+  integrity sha512-2jFICUSyffuZ+8+qRhXuLSJq4GJ6Y02wxiXoubH0Kzv2lIKkJtWICY1ZQQhtXAvP0ncAQB85WJHqtqwH8l7J3Q==
+
 "@chainsafe/as-sha256@^0.3.1":
   version "0.3.1"
   resolved "https://registry.yarnpkg.com/@chainsafe/as-sha256/-/as-sha256-0.3.1.tgz#3639df0e1435cab03f4d9870cc3ac079e57a6fc9"
@@ -2907,11 +2912,6 @@
   version "1.7.1"
   resolved "https://registry.yarnpkg.com/@noble/secp256k1/-/secp256k1-1.7.1.tgz#b251c70f824ce3ca7f8dc3df08d58f005cc0507c"
   integrity sha512-hOUk6AyBFmqVrv7k5WAw/LpszxVbj9gGN4JRkIX52fdFAj1UA61KXmZDvqVEm+pOyec3+fIeZB02LYa/pWOArw==
-
-"@nodeguy/channel@^1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@nodeguy/channel/-/channel-1.0.2.tgz#def667bf81a8d3472310e5cbb191dde81e64a063"
-  integrity sha512-ljUGxFKwMy1mxo+Y8tGBzanRGHQTK2qnL2hReugCTdJlGm6Ew/I4Ujz1wAztk/2XCgvt1AoiqziQ5sETYOsGyA==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"

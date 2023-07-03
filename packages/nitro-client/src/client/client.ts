@@ -2,8 +2,8 @@ import debug from 'debug';
 import assert from 'assert';
 import { ethers } from 'ethers';
 
-import type { ReadWriteChannel } from '@nodeguy/channel';
-import Channel from '@nodeguy/channel';
+import type { ReadWriteChannel } from '@cerc-io/ts-channel';
+import Channel from '@cerc-io/ts-channel';
 import { go, randUint64 } from '@cerc-io/nitro-util';
 
 import { MessageService } from './engine/messageservice/messageservice';
@@ -107,12 +107,6 @@ export class Client {
     return c;
   }
 
-  // ObjectiveCompleteChan returns a chan that is closed when the objective with given id is completed
-  objectiveCompleteChan(id: ObjectiveId): ReadWriteChannel<null> {
-    const [d] = this.completedObjectives!.loadOrStore(id, Channel<null>());
-    return d;
-  }
-
   // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
   // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
   // TODO: uint32 replacement
@@ -145,12 +139,6 @@ export class Client {
     await this.engine.objectiveRequestsFromAPI.push(objectiveRequest);
     await objectiveRequest.waitForObjectiveToStart();
     return objectiveRequest.id(this.address, this.chainId);
-  }
-
-  // ObjectiveCompleteChan returns a chan that is closed when the objective with given id is completed
-  objectiveCompleteChan(id: ObjectiveId): ReadWriteChannel<null> {
-    const [d] = this.completedObjectives!.loadOrStore(id, Channel<null>());
-    return d;
   }
 
   // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
@@ -256,6 +244,12 @@ export class Client {
     // those channels need to be closed.
     assert(this.completedObjectivesForRPC);
     this.completedObjectivesForRPC.close();
+  }
+
+  // ObjectiveCompleteChan returns a chan that is closed when the objective with given id is completed
+  objectiveCompleteChan(id: ObjectiveId): ReadWriteChannel<null> {
+    const [d] = this.completedObjectives!.loadOrStore(id, Channel<null>());
+    return d;
   }
 
   // GetLedgerChannel returns the ledger channel with the given id.

@@ -1,4 +1,4 @@
-import type { ReadChannel } from '@nodeguy/channel';
+import type { ReadChannel } from '@cerc-io/ts-channel';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error

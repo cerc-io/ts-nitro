@@ -1,4 +1,4 @@
-import { ReadChannel } from '@nodeguy/channel';
+import { ReadChannel } from '@cerc-io/ts-channel';
 
 import { Message } from '../../../protocols/messages';
 

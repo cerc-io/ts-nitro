@@ -2,7 +2,7 @@ import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 
-import Channel, { ReadWriteChannel } from '@nodeguy/channel';
+import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
   FieldDescription,
   JSONbigNative,

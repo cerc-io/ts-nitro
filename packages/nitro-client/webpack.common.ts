@@ -27,7 +27,7 @@ const baseConfig: webpack.Configuration = {
     ],
   },
   externals: {
-    '@nodeguy/channel': '@nodeguy/channel',
+    '@cerc-io/ts-channel': '@cerc-io/ts-channel',
     '@cerc-io/nitro-util': '@cerc-io/nitro-util',
     '@statechannels/exit-format': '@statechannels/exit-format',
     '@statechannels/nitro-protocol': '@statechannels/nitro-protocol',

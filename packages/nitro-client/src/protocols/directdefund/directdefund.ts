@@ -2,7 +2,7 @@ import assert from 'assert';
 import { Buffer } from 'buffer';
 import isEqual from 'lodash/isEqual';
 
-import Channel, { ReadWriteChannel } from '@nodeguy/channel';
+import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
   FieldDescription, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';

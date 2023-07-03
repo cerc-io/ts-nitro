@@ -5,8 +5,8 @@ import debug from 'debug';
 import assert from 'assert';
 import _ from 'lodash';
 
-import Channel from '@nodeguy/channel';
-import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
+import Channel from '@cerc-io/ts-channel';
+import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import { JSONbigNative, go } from '@cerc-io/nitro-util';
 
 import { MessageService } from './messageservice/messageservice';
