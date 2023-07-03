@@ -25,17 +25,3 @@ export async function waitForPeerInfoExchange(numOfPeers: number, services: P2PM
     await Promise.all(services.map((service) => service.peerInfoReceived().shift()));
   }
 }
-
-/**
- * Left pads a 20 byte address hex string with zeros until it is a 32 byte hex string
- * e.g.,
- * 0x9546E319878D2ca7a21b481F873681DF344E0Df8 becomes
- * 0x0000000000000000000000009546E319878D2ca7a21b481F873681DF344E0Df8
- *
- * @param address - 20 byte hex string
- * @returns 32 byte padded hex string
- */
-export function convertAddressToBytes32(address: string): string {
-  const digits = address.startsWith('0x') ? address.substring(2) : address;
-  return `0x${digits.padStart(24, '0')}`;
-}
