@@ -289,7 +289,7 @@ export class Engine {
         res.completedObjectives?.forEach((obj) => {
           assert(this.logger);
           this.logger(`Objective ${obj.id()} is complete & returned to API`);
-          this.metrics?.recordObjectiveCompleted(obj.id());
+          this.metrics!.recordObjectiveCompleted(obj.id());
         });
 
         await this._toApi.push(res);
@@ -332,7 +332,7 @@ export class Engine {
   private async handleMessage(message: Message): Promise<[EngineEvent, Error | undefined]> {
     let deferredCompleteRecordFunction;
     try {
-      const completeRecordFunction = () => this.metrics?.recordFunctionDuration(this.handleMessage.name);
+      const completeRecordFunction = () => this.metrics!.recordFunctionDuration(this.handleMessage.name);
       deferredCompleteRecordFunction = () => completeRecordFunction();
 
       assert(this.policymaker);
@@ -594,7 +594,7 @@ export class Engine {
       this.logger(`handling new objective request for ${objectiveId}`);
 
       // Need to pass objective id instead of objective request id
-      // this.metrics?.recordObjectiveStarted(objectiveId);
+      // this.metrics!.recordObjectiveStarted(objectiveId);
 
       deferredSignalObjectiveStarted = () => or.signalObjectiveStarted();
 
@@ -973,7 +973,7 @@ export class Engine {
             throw new Error(`error constructing objective from message: ${constructErr}`);
           }
 
-          this.metrics?.recordObjectiveStarted(newObj.id());
+          this.metrics!.recordObjectiveStarted(newObj.id());
 
           try {
             this.store.setObjective(newObj);
@@ -1118,9 +1118,9 @@ export class Engine {
 
   // recordMessageMetrics records metrics for a message
   private recordMessageMetrics(message: Message): void {
-    this.metrics?.recordQueueLength(`msg_proposal_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.ledgerProposals.length);
-    this.metrics?.recordQueueLength(`msg_payment_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.payments.length);
-    this.metrics?.recordQueueLength(`msg_payload_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.objectivePayloads.length);
+    this.metrics!.recordQueueLength(`msg_proposal_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.ledgerProposals.length);
+    this.metrics!.recordQueueLength(`msg_payment_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.payments.length);
+    this.metrics!.recordQueueLength(`msg_payload_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.objectivePayloads.length);
 
     let totalPayloadsSize = 0;
     for (const p of message.objectivePayloads) {
@@ -1128,8 +1128,8 @@ export class Engine {
     }
 
     const raw = message.serialize();
-    this.metrics?.recordQueueLength(`msg_payload_size,sender=${this.store?.getAddress()},receiver=${message.to}`, totalPayloadsSize);
-    this.metrics?.recordQueueLength(`msg_size,sender=${this.store?.getAddress()},receiver=${message.to}`, raw.length);
+    this.metrics!.recordQueueLength(`msg_payload_size,sender=${this.store?.getAddress()},receiver=${message.to}`, totalPayloadsSize);
+    this.metrics!.recordQueueLength(`msg_size,sender=${this.store?.getAddress()},receiver=${message.to}`, raw.length);
   }
 
   // eslint-disable-next-line n/handle-callback-err

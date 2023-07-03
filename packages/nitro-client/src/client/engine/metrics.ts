@@ -179,7 +179,7 @@ export class MetricsRecorder {
 
     const elapsed = new Date().getTime() - start.getTime();
     const oType = id.split('-')[0];
-    const timer = this.metrics?.timer(this.addMyAddress(`objective_complete_time,type=${oType}`));
+    const timer = this.metrics!.timer(this.addMyAddress(`objective_complete_time,type=${oType}`));
 
     timer!.set(elapsed / 1000);
     this.startTimes.delete(id);
