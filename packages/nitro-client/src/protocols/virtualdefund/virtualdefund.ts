@@ -165,7 +165,7 @@ export class Objective implements ObjectiveInterface {
   // MinimumPaymentAmount is the latest payment amount we have received from Alice before starting defunding.
   // This is set by Bob so he can ensure he receives the latest amount from any vouchers he's received.
   // If this is not set then virtual defunding will accept any final outcome from Alice.
-  minimumPaymentAmount?: bigint;
+  minimumPaymentAmount?: bigint = undefined;
 
   v?: VirtualChannel;
 

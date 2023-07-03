@@ -20,7 +20,7 @@ export class Allocation {
   destination: Destination = new Destination();
 
   // An amount of a particular asset
-  amount?: bigint;
+  amount?: bigint = undefined;
 
   // Directs calling code on how to interpret the allocation
   allocationType: AllocationType = AllocationType.NormalAllocationType;

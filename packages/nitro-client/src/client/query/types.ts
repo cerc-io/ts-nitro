@@ -21,9 +21,9 @@ export class PaymentChannelBalance {
 
   payer: Address = ethers.constants.AddressZero;
 
-  paidSoFar?: bigint;
+  paidSoFar?: bigint = undefined;
 
-  remainingFunds?: bigint;
+  remainingFunds?: bigint = undefined;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     assetAddress: { type: 'address' },
@@ -99,9 +99,9 @@ export class LedgerChannelBalance {
 
   client: Address = ethers.constants.AddressZero;
 
-  hubBalance?: bigint;
+  hubBalance?: bigint = undefined;
 
-  clientBalance?: bigint;
+  clientBalance?: bigint = undefined;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     assetAddress: { type: 'address' },

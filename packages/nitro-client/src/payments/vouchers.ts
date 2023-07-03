@@ -26,7 +26,7 @@ import * as nitroAbi from '../abi/types';
 export class Voucher {
   channelId: Destination = new Destination();
 
-  amount?: bigint;
+  amount?: bigint = undefined;
 
   signature: Signature = zeroValueSignature;
 
@@ -104,7 +104,7 @@ export class VoucherInfo {
 
   channelPayee: Address = ethers.constants.AddressZero;
 
-  startingBalance?: bigint;
+  startingBalance?: bigint = undefined;
 
   largestVoucher: Voucher = new Voucher({});
 

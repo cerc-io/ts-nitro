@@ -39,7 +39,7 @@ interface AssetAndAmountConstructorOptions {
 class AssetAndAmount {
   assetAddress: Address = ethers.constants.AddressZero;
 
-  assetAmount?: bigint;
+  assetAmount?: bigint = undefined;
 
   constructor(params: AssetAndAmountConstructorOptions) {
     Object.assign(this, params);
@@ -52,7 +52,7 @@ class AssetAndAmount {
 
 // DepositedEvent is an internal representation of the deposited blockchain event
 export class DepositedEvent extends CommonEvent {
-  nowHeld?: bigint;
+  nowHeld?: bigint = undefined;
 
   // Workaround for extending multiple classes in TypeScript
   assetAndAmount: AssetAndAmount;

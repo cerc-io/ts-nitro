@@ -58,7 +58,7 @@ export const Follower: LedgerIndex = 1;
 export class Balance {
   destination: Destination = new Destination();
 
-  amount?: bigint;
+  amount?: bigint = undefined;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     destination: { type: 'class', value: Destination },
@@ -115,7 +115,7 @@ interface GuaranteeOptions {
 // Guarantee is a convenient, ergonomic representation of a
 // single-asset Allocation of type 1, ie. a guarantee.
 export class Guarantee {
-  amount?: bigint;
+  amount?: bigint = undefined;
 
   _target: Destination = new Destination();
 
@@ -632,7 +632,7 @@ export class Add extends Guarantee {
   // LeftDeposit is the portion of the Add's amount that will be deducted from left participant's ledger balance.
   //
   // The right participant's deduction is computed as the difference between the guarantee amount and LeftDeposit.
-  leftDeposit?: bigint;
+  leftDeposit?: bigint = undefined;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     guarantee: { type: 'class', value: Guarantee },
@@ -699,7 +699,7 @@ export class Remove {
   // LeftAmount is the amount to be credited (in the ledger channel) to the participant specified as the "left" in the guarantee.
   //
   // The amount for the "right" participant is calculated as the difference between the guarantee amount and LeftAmount.
-  leftAmount?: bigint;
+  leftAmount?: bigint = undefined;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     target: { type: 'class', value: Destination },
