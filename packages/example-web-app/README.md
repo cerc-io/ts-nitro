@@ -67,7 +67,7 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 * Call method `directFund` with address of the other browser client and check logs
 
   * For example, call directFund in Erin browser with Charlie's address
-    
+
     ```
     directFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
     ```
@@ -76,13 +76,13 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
     ```
     ts-nitro:engine Objective DirectFunding-0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978 is complete & returned to API +22ms
-    Leger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
+    Ledger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
     ```
 
 * Call method `virtualFund` with address of the other browser client and check logs
 
   * Call virtualFund in Erin browser with Charlie's address
-    
+
     ```
     virtualFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
     ```

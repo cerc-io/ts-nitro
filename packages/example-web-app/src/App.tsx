@@ -101,7 +101,7 @@ function App () {
       );
 
       await client.objectiveCompleteChan(response.id).shift();
-      console.log(`Leger channel created with id ${response.channelId.string()}\n`);
+      console.log(`Ledger channel created with id ${response.channelId.string()}\n`);
     };
 
     window.virtualFund = async (counterParty: string) => {

@@ -147,7 +147,7 @@ const main = async () => {
       );
 
       await client.objectiveCompleteChan(ledgerChannelResponse.id).shift();
-      log(`Leger channel created with id ${ledgerChannelResponse.channelId.string()}`);
+      log(`Ledger channel created with id ${ledgerChannelResponse.channelId.string()}`);
       ledgerChannelId = ledgerChannelResponse.channelId;
 
       const ledgerChannelStatus = client.getLedgerChannel(ledgerChannelId);
@@ -218,7 +218,7 @@ const main = async () => {
       const closeLedgerChannelObjectiveId = await client.closeLedgerChannel(ledgerChannelId);
 
       await client.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
-      log(`Leger channel with id ${ledgerChannelId.string()} closed`);
+      log(`Ledger channel with id ${ledgerChannelId.string()} closed`);
 
       const ledgerChannelStatus = client.getLedgerChannel(ledgerChannelId);
       log(`Ledger channel ${ledgerChannelId.string()} status:\n`, JSONbigNative.stringify(ledgerChannelStatus, null, 2));
