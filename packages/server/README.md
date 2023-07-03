@@ -69,6 +69,17 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   # .
   # ts-nitro:engine Objective VirtualFund-0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af is complete & returned to API +0ms
   # ts-nitro:server Virtual payment channel created with id 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
+  # .
+  # .
+  # ts-nitro:engine Sending message: {"to":"0x111A00","from":"0xAAA662","payloadSummaries":[],"proposalSummaries":[],"payments":[{"amount":50,"channelId":"0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa"}],"rejectedObjectives":[]} +8ms
+  .
+  .
+  # ts-nitro:engine Objective VirtualDefund-0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa is complete & returned to API +1ms
+  # ts-nitro:server Virtual payment channel with id 0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa closed
+  .
+  .
+  # ts-nitro:engine Objective DirectDefunding-0x49ee60de0e1beebdf6070690cde0f66c86d576a6b2721001e6f7b0eaa11b3223 is complete & returned to API +1ms
+  # ts-nitro:server Leger channel with id 0x49ee60de0e1beebdf6070690cde0f66c86d576a6b2721001e6f7b0eaa11b3223 closed
   ```
 
 ## `ts-nitro` - `go-nitro`
