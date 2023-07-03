@@ -56,7 +56,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
   ```bash
   # In packages/server
-  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --counterparty 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db --direct-fund --virtual-fund
+  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --counterparty 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db --direct-fund --virtual-fund --pay 50 --virtual-defund --direct-defund
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms

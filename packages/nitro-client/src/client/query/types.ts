@@ -1,6 +1,8 @@
 import { ethers } from 'ethers';
 import _ from 'lodash';
 
+import { FieldDescription, toJSON } from '@cerc-io/nitro-util';
+
 import { Address } from '../../types/types';
 import { Destination } from '../../types/destination';
 
@@ -22,6 +24,18 @@ export class PaymentChannelBalance {
   paidSoFar: bigint = BigInt(0);
 
   remainingFunds: bigint = BigInt(0);
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    assetAddress: { type: 'address' },
+    payee: { type: 'address' },
+    payer: { type: 'address' },
+    paidSoFar: { type: 'bigint' },
+    remainingFunds: { type: 'bigint' },
+  };
+
+  toJSON(): any {
+    return toJSON(PaymentChannelBalance.jsonEncodingMap, this);
+  }
 
   constructor(params: {
     assetAddress?: Address;
@@ -50,6 +64,16 @@ export class PaymentChannelInfo {
   status: ChannelStatus = ChannelStatus.Proposed;
 
   balance: PaymentChannelBalance = new PaymentChannelBalance({});
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    iD: { type: 'class', value: Destination },
+    status: { type: 'string' },
+    balance: { type: 'class', value: PaymentChannelBalance },
+  };
+
+  toJSON(): any {
+    return toJSON(PaymentChannelInfo.jsonEncodingMap, this);
+  }
 
   constructor(params: {
     iD?: Destination;
@@ -80,6 +104,18 @@ export class LedgerChannelBalance {
 
   clientBalance: bigint = BigInt(0);
 
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    assetAddress: { type: 'address' },
+    hub: { type: 'address' },
+    client: { type: 'address' },
+    hubBalance: { type: 'bigint' },
+    clientBalance: { type: 'bigint' },
+  };
+
+  toJSON(): any {
+    return toJSON(LedgerChannelBalance.jsonEncodingMap, this);
+  }
+
   constructor(params: {
     assetAddress?: Address;
     hub?: Address;
@@ -107,6 +143,16 @@ export class LedgerChannelInfo {
   status: ChannelStatus = ChannelStatus.Proposed;
 
   balance: LedgerChannelBalance = new LedgerChannelBalance({});
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    iD: { type: 'class', value: Destination },
+    status: { type: 'string' },
+    balance: { type: 'class', value: LedgerChannelBalance },
+  };
+
+  toJSON(): any {
+    return toJSON(PaymentChannelInfo.jsonEncodingMap, this);
+  }
 
   constructor(params: {
     iD?: Destination;
