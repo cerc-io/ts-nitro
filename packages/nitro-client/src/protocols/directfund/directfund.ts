@@ -556,7 +556,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
 
   appDefinition: Address = ethers.constants.AddressZero;
 
-  appData: Buffer = Buffer.alloc(0);
+  appData: Buffer | null = null;
 
   nonce: Uint64 = BigInt(0);
 
@@ -567,7 +567,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     challengeDuration: number,
     outcome: Exit,
     appDefinition: Address,
-    appData?: Buffer,
+    appData?: Buffer | null,
     nonce: Uint64,
     objectiveStarted?: ReadWriteChannel<void>
   }) {

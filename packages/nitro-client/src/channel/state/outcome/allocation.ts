@@ -26,7 +26,7 @@ export class Allocation {
   allocationType: AllocationType = AllocationType.NormalAllocationType;
 
   // Custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
-  metadata: Buffer = Buffer.alloc(0);
+  metadata: Buffer | null = null;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     destination: { type: 'class', value: Destination },
@@ -48,7 +48,7 @@ export class Allocation {
     destination?: Destination,
     amount?: bigint,
     allocationType?: AllocationType,
-    metadata?: Buffer,
+    metadata?: Buffer | null,
   }) {
     Object.assign(this, params);
   }
@@ -59,7 +59,7 @@ export class Allocation {
     return _.isEqual(this.destination, b.destination)
     && this.allocationType === b.allocationType
     && this.amount === b.amount
-    && this.metadata.compare(b.metadata) === 0;
+    && _.isEqual(this.metadata, b.metadata);
   }
 
   // Clone returns a deep copy of the receiver.
@@ -68,7 +68,7 @@ export class Allocation {
       destination: _.cloneDeep(this.destination),
       amount: this.amount,
       allocationType: this.allocationType,
-      metadata: Buffer.from(this.metadata),
+      metadata: _.cloneDeep(this.metadata),
     });
   }
 }

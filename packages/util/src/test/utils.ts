@@ -1,5 +1,3 @@
-import { Buffer } from 'buffer';
-
 import {
   Allocation, Destination, Exit, SingleAssetExit, AllocationType, Allocations,
 } from '@cerc-io/nitro-client';
@@ -38,20 +36,20 @@ export function createOutcome(
       asset,
       assetMetadata: {
         assetType: 0,
-        metadata: Buffer.alloc(0),
+        metadata: null,
       },
       allocations: new Allocations([
         new Allocation({
           destination: Destination.addressToDestination(convertAddressToBytes32(alpha)),
           amount: BigInt(amount),
           allocationType: AllocationType.NormalAllocationType,
-          metadata: Buffer.alloc(0),
+          metadata: null,
         }),
         new Allocation({
           destination: Destination.addressToDestination(convertAddressToBytes32(beta)),
           amount: BigInt(amount),
           allocationType: AllocationType.NormalAllocationType,
-          metadata: Buffer.alloc(0),
+          metadata: null,
         }),
       ]),
     }),

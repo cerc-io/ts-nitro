@@ -283,7 +283,7 @@ export class LedgerOutcome {
 
     for (const allocation of sae.allocations.value) {
       if (allocation.allocationType === AllocationType.GuaranteeAllocationType) {
-        const gM = GuaranteeMetadata.decodeIntoGuaranteeMetadata(allocation.metadata);
+        const gM = GuaranteeMetadata.decodeIntoGuaranteeMetadata(allocation.metadata ?? Buffer.alloc(0));
         const guarantee: Guarantee = new Guarantee({
           amount: allocation.amount,
           _target: allocation.destination,

@@ -9,7 +9,7 @@ import {
 export function convertAssetMetadata(am: AssetMetadata): ExitFormat.AssetMetadataStruct {
   return {
     assetType: am.assetType,
-    metadata: am.metadata,
+    metadata: am.metadata ?? Buffer.alloc(0),
   };
 }
 
@@ -18,7 +18,7 @@ export function convertAllocations(as: Allocations): ExitFormat.AllocationStruct
     destination: a.destination.value,
     amount: a.amount!,
     allocationType: a.allocationType,
-    metadata: a.metadata,
+    metadata: a.metadata ?? Buffer.alloc(0),
   }));
 }
 
@@ -41,7 +41,7 @@ export function convertFixedPart(fp: FixedPart): INitroTypes.FixedPartStruct {
 
 export function convertVariablePart(vp: VariablePart): INitroTypes.VariablePartStruct {
   return {
-    appData: vp.appData,
+    appData: vp.appData ?? Buffer.alloc(0),
     turnNum: BigInt(vp.turnNum),
     isFinal: vp.isFinal,
     outcome: convertOutcome(vp.outcome!),

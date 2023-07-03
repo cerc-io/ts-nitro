@@ -47,8 +47,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
     }
 
     case 'buffer': {
-      const bufferValue = (fieldJsonValue === null) ? '' : fieldJsonValue;
-      return Buffer.from(bufferValue, 'base64');
+      return fieldJsonValue === null ? null : Buffer.from(fieldJsonValue, 'base64');
     }
 
     case 'object': {
@@ -194,7 +193,7 @@ function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
 
     case 'buffer': {
       // Marshall buffer as a base64 string
-      return ((fieldValue as Buffer).length === 0) ? null : (fieldValue as Buffer).toString('base64');
+      return (fieldValue === null) ? null : (fieldValue as Buffer).toString('base64');
     }
 
     case 'address': {

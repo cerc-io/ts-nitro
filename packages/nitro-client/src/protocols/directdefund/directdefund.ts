@@ -73,7 +73,7 @@ const isInConsensusOrFinalState = (c: channel.Channel): boolean => {
 const createChannelFromConsensusChannel = (cc: ConsensusChannel): channel.Channel => {
   const c = channel.Channel.new(
     cc.consensusVars().asState(cc.supportedSignedState().state().fixedPart()),
-    Number(cc.myIndex),
+    cc.myIndex,
   );
 
   c.onChainFunding = cc.onChainFunding.clone();

@@ -19,7 +19,7 @@ type AssetType = number;
 
 export type AssetMetadata = {
   assetType: AssetType;
-  metadata: Buffer;
+  metadata: Buffer | null;
 };
 
 const assetMetadataJsonEncodingMap: Record<string, FieldDescription> = {
@@ -33,7 +33,7 @@ export class SingleAssetExit {
   asset: Address = ethers.constants.AddressZero;
 
   // Can be used to encode arbitrary additional information that applies to all allocations.
-  assetMetadata: AssetMetadata = { assetType: 0, metadata: Buffer.alloc(0) };
+  assetMetadata: AssetMetadata = { assetType: 0, metadata: null };
 
   allocations: Allocations = new Allocations([]);
 
@@ -64,7 +64,7 @@ export class SingleAssetExit {
 
   // Equal returns true if the supplied SingleAssetExit is deeply equal to the receiver.
   equal(r: SingleAssetExit): boolean {
-    return this.assetMetadata.metadata.compare(r.assetMetadata.metadata) === 0
+    return _.isEqual(this.assetMetadata.metadata, r.assetMetadata.metadata)
     && this.assetMetadata.assetType === r.assetMetadata.assetType
     && this.asset === r.asset
     && this.allocations.equal(r.allocations);
