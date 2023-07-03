@@ -43,7 +43,7 @@ function App () {
 
     setMsgService(msgService);
 
-    const client = await setupClient(
+    const [client] = await setupClient(
       msgService,
       store,
       {
