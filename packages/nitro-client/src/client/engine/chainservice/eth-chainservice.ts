@@ -2,9 +2,9 @@ import assert from 'assert';
 import { ethers } from 'ethers';
 import debug from 'debug';
 
-import type { ReadChannel, ReadWriteChannel } from '@nodeguy/channel';
+import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import type { Log } from '@ethersproject/abstract-provider';
-import Channel from '@nodeguy/channel';
+import Channel from '@cerc-io/ts-channel';
 import { connectToChain, go, hex2Bytes } from '@cerc-io/nitro-util';
 
 import {

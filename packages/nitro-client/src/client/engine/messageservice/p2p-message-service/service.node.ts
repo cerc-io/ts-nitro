@@ -1,6 +1,6 @@
 import assert from 'assert';
 
-import type { ReadChannel } from '@nodeguy/channel';
+import type { ReadChannel } from '@cerc-io/ts-channel';
 // @ts-expect-error
 import { PeerInitConfig } from '@cerc-io/peer';
 // @ts-expect-error

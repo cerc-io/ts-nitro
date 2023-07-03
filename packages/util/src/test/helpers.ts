@@ -4,6 +4,7 @@ import {
   MemStore,
   EthChainService,
   PermissivePolicy,
+  Metrics,
 } from '@cerc-io/nitro-client';
 
 import {
@@ -26,11 +27,13 @@ export async function setupClient(
     chainPk: string,
     chainURL: string
   },
-): Promise<Client> {
+): Promise<[Client, Metrics]> {
   const {
     chainPk,
     chainURL,
   } = options;
+
+  const metricsApi = new Metrics();
 
   const chainService = await EthChainService.newEthChainService(
     chainURL,
@@ -46,7 +49,8 @@ export async function setupClient(
     store,
     undefined,
     new PermissivePolicy(),
+    metricsApi,
   );
 
-  return client;
+  return [client, metricsApi];
 }

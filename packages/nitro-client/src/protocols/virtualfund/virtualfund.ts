@@ -3,8 +3,8 @@ import { ethers } from 'ethers';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 
-import Channel from '@nodeguy/channel';
-import type { ReadWriteChannel } from '@nodeguy/channel';
+import Channel from '@cerc-io/ts-channel';
+import type { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
   FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';

@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-import type { ReadChannel } from '@nodeguy/channel';
+import type { ReadChannel } from '@cerc-io/ts-channel';
 
 import { ChainTransaction, Objective } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
