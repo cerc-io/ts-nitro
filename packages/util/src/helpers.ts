@@ -33,13 +33,12 @@ export async function setupClient(
     chainPk: string,
     chainURL: string
   },
-): Promise<[Client, Metrics]> {
+  metricsApi?: Metrics,
+): Promise<Client> {
   const {
     chainPk,
     chainURL,
   } = options;
-
-  const metricsApi = new Metrics();
 
   const chainService = await EthChainService.newEthChainService(
     chainURL,
@@ -58,7 +57,7 @@ export async function setupClient(
     metricsApi,
   );
 
-  return [client, metricsApi];
+  return client;
 }
 
 /**
