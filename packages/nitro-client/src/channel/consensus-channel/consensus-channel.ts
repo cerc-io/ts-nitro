@@ -662,10 +662,9 @@ export class Add extends Guarantee {
 
   // Clone returns a deep copy of the receiver.
   clone(): Add {
-    // TODO: Make bigint fields optional?
-    // if a == nil || a.LeftDeposit == nil {
-    //   return Add{}
-    // }
+    if (this.leftDeposit === undefined) {
+      return new Add({});
+    }
 
     return new Add({
       ...super.clone(),
@@ -729,10 +728,9 @@ export class Remove {
 
   // Clone returns a deep copy of the receiver.
   clone(): Remove {
-    // TODO: Make bigint fields optional?
-    // if r == nil || r.LeftAmount == nil {
-    //   return Remove{}
-    // }
+    if (this.leftAmount === undefined) {
+      return new Remove({});
+    }
 
     return new Remove({
       target: _.cloneDeep(this.target),
