@@ -1,14 +1,12 @@
 # example-web-app
 
-Instructions to run two instances of `ts-nitro` clients in a browser environment and create a ledger channel between them
-
 ## Prerequisite
 
 Run relay node using v2 watcher
 
 ## `ts-nitro` - `ts-nitro`
 
-Instructions to run two instances of `ts-nitro` clients in browser environment and create a ledger channel between them
+Instructions to run two instances of `ts-nitro` clients in a browser environment and create channels between them
 
 ### Setup
 
@@ -69,7 +67,7 @@ Instructions to run two instances of `ts-nitro` clients in browser environment a
 * Call method `directFund` with address of the other browser client and check logs
 
   * For example, call directFund in Erin browser with Charlie's address
-    
+
     ```
     directFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
     ```
@@ -78,6 +76,22 @@ Instructions to run two instances of `ts-nitro` clients in browser environment a
 
     ```
     ts-nitro:engine Objective DirectFunding-0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978 is complete & returned to API +22ms
+    Ledger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
+    ```
+
+* Call method `virtualFund` with address of the other browser client and check logs
+
+  * Call virtualFund in Erin browser with Charlie's address
+
+    ```
+    virtualFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
+    ```
+
+  * Final expected log
+
+    ```
+    # ts-nitro:engine Objective VirtualFund-0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af is complete & returned to API +0ms
+    Virtual payment channel created with id 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
     ```
 
 ## `ts-nitro` - `go-nitro`

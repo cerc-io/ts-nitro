@@ -5,6 +5,7 @@ import { Buffer } from 'buffer';
 import Channel, { ReadWriteChannel } from '@nodeguy/channel';
 import {
   FieldDescription,
+  JSONbigNative,
   Uint64,
   fromJSON,
   toJSON,
@@ -107,7 +108,7 @@ export function validateFinalOutcome(
   const initialBobAmount = initialOutcome.allocations.value[1].amount;
   const finalAliceAmount = finalOutcome.allocations.value[0].amount;
   const finalBobAmount = finalOutcome.allocations.value[1].amount;
-  const paidToBob = finalBobAmount - finalAliceAmount;
+  const paidToBob = finalBobAmount - initialBobAmount;
   const paidFromAlice = initialAliceAmount - finalAliceAmount;
 
   if (paidToBob !== paidFromAlice) {
@@ -750,14 +751,15 @@ export class Objective implements ObjectiveInterface {
       }
 
       // Ignore stale or future proposals.
-      if ((err as Error).message.includes(ErrInvalidTurnNum.message)) {
+      if (err && (err as Error).message.includes(ErrInvalidTurnNum.message)) {
         return updated;
       }
 
       if (err) {
-        throw new Error(`error incorporating signed proposal ${sp} into objective: ${err}`);
+        throw new Error(`error incorporating signed proposal ${JSONbigNative.stringify(sp)} into objective: ${err}`);
       }
     }
+
     return updated;
   }
 

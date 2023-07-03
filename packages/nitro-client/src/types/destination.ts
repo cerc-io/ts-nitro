@@ -2,6 +2,7 @@ import { ethers } from 'ethers';
 import { Buffer } from 'buffer';
 
 import { Bytes32, isExternalDestination } from '@statechannels/nitro-protocol';
+import { hex2Bytes } from '@cerc-io/nitro-util';
 
 import { Address } from './types';
 
@@ -58,6 +59,6 @@ export class Destination {
   }
 
   bytes(): Buffer {
-    return Buffer.from(this.value, 'utf-8');
+    return hex2Bytes(this.value);
   }
 }

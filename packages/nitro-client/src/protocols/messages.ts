@@ -1,4 +1,6 @@
 import { Buffer } from 'buffer';
+import { ethers } from 'ethers';
+
 import {
   FieldDescription, JSONbigNative, Uint64, bytes2Hex, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
@@ -78,12 +80,12 @@ export function getProposalObjectiveId(p: Proposal): ObjectiveId {
   switch (p.type()) {
     case 'AddProposal': {
       const prefix = 'VirtualFund-';
-      const channelId = p.toAdd.target().toString();
+      const channelId = p.toAdd.target().string();
       return prefix + channelId;
     }
     case 'RemoveProposal': {
       const prefix = 'VirtualDefund-';
-      const channelId = p.toRemove.target.toString();
+      const channelId = p.toRemove.target.string();
       return prefix + channelId;
     }
     default: {
@@ -94,9 +96,9 @@ export function getProposalObjectiveId(p: Proposal): ObjectiveId {
 
 // Message is an object to be sent across the wire.
 export class Message {
-  to: Address = '';
+  to: Address = ethers.constants.AddressZero;
 
-  from: Address = '';
+  from: Address = ethers.constants.AddressZero;
 
   // ObjectivePayloads contains a collection of payloads for various objectives.
   // Protocols are responsible for parsing the payload.
@@ -203,30 +205,30 @@ export class Message {
       to: this.to.slice(0, 8),
       from: this.from.slice(0, 8),
       payloadSummaries: this.objectivePayloads.map((p): ObjectivePayloadSummary => ({
-        objectiveId: p.objectiveId.toString(),
-        type: p.type.toString(),
+        objectiveId: p.objectiveId,
+        type: p.type,
         payloadDataSize: p.payloadData.length,
       })),
       proposalSummaries: this.ledgerProposals.map((p): ProposalSummary => {
         let objIdString = '';
         try {
           const objId = getProposalObjectiveId(p.proposal);
-          objIdString = objId.toString();
+          objIdString = objId;
         } catch (err) {
           objIdString = (err as Error).message; // Use error message as objective id
         }
         return {
           objectiveId: objIdString,
-          ledgerId: p.channelID().toString(),
+          ledgerId: p.channelID().string(),
           turnNum: p.turnNum,
-          proposalType: p.proposal.type().toString(),
+          proposalType: p.proposal.type(),
         };
       }),
       payments: this.payments.map((p): PaymentSummary => ({
         amount: p.amount,
-        channelId: p.channelId.toString(),
+        channelId: p.channelId.string(),
       })),
-      rejectedObjectives: this.rejectedObjectives.map((o) => o.toString()),
+      rejectedObjectives: this.rejectedObjectives,
     };
 
     return s;

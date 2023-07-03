@@ -28,6 +28,7 @@
   },
   "eslintConfig": {
     "extends": [
+      "semistandard",
       "react-app",
       "react-app/jest"
     ]
@@ -45,6 +46,8 @@
     ]
   },
   "devDependencies": {
-    "eslint-config-react-app": "^7.0.1"
+    "eslint-config-react-app": "^7.0.1",
+    "eslint-config-semistandard": "^17.0.0",
+    "eslint-config-standard": "^17.0.0"
   }
 }

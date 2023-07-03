@@ -163,7 +163,7 @@ export class EthChainService implements ChainService {
     switch (tx.constructor) {
       case DepositTransaction: {
         const depositTx = tx as DepositTransaction;
-        assert(depositTx.deposit);
+
         for await (const [tokenAddress, amount] of depositTx.deposit.value.entries()) {
           const txOpts: ethers.PayableOverrides = {};
           const ethTokenAddress = ethers.constants.AddressZero;
@@ -185,7 +185,6 @@ export class EthChainService implements ChainService {
 
       case WithdrawAllTransaction: {
         const withdrawAllTx = tx as WithdrawAllTransaction;
-        assert(withdrawAllTx.signedState);
 
         const state = withdrawAllTx.signedState.state();
         const signatures = withdrawAllTx.signedState.signatures();
@@ -262,8 +261,8 @@ export class EthChainService implements ChainService {
             this.fatalF(`error in TransactionByHash: ${err}`);
           }
 
-          assert(tx);
-          assert(au);
+          assert(tx !== undefined);
+          assert(au !== undefined);
           let assetAddress;
           let amount;
           try {
@@ -272,8 +271,8 @@ export class EthChainService implements ChainService {
             this.fatalF(`error in getChainHoldings: ${err}`);
           }
 
-          assert(assetAddress);
-          assert(amount);
+          assert(assetAddress !== undefined);
+          assert(amount !== undefined);
           const event = AllocationUpdatedEvent.newAllocationUpdatedEvent(
             new Destination(au.channelId),
             String(l.blockNumber),

@@ -263,17 +263,16 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     chainId: bigint,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
   ): Objective {
-    let rightCC: ConsensusChannel | undefined;
-    let ok: boolean = false;
-
+    let toMyRight: string;
     if (request.intermediaries.length > 0) {
-      [rightCC, ok] = getTwoPartyConsensusLedger(request.intermediaries[0]);
+      [toMyRight] = request.intermediaries;
     } else {
-      [rightCC, ok] = getTwoPartyConsensusLedger(request.counterParty);
+      toMyRight = request.counterParty;
     }
 
+    const [rightCC, ok] = getTwoPartyConsensusLedger(toMyRight);
     if (!ok) {
-      throw new Error(`Could not find ledger for ${myAddress} and ${request.intermediaries[0]}`);
+      throw new Error(`Could not find ledger for ${myAddress} and ${toMyRight}`);
     }
 
     let leftCC: ConsensusChannel | undefined;
@@ -529,7 +528,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   private getPayload(raw: ObjectivePayload): SignedState {
-    return SignedState.fromJSON(JSONbigNative.stringify(raw));
+    return SignedState.fromJSON(raw.payloadData.toString());
   }
 
   receiveProposal(sp: SignedProposal): ProposalReceiver {
@@ -727,8 +726,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     clone.n = this.n;
     clone.myRole = this.myRole;
 
-    clone.a0 = this.a0;
-    clone.b0 = this.b0;
+    clone.a0 = this.a0?.clone();
+    clone.b0 = this.b0?.clone();
     return clone;
   }
 
@@ -758,9 +757,10 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
     // to create a valid message with ordered proposals:
-
     const message = Message.createSignedProposalMessage(receipient, ...connection.channel!.proposalQueue());
+
     sideEffects.messagesToSend.push(message);
+
     return sideEffects;
   }
 
@@ -817,6 +817,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         } catch (err) {
           throw new Error(`error proposing ledger update: ${err}`);
         }
+
         sideEffects = se;
       }
     }

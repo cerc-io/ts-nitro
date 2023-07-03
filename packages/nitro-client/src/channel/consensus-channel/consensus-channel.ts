@@ -3,10 +3,12 @@
 import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
+import { ethers } from 'ethers';
 
 import {
-  FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON, zeroValueSignature,
+  FieldDescription, Uint64, fromJSON, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
+import { Bytes32 } from '@statechannels/nitro-protocol';
 
 import { Signature, signatureJsonEncodingMap } from '../../crypto/signatures';
 import { getAddressFromSecretKeyBytes } from '../../crypto/keys';
@@ -97,7 +99,7 @@ export class Balance {
   // Clone returns a deep copy of the receiver.
   clone(): Balance {
     return new Balance({
-      destination: this.destination,
+      destination: _.cloneDeep(this.destination),
       amount: BigInt(this.amount),
     });
   }
@@ -152,9 +154,9 @@ export class Guarantee {
   clone(): Guarantee {
     return new Guarantee({
       amount: BigInt(this.amount),
-      _target: this._target,
-      left: this.left,
-      right: this.right,
+      _target: _.cloneDeep(this._target),
+      left: _.cloneDeep(this.left),
+      right: _.cloneDeep(this.right),
     });
   }
 
@@ -180,7 +182,7 @@ export class Guarantee {
     return new Allocation({
       destination: this._target,
       amount,
-      allocationType: AllocationType.NormalAllocationType,
+      allocationType: 1,
       metadata: Buffer.concat([this.left.bytes(), this.right.bytes()]),
     });
   }
@@ -193,7 +195,7 @@ export class Guarantee {
 // [leader, follower, ...guaranteesSortedbyTargetDestination]
 export class LedgerOutcome {
   // Address of the asset type
-  private assetAddress: Address = '';
+  private assetAddress: Address = ethers.constants.AddressZero;
 
   // Balance of participants[0]
   _leader: Balance = new Balance({});
@@ -201,13 +203,13 @@ export class LedgerOutcome {
   // Balance of participants[1]
   _follower: Balance = new Balance({});
 
-  guarantees: Map<Destination, Guarantee> = new Map();
+  guarantees: Map<Bytes32, Guarantee> = new Map();
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     assetAddress: { type: 'address' },
     leader: { type: 'class', value: Balance },
     follower: { type: 'class', value: Balance },
-    guarantees: { type: 'map', key: { type: 'class', value: Destination }, value: { type: 'class', value: Guarantee } },
+    guarantees: { type: 'map', key: { type: 'string' }, value: { type: 'class', value: Guarantee } },
   };
 
   static fromJSON(data: string): LedgerOutcome {
@@ -237,7 +239,7 @@ export class LedgerOutcome {
     assetAddress?: Address;
     _leader?: Balance;
     _follower?: Balance
-    guarantees?: Map<Destination, Guarantee>;
+    guarantees?: Map<Bytes32, Guarantee>;
   }) {
     Object.assign(this, params);
   }
@@ -254,10 +256,10 @@ export class LedgerOutcome {
 
   // NewLedgerOutcome creates a new ledger outcome with the given asset address, balances, and guarantees.
   static newLedgerOutcome(assetAddress: Address, leader: Balance, follower: Balance, guarantees: Guarantee[]): LedgerOutcome {
-    const guaranteeMap: Map<Destination, Guarantee> = new Map<Destination, Guarantee>();
+    const guaranteeMap: Map<Bytes32, Guarantee> = new Map<Bytes32, Guarantee>();
 
     for (const g of guarantees) {
-      guaranteeMap.set(g._target, g);
+      guaranteeMap.set(g._target.value, g);
     }
 
     return new LedgerOutcome({
@@ -277,7 +279,7 @@ export class LedgerOutcome {
   static fromExit(sae: SingleAssetExit): LedgerOutcome {
     const leader = new Balance({ destination: sae.allocations.value[0].destination, amount: sae.allocations.value[0].amount });
     const follower = new Balance({ destination: sae.allocations.value[1].destination, amount: sae.allocations.value[1].amount });
-    const guarantees: Map<Destination, Guarantee> = new Map();
+    const guarantees: Map<Bytes32, Guarantee> = new Map();
 
     for (const allocation of sae.allocations.value) {
       if (allocation.allocationType === AllocationType.GuaranteeAllocationType) {
@@ -289,7 +291,7 @@ export class LedgerOutcome {
           right: gM.right,
         });
 
-        guarantees.set(allocation.destination, guarantee);
+        guarantees.set(allocation.destination.value, guarantee);
       }
     }
 
@@ -312,7 +314,7 @@ export class LedgerOutcome {
     ];
 
     // Followed by guarantees, sorted by the target destination
-    const keys = Array.from(this.guarantees.keys()).sort((a, b) => a.string().localeCompare(b.string()));
+    const keys = Array.from(this.guarantees.keys()).sort((a, b) => (a < b ? -1 : 1));
     for (const target of keys) {
       allocations.push(this.guarantees.get(target)!.asAllocation());
     }
@@ -330,16 +332,16 @@ export class LedgerOutcome {
     const { assetAddress } = this;
 
     const leader = new Balance({
-      destination: this._leader.destination,
+      destination: _.cloneDeep(this._leader.destination),
       amount: BigInt(this._leader.amount), // Create a new BigInt instance
     });
 
     const follower = new Balance({
-      destination: this._follower.destination,
+      destination: _.cloneDeep(this._follower.destination),
       amount: BigInt(this._follower.amount), // Create a new BigInt instance
     });
 
-    const guarantees = new Map<Destination, Guarantee>();
+    const guarantees = new Map<Bytes32, Guarantee>();
     for (const [d, g] of this.guarantees.entries()) {
       const g2 = g;
       g2.amount = BigInt(g.amount);
@@ -356,9 +358,9 @@ export class LedgerOutcome {
 
   // Clone returns a deep copy of the receiver.
   clone(): LedgerOutcome {
-    const clonedGuarantees: Map<Destination, Guarantee> = new Map<Destination, Guarantee>();
+    const clonedGuarantees: Map<Bytes32, Guarantee> = new Map<Bytes32, Guarantee>();
 
-    for (const [key, g] of clonedGuarantees) {
+    for (const [key, g] of this.guarantees) {
       clonedGuarantees.set(key, g.clone());
     }
 
@@ -375,7 +377,7 @@ export class LedgerOutcome {
     const targets: Destination[] = [];
 
     for (const [dest] of this.guarantees) {
-      targets.push(dest);
+      targets.push(new Destination(dest));
     }
 
     return targets;
@@ -383,7 +385,7 @@ export class LedgerOutcome {
 
   // Includes returns true when the receiver includes g in its list of guarantees.
   includes(g: Guarantee): boolean {
-    const existing = this.guarantees.get(g._target);
+    const existing = this.guarantees.get(g._target.value);
     if (!existing) {
       return false;
     }
@@ -396,7 +398,7 @@ export class LedgerOutcome {
 
   // IncludesTarget returns true when the receiver includes a guarantee that targets the given destination.
   includesTarget(target: Destination): boolean {
-    return this.guarantees.has(target);
+    return this.guarantees.has(target.value);
   }
 }
 
@@ -481,7 +483,7 @@ export class Vars {
     // CHECKS
     const o = this.outcome;
 
-    if (o.guarantees.has(p.target())) {
+    if (o.guarantees.has(p._target.value)) {
       throw ErrDuplicateGuarantee;
     }
 
@@ -525,7 +527,10 @@ export class Vars {
     }
 
     // Include guarantee
-    o.guarantees.set(p._target, p as Guarantee);
+    o.guarantees.set(
+      p._target.value,
+      Guarantee.newGuarantee(p.amount, p._target, p.left, p.right),
+    );
   }
 
   // Remove mutates Vars by
@@ -543,7 +548,7 @@ export class Vars {
     // CHECKS
     const o = this.outcome;
 
-    const guarantee = o.guarantees.get(p.target);
+    const guarantee = o.guarantees.get(p.target.value);
 
     if (!guarantee) {
       throw ErrGuaranteeNotFound;
@@ -571,7 +576,7 @@ export class Vars {
     }
 
     // Remove the guarantee
-    o.guarantees.delete(p.target);
+    o.guarantees.delete(p.target.value);
   }
 }
 
@@ -607,11 +612,286 @@ export class SignedVars extends Vars {
 
   // clone returns a deep copy of the receiver.
   clone(): SignedVars {
-    const clonedSignatures: [Signature, Signature] = [this.signatures[0], this.signatures[1]];
+    const clonedSignatures: [Signature, Signature] = [
+      _.cloneDeep(this.signatures[0]),
+      _.cloneDeep(this.signatures[1]),
+    ];
     return new SignedVars({
       ...super.clone(),
       signatures: clonedSignatures,
     });
+  }
+}
+
+interface AddOptions extends GuaranteeOptions {
+  leftDeposit?: bigint;
+}
+
+// Add encodes a proposal to add a guarantee to a ConsensusChannel.
+export class Add extends Guarantee {
+  // LeftDeposit is the portion of the Add's amount that will be deducted from left participant's ledger balance.
+  //
+  // The right participant's deduction is computed as the difference between the guarantee amount and LeftDeposit.
+  leftDeposit: bigint = BigInt(0);
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    guarantee: { type: 'class', value: Guarantee },
+    leftDeposit: { type: 'bigint' },
+  };
+
+  static fromJSON(data: string): Add {
+    // props holds guarantee in a field
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Add({ ...props.guarantee, leftDeposit: props.leftDeposit });
+  }
+
+  toJSON(): any {
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+    const jsonAdd = {
+      guarantee: Guarantee.newGuarantee(this.amount, this._target, this.left, this.right),
+      leftDeposit: this.leftDeposit,
+    };
+    return toJSON(Add.jsonEncodingMap, jsonAdd);
+  }
+
+  constructor(params: AddOptions) {
+    super(params);
+    Object.assign(this, params);
+  }
+
+  // Clone returns a deep copy of the receiver.
+  clone(): Add {
+    // TODO: Make bigint fields optional?
+    // if a == nil || a.LeftDeposit == nil {
+    //   return Add{}
+    // }
+
+    return new Add({
+      ...super.clone(),
+      leftDeposit: BigInt(this.leftDeposit),
+    });
+  }
+
+  // RightDeposit computes the deposit from the right participant such that
+  // a.LeftDeposit + a.RightDeposit() fully funds a's guarantee.BalanceBalance
+  rightDeposit(): bigint {
+    const result = this.amount - this.leftDeposit;
+    return result;
+  }
+
+  equal(a2: Add): boolean {
+    return _.isEqual(this, a2);
+  }
+
+  // NewAdd constructs a new Add proposal.
+  static newAdd(g: Guarantee, leftDeposit: bigint): Add {
+    return new Add({
+      _target: g._target, amount: g.amount, left: g.left, right: g.right, leftDeposit,
+    });
+  }
+}
+
+// Remove is a proposal to remove a guarantee for the given virtual channel.
+export class Remove {
+  // Target is the address of the virtual channel being defunded
+  target: Destination = new Destination();
+
+  // LeftAmount is the amount to be credited (in the ledger channel) to the participant specified as the "left" in the guarantee.
+  //
+  // The amount for the "right" participant is calculated as the difference between the guarantee amount and LeftAmount.
+  leftAmount: bigint = BigInt(0);
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    target: { type: 'class', value: Destination },
+    leftAmount: { type: 'bigint' },
+  };
+
+  static fromJSON(data: string): Remove {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Remove(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Remove.jsonEncodingMap, this);
+  }
+
+  constructor(params: {
+    target?: Destination;
+    leftAmount?: bigint;
+  }) {
+    Object.assign(this, params);
+  }
+
+  equal(r2: Remove): boolean {
+    return _.isEqual(this.target, r2.target) && this.leftAmount === r2.leftAmount;
+  }
+
+  // Clone returns a deep copy of the receiver.
+  clone(): Remove {
+    // TODO: Make bigint fields optional?
+    // if r == nil || r.LeftAmount == nil {
+    //   return Remove{}
+    // }
+
+    return new Remove({
+      target: _.cloneDeep(this.target),
+      leftAmount: BigInt(this.leftAmount),
+    });
+  }
+
+  // NewRemove constructs a new Remove proposal.
+  static newRemove(target: Destination, leftAmount: bigint): Remove {
+    return new Remove({ target, leftAmount });
+  }
+}
+
+// Proposal is a proposal either to add or to remove a guarantee.
+//
+// Exactly one of {toAdd, toRemove} should be non nil.
+export class Proposal {
+  // LedgerID is the ChannelID of the ConsensusChannel which should receive the proposal.
+  //
+  // The target virtual channel ID is contained in the Add / Remove struct.
+  ledgerID: Destination = new Destination();
+
+  toAdd: Add = new Add({});
+
+  toRemove: Remove = new Remove({});
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    ledgerID: { type: 'class', value: Destination },
+    toAdd: { type: 'class', value: Add },
+    toRemove: { type: 'class', value: Remove },
+  };
+
+  static fromJSON(data: string): Proposal {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new Proposal(props);
+  }
+
+  toJSON(): any {
+    return toJSON(Proposal.jsonEncodingMap, this);
+  }
+
+  constructor(params: {
+    ledgerID?: Destination;
+    toAdd?: Add;
+    toRemove?: Remove;
+  }) {
+    Object.assign(this, params);
+  }
+
+  // Target returns the target channel of the proposal.
+  target(): Destination {
+    switch (this.type()) {
+      case 'AddProposal':
+        return this.toAdd.target();
+      case 'RemoveProposal':
+        return this.toRemove.target;
+      default:
+        throw new Error('invalid proposal type');
+    }
+  }
+
+  // Clone returns a deep copy of the receiver.
+  clone(): Proposal {
+    return new Proposal({
+      ledgerID: _.cloneDeep(this.ledgerID),
+      toAdd: this.toAdd.clone(),
+      toRemove: this.toRemove.clone(),
+    });
+  }
+
+  // Type returns the type of the proposal based on whether it contains an Add or a Remove proposal.
+  type(): ProposalType {
+    const zeroAdd = new Add({});
+    if (!_.isEqual(this.toAdd, zeroAdd)) {
+      return ProposalType.AddProposal;
+    }
+    return ProposalType.RemoveProposal;
+  }
+
+  // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
+  equal(q: Proposal): boolean {
+    return _.isEqual(this.ledgerID, q.ledgerID) && this.toAdd.equal(q.toAdd) && this.toRemove.equal(q.toRemove);
+  }
+
+  // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
+  static newAddProposal(ledgerID: Destination, g: Guarantee, leftDeposit: bigint): Proposal {
+    return new Proposal({ toAdd: Add.newAdd(g, leftDeposit), ledgerID });
+  }
+
+  // NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
+  static newRemoveProposal(ledgerID: Destination, target: Destination, leftAmount: bigint): Proposal {
+    return new Proposal({ toRemove: Remove.newRemove(target, leftAmount), ledgerID });
+  }
+}
+
+type SignedProposalParams = {
+  signature?: Signature;
+  proposal?: Proposal;
+  turnNum?: Uint64;
+};
+
+// SignedProposal is a Proposal with a signature on it.
+export class SignedProposal {
+  signature: Signature = zeroValueSignature;
+
+  proposal: Proposal = new Proposal({});
+
+  turnNum: Uint64 = BigInt(0);
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    ...signatureJsonEncodingMap,
+    proposal: { type: 'class', value: Proposal },
+    turnNum: { type: 'uint64' },
+  };
+
+  static fromJSON(data: string): SignedProposal {
+    // props has Signature properties
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new SignedProposal({
+      signature: { r: props.r, s: props.s, v: props.v },
+      proposal: props.proposal,
+      turnNum: props.turnNum,
+    });
+  }
+
+  toJSON(): any {
+    // Use a custom object
+    // (SignedProposal composes/embeds Signature in go-nitro)
+    const jsonSignedProposal = {
+      ...this.signature,
+      proposal: this.proposal,
+      turnNum: this.turnNum,
+    };
+    return toJSON(SignedProposal.jsonEncodingMap, jsonSignedProposal);
+  }
+
+  constructor(params: SignedProposalParams) {
+    Object.assign(this, params);
+  }
+
+  // Clone returns a deep copy of the receiver.
+  clone(): SignedProposal {
+    return new SignedProposal({
+      signature: _.cloneDeep(this.signature),
+      proposal: this.proposal.clone(),
+      turnNum: this.turnNum,
+    });
+  }
+
+  // ChannelID returns the id of the ConsensusChannel which receive the proposal.
+  channelID(): Destination {
+    return this.proposal.ledgerID;
+  }
+
+  // SortInfo returns the channelId and turn number so the proposal can be easily sorted.
+  sortInfo(): [Destination, Uint64] {
+    const cId = this.proposal.ledgerID;
+    const { turnNum } = this;
+    return [cId, turnNum];
   }
 }
 
@@ -636,21 +916,39 @@ export class ConsensusChannel {
   private _proposalQueue: SignedProposal[] = [];
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    id: { type: 'class', value: Destination },
     myIndex: { type: 'number' },
+    fP: { type: 'class', value: FixedPart },
+    id: { type: 'class', value: Destination },
     onChainFunding: { type: 'class', value: Funds },
-    fp: { type: 'class', value: FixedPart },
     current: { type: 'class', value: SignedVars },
-    proposalQueue: { type: 'array', value: { type: 'class', value: SignedState } },
+    proposalQueue: { type: 'array', value: { type: 'class', value: SignedProposal } },
   };
 
   static fromJSON(data: string): ConsensusChannel {
-    const props = fromJSON(this.jsonEncodingMap, data, new Map([['proposalQueue', '_proposalQueue']]));
-    return new ConsensusChannel(props);
+    // props has fp as fP and _proposalQueue as proposalQueue
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new ConsensusChannel({
+      id: props.id,
+      myIndex: props.myIndex,
+      onChainFunding: props.onChainFunding,
+      fp: props.fP,
+      current: props.current,
+      _proposalQueue: props.proposalQueue,
+    });
   }
 
   toJSON(): any {
-    return toJSON(ConsensusChannel.jsonEncodingMap, this, new Map([['_proposalQueue', 'proposalQueue']]));
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+    const jsonConsensusChannel = {
+      myIndex: this.myIndex,
+      fP: this.fp,
+      id: this.id,
+      onChainFunding: this.onChainFunding,
+      current: this.current,
+      proposalQueue: this._proposalQueue,
+    };
+    return toJSON(ConsensusChannel.jsonEncodingMap, jsonConsensusChannel);
   }
 
   constructor(params: {
@@ -735,10 +1033,10 @@ export class ConsensusChannel {
   // consensus state.
   receive(sp: SignedProposal): void {
     if (this.isFollower()) {
-      this.followerReceive(sp);
+      return this.followerReceive(sp);
     }
     if (this.isLeader()) {
-      this.leaderReceive(sp);
+      return this.leaderReceive(sp);
     }
 
     throw new Error('ConsensusChannel is malformed');
@@ -919,7 +1217,7 @@ export class ConsensusChannel {
     const d = new ConsensusChannel({
       myIndex: this.myIndex,
       fp: this.fp.clone(),
-      id: this.id,
+      id: _.cloneDeep(this.id),
       onChainFunding: this.onChainFunding.clone(),
       current: this.current.clone(),
       _proposalQueue: clonedProposalQueue,
@@ -966,7 +1264,10 @@ export class ConsensusChannel {
 
     this.validateProposalID(countersigned.proposal);
 
-    const consensusCandidate = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome._clone() });
+    const consensusCandidate = new Vars({
+      turnNum: this.current.turnNum,
+      outcome: this.current.outcome._clone(),
+    });
     const consensusTurnNum = countersigned.turnNum;
 
     if (consensusTurnNum <= consensusCandidate.turnNum) {
@@ -1030,7 +1331,6 @@ export class ConsensusChannel {
     }
 
     let signature: Signature;
-
     try {
       signature = this.sign(vars, sk);
     } catch (err) {
@@ -1134,268 +1434,5 @@ export class ConsensusChannel {
     this._proposalQueue = this._proposalQueue.slice(1);
 
     return new SignedProposal({ signature, proposal: signed.proposal, turnNum: vars.turnNum });
-  }
-}
-
-interface AddOptions extends GuaranteeOptions {
-  leftDeposit?: bigint;
-}
-
-// Add encodes a proposal to add a guarantee to a ConsensusChannel.
-export class Add extends Guarantee {
-  // LeftDeposit is the portion of the Add's amount that will be deducted from left participant's ledger balance.
-  //
-  // The right participant's deduction is computed as the difference between the guarantee amount and LeftDeposit.
-  leftDeposit: bigint = BigInt(0);
-
-  static jsonEncodingMap: Record<string, FieldDescription> = {
-    ...super.jsonEncodingMap,
-    leftDeposit: { type: 'bigint' },
-  };
-
-  static fromJSON(data: string): Add {
-    const props = fromJSON(this.jsonEncodingMap, data, new Map([['target', '_target']]));
-    return new Add(props);
-  }
-
-  toJSON(): any {
-    return toJSON(Add.jsonEncodingMap, this, new Map([['_target', 'target']]));
-  }
-
-  constructor(params: AddOptions) {
-    super(params);
-    Object.assign(this, params);
-  }
-
-  // Clone returns a deep copy of the receiver.
-  clone(): Add {
-    // TODO: Make bigint fields optional?
-    // if a == nil || a.LeftDeposit == nil {
-    //   return Add{}
-    // }
-
-    return new Add({
-      ...super.clone(),
-      leftDeposit: BigInt(this.leftDeposit),
-    });
-  }
-
-  // RightDeposit computes the deposit from the right participant such that
-  // a.LeftDeposit + a.RightDeposit() fully funds a's guarantee.BalanceBalance
-  rightDeposit(): bigint {
-    const result = this.amount - this.leftDeposit;
-    return result;
-  }
-
-  equal(a2: Add): boolean {
-    return _.isEqual((this as Guarantee), (a2 as Guarantee)) && this.leftDeposit === a2.leftDeposit;
-  }
-
-  // NewAdd constructs a new Add proposal.
-  static newAdd(g: Guarantee, leftDeposit: bigint): Add {
-    return new Add({
-      _target: g._target, amount: g.amount, left: g.left, right: g.right, leftDeposit,
-    });
-  }
-}
-
-// Remove is a proposal to remove a guarantee for the given virtual channel.
-export class Remove {
-  // Target is the address of the virtual channel being defunded
-  target: Destination = new Destination();
-
-  // LeftAmount is the amount to be credited (in the ledger channel) to the participant specified as the "left" in the guarantee.
-  //
-  // The amount for the "right" participant is calculated as the difference between the guarantee amount and LeftAmount.
-  leftAmount: bigint = BigInt(0);
-
-  static jsonEncodingMap: Record<string, FieldDescription> = {
-    target: { type: 'class', value: Destination },
-    leftAmount: { type: 'bigint' },
-  };
-
-  static fromJSON(data: string): Remove {
-    const props = fromJSON(this.jsonEncodingMap, data);
-    return new Remove(props);
-  }
-
-  toJSON(): any {
-    return toJSON(Remove.jsonEncodingMap, this);
-  }
-
-  constructor(params: {
-    target?: Destination;
-    leftAmount?: bigint;
-  }) {
-    Object.assign(this, params);
-  }
-
-  equal(r2: Remove): boolean {
-    return _.isEqual(this.target, r2.target) && this.leftAmount === r2.leftAmount;
-  }
-
-  // Clone returns a deep copy of the receiver.
-  clone(): Remove {
-    // TODO: Make bigint fields optional?
-    // if r == nil || r.LeftAmount == nil {
-    //   return Remove{}
-    // }
-
-    return new Remove({
-      target: this.target,
-      leftAmount: BigInt(this.leftAmount),
-    });
-  }
-
-  // NewRemove constructs a new Remove proposal.
-  static newRemove(target: Destination, leftAmount: bigint): Remove {
-    return new Remove({ target, leftAmount });
-  }
-}
-
-// Proposal is a proposal either to add or to remove a guarantee.
-//
-// Exactly one of {toAdd, toRemove} should be non nil.
-export class Proposal {
-  // LedgerID is the ChannelID of the ConsensusChannel which should receive the proposal.
-  //
-  // The target virtual channel ID is contained in the Add / Remove struct.
-  ledgerID: Destination = new Destination();
-
-  toAdd: Add = new Add({});
-
-  toRemove: Remove = new Remove({});
-
-  static jsonEncodingMap: Record<string, FieldDescription> = {
-    ledgerID: { type: 'class', value: Destination },
-    toAdd: { type: 'class', value: Add },
-    toRemove: { type: 'class', value: Remove },
-  };
-
-  static fromJSON(data: string): Proposal {
-    const props = fromJSON(this.jsonEncodingMap, data);
-    return new Proposal(props);
-  }
-
-  toJSON(): any {
-    return toJSON(Proposal.jsonEncodingMap, this);
-  }
-
-  constructor(params: {
-    ledgerID?: Destination;
-    toAdd?: Add;
-    toRemove?: Remove;
-  }) {
-    Object.assign(this, params);
-  }
-
-  // Target returns the target channel of the proposal.
-  target(): Destination {
-    switch (this.type()) {
-      case 'AddProposal':
-        return this.toAdd.target();
-      case 'RemoveProposal':
-        return this.toRemove.target;
-      default:
-        throw new Error('invalid proposal type');
-    }
-  }
-
-  // Clone returns a deep copy of the receiver.
-  clone(): Proposal {
-    return new Proposal({
-      ledgerID: this.ledgerID,
-      toAdd: this.toAdd.clone(),
-      toRemove: this.toRemove.clone(),
-    });
-  }
-
-  // Type returns the type of the proposal based on whether it contains an Add or a Remove proposal.
-  type(): ProposalType {
-    const zeroAdd = new Add({});
-    if (!_.isEqual(this.toAdd, zeroAdd)) {
-      return ProposalType.AddProposal;
-    }
-    return ProposalType.RemoveProposal;
-  }
-
-  // Equal returns true if the supplied Proposal is deeply equal to the receiver, false otherwise.
-  equal(q: Proposal): boolean {
-    return _.isEqual(this.ledgerID, q.ledgerID) && this.toAdd.equal(q.toAdd) && this.toRemove.equal(q.toRemove);
-  }
-
-  // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
-  static newAddProposal(ledgerID: Destination, g: Guarantee, leftDeposit: bigint): Proposal {
-    return new Proposal({ toAdd: Add.newAdd(g, leftDeposit), ledgerID });
-  }
-
-  // NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
-  static newRemoveProposal(ledgerID: Destination, target: Destination, leftAmount: bigint): Proposal {
-    return new Proposal({ toRemove: Remove.newRemove(target, leftAmount), ledgerID });
-  }
-}
-
-type SignedProposalParams = {
-  signature?: Signature;
-  proposal?: Proposal;
-  turnNum?: Uint64;
-};
-
-// SignedProposal is a Proposal with a signature on it.
-export class SignedProposal {
-  signature: Signature = zeroValueSignature;
-
-  proposal: Proposal = new Proposal({});
-
-  turnNum: Uint64 = BigInt(0);
-
-  // TODO: Check serialization
-  static fromJSON(data: string): SignedProposal {
-    // jsonValue has Signature properties
-    // Construct SignedProposal with inidividual field values
-    const jsonValue = JSONbigNative.parse(data);
-
-    const props: SignedProposalParams = {
-      signature: { r: jsonValue.R, s: jsonValue.S, v: jsonValue.V },
-      proposal: Proposal.fromJSON(JSONbigNative.stringify(jsonValue.Proposal)),
-      turnNum: jsonValue.TurnNum,
-    };
-
-    return new SignedProposal(props);
-  }
-
-  toJSON(): any {
-    // Return a custom object
-    // (SignedProposal composes/embeds Signature in go-nitro)
-    return {
-      ...{ R: this.signature.r, S: this.signature.s, V: this.signature.v },
-      Proposal: this.proposal,
-      TurnNum: this.turnNum,
-    };
-  }
-
-  constructor(params: SignedProposalParams) {
-    Object.assign(this, params);
-  }
-
-  // Clone returns a deep copy of the receiver.
-  clone(): SignedProposal {
-    return new SignedProposal({
-      signature: this.signature,
-      proposal: this.proposal.clone(),
-      turnNum: this.turnNum,
-    });
-  }
-
-  // ChannelID returns the id of the ConsensusChannel which receive the proposal.
-  channelID(): Destination {
-    return this.proposal.ledgerID;
-  }
-
-  // SortInfo returns the channelId and turn number so the proposal can be easily sorted.
-  sortInfo(): [Destination, Uint64] {
-    const cId = this.proposal.ledgerID;
-    const { turnNum } = this;
-    return [cId, turnNum];
   }
 }

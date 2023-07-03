@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { Buffer } from 'buffer';
+import { ethers } from 'ethers';
 
 import Channel from '@nodeguy/channel';
 import type { ReadWriteChannel } from '@nodeguy/channel';
@@ -546,14 +547,14 @@ export function isDirectFundObjective(id: ObjectiveId): boolean {
 
 // ObjectiveRequest represents a request to create a new direct funding objective.
 export class ObjectiveRequest implements ObjectiveRequestInterface {
-  counterParty: Address = '';
+  counterParty: Address = ethers.constants.AddressZero;
 
   // TODO: uint32 replacement
   challengeDuration: number = 0;
 
   outcome: Exit = new Exit([]);
 
-  appDefinition: Address = '';
+  appDefinition: Address = ethers.constants.AddressZero;
 
   appData: Buffer = Buffer.alloc(0);
 
