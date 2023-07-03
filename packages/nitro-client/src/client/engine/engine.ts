@@ -231,12 +231,12 @@ export class Engine {
 
     while (true) {
       let res = new EngineEvent();
-      // TODO: @nodeguy/channel is measuring size instead of channel length; make changes to get length
-      this.metrics?.recordQueueLength('api_objective_request_queue', 0);
-      this.metrics?.recordQueueLength('api_payment_request_queue', 0);
-      this.metrics?.recordQueueLength('chain_events_queue', 0);
-      this.metrics?.recordQueueLength('messages_queue', 0);
-      this.metrics?.recordQueueLength('proposal_queue', 0);
+
+      this.metrics!.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.channelLength());
+      this.metrics!.recordQueueLength('api_payment_request_queue', this.paymentRequestsFromAPI.channelLength());
+      this.metrics!.recordQueueLength('chain_events_queue', this.fromChain.channelLength());
+      this.metrics!.recordQueueLength('messages_queue', this.fromMsg.channelLength());
+      this.metrics!.recordQueueLength('proposal_queue', this.fromLedger.channelLength());
 
       try {
         /* eslint-disable no-await-in-loop */
