@@ -8,7 +8,6 @@ export const METRICS_KEYS_CLIENT_INSTANTIATION = [
   'chain_events_queue',
   'messages_queue',
   'proposal_queue',
-  'handleChainEvent',
 ];
 
 export const METRICS_KEYS_DIRECT_FUND = [
