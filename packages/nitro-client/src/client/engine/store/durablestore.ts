@@ -592,7 +592,7 @@ export class DurableStore implements Store {
 
   async getVoucherInfo(channelId: Destination): Promise<[VoucherInfo | undefined, boolean]> {
     let err;
-    let v = new VoucherInfo({});
+    let v: VoucherInfo | undefined;
 
     try {
       const vJSON = await this.vouchers!.get(channelId.string());

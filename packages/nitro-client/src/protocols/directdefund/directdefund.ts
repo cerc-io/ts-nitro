@@ -117,15 +117,15 @@ export class Objective implements ObjectiveInterface {
   }
 
   // NewObjective initiates an Objective with the supplied channel
-  static newObjective(
+  static async newObjective(
     request: ObjectiveRequest,
     preApprove: boolean,
     getConsensusChannel: GetConsensusChannel,
-  ): Objective {
+  ): Promise<Objective> {
     let cc: ConsensusChannel;
 
     try {
-      cc = getConsensusChannel(request.channelId) as ConsensusChannel;
+      cc = await getConsensusChannel(request.channelId) as ConsensusChannel;
     } catch (err) {
       throw new Error(`could not find channel ${request.channelId}; ${err}`);
     }
@@ -168,11 +168,11 @@ export class Objective implements ObjectiveInterface {
 
   /* eslint-disable @typescript-eslint/no-use-before-define */
   // ConstructObjectiveFromPayload takes in a state and constructs an objective from it.
-  static constructObjectiveFromPayload(
+  static async constructObjectiveFromPayload(
     p: ObjectivePayload,
     preapprove: boolean,
     getConsensusChannel: GetConsensusChannel,
-  ): Objective {
+  ): Promise<Objective> {
     let ss: SignedState;
     try {
       ss = getSignedStatePayload(p.payloadData);

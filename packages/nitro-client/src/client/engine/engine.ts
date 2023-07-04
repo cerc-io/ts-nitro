@@ -679,7 +679,7 @@ export class Engine {
           const request = or as DirectDefundObjectiveRequest;
           let ddfo: DirectDefundObjective;
           try {
-            ddfo = DirectDefundObjective.newObjective(
+            ddfo = await DirectDefundObjective.newObjective(
               request,
               true,
               this.store.getConsensusChannelById.bind(this.store),
@@ -1074,7 +1074,7 @@ export class Engine {
           let ddfo: DirectDefundObjective;
           try {
             // TODO: Implement
-            ddfo = DirectDefundObjective.constructObjectiveFromPayload(
+            ddfo = await DirectDefundObjective.constructObjectiveFromPayload(
               p,
               false,
               this.store.getConsensusChannelById.bind(this.store),
