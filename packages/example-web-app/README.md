@@ -62,6 +62,12 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
 * Call methods `setupClient('erin')` and `setupClient('charlie')` separately in the 2 browsers
 
+  * To setup client with durable store (indexedDB) call setupClient like this:
+
+    ```
+    setupClient('erin', true)
+    ```
+
 * Wait for `New peer found` log in console
 
 * Call method `directFund` with address of the other browser client and check logs

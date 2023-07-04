@@ -2,7 +2,7 @@ import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 import { Level } from 'level';
-import type { AbstractSublevel } from 'abstract-level';
+import type { AbstractSublevel, AbstractSublevelOptions } from 'abstract-level';
 
 import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
 
@@ -55,19 +55,22 @@ export class DurableStore implements Store {
 
     ps.db = new Level<string, Buffer>(location, { valueEncoding: 'buffer' });
 
-    ps.objectives = ps.openDB('objectives');
-    ps.channels = ps.openDB('channels');
-    ps.consensusChannels = ps.openDB('consensus_channels');
-    ps.channelToObjective = ps.openDB<string>('channel_to_objective');
-    ps.vouchers = ps.openDB('vouchers');
+    ps.objectives = ps.openDB<Buffer>('objectives', { valueEncoding: 'buffer' });
+    ps.channels = ps.openDB<Buffer>('channels', { valueEncoding: 'buffer' });
+    ps.consensusChannels = ps.openDB<Buffer>('consensus_channels', { valueEncoding: 'buffer' });
+    ps.channelToObjective = ps.openDB('channel_to_objective');
+    ps.vouchers = ps.openDB<Buffer>('vouchers', { valueEncoding: 'buffer' });
 
     return ps;
   }
 
-  private openDB<V = Buffer>(name: string): AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, V> {
+  private openDB<V = string>(
+    name: string,
+    options: AbstractSublevelOptions<string, V> = {},
+  ): AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, V> {
     let subDb;
     try {
-      subDb = this.db!.sublevel<string, V>(name, { valueEncoding: 'buffer' });
+      subDb = this.db!.sublevel<string, V>(name, options);
     } catch (err) {
       this.checkError(err as Error);
       assert(subDb);

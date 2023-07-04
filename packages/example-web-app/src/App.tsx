@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import assert from 'assert';
 
-import { test, Client, MemStore, P2PMessageService } from '@cerc-io/nitro-client';
+import { test, Client, MemStore, P2PMessageService, Store, DurableStore } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
 import {
   setupClient,
@@ -36,8 +36,14 @@ function App () {
     setData(res);
   }, []);
 
-  const init = useCallback(async (pk: string, chainPk: string) => {
-    const store = new MemStore(hex2Bytes(pk));
+  const init = useCallback(async (pk: string, chainPk: string, indexedDBName?: string) => {
+    let store: Store;
+    if (indexedDBName) {
+      store = DurableStore.newDurableStore(hex2Bytes(pk), indexedDBName);
+    } else {
+      store = new MemStore(hex2Bytes(pk));
+    }
+
     assert(process.env.REACT_APP_RELAY_MULTIADDR);
     const msgService = await createP2PMessageService(process.env.REACT_APP_RELAY_MULTIADDR, store.getAddress());
 
@@ -56,11 +62,11 @@ function App () {
   }, []);
 
   useEffect(() => {
-    window.setupClient = async (name: string) => {
+    window.setupClient = async (name: string, useDurableStore = false) => {
       const actor = ACTORS[name];
       assert(actor, `Actor with name ${name} does not exists`);
 
-      await init(actor.privateKey, actor.chainPrivateKey);
+      await init(actor.privateKey, actor.chainPrivateKey, useDurableStore ? `${name}-db` : undefined);
     };
   }, [init]);
 
