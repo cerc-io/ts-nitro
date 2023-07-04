@@ -1,4 +1,3 @@
-import { ethers } from 'ethers';
 import { Buffer } from 'buffer';
 
 // Bytes2Hex returns the hexadecimal encoding of d.
@@ -13,7 +12,7 @@ export function hex2Bytes(str: string): Buffer {
 }
 
 export const zeroValueSignature = {
-  v: 27, // Choose a valid value for v (27 or 28)
-  r: hex2Bytes(ethers.constants.HashZero), // Set r to a 32-byte zero value
-  s: hex2Bytes(ethers.constants.HashZero), // Set s to a 32-byte zero value
+  v: 0, // Choose a valid value for v (27 or 28)
+  r: null, // Set r to a 32-byte zero value
+  s: null, // Set s to a 32-byte zero value
 };

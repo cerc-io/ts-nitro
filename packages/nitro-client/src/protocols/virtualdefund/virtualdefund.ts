@@ -578,7 +578,7 @@ export class Objective implements ObjectiveInterface {
 
   // isBob returns true if the receiver represents participant n+1 in the virtualdefund protocol.
   private isBob(): boolean {
-    return this.myRole === this.v!.participants!.length - 1;
+    return this.myRole === (this.v!.participants ?? []).length - 1;
   }
 
   // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger

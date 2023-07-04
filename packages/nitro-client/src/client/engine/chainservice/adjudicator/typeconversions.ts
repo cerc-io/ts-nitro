@@ -51,9 +51,12 @@ export function convertVariablePart(vp: VariablePart): INitroTypes.VariablePartS
 export function convertSignature(s: Signature): INitroTypes.SignatureStruct {
   const sig = {
     v: s.v,
-    r: s.r.slice(0, 32),
-    s: s.s.slice(0, 32), // TODO we should just use 32 byte types, which would remove the need for this function
+    r: Buffer.alloc(32),
+    s: Buffer.alloc(32), // TODO we should just use 32 byte types, which would remove the need for this function
   };
+
+  (s.r ?? Buffer.alloc(0)).copy(sig.r);
+  (s.s ?? Buffer.alloc(0)).copy(sig.s);
 
   return sig;
 }

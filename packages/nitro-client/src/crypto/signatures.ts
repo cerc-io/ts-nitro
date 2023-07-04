@@ -8,8 +8,8 @@ import { signData as utilSignData } from '@statechannels/nitro-protocol/dist/src
 
 // Signature is an ECDSA signature
 export type Signature = {
-  r: Buffer;
-  s: Buffer;
+  r: Buffer | null;
+  s: Buffer | null;
   v: number;
 };
 
@@ -37,6 +37,7 @@ const computeEthereumSignedMessageDigest = (message: Buffer): Buffer => {
 // "\x19Ethereum Signed Message:\n" + len(message).
 // See https://github.com/ethereum/go-ethereum/pull/2940 and EIPs 191, 721.
 export const signEthereumMessage = (message: Buffer, secretKey: Buffer): Signature => {
+  console.log('signEthereumMessage bytes2Hex', bytes2Hex(secretKey));
   const sig = utilSignData(message.toString(), `0x${bytes2Hex(secretKey)}`);
 
   // This step is necessary to remain compatible with the ecrecover precompile
@@ -65,15 +66,15 @@ export const recoverEthereumMessageSigner = (message: Buffer, signature: Signatu
   return ethers.utils.recoverAddress(
     digest.toString(),
     {
-      r: `0x${bytes2Hex(sig.r)}`,
-      s: `0x${bytes2Hex(sig.s)}`,
+      r: `0x${bytes2Hex(sig.r ?? Buffer.alloc(0))}`,
+      s: `0x${bytes2Hex(sig.s ?? Buffer.alloc(0))}`,
       v: sig.v,
     },
   );
 };
 
 export const equal = (s1: Signature, s2 :Signature): boolean => {
-  return s1.r.compare(s2.r) === 0
-  && s1.s.compare(s2.s) === 0
+  return _.isEqual(s1.r, s2.r)
+  && _.isEqual(s1.s, s2.s)
   && s1.v === s2.v;
 };
