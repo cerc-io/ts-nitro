@@ -377,11 +377,11 @@ export class BaseP2PMessageService implements MessageService {
   }
 
   // Closes the P2PMessageService
-  close(): void {
+  async close(): Promise<void> {
     assert(this.p2pHost);
 
-    this.p2pHost.unhandle(PROTOCOL_ID);
-    this.p2pHost.stop();
+    await this.p2pHost.unhandle(PROTOCOL_ID);
+    await this.p2pHost.stop();
   }
 
   // peerInfoReceived returns a channel that receives a PeerInfo when a peer is discovered

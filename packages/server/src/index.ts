@@ -87,6 +87,15 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'Directory path to use for DurableStore',
   },
+  virtualPaymentChannel: {
+    type: 'string',
+    describe: 'Id of virtual payment channel to use',
+  },
+  wait: {
+    type: 'boolean',
+    default: false,
+    describe: 'Whether to keep CLI running',
+  },
 }).argv;
 
 const main = async () => {
@@ -193,38 +202,42 @@ const main = async () => {
       log(`Virtual payment channel created with id ${virtualPaymentChannelResponse.channelId.string()}`);
       const virtualPaymentChannelId = virtualPaymentChannelResponse.channelId;
 
-      let virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
+      const virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
       log(
         `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
         JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
       );
+    }
 
-      if (argv.pay !== undefined) {
-        await client.pay(virtualPaymentChannelId, BigInt(argv.pay));
+    if (argv.pay !== undefined) {
+      assert(argv.virtualPaymentChannel, 'Provide virtual-payment-channel id for payment');
+      const virtualPaymentChannelId = new Destination(argv.virtualPaymentChannel);
+      await client.pay(virtualPaymentChannelId, BigInt(argv.pay));
 
-        // Wait for the payment to be processed
-        /* eslint-disable no-promise-executor-return */
-        const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-        await delay(3000);
+      // Wait for the payment to be processed
+      /* eslint-disable no-promise-executor-return */
+      const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+      await delay(3000);
 
-        virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
-        log(
-          `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
-          JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
-        );
-      }
+      const virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
+      log(
+        `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
+        JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
+      );
+    }
 
-      if (argv.virtualDefund) {
-        const closeVirtualChannelObjectiveId = await client.closeVirtualChannel(virtualPaymentChannelId);
-        await client.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
-        log(`Virtual payment channel with id ${virtualPaymentChannelResponse.channelId.string()} closed`);
+    if (argv.virtualDefund) {
+      assert(argv.virtualPaymentChannel, 'Provide virtual-payment-channel id to close channel');
+      const virtualPaymentChannelId = new Destination(argv.virtualPaymentChannel);
+      const closeVirtualChannelObjectiveId = await client.closeVirtualChannel(virtualPaymentChannelId);
+      await client.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
+      log(`Virtual payment channel with id ${virtualPaymentChannelId.string()} closed`);
 
-        virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
-        log(
-          `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
-          JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
-        );
-      }
+      const virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
+      log(
+        `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
+        JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
+      );
     }
 
     if (argv.directDefund) {
@@ -239,6 +252,12 @@ const main = async () => {
 
     // TODO: Update instructions in browser setup
     // TODO: Update instructions for ts-nitro - go-nitro setup
+  }
+
+  if (!argv.wait) {
+    await store.close();
+    await msgService.close();
+    await client.close();
   }
 };
 

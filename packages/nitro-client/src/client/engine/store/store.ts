@@ -56,7 +56,7 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
   // The behavior of Close after the first call is undefined
   // TODO: Check for io.Closer alternative
   // TODO: Can throw an error
-  close (): void
+  close (): void | Promise<void>
 }
 
 export interface ConsensusChannelStore {

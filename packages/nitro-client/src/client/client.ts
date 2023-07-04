@@ -252,6 +252,11 @@ export class Client {
     return d;
   }
 
+  // Close stops the client from responding to any input.
+  // TODO: Implement
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async close(): Promise<void> {}
+
   // GetLedgerChannel returns the ledger channel with the given id.
   // If no ledger channel exists with the given id an error is returned.
   async getLedgerChannel(id: Destination): Promise<LedgerChannelInfo> {

@@ -15,5 +15,5 @@ export interface MessageService {
 
   // Close closes the message service
   // TODO: Can throw an error
-  close (): void;
+  close (): Promise<void>;
 }

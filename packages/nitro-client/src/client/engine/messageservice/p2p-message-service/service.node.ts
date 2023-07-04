@@ -101,7 +101,7 @@ export class P2PMessageService implements MessageService {
   }
 
   // Closes the P2PMessageService
-  close(): void {
+  close(): Promise<void> {
     return this.baseP2PMessageService.close();
   }
 
