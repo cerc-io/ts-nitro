@@ -41,22 +41,22 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
 ### Run
 
-* Run a client for David (`0x111A00868581f73AB42FEEF67D235Ca09ca1E8db`):
+* Run a client for Bob (`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`):
 
   ```bash
   # In packages/server
-  yarn start -p 3006 --pk febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781 --chainpk 5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a --durable-store ./david-db
+  yarn start -p 3006 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./david-db
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
   # ts-nitro:server Started P2PMessageService +0ms
   ```
 
-* Run a client for Alice (`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`) and pass in David's address as a counterparty to create channels with:
+* Run a client for Alice (`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`) and pass in Bob's address as a counterparty to create channels with:
 
   ```bash
   # In packages/server
-  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --durable-store ./alice-db --counterparty 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db --direct-fund --virtual-fund --pay 50 --virtual-defund --direct-defund
+  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --counterparty 0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94 --direct-fund --virtual-fund --pay 50 --virtual-defund --direct-defund
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -71,7 +71,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   # ts-nitro:server Virtual payment channel created with id 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
   # .
   # .
-  # ts-nitro:engine Sending message: {"to":"0x111A00","from":"0xAAA662","payloadSummaries":[],"proposalSummaries":[],"payments":[{"amount":50,"channelId":"0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa"}],"rejectedObjectives":[]} +8ms
+  # ts-nitro:engine Sending message: {"to":"0xBBB676","from":"0xAAA662","payloadSummaries":[],"proposalSummaries":[],"payments":[{"amount":50,"channelId":"0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa"}],"rejectedObjectives":[]} +8ms
   # .
   # .
   # ts-nitro:engine Objective VirtualDefund-0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa is complete & returned to API +1ms

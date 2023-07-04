@@ -48,13 +48,13 @@ Run relay node using v2 watcher
 
 * In the first repo which is for NodeJS client
 
-  * Run a client for Alice (`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`):
+  * Run a client for Bob (`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`):
 
     ```bash
     cd packages/server
 
     # In packages/server
-    yarn start -p 3006 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+    yarn start -p 3006 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
 
     # Expected output:
     # ts-nitro:engine Constructed Engine +0ms
@@ -67,14 +67,14 @@ Run relay node using v2 watcher
 
   * Refresh the app for enabling logs
 
-  * Call method `setupClient('erin')`
+  * Call method `setupClient('charlie')`
 
   * Wait for `New peer found` log in console
 
-  * Call method `nitro.directFund` with address of client Alice and amount to be allocated
+  * Call method `nitro.directFund` with address of client Bob and amount to be allocated
 
     ```
-    nitro.directFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE', 1_000_000)
+    nitro.directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94', 1_000_000)
     ```
 
     Final expected log
@@ -84,10 +84,10 @@ Run relay node using v2 watcher
     Ledger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
     ```
 
-  * Call method `nitro.virtualFund` with address of client Alice and amount to be allocated
+  * Call method `nitro.virtualFund` with address of client Bob and amount to be allocated
 
     ```
-    nitro.virtualFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE', 1_000)
+    nitro.virtualFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94', 1_000)
     ```
 
     Final expected log

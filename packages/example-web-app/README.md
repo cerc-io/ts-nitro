@@ -54,16 +54,16 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
 * Refresh the apps for enabling logs
 
-* Call methods `setupClient('erin')` and `setupClient('charlie')` separately in the 2 browsers
+* Call methods `setupClient('charlie')` and `setupClient('david')` separately in the 2 browsers
 
 * Wait for `New peer found` log in console
 
 * Call method `nitro.directFund` with address of the other browser client and amount to be allocated
 
-  * For example, call `nitro.directFund` in Erin browser with Charlie's address
+  * For example, call `nitro.directFund` in Charlie's browser with David's address
 
     ```
-    nitro.directFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d', 1_000_000)
+    nitro.directFund('0x111A00868581f73AB42FEEF67D235Ca09ca1E8db', 1_000_000)
     ```
 
   * Final expected log
@@ -75,10 +75,10 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
 * Call method `nitro.virtualFund` with address of the other browser client and amount to be allocated
 
-  * Call `nitro.virtualFund` in Erin browser with Charlie's address
+  * Call `nitro.virtualFund` in Charlie's browser with David's address
 
     ```
-    nitro.virtualFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d', 1_000)
+    nitro.virtualFund('0x111A00868581f73AB42FEEF67D235Ca09ca1E8db', 1_000)
     ```
 
   * Final expected log
@@ -104,11 +104,11 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 
 ### Run
 
-* Run a `go-nitro` client for Bob (`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`):
+* Run a `go-nitro` client for Erin (`0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01`):
 
   ```bash
   # In statechannels/go-nitro
-  go run . -msgport 3006 -wsmsgport 5006 -rpcport 4006 -pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 -chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d -naaddress 0x5FbDB2315678afecb367f032d93F642f64180aa3 -vpaaddress 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 -caaddress 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+  go run . -msgport 3006 -wsmsgport 5006 -rpcport 4006 -pk 0aca28ba64679f63d71e671ab4dbb32aaa212d4789988e6ca47da47601c18fe2 -chainpk 7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6 -naaddress 0x5FbDB2315678afecb367f032d93F642f64180aa3 -vpaaddress 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 -caaddress 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
 
   # Expected output:
   # Initialising mem store...
@@ -127,18 +127,18 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 
 * Refresh the app for enabling logs
 
-* Call method `setupClient('erin')`
+* Call method `setupClient('david')`
 
-* Call method `nitro.addPeerByMultiaddr` to connect to client Bob
-
-  ```
-  nitro.addPeerByMultiaddr('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94', '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmJDxLM8rSybX78FH51iZq9PdrwCoCyyHRBCndNzcAYMes')
-  ```
-
-* Call method `nitro.directFund` with address of client Bob and amount to be allocated
+* Call method `nitro.addPeerByMultiaddr` to connect to client Erin
 
   ```
-  nitro.directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94', 1_000_000)
+  nitro.addPeerByMultiaddr('0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01', '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmJDxLM8rSybX78FH51iZq9PdrwCoCyyHRBCndNzcAYMes')
+  ```
+
+* Call method `nitro.directFund` with address of client Erin and amount to be allocated
+
+  ```
+  nitro.directFund('0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01', 1_000_000)
   ```
 
 * Final expected log
