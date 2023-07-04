@@ -308,7 +308,7 @@ export class Engine {
 
       assert(this.store);
       const id = getProposalObjectiveId(proposal);
-      const obj = this.store.getObjectiveById(id);
+      const obj = await this.store.getObjectiveById(id);
 
       if (obj.getStatus() === ObjectiveStatus.Completed) {
         this.logger(`Ignoring proposal for complected objective ${obj.id()}`);
@@ -345,7 +345,7 @@ export class Engine {
       for await (const payload of message.objectivePayloads) {
         let objective: Objective;
         try {
-          objective = this.getOrCreateObjective(payload);
+          objective = await this.getOrCreateObjective(payload);
         } catch (err) {
           return [new EngineEvent(), err as Error];
         }
@@ -418,7 +418,7 @@ export class Engine {
 
         let o: Objective;
         try {
-          o = this.store.getObjectiveById(id);
+          o = await this.store.getObjectiveById(id);
         } catch (err) {
           return [new EngineEvent(), err as Error];
         }
@@ -456,7 +456,7 @@ export class Engine {
       for (const entry of message.rejectedObjectives) {
         let objective: Objective;
         try {
-          objective = this.store.getObjectiveById(entry);
+          objective = await this.store.getObjectiveById(entry);
         } catch (err) {
           return [new EngineEvent(), err as Error];
         }
@@ -536,7 +536,7 @@ export class Engine {
       this.logger(`handling chain event: ${chainEvent.string()}`);
 
       // eslint-disable-next-line prefer-const
-      let [objective, ok] = this.store!.getObjectiveByChannelId(chainEvent.channelID());
+      let [objective, ok] = await this.store!.getObjectiveByChannelId(chainEvent.channelID());
 
       if (!ok) {
         // TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
@@ -952,7 +952,7 @@ export class Engine {
 
   // getOrCreateObjective retrieves the objective from the store.
   // If the objective does not exist, it creates the objective using the supplied payload and stores it in the store
-  private getOrCreateObjective(p: ObjectivePayload): Objective {
+  private async getOrCreateObjective(p: ObjectivePayload): Promise<Objective> {
     let deferredCompleteRecordFunction;
     try {
       const completeRecordFunction = this.metrics!.recordFunctionDuration(this.getOrCreateObjective.name);
@@ -963,7 +963,7 @@ export class Engine {
       const id = p.objectiveId;
 
       try {
-        const objective = this.store.getObjectiveById(id);
+        const objective = await this.store.getObjectiveById(id);
         return objective;
       } catch (err) {
         if ((err as Error).message.includes(ErrNoSuchObjective.message)) {

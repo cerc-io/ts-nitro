@@ -40,6 +40,9 @@ export class DurableStore implements Store {
 
   private db?: Level<string, Buffer>;
 
+  // NewDurableStore creates a new DurableStore that uses the given location to store its data
+  // In NodeJS, location must be a directory path where LevelDB will store its files
+  // In browsers, location is the name of the IDBDatabase to be opened.
   static newDurableStore(key: Buffer, location: string): Store {
     const ps = new DurableStore();
     ps.key = bytes2Hex(key);
@@ -197,6 +200,7 @@ export class DurableStore implements Store {
     }
   }
 
+  // SetChannel sets the channel in the store.
   setChannel(ch: Channel): void {
     // TODO: Implement
   }
