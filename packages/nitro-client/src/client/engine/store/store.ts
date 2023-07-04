@@ -42,7 +42,7 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
   getChannelsByParticipant (participant: Address): Channel[] | Promise<Channel[]>
 
   // TODO: Can throw an error
-  setChannel (ch: Channel): void
+  setChannel (ch: Channel): void | Promise<void>
 
   destroyChannel (id: Destination): void | Promise<void>
 

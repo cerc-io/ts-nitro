@@ -498,7 +498,7 @@ export class Engine {
         let paid: bigint | undefined;
         let remaining: bigint | undefined;
         try {
-          [paid, remaining] = getVoucherBalance(c.id, this.vm);
+          [paid, remaining] = await getVoucherBalance(c.id, this.vm);
         } catch (err) {
           return [new EngineEvent(), err as Error];
         }
@@ -618,7 +618,7 @@ export class Engine {
           const lastParticipant = vfo.v!.participants.length - 1;
           if (vfo.myRole === lastParticipant || vfo.myRole === PAYER_INDEX) {
             try {
-              this.registerPaymentChannel(vfo);
+              await this.registerPaymentChannel(vfo);
             } catch (err) {
               throw new Error(`could not register channel with payment/receipt manager: ${err}`);
             }
@@ -631,9 +631,9 @@ export class Engine {
           let minAmount: bigint | undefined = BigInt(0);
           const request = or as VirtualDefundObjectiveRequest;
 
-          if (this.vm!.channelRegistered(request.channelId)) {
+          if (await this.vm!.channelRegistered(request.channelId)) {
             try {
-              const paid = this.vm!.paid(request.channelId);
+              const paid = await this.vm!.paid(request.channelId);
 
               minAmount = paid;
             } catch (err) {
@@ -833,7 +833,7 @@ export class Engine {
 
       await this.store.setObjective(crankedObjective);
 
-      const notifEvents = this.generateNotifications(crankedObjective);
+      const notifEvents = await this.generateNotifications(crankedObjective);
 
       outgoing.merge(notifEvents);
 
@@ -864,14 +864,14 @@ export class Engine {
   }
 
   // generateNotifications takes an objective and constructs notifications for any related channels for that objective.
-  private generateNotifications(o: Objective): EngineEvent {
+  private async generateNotifications(o: Objective): Promise<EngineEvent> {
     const outgoing = new EngineEvent();
 
     for (const rel of o.related()) {
       switch (rel.constructor) {
         case VirtualChannel: {
           const vc = rel as VirtualChannel;
-          const [paid, remaining] = getVoucherBalance(vc.id, this.vm!);
+          const [paid, remaining] = await getVoucherBalance(vc.id, this.vm!);
           const info = constructPaymentInfo(vc, paid, remaining);
           outgoing.paymentChannelUpdates.push(info);
 
@@ -903,7 +903,7 @@ export class Engine {
     return outgoing;
   }
 
-  private registerPaymentChannel(vfo: VirtualFundObjective): void {
+  private async registerPaymentChannel(vfo: VirtualFundObjective): Promise<void> {
     assert(vfo.v);
     const postfund = vfo.v.postFundState();
     let startingBalance: bigint = BigInt(0);
@@ -1027,7 +1027,7 @@ export class Engine {
           }
 
           try {
-            this.registerPaymentChannel(vfo);
+            await this.registerPaymentChannel(vfo);
           } catch (err) {
             throw new Error(`could not register channel with payment/receipt manager.\n\ttarget channel: ${id}\n\terr: ${err}`);
           }
@@ -1043,10 +1043,10 @@ export class Engine {
           }
 
           let minAmount: bigint | undefined = BigInt(0);
-          if (this.vm.channelRegistered(vId)) {
+          if (await this.vm.channelRegistered(vId)) {
             let paid: bigint | undefined;
             try {
-              paid = this.vm.paid(vId);
+              paid = await this.vm.paid(vId);
             } catch (err) {
               throw new Error(`could not determine virtual channel id from objective ${id}: ${err}`);
             }

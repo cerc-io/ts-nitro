@@ -68,16 +68,16 @@ const getLatestSupportedOrPreFund = (channel: Channel): State => {
   return channel.preFundState();
 };
 
-export const getVoucherBalance = (id: Destination, vm: VoucherManager): [bigint | undefined, bigint | undefined] => {
+export const getVoucherBalance = async (id: Destination, vm: VoucherManager): Promise<[bigint | undefined, bigint | undefined]> => {
   let paid: bigint | undefined = BigInt(0);
   let remaining: bigint | undefined = BigInt(0);
 
-  if (!vm.channelRegistered(id)) {
+  if (!(await vm.channelRegistered(id))) {
     return [paid, remaining];
   }
 
-  paid = vm.paid(id);
-  remaining = vm.remaining(id);
+  paid = await vm.paid(id);
+  remaining = await vm.remaining(id);
 
   return [paid, remaining];
 };
@@ -112,7 +112,7 @@ export const getPaymentChannelInfo = async (id: Destination, store: Store, vm: V
   const [c, channelFound] = await store.getChannelById(id);
 
   if (channelFound) {
-    const [paid, remaining] = getVoucherBalance(id, vm);
+    const [paid, remaining] = await getVoucherBalance(id, vm);
 
     return constructPaymentInfo(c, paid, remaining);
   }

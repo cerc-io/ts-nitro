@@ -12,7 +12,7 @@ export interface VoucherStore {
   setVoucherInfo (channelId: Destination, v: VoucherInfo): void
 
   // TODO: Can throw an error
-  getVoucherInfo (channelId: Destination): [VoucherInfo | undefined, boolean]
+  getVoucherInfo (channelId: Destination): [VoucherInfo | undefined, boolean] | Promise<[VoucherInfo | undefined, boolean]>
 
   // TODO: Can throw an error
   removeVoucherInfo (channelId: Destination): void
@@ -36,7 +36,7 @@ export class VoucherManager {
   }
 
   // Register registers a channel for use, given the payer, payee and starting balance of the channel
-  register(channelId: Destination, payer: string, payee: string, startingBalance?: bigint): void {
+  async register(channelId: Destination, payer: string, payee: string, startingBalance?: bigint): Promise<void> {
     const voucher = new Voucher({ channelId, amount: BigInt(0) });
     const data = new VoucherInfo({
       channelPayer: payer,
@@ -45,7 +45,7 @@ export class VoucherManager {
       largestVoucher: voucher,
     });
 
-    const [v] = this.store.getVoucherInfo(channelId);
+    const [v] = await this.store.getVoucherInfo(channelId);
     if (v !== undefined) {
       throw new Error('Channel already registered');
     }
@@ -60,7 +60,7 @@ export class VoucherManager {
   // Pay will deduct amount from balance and add it to paid, returning a signed voucher for the
   // total amount paid.
   async pay(channelId: Destination, amount: bigint | undefined, pk: Buffer): Promise<Voucher> {
-    const [vInfo, ok] = this.store.getVoucherInfo(channelId);
+    const [vInfo, ok] = await this.store.getVoucherInfo(channelId);
 
     if (!ok) {
       throw new Error('channel not found');
@@ -95,14 +95,14 @@ export class VoucherManager {
   }
 
   // ChannelRegistered returns  whether a channel has been registered with the voucher manager or not
-  channelRegistered(channelId: Destination): boolean {
-    const [, ok] = this.store.getVoucherInfo(channelId);
+  async channelRegistered(channelId: Destination): Promise<boolean> {
+    const [, ok] = await this.store.getVoucherInfo(channelId);
     return ok;
   }
 
   // Paid returns the total amount paid so far on a channel
-  paid(chanId: Destination): bigint | undefined {
-    const [v, ok] = this.store.getVoucherInfo(chanId);
+  async paid(chanId: Destination): Promise<bigint | undefined> {
+    const [v, ok] = await this.store.getVoucherInfo(chanId);
     if (!ok) {
       throw new Error('channel not registered');
     }
@@ -112,8 +112,8 @@ export class VoucherManager {
   }
 
   // Remaining returns the remaining amount of funds in the channel
-  remaining(chanId: Destination): bigint | undefined {
-    const [v, ok] = this.store.getVoucherInfo(chanId);
+  async remaining(chanId: Destination): Promise<bigint | undefined> {
+    const [v, ok] = await this.store.getVoucherInfo(chanId);
     if (!ok) {
       throw new Error('channel not registered');
     }

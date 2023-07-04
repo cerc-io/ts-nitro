@@ -17,10 +17,10 @@ import { getAddressFromSecretKeyBytes } from '../../../crypto/keys';
 import { Destination } from '../../../types/destination';
 import { contains, decodeObjective } from './memstore';
 import { VirtualChannel } from '../../../channel/virtual';
-import { isDirectFundObjective, Objective as DirectFundObjective } from '../../../protocols/directfund/directfund';
-import { isDirectDefundObjective, Objective as DirectDefundObjective } from '../../../protocols/directdefund/directdefund';
-import { isVirtualFundObjective, Objective as VirtualFundObjective } from '../../../protocols/virtualfund/virtualfund';
-import { isVirtualDefundObjective, Objective as VirtualDefundObjective } from '../../../protocols/virtualdefund/virtualdefund';
+import { Objective as DirectFundObjective } from '../../../protocols/directfund/directfund';
+import { Objective as DirectDefundObjective } from '../../../protocols/directdefund/directdefund';
+import { Objective as VirtualFundObjective } from '../../../protocols/virtualfund/virtualfund';
+import { Objective as VirtualDefundObjective } from '../../../protocols/virtualdefund/virtualdefund';
 
 export class DurableStore implements Store {
   private objectives?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
@@ -516,15 +516,36 @@ export class DurableStore implements Store {
   }
 
   setVoucherInfo(channelId: Destination, v: VoucherInfo): void {
-    // TODO: Implement
+    const vJSON = Buffer.from(JSONbigNative.stringify(v));
+
+    this.vouchers!.put(channelId.string(), vJSON);
   }
 
-  getVoucherInfo(channelId: Destination): [VoucherInfo | undefined, boolean] {
-    // TODO: Implement
-    return [undefined, false];
+  async getVoucherInfo(channelId: Destination): Promise<[VoucherInfo | undefined, boolean]> {
+    let err;
+    let v = new VoucherInfo({});
+
+    try {
+      const vJSON = await this.vouchers!.get(channelId.string());
+
+      try {
+        v = VoucherInfo.fromJSON(vJSON.toString());
+        return [v, true];
+      } catch (jsonErr) {
+        err = jsonErr;
+      }
+    } catch (dbErr) {
+      err = null;
+    }
+
+    if (!err) {
+      return [v, true];
+    }
+
+    return [v, false];
   }
 
-  removeVoucherInfo(channelId: Destination): void {
-    // TODO: Implement
+  async removeVoucherInfo(channelId: Destination): Promise<void> {
+    return this.vouchers!.del(channelId.string());
   }
 }
