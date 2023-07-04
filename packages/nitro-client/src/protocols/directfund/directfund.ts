@@ -1,6 +1,7 @@
 import assert from 'assert';
 import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
+import _ from 'lodash';
 
 import Channel from '@cerc-io/ts-channel';
 import type { ReadWriteChannel } from '@cerc-io/ts-channel';
@@ -102,21 +103,34 @@ export class Objective implements ObjectiveInterface {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
-    c: { type: 'class', value: channel.Channel },
+    c: { type: 'class', value: Destination },
     myDepositSafetyThreshold: { type: 'class', value: Funds },
     myDepositTarget: { type: 'class', value: Funds },
     fullyFundedThreshold: { type: 'class', value: Funds },
     latestBlockNumber: { type: 'number' },
-    transactionSubmitted: { type: 'boolean' },
+    transactionSumbmitted: { type: 'boolean' },
   };
 
   static fromJSON(data: string): Objective {
+    // props has c.id as c and
+    // transactionSumbmitted as a key instead of transactionSubmitted (type from go-nitro custom serialization)
     const props = fromJSON(this.jsonEncodingMap, data);
-    return new Objective(props);
+
+    let objectiveProps = _.omit(props, ['c', 'transactionSumbmitted']);
+    objectiveProps = _.set(objectiveProps, 'c', new channel.Channel({ id: props.c }));
+    objectiveProps = _.set(objectiveProps, 'transactionSubmitted', props.transactionSumbmitted);
+
+    return new Objective(objectiveProps);
   }
 
   toJSON(): any {
-    return toJSON(Objective.jsonEncodingMap, this);
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+    let jsonObjective = _.omit(this, ['c', 'transactionSubmitted']);
+    jsonObjective = _.set(jsonObjective, 'c', this.c!.id);
+    jsonObjective = _.set(jsonObjective, 'transactionSumbmitted', this.transactionSubmitted);
+
+    return toJSON(Objective.jsonEncodingMap, jsonObjective);
   }
 
   constructor(params: {
@@ -272,11 +286,31 @@ export class Objective implements ObjectiveInterface {
     const outcome = LedgerOutcome.fromExit(assetExit);
 
     if (ledger.myIndex === Leader) {
-      const con = ConsensusChannel.newLeaderChannel(ledger, turnNum, outcome, signatures);
+      const con = ConsensusChannel.newLeaderChannel(
+        new FixedPart({
+          participants: ledger.participants,
+          channelNonce: ledger.channelNonce,
+          appDefinition: ledger.appDefinition,
+          challengeDuration: ledger.challengeDuration,
+        }),
+        turnNum,
+        outcome,
+        signatures,
+      );
       con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
       return con;
     }
-    const con = ConsensusChannel.newFollowerChannel(ledger, turnNum, outcome, signatures);
+    const con = ConsensusChannel.newFollowerChannel(
+      new FixedPart({
+        participants: ledger.participants,
+        channelNonce: ledger.channelNonce,
+        appDefinition: ledger.appDefinition,
+        challengeDuration: ledger.challengeDuration,
+      }),
+      turnNum,
+      outcome,
+      signatures,
+    );
     con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
     return con;
   }

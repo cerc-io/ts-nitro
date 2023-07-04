@@ -914,10 +914,10 @@ export class ConsensusChannel {
   private _proposalQueue: SignedProposal[] = [];
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    myIndex: { type: 'number' },
-    fP: { type: 'class', value: FixedPart },
     id: { type: 'class', value: Destination },
     onChainFunding: { type: 'class', value: Funds },
+    myIndex: { type: 'number' },
+    fP: { type: 'class', value: FixedPart },
     current: { type: 'class', value: SignedVars },
     proposalQueue: { type: 'array', value: { type: 'class', value: SignedProposal } },
   };

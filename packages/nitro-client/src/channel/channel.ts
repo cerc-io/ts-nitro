@@ -44,10 +44,10 @@ export class Channel extends FixedPart {
   latestSupportedStateTurnNum: Uint64 = BigInt(0);
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    ...super.jsonEncodingMap,
     id: { type: 'class', value: Destination },
     myIndex: { type: 'number' },
     onChainFunding: { type: 'class', value: Funds },
+    ...super.jsonEncodingMap,
     signedStateForTurnNum: { type: 'map', key: { type: 'uint64' }, value: { type: 'class', value: SignedState } },
     latestSupportedStateTurnNum: { type: 'uint64' },
   };
