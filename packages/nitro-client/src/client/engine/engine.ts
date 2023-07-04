@@ -366,7 +366,7 @@ export class Engine {
             [objective, sideEffects] = objective.reject();
 
             try {
-              this.store.setObjective(objective);
+              await this.store.setObjective(objective);
             } catch (err) {
               return [new EngineEvent(), err as Error];
             }
@@ -471,7 +471,7 @@ export class Engine {
         // counterparty has already notified all other interested parties. We can therefore ignore the side effects
         [objective] = objective.reject();
         try {
-          this.store.setObjective(objective);
+          await this.store.setObjective(objective);
         } catch (err) {
           return [new EngineEvent(), err as Error];
         }
@@ -490,7 +490,7 @@ export class Engine {
           allCompleted.receivedVouchers.push(voucher);
         }
 
-        const [c, ok] = this.store.getChannelById(voucher.channelId);
+        const [c, ok] = await this.store.getChannelById(voucher.channelId);
         if (!ok) {
           return [new EngineEvent(), new Error(`could not fetch channel for voucher ${voucher}`)];
         }
@@ -642,7 +642,7 @@ export class Engine {
           }
 
           try {
-            const vdfo = VirtualDefundObjective.newObjective(
+            const vdfo = await VirtualDefundObjective.newObjective(
               request,
               true,
               myAddress,
@@ -660,7 +660,7 @@ export class Engine {
 
         case or instanceof DirectFundObjectiveRequest:
           try {
-            const dfo = DirectFundObjective.newObjective(
+            const dfo = await DirectFundObjective.newObjective(
               or as DirectFundObjectiveRequest,
               true,
               myAddress,
@@ -723,7 +723,7 @@ export class Engine {
       throw new Error(`handleAPIEvent: Error making payment: ${err}`);
     }
 
-    const [c, ok] = this.store!.getChannelById(cId);
+    const [c, ok] = await this.store!.getChannelById(cId);
 
     if (!ok) {
       throw new Error(`handleAPIEvent: Could not get channel from the store ${cId}`);
@@ -738,7 +738,7 @@ export class Engine {
 
     let info: PaymentChannelInfo;
     try {
-      info = getPaymentChannelInfo(cId, this.store!, this.vm!);
+      info = await getPaymentChannelInfo(cId, this.store!, this.vm!);
     } catch (err) {
       throw new Error(`handleAPIEvent: Error querying channel info: ${err}`);
     }
@@ -831,7 +831,7 @@ export class Engine {
         return outgoing;
       }
 
-      this.store.setObjective(crankedObjective);
+      await this.store.setObjective(crankedObjective);
 
       const notifEvents = this.generateNotifications(crankedObjective);
 
@@ -844,7 +844,7 @@ export class Engine {
       // Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
       if (waitingFor === 'WaitingForNothing') {
         outgoing.completedObjectives = outgoing.completedObjectives.concat(crankedObjective);
-        this.store.releaseChannelFromOwnership(crankedObjective.ownsChannel());
+        await this.store.releaseChannelFromOwnership(crankedObjective.ownsChannel());
 
         try {
           this.spawnConsensusChannelIfDirectFundObjective(crankedObjective);
@@ -926,7 +926,7 @@ export class Engine {
   //
   // The associated Channel will remain in the store.
   // TODO: Can throw an error
-  private spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): void {
+  private async spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): Promise<void> {
     let deferredCompleteRecordFunction;
     try {
       const completeRecordFunction = this.metrics!.recordFunctionDuration(this.spawnConsensusChannelIfDirectFundObjective.name);
@@ -938,7 +938,7 @@ export class Engine {
         try {
           assert(this.store);
           this.store.setConsensusChannel(c);
-          this.store.destroyChannel(c.id);
+          await this.store.destroyChannel(c.id);
         } catch (err) {
           throw new Error(`Could not create, store, or destroy consensus channel for objective ${crankedObjective.id()}: ${err}`);
         }
@@ -969,7 +969,7 @@ export class Engine {
         if ((err as Error).message.includes(ErrNoSuchObjective.message)) {
           let newObj: Objective;
           try {
-            newObj = this.constructObjectiveFromMessage(id, p);
+            newObj = await this.constructObjectiveFromMessage(id, p);
           } catch (constructErr) {
             throw new Error(`error constructing objective from message: ${constructErr}`);
           }
@@ -977,7 +977,7 @@ export class Engine {
           this.metrics!.recordObjectiveStarted(newObj.id());
 
           try {
-            this.store.setObjective(newObj);
+            await this.store.setObjective(newObj);
           } catch (setErr) {
             throw new Error(`error setting objective in store: ${setErr}`);
           }
@@ -998,7 +998,7 @@ export class Engine {
   }
 
   // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied payload.
-  private constructObjectiveFromMessage(id: ObjectiveId, p: ObjectivePayload): Objective {
+  private async constructObjectiveFromMessage(id: ObjectiveId, p: ObjectivePayload): Promise<Objective> {
     let deferredCompleteRecordFunction;
     try {
       this.logger(`Constructing objective ${id} from message`);
@@ -1056,7 +1056,7 @@ export class Engine {
 
           let vdfo: VirtualDefundObjective;
           try {
-            vdfo = VirtualDefundObjective.constructObjectiveFromPayload(
+            vdfo = await VirtualDefundObjective.constructObjectiveFromPayload(
               p,
               false,
               this.store.getAddress(),

@@ -150,7 +150,7 @@ const main = async () => {
       log(`Ledger channel created with id ${ledgerChannelResponse.channelId.string()}`);
       ledgerChannelId = ledgerChannelResponse.channelId;
 
-      const ledgerChannelStatus = client.getLedgerChannel(ledgerChannelId);
+      const ledgerChannelStatus = await client.getLedgerChannel(ledgerChannelId);
       log(`Ledger channel ${ledgerChannelId.string()} status:\n`, JSONbigNative.stringify(ledgerChannelStatus, null, 2));
     }
 
@@ -180,7 +180,7 @@ const main = async () => {
       log(`Virtual payment channel created with id ${virtualPaymentChannelResponse.channelId.string()}`);
       const virtualPaymentChannelId = virtualPaymentChannelResponse.channelId;
 
-      let virtualPaymentChannelStatus = client.getPaymentChannel(virtualPaymentChannelId);
+      let virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
       log(
         `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
         JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
@@ -194,7 +194,7 @@ const main = async () => {
         const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
         await delay(3000);
 
-        virtualPaymentChannelStatus = client.getPaymentChannel(virtualPaymentChannelId);
+        virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
         log(
           `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
           JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
@@ -206,7 +206,7 @@ const main = async () => {
         await client.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
         log(`Virtual payment channel with id ${virtualPaymentChannelResponse.channelId.string()} closed`);
 
-        virtualPaymentChannelStatus = client.getPaymentChannel(virtualPaymentChannelId);
+        virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
         log(
           `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
           JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
@@ -220,7 +220,7 @@ const main = async () => {
       await client.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
       log(`Ledger channel with id ${ledgerChannelId.string()} closed`);
 
-      const ledgerChannelStatus = client.getLedgerChannel(ledgerChannelId);
+      const ledgerChannelStatus = await client.getLedgerChannel(ledgerChannelId);
       log(`Ledger channel ${ledgerChannelId.string()} status:\n`, JSONbigNative.stringify(ledgerChannelStatus, null, 2));
     }
 

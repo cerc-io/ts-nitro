@@ -56,7 +56,7 @@ const FinalTurnNum: Uint64 = BigInt(2);
 export const ObjectivePrefix = 'VirtualDefund-';
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
-type GetChannelByIdFunction = (id: Destination) => [channel.Channel | undefined, boolean];
+type GetChannelByIdFunction = (id: Destination) => [channel.Channel | undefined, boolean] | Promise<[channel.Channel | undefined, boolean]>;
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
@@ -209,14 +209,14 @@ export class Objective implements ObjectiveInterface {
   }
 
   // NewObjective constructs a new virtual defund objective
-  static newObjective(
+  static async newObjective(
     request: ObjectiveRequest,
     preApprove: boolean,
     myAddress: Address,
     largestPaymentAmount: bigint | undefined,
     getChannel: GetChannelByIdFunction,
     getConsensusChannel: GetTwoPartyConsensusLedgerFunction,
-  ): Objective {
+  ): Promise<Objective> {
     let status: ObjectiveStatus;
 
     if (preApprove) {
@@ -225,7 +225,7 @@ export class Objective implements ObjectiveInterface {
       status = ObjectiveStatus.Unapproved;
     }
 
-    const [c, found] = getChannel(request.channelId);
+    const [c, found] = await getChannel(request.channelId);
 
     if (!found) {
       throw new Error(`Could not find channel ${request.channelId}`);
@@ -303,14 +303,14 @@ export class Objective implements ObjectiveInterface {
   }
 
   // ConstructObjectiveFromPayload takes in a message payload and constructs an objective from it.
-  static constructObjectiveFromPayload(
+  static async constructObjectiveFromPayload(
     p: ObjectivePayload,
     preapprove: boolean,
     myAddress: Address,
     getChannel: GetChannelByIdFunction,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
     latestVoucherAmount?: bigint,
-  ): Objective {
+  ): Promise<Objective> {
     if (!latestVoucherAmount) {
       // eslint-disable-next-line no-param-reassign
       latestVoucherAmount = BigInt(0);
