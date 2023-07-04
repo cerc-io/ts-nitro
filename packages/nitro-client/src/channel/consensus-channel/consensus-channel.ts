@@ -911,7 +911,7 @@ export class ConsensusChannel {
   private current: SignedVars = new SignedVars({});
 
   // a queue of proposed changes which can be applied to the current state, ordered by TurnNum.
-  private _proposalQueue: SignedProposal[] = [];
+  private _proposalQueue: SignedProposal[] | null = null;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     id: { type: 'class', value: Destination },
@@ -1057,7 +1057,7 @@ export class ConsensusChannel {
   isProposedNext(g: Guarantee): boolean {
     const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome._clone() });
 
-    if (this._proposalQueue.length === 0) {
+    if (this._proposalQueue === null || this._proposalQueue.length === 0) {
       return false;
     }
 
@@ -1094,7 +1094,7 @@ export class ConsensusChannel {
 
   // HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
   hasRemovalBeenProposed(target: Destination): boolean {
-    for (const p of this._proposalQueue) {
+    for (const p of this._proposalQueue ?? []) {
       if (p.proposal.type() === ProposalType.RemoveProposal) {
         const remove = p.proposal.toRemove;
         if (_.isEqual(remove.target, target)) {
@@ -1107,7 +1107,7 @@ export class ConsensusChannel {
 
   // HasRemovalBeenProposedNext returns whether or not the next proposal in the queue is a remove proposal for the given target
   hasRemovalBeenProposedNext(target: Destination): boolean {
-    if (this._proposalQueue.length === 0) {
+    if (this._proposalQueue === null || this._proposalQueue.length === 0) {
       return false;
     }
     const p = this._proposalQueue[0];
@@ -1176,7 +1176,7 @@ export class ConsensusChannel {
   }
 
   // ProposalQueue returns the current queue of proposals, ordered by TurnNum.
-  proposalQueue(): SignedProposal[] {
+  proposalQueue(): SignedProposal[] | null {
     // Since c.proposalQueue is already ordered by TurnNum, we can simply return it.
     return this._proposalQueue;
   }
@@ -1185,7 +1185,7 @@ export class ConsensusChannel {
   // by cloning its current vars and applying each proposal in the queue.
   private latestProposedVars(): Vars {
     const vars = new Vars({ turnNum: this.current.turnNum, outcome: this.current.outcome._clone() });
-    for (const p of this._proposalQueue) {
+    for (const p of this._proposalQueue ?? []) {
       vars.handleProposal(p.proposal);
     }
 
@@ -1207,10 +1207,14 @@ export class ConsensusChannel {
 
   // Clone returns a deep copy of the receiver.
   clone(): ConsensusChannel {
-    const clonedProposalQueue: SignedProposal[] = new Array(this._proposalQueue.length);
+    let clonedProposalQueue: SignedProposal[] = [];
 
-    for (let i = 0; i < this._proposalQueue.length; i += 1) {
-      clonedProposalQueue[i] = this._proposalQueue[i].clone();
+    if (this._proposalQueue !== null) {
+      clonedProposalQueue = new Array(this._proposalQueue.length);
+
+      for (let i = 0; i < this._proposalQueue.length; i += 1) {
+        clonedProposalQueue[i] = this._proposalQueue[i].clone();
+      }
     }
 
     const d = new ConsensusChannel({
@@ -1274,8 +1278,8 @@ export class ConsensusChannel {
       return;
     }
 
-    for (let i = 0; i < this._proposalQueue.length; i += 1) {
-      const ourP = this._proposalQueue[i];
+    for (let i = 0; i < (this._proposalQueue ?? []).length; i += 1) {
+      const ourP = this._proposalQueue![i];
 
       consensusCandidate.handleProposal(ourP.proposal);
 
@@ -1297,10 +1301,11 @@ export class ConsensusChannel {
           turnNum: consensusCandidate.turnNum,
           signatures: [mySig, countersigned.signature],
         });
-        this._proposalQueue = this._proposalQueue.slice(i + 1);
+        this._proposalQueue = this._proposalQueue!.slice(i + 1);
         return;
       }
     }
+
     throw ErrProposalQueueExhausted;
   }
 
@@ -1344,10 +1349,14 @@ export class ConsensusChannel {
   // appendToProposalQueue safely appends the given SignedProposal to the proposal queue of the receiver.
   // It will panic if the turn number of the signedproposal is not consecutive with the existing queue.
   private appendToProposalQueue(signed: SignedProposal) {
-    if (this._proposalQueue.length > 0 && this._proposalQueue[this._proposalQueue.length - 1].turnNum + BigInt(1) !== signed.turnNum) {
+    if (
+      this._proposalQueue
+      && this._proposalQueue.length > 0
+      && this._proposalQueue[this._proposalQueue.length - 1].turnNum + BigInt(1) !== signed.turnNum
+    ) {
       throw new Error('Appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum');
     }
-    this._proposalQueue.push(signed);
+    (this._proposalQueue ?? []).push(signed);
   }
 
   // From channel/consensus_channel/follower_channel.go
@@ -1392,7 +1401,7 @@ export class ConsensusChannel {
     }
 
     // Update the proposal queue
-    this._proposalQueue.push(p);
+    (this._proposalQueue ?? []).push(p);
   }
 
   // SignNextProposal is called by the follower and inspects whether the
@@ -1405,7 +1414,7 @@ export class ConsensusChannel {
 
     this.validateProposalID(expectedProposal);
 
-    if (this._proposalQueue.length === 0) {
+    if (this._proposalQueue === null || this._proposalQueue.length === 0) {
       throw ErrNoProposals;
     }
 

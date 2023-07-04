@@ -113,24 +113,20 @@ export class Objective implements ObjectiveInterface {
 
   static fromJSON(data: string): Objective {
     // props has c.id as c and
-    // transactionSumbmitted as a key instead of transactionSubmitted (type from go-nitro custom serialization)
-    const props = fromJSON(this.jsonEncodingMap, data);
+    // transactionSumbmitted as a key instead of transactionSubmitted (typo from go-nitro custom serialization)
+    const props = fromJSON(this.jsonEncodingMap, data, new Map([['transactionSumbmitted', 'transactionSubmitted']]));
 
-    let objectiveProps = _.omit(props, ['c', 'transactionSumbmitted']);
-    objectiveProps = _.set(objectiveProps, 'c', new channel.Channel({ id: props.c }));
-    objectiveProps = _.set(objectiveProps, 'transactionSubmitted', props.transactionSumbmitted);
-
-    return new Objective(objectiveProps);
+    return new Objective(_.set(props, 'c', new channel.Channel({ id: props.c })));
   }
 
   toJSON(): any {
     // Use a custom object
     // (according to MarshalJSON implementation in go-nitro)
-    let jsonObjective = _.omit(this, ['c', 'transactionSubmitted']);
-    jsonObjective = _.set(jsonObjective, 'c', this.c!.id);
-    jsonObjective = _.set(jsonObjective, 'transactionSumbmitted', this.transactionSubmitted);
-
-    return toJSON(Objective.jsonEncodingMap, jsonObjective);
+    return toJSON(
+      Objective.jsonEncodingMap,
+      _.set(_.cloneDeep(this), 'c', this.c!.id),
+      new Map([['transactionSubmitted', 'transactionSumbmitted']]),
+    );
   }
 
   constructor(params: {

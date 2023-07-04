@@ -624,7 +624,7 @@ export class Objective implements ObjectiveInterface {
 
         // ledger sideEffect
         const proposals = ledger.proposalQueue();
-        if (proposals.length !== 0) {
+        if (proposals !== null && proposals.length !== 0) {
           sideEffects.proposalsToProcess.push(proposals[0].proposal);
         }
 

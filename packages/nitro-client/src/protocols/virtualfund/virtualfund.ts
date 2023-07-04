@@ -807,7 +807,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
     // to create a valid message with ordered proposals:
-    const message = Message.createSignedProposalMessage(receipient, ...connection.channel!.proposalQueue());
+    const message = Message.createSignedProposalMessage(receipient, ...(connection.channel!.proposalQueue() ?? []));
 
     sideEffects.messagesToSend.push(message);
 
@@ -827,7 +827,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // ledger sideEffect
     const proposals = ledger.proposalQueue();
-    if (proposals.length !== 0) {
+    if (proposals && proposals.length !== 0) {
       sideEffects.proposalsToProcess.push(proposals[0].proposal);
     }
 
