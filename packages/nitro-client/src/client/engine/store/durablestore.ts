@@ -6,7 +6,7 @@ import type { AbstractSublevel } from 'abstract-level';
 
 import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
 
-import { ErrNoSuchObjective, Store } from './store';
+import { ErrNoSuchChannel, ErrNoSuchObjective, Store } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
@@ -15,8 +15,12 @@ import { ObjectiveId } from '../../../protocols/messages';
 import { Address } from '../../../types/types';
 import { getAddressFromSecretKeyBytes } from '../../../crypto/keys';
 import { Destination } from '../../../types/destination';
-import { decodeObjective } from './memstore';
+import { contains, decodeObjective } from './memstore';
 import { VirtualChannel } from '../../../channel/virtual';
+import { isDirectFundObjective, Objective as DirectFundObjective } from '../../../protocols/directfund/directfund';
+import { isDirectDefundObjective, Objective as DirectDefundObjective } from '../../../protocols/directdefund/directdefund';
+import { isVirtualFundObjective, Objective as VirtualFundObjective } from '../../../protocols/virtualfund/virtualfund';
+import { isVirtualDefundObjective, Objective as VirtualDefundObjective } from '../../../protocols/virtualdefund/virtualdefund';
 
 export class DurableStore implements Store {
   private objectives?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
@@ -73,16 +77,7 @@ export class DurableStore implements Store {
   }
 
   async close(): Promise<void> {
-    const err: Error | null | undefined = await new Promise((resolve) => {
-      // Promisify callback close method
-      this.db!.close((res) => {
-        resolve(res);
-      });
-    });
-
-    if (err) {
-      throw err;
-    }
+    await this.db!.close();
   }
 
   getAddress(): Address {
@@ -110,7 +105,7 @@ export class DurableStore implements Store {
     }
 
     try {
-      this.populateChannelData(obj);
+      await this.populateChannelData(obj);
     } catch (err) {
       // TODO: Handle partial return
       // return existing objective data along with error
@@ -133,12 +128,12 @@ export class DurableStore implements Store {
 
     await this.objectives!.put(obj.id(), objJSON);
 
-    for (const rel of obj.related()) {
+    for await (const rel of obj.related()) {
       switch (rel.constructor) {
         case VirtualChannel: {
           const ch = rel as VirtualChannel;
           try {
-            this.setChannel(ch);
+            await this.setChannel(ch);
           } catch (err) {
             throw new Error(`error setting virtual channel ${ch.id} from objective ${obj.id()}: ${err}`);
           }
@@ -149,7 +144,7 @@ export class DurableStore implements Store {
         case Channel: {
           const channel = rel as Channel;
           try {
-            this.setChannel(channel);
+            await this.setChannel(channel);
           } catch (err) {
             throw new Error(`error setting channel ${channel.id} from objective ${obj.id()}: ${err}`);
           }
@@ -201,13 +196,19 @@ export class DurableStore implements Store {
   }
 
   // SetChannel sets the channel in the store.
-  setChannel(ch: Channel): void {
-    // TODO: Implement
+  async setChannel(ch: Channel): Promise<void> {
+    const chJSON = Buffer.from(JSONbigNative.stringify(ch), 'utf-8');
+
+    await this.channels!.put(ch.id.string(), chJSON);
   }
 
   // destroyChannel deletes the channel with id id.
-  destroyChannel(id: Destination): void {
-    // TODO: Implement
+  async destroyChannel(id: Destination): Promise<void> {
+    try {
+      await this.channels!.del(id.string());
+    } catch (err) {
+      this.checkError(err as Error);
+    }
   }
 
   // SetConsensusChannel sets the channel in the store.
@@ -220,32 +221,118 @@ export class DurableStore implements Store {
     // TODO: Implement
   }
 
-  getChannelById(id: Destination): [Channel, boolean] {
-    // TODO: Implement
-    return [new Channel({}), false];
+  // GetChannelById retrieves the channel with the supplied id, if it exists.
+  async getChannelById(id: Destination): Promise<[Channel, boolean]> {
+    try {
+      const ch = await this._getChannelById(id);
+
+      return [ch, true];
+    } catch (err) {
+      return [new Channel({}), false];
+    }
   }
 
-  private _getChannelById(id: Destination): Channel {
-    // TODO: Implement
-    return new Channel({});
+  // _getChannelById returns the stored channel
+  private async _getChannelById(id: Destination): Promise<Channel> {
+    let chJSON: Buffer;
+    try {
+      chJSON = await this.channels!.get(id.string());
+    } catch (err) {
+      throw ErrNoSuchChannel;
+    }
+
+    try {
+      const ch = Channel.fromJSON(chJSON.toString());
+      return ch;
+    } catch (err) {
+      throw new Error(`error unmarshaling channel ${id.string()}`);
+    }
   }
 
   // GetChannelsByIds returns a collection of channels with the given ids
-  getChannelsByIds(ids: string[]): Channel[] {
-    // TODO: Implement
-    return [];
+  async getChannelsByIds(ids: string[]): Promise<Channel[]> {
+    const toReturn: Channel[] = [];
+    // We know every channel has a unique id
+    // so we can stop looking once we've found the correct number of channels
+
+    let err: Error;
+
+    for await (const [key, chJSON] of this.channels!.iterator()) {
+      let ch: Channel;
+      try {
+        ch = Channel.fromJSON(chJSON.toString());
+      } catch (unmarshalErr) {
+        err = unmarshalErr as Error;
+        break;
+      }
+
+      // If the channel is one of the ones we're looking for, add it to the list
+      if (contains(ids, ch.id.value)) {
+        toReturn.push(ch);
+      }
+
+      // If we've found all the channels we need, stop looking
+      if (toReturn.length === ids.length) {
+        break;
+      }
+    }
+
+    if (err!) {
+      throw err;
+    }
+
+    return toReturn;
   }
 
   // GetChannelsByAppDefinition returns any channels that include the given app definition
-  getChannelsByAppDefinition(appDef: Address): Channel[] {
-    // TODO: Implement
-    return [];
+  async getChannelsByAppDefinition(appDef: Address): Promise<Channel[]> {
+    const toReturn: Channel[] = [];
+    let err: Error;
+
+    for await (const [key, chJSON] of this.channels!.iterator()) {
+      let ch: Channel;
+
+      try {
+        ch = Channel.fromJSON(chJSON.toString());
+      } catch (unmarshErr) {
+        err = unmarshErr as Error;
+        break;
+      }
+
+      if (ch.appDefinition === appDef) {
+        toReturn.push(ch);
+      }
+    }
+
+    if (err!) {
+      throw err;
+    }
+
+    return toReturn;
   }
 
   // GetChannelsByParticipant returns any channels that include the given participant
-  getChannelsByParticipant(participant: Address): Channel[] {
-    // TODO: Implement
-    return [];
+  async getChannelsByParticipant(participant: Address): Promise<Channel[]> {
+    const toReturn: Channel[] = [];
+
+    for await (const [key, chJSON] of this.channels!.iterator()) {
+      let ch: Channel;
+      try {
+        ch = Channel.fromJSON(chJSON.toString());
+      } catch (err) {
+        // eslint-disable-next-line no-continue
+        continue; // channel not found, continue looking
+      }
+
+      const { participants } = ch;
+      for (const p of participants) {
+        if (p === participant) {
+          toReturn.push(ch);
+        }
+      }
+    }
+
+    return toReturn;
   }
 
   // GetConsensusChannelById returns a ConsensusChannel with the given channel id
@@ -290,12 +377,134 @@ export class DurableStore implements Store {
   // populateChannelData fetches stored Channel data relevant to the given
   // objective and attaches it to the objective. The channel data is attached
   // in-place of the objectives existing channel pointers.
-  populateChannelData(obj: Objective): void {
-    // TODO: Implement
+  async populateChannelData(obj: Objective): Promise<void> {
+    const id = obj.id();
+
+    switch (obj.constructor) {
+      case DirectFundObjective: {
+        const o = obj as DirectFundObjective;
+
+        let ch: Channel;
+        try {
+          ch = await this._getChannelById(o.c!.id);
+        } catch (err) {
+          throw new Error(`error retrieving channel data for objective ${id}: ${err}`);
+        }
+
+        o.c = ch;
+
+        return;
+      }
+      case DirectDefundObjective: {
+        const o = obj as DirectDefundObjective;
+
+        let ch: Channel;
+        try {
+          ch = await this._getChannelById(o.c!.id);
+        } catch (err) {
+          throw new Error(`error retrieving channel data for objective ${id}: ${err}`);
+        }
+
+        o.c = ch;
+
+        return;
+      }
+      case VirtualFundObjective: {
+        const o = obj as VirtualFundObjective;
+
+        let v: Channel;
+        try {
+          v = await this._getChannelById(o.v!.id);
+        } catch (err) {
+          throw new Error(`error retrieving virtual channel data for objective ${id}: ${err}`);
+        }
+
+        o.v = new VirtualChannel(v);
+
+        const zeroAddress = new Destination();
+
+        if (o.toMyLeft
+          && o.toMyLeft.channel
+          && !_.isEqual(o.toMyLeft.channel.id, zeroAddress)
+        ) {
+          let left: ConsensusChannel;
+          try {
+            left = this.getConsensusChannelById(o.toMyLeft.channel.id);
+          } catch (err) {
+            throw new Error(`error retrieving left ledger channel data for objective ${id}: ${err}`);
+          }
+
+          o.toMyLeft.channel = left;
+        }
+
+        if (o.toMyRight
+          && o.toMyRight.channel
+          && !_.isEqual(o.toMyRight.channel.id, zeroAddress)
+        ) {
+          let right: ConsensusChannel;
+          try {
+            right = this.getConsensusChannelById(o.toMyRight.channel.id);
+          } catch (err) {
+            throw new Error(`error retrieving right ledger channel data for objective ${id}: ${err}`);
+          }
+
+          o.toMyRight.channel = right;
+        }
+
+        return;
+      }
+      case VirtualDefundObjective: {
+        const o = obj as VirtualDefundObjective;
+
+        let v: Channel;
+        try {
+          v = await this._getChannelById(o.v!.id);
+        } catch (err) {
+          throw new Error(`error retrieving virtual channel data for objective ${id}: ${err}`);
+        }
+        o.v = new VirtualChannel(v);
+
+        const zeroAddress = new Destination();
+
+        if (o.toMyLeft
+          && !_.isEqual(o.toMyLeft.id, zeroAddress)
+        ) {
+          let left: ConsensusChannel;
+          try {
+            left = this.getConsensusChannelById(o.toMyLeft.id);
+          } catch (err) {
+            throw new Error(`error retrieving left ledger channel data for objective ${id}: ${err}`);
+          }
+
+          o.toMyLeft = left;
+        }
+
+        if (o.toMyRight
+          && !_.isEqual(o.toMyRight.id, zeroAddress)
+        ) {
+          let right: ConsensusChannel;
+          try {
+            right = this.getConsensusChannelById(o.toMyRight.id);
+          } catch (err) {
+            throw new Error(`error retrieving right ledger channel data for objective ${id}: ${err}`);
+          }
+
+          o.toMyRight = right;
+        }
+
+        return;
+      }
+      default:
+        throw new Error(`objective ${id} did not correctly represent a known Objective type`);
+    }
   }
 
-  releaseChannelFromOwnership(channelId: Destination): void {
-    // TODO: Implement
+  async releaseChannelFromOwnership(channelId: Destination): Promise<void> {
+    try {
+      await this.channelToObjective!.del(channelId.string());
+    } catch (err) {
+      this.checkError(err as Error);
+    }
   }
 
   // checkError is a helper function that panics if an error is not nil
