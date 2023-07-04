@@ -212,13 +212,22 @@ export class DurableStore implements Store {
   }
 
   // SetConsensusChannel sets the channel in the store.
-  setConsensusChannel(ch: ConsensusChannel): void {
-    // TODO: Implement
+  async setConsensusChannel(ch: ConsensusChannel): Promise<void> {
+    if (ch.id.isZero()) {
+      throw new Error('cannot store a channel with a zero id');
+    }
+
+    const chJSON = Buffer.from(JSONbigNative.stringify(ch), 'utf-8');
+    await this.consensusChannels!.put(ch.id.string(), chJSON);
   }
 
   // DestroyChannel deletes the channel with id id.
-  destroyConsensusChannel(id: Destination): void {
-    // TODO: Implement
+  async destroyConsensusChannel(id: Destination): Promise<void> {
+    try {
+      await this.consensusChannels!.del(id.string());
+    } catch (err) {
+      this.checkError(err as Error);
+    }
   }
 
   // GetChannelById retrieves the channel with the supplied id, if it exists.
@@ -336,16 +345,53 @@ export class DurableStore implements Store {
   }
 
   // GetConsensusChannelById returns a ConsensusChannel with the given channel id
-  getConsensusChannelById(id: Destination): ConsensusChannel {
-    // TODO: Implement
-    return new ConsensusChannel({});
+  async getConsensusChannelById(id: Destination): Promise<ConsensusChannel> {
+    let ch: ConsensusChannel;
+    let chJSON: Buffer;
+
+    try {
+      chJSON = await this.consensusChannels!.get(id.string());
+    } catch (err) {
+      throw ErrNoSuchChannel;
+    }
+
+    try {
+      ch = ConsensusChannel.fromJSON(chJSON.toString());
+    } catch (err) {
+      throw new Error(`error unmarshaling channel ${ch!.id}`);
+    }
+    return ch;
   }
 
   // getConsensusChannel returns a ConsensusChannel between the calling client and
   // the supplied counterparty, if such channel exists
-  getConsensusChannel(counterparty: Address): [ConsensusChannel | undefined, boolean] {
-    // TODO: Implement
-    return [undefined, false];
+  async getConsensusChannel(counterparty: Address): Promise<[ConsensusChannel | undefined, boolean]> {
+    let channel: ConsensusChannel;
+    let ok = false;
+
+    for await (const [key, chJSON] of this.consensusChannels!.iterator()) {
+      let ch: ConsensusChannel;
+
+      try {
+        ch = ConsensusChannel.fromJSON(chJSON.toString());
+      } catch (err) {
+        // eslint-disable-next-line no-continue
+        continue; // channel not found, continue looking
+      }
+
+      const participants = ch.participants();
+      if (participants.length === 2) {
+        if (participants[0] === counterparty || participants[1] === counterparty) {
+          channel = ch;
+          ok = true;
+          break; // we have found the target channel: break the forEach loop
+        }
+      }
+
+      break; // channel not found: continue looking
+    }
+
+    return [channel!, ok];
   }
 
   getAllConsensusChannels(): ConsensusChannel[] {
@@ -429,7 +475,7 @@ export class DurableStore implements Store {
         ) {
           let left: ConsensusChannel;
           try {
-            left = this.getConsensusChannelById(o.toMyLeft.channel.id);
+            left = await this.getConsensusChannelById(o.toMyLeft.channel.id);
           } catch (err) {
             throw new Error(`error retrieving left ledger channel data for objective ${id}: ${err}`);
           }
@@ -443,7 +489,7 @@ export class DurableStore implements Store {
         ) {
           let right: ConsensusChannel;
           try {
-            right = this.getConsensusChannelById(o.toMyRight.channel.id);
+            right = await this.getConsensusChannelById(o.toMyRight.channel.id);
           } catch (err) {
             throw new Error(`error retrieving right ledger channel data for objective ${id}: ${err}`);
           }
@@ -471,7 +517,7 @@ export class DurableStore implements Store {
         ) {
           let left: ConsensusChannel;
           try {
-            left = this.getConsensusChannelById(o.toMyLeft.id);
+            left = await this.getConsensusChannelById(o.toMyLeft.id);
           } catch (err) {
             throw new Error(`error retrieving left ledger channel data for objective ${id}: ${err}`);
           }
@@ -484,7 +530,7 @@ export class DurableStore implements Store {
         ) {
           let right: ConsensusChannel;
           try {
-            right = this.getConsensusChannelById(o.toMyRight.id);
+            right = await this.getConsensusChannelById(o.toMyRight.id);
           } catch (err) {
             throw new Error(`error retrieving right ledger channel data for objective ${id}: ${err}`);
           }
