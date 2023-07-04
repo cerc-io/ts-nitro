@@ -60,7 +60,8 @@ type GetChannelByIdFunction = (id: Destination) => [channel.Channel | undefined,
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
-type GetTwoPartyConsensusLedgerFunction = (counterparty: Address) => [ConsensusChannel | undefined, boolean];
+type GetTwoPartyConsensusLedgerFunction = (counterparty: Address) => [ConsensusChannel | undefined, boolean] |
+Promise<[ConsensusChannel | undefined, boolean]>;
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
 export function getSignedStatePayload(b: Buffer): SignedState {
@@ -241,14 +242,14 @@ export class Objective implements ObjectiveInterface {
 
     if (myAddress === alice) {
       const rightOfAlice = v.participants[1];
-      [rightLedger, ok] = getConsensusChannel(rightOfAlice);
+      [rightLedger, ok] = await getConsensusChannel(rightOfAlice);
 
       if (!ok) {
         throw new Error(`Could not find a ledger channel between ${alice} and ${rightOfAlice}`);
       }
     } else if (myAddress === bob) {
       const leftOfBob = v.participants[v.participants.length - 2];
-      [leftLedger, ok] = getConsensusChannel(leftOfBob);
+      [leftLedger, ok] = await getConsensusChannel(leftOfBob);
 
       if (!ok) {
         throw new Error(`Could not find a ledger channel between ${leftOfBob} and ${bob}`);
@@ -267,13 +268,15 @@ export class Objective implements ObjectiveInterface {
           const leftOfMe = v.participants[p - 1];
           const rightOfMe = v.participants[p + 1];
 
-          [leftLedger, ok] = getConsensusChannel(leftOfMe);
+          // eslint-disable-next-line no-await-in-loop
+          [leftLedger, ok] = await getConsensusChannel(leftOfMe);
 
           if (!ok) {
             throw new Error(`Could not find a ledger channel between ${leftOfMe} and ${myAddress}`);
           }
 
-          [rightLedger, ok] = getConsensusChannel(rightOfMe);
+          // eslint-disable-next-line no-await-in-loop
+          [rightLedger, ok] = await getConsensusChannel(rightOfMe);
 
           if (!rightLedger) {
             throw new Error(`Could not find a ledger channel between ${myAddress} and ${rightOfMe}`);

@@ -45,7 +45,7 @@ const SignedStatePayload: PayloadType = 'SignedStatePayload';
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
 interface GetTwoPartyConsensusLedgerFunction {
-  (counterparty: Address): [ConsensusChannel | undefined, boolean]
+  (counterparty: Address): [ConsensusChannel | undefined, boolean] | Promise<[ConsensusChannel | undefined, boolean]>;
 }
 
 class GuaranteeInfo {
@@ -256,13 +256,13 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // NewObjective creates a new virtual funding objective from a given request.
-  static newObjective(
+  static async newObjective(
     request: ObjectiveRequest,
     preApprove: boolean,
     myAddress: Address,
     chainId: bigint | undefined,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
-  ): Objective {
+  ): Promise<Objective> {
     let toMyRight: string;
     if (request.intermediaries.length > 0) {
       [toMyRight] = request.intermediaries;
@@ -270,7 +270,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       toMyRight = request.counterParty;
     }
 
-    const [rightCC, ok] = getTwoPartyConsensusLedger(toMyRight);
+    const [rightCC, ok] = await getTwoPartyConsensusLedger(toMyRight);
     if (!ok) {
       throw new Error(`Could not find ledger for ${myAddress} and ${toMyRight}`);
     }
@@ -417,12 +417,12 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
   // ConstructObjectiveFromPayload takes in a message and constructs an objective from it.
   // It accepts the message, myAddress, and a function to to retrieve ledgers from a store.
-  static constructObjectiveFromPayload(
+  static async constructObjectiveFromPayload(
     p: ObjectivePayload,
     preapprove: boolean,
     myAddress: Address,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
-  ): Objective {
+  ): Promise<Objective> {
     let initialState: SignedState;
     try {
       initialState = this.getSignedStatePayload(p.payloadData);
@@ -441,7 +441,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     } else if (myAddress === participants[participants.length - 1]) {
       // I am Bob
       const leftOfBob = participants[participants.length - 2];
-      ([leftC, ok] = getTwoPartyConsensusLedger(leftOfBob));
+      ([leftC, ok] = await getTwoPartyConsensusLedger(leftOfBob));
       if (!ok) {
         throw new Error(`could not find a left ledger channel between ${leftOfBob} and ${myAddress}`);
       }
@@ -460,12 +460,14 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
           const leftOfMe = participants[e - 1];
           const rightOfMe = participants[e + 1];
 
-          ([leftC, ok] = getTwoPartyConsensusLedger(leftOfMe));
+          // eslint-disable-next-line no-await-in-loop
+          ([leftC, ok] = await getTwoPartyConsensusLedger(leftOfMe));
           if (!ok) {
             throw new Error(`could not find a left ledger channel between ${leftOfMe} and ${myAddress}`);
           }
 
-          ([rightC, ok] = getTwoPartyConsensusLedger(rightOfMe));
+          // eslint-disable-next-line no-await-in-loop
+          ([rightC, ok] = await getTwoPartyConsensusLedger(rightOfMe));
           if (!ok) {
             throw new Error(`could not find a right ledger channel between ${myAddress} and ${rightOfMe}`);
           }

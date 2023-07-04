@@ -41,7 +41,7 @@ const ErrNoFinalState = new Error('cannot spawn direct defund objective without 
 const ErrNotEmpty = new Error('ledger channel has running guarantees');
 
 // GetConsensusChannel describes functions which return a ConsensusChannel ledger channel for a channel id.
-type GetConsensusChannel = (channelId: Destination) => ConsensusChannel | undefined;
+type GetConsensusChannel = (channelId: Destination) => (ConsensusChannel | undefined) | Promise<ConsensusChannel | undefined>;
 
 // isInConsensusOrFinalState returns true if the channel has a final state or latest state that is supported
 const isInConsensusOrFinalState = (c: channel.Channel): boolean => {

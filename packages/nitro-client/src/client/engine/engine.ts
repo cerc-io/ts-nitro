@@ -602,7 +602,7 @@ export class Engine {
         case or instanceof VirtualFundObjectiveRequest: {
           let vfo: VirtualFundObjective;
           try {
-            vfo = VirtualFundObjective.newObjective(
+            vfo = await VirtualFundObjective.newObjective(
               or as VirtualFundObjectiveRequest,
               true,
               myAddress,
@@ -1016,7 +1016,7 @@ export class Engine {
         case isVirtualFundObjective(id): {
           let vfo: VirtualFundObjective;
           try {
-            vfo = VirtualFundObjective.constructObjectiveFromPayload(
+            vfo = await VirtualFundObjective.constructObjectiveFromPayload(
               p,
               false,
               this.store.getAddress(),
