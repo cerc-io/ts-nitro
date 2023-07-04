@@ -36,6 +36,7 @@ const baseConfig: webpack.Configuration = {
     assert: 'assert',
     debug: 'debug',
     ethers: 'ethers',
+    level: 'level',
 
     // Module is used by @libp2p/websockets in @cerc-io/peer
     // Internal NodeJS modules used by it cannot be resolved in build

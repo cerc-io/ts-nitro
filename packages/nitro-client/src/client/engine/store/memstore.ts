@@ -544,7 +544,7 @@ export class MemStore implements Store {
 // decodeObjective is a helper which encapsulates the deserialization
 // of Objective JSON data. The decoded objectives will not have any
 // channel data other than the channel Id.
-function decodeObjective(id: ObjectiveId, data: Buffer): Objective {
+export function decodeObjective(id: ObjectiveId, data: Buffer): Objective {
   switch (true) {
     case isDirectFundObjective(id): {
       const dfo = DirectFundObjective.fromJSON(data.toString());

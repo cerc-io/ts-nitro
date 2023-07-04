@@ -1,7 +1,7 @@
 import {
   P2PMessageService,
   Client,
-  MemStore,
+  Store,
   EthChainService,
   PermissivePolicy,
   Metrics,
@@ -22,7 +22,7 @@ import {
  */
 export async function setupClient(
   messageService: P2PMessageService,
-  store: MemStore,
+  store: Store,
   options: {
     chainPk: string,
     chainURL: string
