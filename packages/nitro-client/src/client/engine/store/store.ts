@@ -60,14 +60,14 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 }
 
 export interface ConsensusChannelStore {
-  // TODO: Can throw an error
-  getAllConsensusChannels (): ConsensusChannel[]
+
+  getAllConsensusChannels (): ConsensusChannel[] | Promise<ConsensusChannel[]>
 
   getConsensusChannel (counterparty: Address): [ConsensusChannel | undefined, boolean] | Promise<[ConsensusChannel | undefined, boolean]>
 
   getConsensusChannelById (id: Destination): ConsensusChannel | Promise<ConsensusChannel>
 
-  setConsensusChannel (ch: ConsensusChannel): void
+  setConsensusChannel (ch: ConsensusChannel): void | Promise<void>
 
-  destroyConsensusChannel (id: Destination): void
+  destroyConsensusChannel (id: Destination): void | Promise<void>
 }

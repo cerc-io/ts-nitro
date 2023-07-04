@@ -388,15 +388,35 @@ export class DurableStore implements Store {
         }
       }
 
-      break; // channel not found: continue looking
+      // eslint-disable-next-line no-continue
+      continue; // channel not found: continue looking
     }
 
     return [channel!, ok];
   }
 
-  getAllConsensusChannels(): ConsensusChannel[] {
-    // TODO: Implement
-    return [];
+  async getAllConsensusChannels(): Promise<ConsensusChannel[]> {
+    const toReturn: ConsensusChannel[] = [];
+    let unmarshErr: Error | undefined;
+
+    for await (const [key, chJSON] of this.consensusChannels!.iterator()) {
+      let ch: ConsensusChannel;
+
+      try {
+        ch = ConsensusChannel.fromJSON(chJSON.toString());
+      } catch (err) {
+        unmarshErr = err as Error;
+        break;
+      }
+
+      toReturn.push(ch!);
+    }
+
+    if (unmarshErr) {
+      throw unmarshErr;
+    }
+
+    return toReturn;
   }
 
   async getObjectiveByChannelId(channelId: Destination): Promise<[Objective | undefined, boolean]> {
