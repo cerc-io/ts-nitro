@@ -147,6 +147,6 @@ export const getLedgerChannelInfo = async (id: Destination, store: Store): Promi
     return constructLedgerInfoFromChannel(c);
   }
 
-  const con = store.getConsensusChannelById(id)!;
+  const con = await store.getConsensusChannelById(id)!;
   return constructLedgerInfoFromConsensus(con);
 };
