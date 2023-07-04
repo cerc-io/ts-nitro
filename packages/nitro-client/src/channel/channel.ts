@@ -111,7 +111,7 @@ export class Channel extends FixedPart {
 
   // MyDestination returns the client's destination
   myDestination(): Destination {
-    return Destination.addressToDestination(this.participants[this.myIndex]);
+    return Destination.addressToDestination(this.participants![this.myIndex]);
   }
 
   // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.

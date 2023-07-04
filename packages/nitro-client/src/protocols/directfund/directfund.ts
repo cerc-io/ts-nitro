@@ -76,7 +76,7 @@ const channelsExistWithCounterparty = async (
   const channels = await getChannels(counterparty);
 
   for (const c of channels) {
-    if (c.participants.length === 2) {
+    if ((c.participants ?? []).length === 2) {
       return true;
     }
   }
@@ -222,8 +222,8 @@ export class Objective implements ObjectiveInterface {
 
     let myIndex = 0;
     let foundMyAddress = false;
-    for (let i = 0; i < initialState.participants.length; i += 1) {
-      if (initialState.participants[i] === myAddress) {
+    for (let i = 0; i < (initialState.participants ?? []).length; i += 1) {
+      if (initialState.participants![i] === myAddress) {
         myIndex = i;
         foundMyAddress = true;
         break;
@@ -273,11 +273,11 @@ export class Objective implements ObjectiveInterface {
     const followerSig = signedPostFund.getParticipantSignature(Follower);
     const signatures: [Signature, Signature] = [leaderSig, followerSig];
 
-    if (signedPostFund.state().outcome.value.length !== 1) {
+    if ((signedPostFund.state().outcome.value ?? []).length !== 1) {
       throw new Error('A consensus channel only supports a single asset');
     }
 
-    const assetExit = signedPostFund.state().outcome.value[0];
+    const assetExit = signedPostFund.state().outcome.value![0];
     const { turnNum } = signedPostFund.state();
     const outcome = LedgerOutcome.fromExit(assetExit);
 
@@ -332,7 +332,7 @@ export class Objective implements ObjectiveInterface {
 
     assert(this.c);
     updated.status = ObjectiveStatus.Rejected;
-    const peer = this.c.participants[1 - this.c.myIndex];
+    const peer = this.c.participants![1 - this.c.myIndex];
 
     const sideEffects = new SideEffects({
       messagesToSend: Message.createRejectionNoticeMessage(this.id(), peer),
@@ -384,9 +384,9 @@ export class Objective implements ObjectiveInterface {
   private otherParticipants(): Address[] {
     const others: Address[] = [];
 
-    for (let i = 0; i < this.c!.participants.length; i += 1) {
+    for (let i = 0; i < (this.c!.participants ?? []).length; i += 1) {
       if (i !== this.c!.myIndex) {
-        others.push(this.c!.participants[i]);
+        others.push(this.c!.participants![i]);
       }
     }
 
@@ -582,7 +582,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   // TODO: uint32 replacement
   challengeDuration: number = 0;
 
-  outcome: Exit = new Exit([]);
+  outcome: Exit = new Exit();
 
   appDefinition: Address = ethers.constants.AddressZero;
 

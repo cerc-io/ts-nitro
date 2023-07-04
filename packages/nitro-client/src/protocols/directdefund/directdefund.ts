@@ -212,7 +212,7 @@ export class Objective implements ObjectiveInterface {
   reject(): [ObjectiveInterface, SideEffects] {
     const updated = this.clone();
     updated.status = ObjectiveStatus.Rejected;
-    const peer = this.c!.participants[1 - this.c!.myIndex];
+    const peer = this.c!.participants![1 - this.c!.myIndex];
 
     const sideEffects = new SideEffects({ messagesToSend: Message.createRejectionNoticeMessage(this.id(), peer) });
     return [updated, sideEffects];
@@ -382,7 +382,7 @@ export class Objective implements ObjectiveInterface {
   // otherParticipants returns the participants in the channel that are not the current participant.
   private otherParticipants(): Address[] {
     const others: Address[] = [];
-    this.c!.participants.forEach((p, i) => {
+    (this.c!.participants ?? []).forEach((p, i) => {
       if (i !== this.c!.myIndex) {
         others.push(p);
       }

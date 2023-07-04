@@ -277,11 +277,11 @@ export class LedgerOutcome {
   //   - The second alloction entry is for the ledger follower
   //   - All other allocations are guarantees
   static fromExit(sae: SingleAssetExit): LedgerOutcome {
-    const leader = new Balance({ destination: sae.allocations.value[0].destination, amount: sae.allocations.value[0].amount });
-    const follower = new Balance({ destination: sae.allocations.value[1].destination, amount: sae.allocations.value[1].amount });
+    const leader = new Balance({ destination: sae.allocations.value![0].destination, amount: sae.allocations.value![0].amount });
+    const follower = new Balance({ destination: sae.allocations.value![1].destination, amount: sae.allocations.value![1].amount });
     const guarantees: Map<Bytes32, Guarantee> = new Map();
 
-    for (const allocation of sae.allocations.value) {
+    for (const allocation of (sae.allocations.value ?? [])) {
       if (allocation.allocationType === AllocationType.GuaranteeAllocationType) {
         const gM = GuaranteeMetadata.decodeIntoGuaranteeMetadata(allocation.metadata);
         const guarantee: Guarantee = new Guarantee({
@@ -982,14 +982,14 @@ export class ConsensusChannel {
     try {
       leaderAddr = vars.asState(fp).recoverSigner(signatures[Leader]);
 
-      if (leaderAddr !== fp.participants[Leader]) {
-        throw new Error(`Leader did not sign initial state: ${leaderAddr}, ${fp.participants[Leader]}`);
+      if (leaderAddr !== fp.participants![Leader]) {
+        throw new Error(`Leader did not sign initial state: ${leaderAddr}, ${fp.participants![Leader]}`);
       }
 
       followerAddr = vars.asState(fp).recoverSigner(signatures[Follower]);
 
-      if (followerAddr !== fp.participants[Follower]) {
-        throw new Error(`Follower did not sign initial state: ${followerAddr}, ${fp.participants[Follower]}`);
+      if (followerAddr !== fp.participants![Follower]) {
+        throw new Error(`Follower did not sign initial state: ${followerAddr}, ${fp.participants![Follower]}`);
       }
     } catch (err) {
       throw new Error(`could not verify sig: ${err}`);
@@ -1128,13 +1128,13 @@ export class ConsensusChannel {
 
   // Leader returns the address of the participant responsible for proposing.
   leader(): Address {
-    return this.fp.participants[Leader];
+    return this.fp.participants![Leader];
   }
 
   // Follower returns the address of the participant who receives and contersigns
   // proposals.
   follower(): Address {
-    return this.fp.participants[Follower];
+    return this.fp.participants![Follower];
   }
 
   // FundingTargets returns a list of channels funded by the ConsensusChannel
@@ -1150,7 +1150,7 @@ export class ConsensusChannel {
   // values. It signs the resulting state using sk.
   private sign(vars: Vars, sk: Buffer): Signature {
     const signer = getAddressFromSecretKeyBytes(sk);
-    if (this.fp.participants[this.myIndex] !== signer) {
+    if (this.fp.participants![this.myIndex] !== signer) {
       throw new Error(`attempting to sign from wrong address: ${signer}`);
     }
 
@@ -1201,7 +1201,7 @@ export class ConsensusChannel {
   }
 
   // Participants returns the channel participants.
-  participants(): Address[] {
+  participants(): Address[] | null {
     return this.fp.participants;
   }
 
@@ -1291,7 +1291,7 @@ export class ConsensusChannel {
           throw new Error(`unable to recover signer: ${err}`);
         }
 
-        if (signer !== this.fp.participants[Follower]) {
+        if (signer !== this.fp.participants![Follower]) {
           throw ErrWrongSigner;
         }
 

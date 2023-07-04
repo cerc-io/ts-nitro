@@ -20,7 +20,7 @@ import { Exit } from './outcome/exit';
 export type Signature = nc.Signature;
 
 export interface ConstructorOptions {
-  participants?: Address[];
+  participants?: Address[] | null;
   channelNonce?: Uint64;
   appDefinition?: Address;
   challengeDuration?: number;
@@ -28,7 +28,7 @@ export interface ConstructorOptions {
 
 // FixedPart contains the subset of State data which does not change during a state update.
 export class FixedPart {
-  participants: Address[] = [];
+  participants: Address[] | null = null;
 
   channelNonce: Uint64 = BigInt(0);
 
@@ -58,7 +58,7 @@ export class FixedPart {
   }
 
   channelId(): Destination {
-    return new Destination(utilGetChannelId({ ...this, channelNonce: this.channelNonce.toString() }));
+    return new Destination(utilGetChannelId({ ...this, channelNonce: this.channelNonce.toString(), participants: this.participants ?? [] }));
   }
 
   // Clone returns a deep copy of the receiver.
@@ -84,7 +84,7 @@ export class FixedPart {
 export class VariablePart {
   appData: Buffer | null = null;
 
-  outcome: Exit = new Exit([]);
+  outcome: Exit = new Exit();
 
   turnNum: Uint64 = BigInt(0);
 
@@ -104,7 +104,7 @@ export class VariablePart {
 
 // State holds all of the data describing the state of a channel
 export class State {
-  participants: Address[] = [];
+  participants: Address[] | null = null;
 
   channelNonce: Uint64 = BigInt(0);
 
@@ -115,7 +115,7 @@ export class State {
 
   appData: Buffer | null = null;
 
-  outcome: Exit = new Exit([]);
+  outcome: Exit = new Exit();
 
   turnNum : Uint64 = BigInt(0);
 
@@ -143,7 +143,7 @@ export class State {
 
   constructor(
     params: {
-      participants?: Address[],
+      participants?: Address[] | null,
       channelNonce?: Uint64,
       appDefinition?: Address,
       challengeDuration?: number,
@@ -257,10 +257,10 @@ export class State {
 
   // Custom method to create NitroState instance from state
   _getNitroState(): NitroState {
-    const stateOutcome: ExitFormat.Exit = this.outcome.value.map((singleAssetExit): ExitFormat.SingleAssetExit => {
+    const stateOutcome: ExitFormat.Exit = (this.outcome.value ?? []).map((singleAssetExit): ExitFormat.SingleAssetExit => {
       return {
         asset: singleAssetExit.asset,
-        allocations: singleAssetExit.allocations.value.map((allocation) => {
+        allocations: (singleAssetExit.allocations.value ?? []).map((allocation) => {
           return {
             destination: allocation.destination.value,
             amount: allocation.amount!.toString(),
@@ -276,7 +276,7 @@ export class State {
     });
 
     return {
-      participants: this.participants,
+      participants: this.participants ?? [],
       channelNonce: this.channelNonce.toString(),
       appDefinition: this.appDefinition,
       challengeDuration: this.challengeDuration,
@@ -289,18 +289,8 @@ export class State {
 }
 
 // equalParticipants returns true if the given arrays contain equal addresses (in the same order).
-function equalParticipants(p: Address[], q: Address[]): boolean {
-  if (p.length !== q.length) {
-    return false;
-  }
-
-  for (let i = 0; i < p.length; i += 1) {
-    if (p[i] !== q[i]) {
-      return false;
-    }
-  }
-
-  return true;
+function equalParticipants(p: Address[] | null, q: Address[] | null): boolean {
+  return _.isEqual(p, q);
 }
 
 // StateFromFixedAndVariablePart constructs a State from a FixedPart and a VariablePart

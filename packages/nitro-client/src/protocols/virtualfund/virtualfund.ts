@@ -369,8 +369,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // Infer MyRole
     let found = false;
-    for (let i = 0; i < initialStateOfV.participants.length; i += 1) {
-      const addr = initialStateOfV.participants[i];
+    for (let i = 0; i < (initialStateOfV.participants ?? []).length; i += 1) {
+      const addr = initialStateOfV.participants![i];
       if (addr === myAddress) {
         init.myRole = i;
         found = true;
@@ -384,23 +384,23 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     init.v = v;
 
     // NewSingleHopVirtualChannel will error unless there are at least 3 participants
-    init.n = initialStateOfV.participants.length - 2;
+    init.n = (initialStateOfV.participants ?? []).length - 2;
 
     init.a0 = new Funds(new Map<Address, bigint>());
     init.b0 = new Funds(new Map<Address, bigint>());
 
-    for (const outcome of initialStateOfV.outcome.value) {
+    for (const outcome of (initialStateOfV.outcome.value ?? [])) {
       const { asset } = outcome;
 
-      if (!_.isEqual(outcome.allocations.value[0].destination, Destination.addressToDestination(initialStateOfV.participants[0]))) {
+      if (!_.isEqual(outcome.allocations.value![0].destination, Destination.addressToDestination(initialStateOfV.participants![0]))) {
         throw new Error('Allocation in slot 0 does not correspond to participant 0');
       }
-      const amount0 = outcome.allocations.value[0].amount;
+      const amount0 = outcome.allocations.value![0].amount;
 
-      if (!_.isEqual(outcome.allocations.value[1].destination, Destination.addressToDestination(initialStateOfV.participants[init.n + 1]))) {
+      if (!_.isEqual(outcome.allocations.value![1].destination, Destination.addressToDestination(initialStateOfV.participants![init.n + 1]))) {
         throw new Error(`Allocation in slot 1 does not correspond to participant ${init.n + 1}`);
       }
-      const amount1 = outcome.allocations.value[1].amount;
+      const amount1 = outcome.allocations.value![1].amount;
 
       if (!init.a0.value.has(asset)) {
         init.a0.value.set(asset, BigInt(0));
@@ -427,8 +427,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         init.a0,
         init.b0,
         v.id,
-        Destination.addressToDestination(init.v.participants[init.myRole - 1]),
-        Destination.addressToDestination(init.v.participants[init.myRole]),
+        Destination.addressToDestination(init.v.participants![init.myRole - 1]),
+        Destination.addressToDestination(init.v.participants![init.myRole]),
       );
     }
 
@@ -444,8 +444,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         init.a0,
         init.b0,
         init.v.id,
-        Destination.addressToDestination(init.v.participants[init.myRole]),
-        Destination.addressToDestination(init.v.participants[init.myRole + 1]),
+        Destination.addressToDestination(init.v.participants![init.myRole]),
+        Destination.addressToDestination(init.v.participants![init.myRole + 1]),
       );
     }
 
@@ -478,6 +478,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       throw new Error(`could not get signed state payload: ${err}`);
     }
     const { participants } = initialState.state();
+    assert(participants);
 
     let leftC: ConsensusChannel | undefined;
     let rightC: ConsensusChannel | undefined;
@@ -568,9 +569,9 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   private otherParticipants(): Address[] {
     const otherParticipants: Address[] = [];
 
-    for (let i = 0; i < this.v!.participants.length; i += 1) {
+    for (let i = 0; i < (this.v!.participants ?? []).length; i += 1) {
       if (i !== this.myRole) {
-        otherParticipants.push(this.v!.participants[i]);
+        otherParticipants.push(this.v!.participants![i]);
       }
     }
 

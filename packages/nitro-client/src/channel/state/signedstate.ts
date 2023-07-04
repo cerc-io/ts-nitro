@@ -59,8 +59,8 @@ export class SignedState {
       throw new Error('AddSignature failed to recover signer');
     }
 
-    for (let i = 0; i < this.state().participants.length; i += 1) {
-      const p = this.state().participants[i];
+    for (let i = 0; i < (this.state().participants ?? []).length; i += 1) {
+      const p = this.state().participants![i];
 
       if (p === signer) {
         const found = this.sigs.has(i);
@@ -86,7 +86,7 @@ export class SignedState {
   // Returned signatures are expected either to be valid or zero-valued.
   signatures(): Signature[] {
     const sigs: Signature[] = [];
-    for (let i = 0; i < this._state.participants.length; i += 1) {
+    for (let i = 0; i < (this._state.participants ?? []).length; i += 1) {
       sigs.push(this.sigs.get(i)!);
     }
     return sigs;
@@ -101,7 +101,7 @@ export class SignedState {
   // HasAllSignatures returns true if every participant has a valid signature.
   hasAllSignatures(): boolean {
     // Since signatures are validated
-    if (this.sigs.size === this.state().participants.length) {
+    if (this.sigs.size === (this.state().participants ?? []).length) {
       return true;
     }
     return false;

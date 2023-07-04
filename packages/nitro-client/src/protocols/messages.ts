@@ -102,18 +102,18 @@ export class Message {
 
   // ObjectivePayloads contains a collection of payloads for various objectives.
   // Protocols are responsible for parsing the payload.
-  objectivePayloads: ObjectivePayload[] = [];
+  objectivePayloads: ObjectivePayload[] | null = null;
 
   // LedgerProposals contains a collection of signed proposals.
   // Since proposals need to be handled in order they need to be an explicit part of the message format.
-  ledgerProposals: SignedProposal[] = [];
+  ledgerProposals: SignedProposal[] | null = null;
 
   // Payments contains a collection of signed vouchers representing payments.
   // Payments are handled outside of any objective.
-  payments: Voucher[] = [];
+  payments: Voucher[] | null = null;
 
   // RejectedObjectives is a collection of objectives that have been rejected.
-  rejectedObjectives: ObjectiveId[] = [];
+  rejectedObjectives: ObjectiveId[] | null = null;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     to: { type: 'address' },
@@ -204,12 +204,12 @@ export class Message {
     const s: MessageSummary = {
       to: this.to.slice(0, 8),
       from: this.from.slice(0, 8),
-      payloadSummaries: this.objectivePayloads.map((p): ObjectivePayloadSummary => ({
+      payloadSummaries: (this.objectivePayloads ?? []).map((p): ObjectivePayloadSummary => ({
         objectiveId: p.objectiveId,
         type: p.type,
         payloadDataSize: p.payloadData.length,
       })),
-      proposalSummaries: this.ledgerProposals.map((p): ProposalSummary => {
+      proposalSummaries: (this.ledgerProposals ?? []).map((p): ProposalSummary => {
         let objIdString = '';
         try {
           const objId = getProposalObjectiveId(p.proposal);
@@ -224,11 +224,11 @@ export class Message {
           proposalType: p.proposal.type(),
         };
       }),
-      payments: this.payments.map((p): PaymentSummary => ({
+      payments: (this.payments ?? []).map((p): PaymentSummary => ({
         amount: p.amount!,
         channelId: p.channelId.string(),
       })),
-      rejectedObjectives: this.rejectedObjectives,
+      rejectedObjectives: (this.rejectedObjectives ?? []),
     };
 
     return s;
