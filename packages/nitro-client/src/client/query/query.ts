@@ -140,15 +140,15 @@ export const constructLedgerInfoFromChannel = (c: Channel): LedgerChannelInfo =>
 };
 
 // GetAllLedgerChannels returns a `LedgerChannelInfo` for each ledger channel in the store.
-export const getAllLedgerChannels = (store: Store, consensusAppDefinition: Address): LedgerChannelInfo[] => {
+export const getAllLedgerChannels = async (store: Store, consensusAppDefinition: Address): Promise<LedgerChannelInfo[]> => {
   const toReturn: LedgerChannelInfo[] = [];
-  const allConsensus = store.getAllConsensusChannels();
+  const allConsensus = await store.getAllConsensusChannels();
 
   for (const con of allConsensus) {
     toReturn.push(constructLedgerInfoFromConsensus(con));
   }
 
-  const allChannels = store.getChannelsByAppDefinition(consensusAppDefinition);
+  const allChannels = await store.getChannelsByAppDefinition(consensusAppDefinition);
 
   for (const c of allChannels) {
     toReturn.push(constructLedgerInfoFromChannel(c));
@@ -158,13 +158,13 @@ export const getAllLedgerChannels = (store: Store, consensusAppDefinition: Addre
 };
 
 // GetPaymentChannelsByLedger returns a `PaymentChannelInfo` for each active payment channel funded by the given ledger channel.
-export const getPaymentChannelsByLedger = (ledgerId: Destination, s: Store, vm: VoucherManager): PaymentChannelInfo[] => {
+export const getPaymentChannelsByLedger = async (ledgerId: Destination, s: Store, vm: VoucherManager): Promise<PaymentChannelInfo[]> => {
   // If a ledger channel is actively funding payment channels it must be in the form of a consensus channel
   let getError: Error | undefined;
   let con: ConsensusChannel | undefined;
   try {
     // If the ledger channel is not a consensus channel we know that there are no payment channels funded by it
-    con = s.getConsensusChannelById(ledgerId);
+    con = await s.getConsensusChannelById(ledgerId);
   } catch (err) {
     getError = err as Error;
   }
@@ -182,7 +182,7 @@ export const getPaymentChannelsByLedger = (ledgerId: Destination, s: Store, vm: 
   let paymentChannels: Channel[];
 
   try {
-    paymentChannels = s.getChannelsByIds(toQuery);
+    paymentChannels = await s.getChannelsByIds(toQuery);
   } catch (err) {
     throw new Error(`could not query the store about ids ${toQuery}: ${err}`);
   }
@@ -190,7 +190,8 @@ export const getPaymentChannelsByLedger = (ledgerId: Destination, s: Store, vm: 
   const toReturn: PaymentChannelInfo[] = [];
 
   for (const p of paymentChannels) {
-    const [paid, remaining] = getVoucherBalance(p.id, vm);
+    /* eslint-disable no-await-in-loop */
+    const [paid, remaining] = await getVoucherBalance(p.id, vm);
     const info = constructPaymentInfo(p, paid, remaining);
     toReturn.push(info);
   }

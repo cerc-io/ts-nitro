@@ -264,14 +264,14 @@ export class Client {
     return this._receivedVouchers!;
   }
   // GetPaymentChannelsByLedger returns all active payment channels that are funded by the given ledger channel.
-  getPaymentChannelsByLedger(ledgerId: Destination): PaymentChannelInfo[] {
+  getPaymentChannelsByLedger(ledgerId: Destination): Promise<PaymentChannelInfo[]> {
     assert(this.store);
     assert(this.vm);
     return getPaymentChannelsByLedger(ledgerId, this.store, this.vm);
   }
 
   // GetAllLedgerChannels returns all ledger channels.
-  getAllLedgerChannels(): LedgerChannelInfo[] {
+  getAllLedgerChannels(): Promise<LedgerChannelInfo[]> {
     assert(this.store);
     return getAllLedgerChannels(this.store, this.engine.getConsensusAppAddress());
   }
