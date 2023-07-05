@@ -218,15 +218,15 @@ const main = async () => {
   }
 
   if (argv.pay !== undefined) {
-    assert(argv.paymentChannel, 'Provide virtual-payment-channel id for payment');
-    const virtualPaymentChannelId = new Destination(argv.paymentChannel);
+    assert(paymentChannelIdString, 'Provide payment-channel id for payment');
+    const virtualPaymentChannelId = new Destination(paymentChannelIdString);
     await client.pay(virtualPaymentChannelId, BigInt(argv.pay));
 
     // TODO: Wait for the payment to be processed
   }
 
   if (argv.virtualDefund) {
-    assert(paymentChannelIdString, 'Provide virtual-payment-channel id to close channel');
+    assert(paymentChannelIdString, 'Provide payment-channel id to close channel');
     const virtualPaymentChannelId = new Destination(paymentChannelIdString);
     const closeVirtualChannelObjectiveId = await client.closeVirtualChannel(virtualPaymentChannelId);
     await client.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
@@ -234,12 +234,23 @@ const main = async () => {
   }
 
   if (argv.directDefund) {
-    assert(ledgerChannelIdString, 'Provide ledger-channel id for payment');
+    assert(ledgerChannelIdString, 'Provide ledger-channel id to close channel');
     const ledgerChannelId: Destination = new Destination(ledgerChannelIdString);
     const closeLedgerChannelObjectiveId = await client.closeLedgerChannel(ledgerChannelId);
 
     await client.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
     log(`Ledger channel with id ${ledgerChannelId.string()} closed`);
+  }
+
+  if (argv.getPaymentChannel) {
+    assert(paymentChannelIdString, 'Provide payment-channel id for get-payment-channel');
+    const paymentChannelId = new Destination(paymentChannelIdString);
+    const paymentChannelStatus = await client.getPaymentChannel(paymentChannelId);
+
+    log(
+      `Virtual payment channel ${paymentChannelId.string()} status:\n`,
+      JSONbigNative.stringify(paymentChannelStatus, null, 2),
+    );
   }
 
   if (argv.getLedgerChannel) {
@@ -253,17 +264,6 @@ const main = async () => {
     );
   }
 
-  if (argv.getPaymentChannel) {
-    assert(paymentChannelIdString, 'Provide payment-channel id for get-payment-channel');
-    const paymentChannelId = new Destination(paymentChannelIdString);
-    const paymentChannelStatus = await client.getLedgerChannel(paymentChannelId);
-
-    log(
-      `Virtual payment channel ${paymentChannelId.string()} status:\n`,
-      JSONbigNative.stringify(paymentChannelStatus, null, 2),
-    );
-  }
-
   // Call async method to log message on receiving vouchers
   subscribeVoucherLogs(client);
 
@@ -271,6 +271,10 @@ const main = async () => {
   // TODO: Update instructions for ts-nitro - go-nitro setup
 
   if (!argv.wait) {
+    // TODO: Fix closing client after creating virtual channel
+    // Workaround for error on closing payment channel
+    await new Promise<void>((resolve) => { setTimeout(() => resolve(), 1000); });
+
     await store.close();
     await msgService.close();
     // TODO: Implement

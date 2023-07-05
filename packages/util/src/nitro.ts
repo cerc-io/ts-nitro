@@ -143,7 +143,7 @@ export class Nitro {
 
   async getPaymentChannel(paymentChannel: string): Promise<void> {
     const paymentChannelId = new Destination(paymentChannel);
-    const paymentChannelStatus = await this.client.getLedgerChannel(paymentChannelId);
+    const paymentChannelStatus = await this.client.getPaymentChannel(paymentChannelId);
 
     log(
       `Virtual payment channel ${paymentChannelId.string()} status:\n`,
