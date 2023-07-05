@@ -182,20 +182,46 @@ export class Objective implements ObjectiveInterface {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
+    v: { type: 'class', value: Destination },
+    toMyLeft: { type: 'class', value: Destination },
+    toMyRight: { type: 'class', value: Destination },
     minimumPaymentAmount: { type: 'bigint' },
-    v: { type: 'class', value: VirtualChannel },
-    toMyLeft: { type: 'class', value: ConsensusChannel },
-    toMyRight: { type: 'class', value: ConsensusChannel },
     myRole: { type: 'number' },
   };
 
   static fromJSON(data: string): Objective {
+    // props has v.id as v and
+    // toMyLeft.id as toMyLeft and
+    // toMyRight.id as toMyRight
     const props = fromJSON(this.jsonEncodingMap, data);
-    return new Objective(props);
+
+    return new Objective({
+      status: props.status,
+      minimumPaymentAmount: props.minimumPaymentAmount,
+      v: new VirtualChannel({ id: props.v }),
+      toMyLeft: _.isEqual(props.toMyLeft, new Destination()) ? undefined : new ConsensusChannel({ id: props.toMyLeft }),
+      toMyRight: _.isEqual(props.toMyRight, new Destination()) ? undefined : new ConsensusChannel({ id: props.toMyRight }),
+      myRole: props.myRole,
+    });
   }
 
   toJSON(): any {
-    return toJSON(Objective.jsonEncodingMap, this);
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+
+    const left = this.toMyLeft ? this.toMyLeft.id : new Destination();
+    const right = this.toMyRight ? this.toMyRight.id : new Destination();
+
+    const jsonObjective = {
+      status: this.status,
+      v: this.vId(),
+      toMyLeft: left,
+      toMyRight: right,
+      minimumPaymentAmount: this.minimumPaymentAmount,
+      myRole: this.myRole,
+    };
+
+    return toJSON(Objective.jsonEncodingMap, jsonObjective);
   }
 
   constructor(params: {
