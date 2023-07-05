@@ -8,7 +8,6 @@ import {
 import { hex2Bytes } from '@cerc-io/nitro-util';
 
 import { createOutcome, setupClient } from './helpers';
-import { DEFAULT_CHAIN_URL } from './constants';
 
 const log = debug('ts-nitro:util:nitro');
 
@@ -45,6 +44,7 @@ export class Nitro {
 
   static async setupClient(
     pk: string,
+    chainURL: string,
     chainPk: string,
     relayMultiaddr: string,
     location?: string,
@@ -63,7 +63,7 @@ export class Nitro {
       store,
       {
         chainPk,
-        chainURL: DEFAULT_CHAIN_URL,
+        chainURL,
       },
     );
 

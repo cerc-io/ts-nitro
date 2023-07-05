@@ -4,6 +4,7 @@ import assert from 'assert';
 import { test } from '@cerc-io/nitro-client';
 import {
   ACTORS,
+  DEFAULT_CHAIN_URL,
   Nitro
 } from '@cerc-io/util';
 
@@ -25,8 +26,10 @@ window.setupClient = async (name: string) => {
   const actor = ACTORS[name];
   assert(actor, `Actor with name ${name} does not exists`);
   assert(process.env.REACT_APP_RELAY_MULTIADDR);
+
   window.nitro = await Nitro.setupClient(
     actor.privateKey,
+    DEFAULT_CHAIN_URL,
     actor.chainPrivateKey,
     process.env.REACT_APP_RELAY_MULTIADDR,
     `${name}-db`
