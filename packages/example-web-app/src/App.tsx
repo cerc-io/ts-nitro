@@ -1,145 +1,45 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import assert from 'assert';
 
-import { test, Client, MemStore, P2PMessageService, Store, DurableStore } from '@cerc-io/nitro-client';
-import { hex2Bytes } from '@cerc-io/nitro-util';
+import { test } from '@cerc-io/nitro-client';
 import {
-  setupClient,
-  createOutcome,
-  DEFAULT_CHAIN_URL,
-  ACTORS
+  ACTORS,
+  Nitro
 } from '@cerc-io/util';
-import { multiaddr } from '@multiformats/multiaddr';
 
 import logo from './logo.svg';
 import './App.css';
-import { createP2PMessageService } from './utils';
 
 declare global {
   interface Window {
-    nitro: {
-      setupClient: (name: string) => Promise<void>
-      clearClientStorage: (name: string) => Promise<void>
-      client?: Client;
-      msgService?: P2PMessageService;
-      addPeerByMultiaddr?: (address: string, multiaddrString: string) => Promise<void>
-      directFund?: (clientAddress: string) => Promise<void>
-      virtualFund?: (clientAddress: string) => Promise<void>
-    }
+    nitro?: Nitro
+    setupClient: (name: string) => Promise<void>
+    clearClientStorage: () => Promise<void>
   }
 }
 
+window.clearClientStorage = Nitro.clearClientStorage;
+
+// Method to setup nitro client with test actors
+window.setupClient = async (name: string) => {
+  const actor = ACTORS[name];
+  assert(actor, `Actor with name ${name} does not exists`);
+  assert(process.env.REACT_APP_RELAY_MULTIADDR);
+  window.nitro = await Nitro.setupClient(
+    actor.privateKey,
+    actor.chainPrivateKey,
+    process.env.REACT_APP_RELAY_MULTIADDR,
+    `${name}-db`
+  );
+};
+
 function App () {
   const [data, setData] = useState('');
-  const [client, setClient] = useState<Client>();
-  const [msgService, setMsgService] = useState<P2PMessageService>();
 
   useEffect(() => {
     const res = test();
     setData(res);
   }, []);
-
-  const init = useCallback(async (pk: string, chainPk: string, indexedDBName?: string) => {
-    let store: Store;
-    if (indexedDBName) {
-      store = DurableStore.newDurableStore(hex2Bytes(pk), indexedDBName);
-    } else {
-      store = new MemStore(hex2Bytes(pk));
-    }
-
-    assert(process.env.REACT_APP_RELAY_MULTIADDR);
-    const msgService = await createP2PMessageService(process.env.REACT_APP_RELAY_MULTIADDR, store.getAddress());
-
-    setMsgService(msgService);
-
-    const [client] = await setupClient(
-      msgService,
-      store,
-      {
-        chainPk,
-        chainURL: DEFAULT_CHAIN_URL
-      }
-    );
-
-    setClient(client);
-  }, []);
-
-  useEffect(() => {
-    window.nitro = {
-      setupClient: async (name: string) => {
-        const actor = ACTORS[name];
-        assert(actor, `Actor with name ${name} does not exists`);
-
-        await init(actor.privateKey, actor.chainPrivateKey, `${name}-db`);
-      },
-      clearClientStorage: async () => {
-        // Delete all databases
-        const dbs = await window.indexedDB.databases();
-        dbs.forEach(db => window.indexedDB.deleteDatabase(db.name!));
-      }
-    };
-  }, [init]);
-
-  useEffect(() => {
-    if (!msgService) {
-      return;
-    }
-
-    window.nitro.msgService = msgService;
-
-    window.nitro.addPeerByMultiaddr = async (address: string, multiaddrString: string) => {
-      const multi = multiaddr(multiaddrString);
-      await msgService!.addPeerByMultiaddr(address, multi);
-    };
-  }, [msgService]);
-
-  useEffect(() => {
-    if (!client) {
-      return;
-    }
-
-    window.nitro.client = client;
-    const challengeDuration = 0;
-    const asset = `0x${'00'.repeat(20)}`;
-
-    window.nitro.directFund = async (counterParty: string) => {
-      const outcome = createOutcome(
-        asset,
-        client!.address,
-        counterParty,
-        1_000_000
-      );
-
-      const response = await client!.createLedgerChannel(
-        counterParty,
-        challengeDuration,
-        outcome
-      );
-
-      await client.objectiveCompleteChan(response.id).shift();
-      console.log(`Ledger channel created with id ${response.channelId.string()}\n`);
-    };
-
-    window.nitro.virtualFund = async (counterParty: string) => {
-      const intermediaries: string[] = [];
-      const outcome = createOutcome(
-        asset,
-        client.address,
-        counterParty,
-        1_000
-      );
-
-      const response = await client.createVirtualPaymentChannel(
-        intermediaries,
-        counterParty,
-        challengeDuration,
-        outcome
-      );
-
-      await client.objectiveCompleteChan(response.id).shift();
-      console.log(`Virtual payment channel created with id ${response.channelId.string()}\n`);
-    };
-  }, [client]);
 
   return (
     <div className="App">

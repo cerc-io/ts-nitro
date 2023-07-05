@@ -8,7 +8,7 @@ import nitroAdjudicatorArtifact from '@statechannels/nitro-protocol/dist/artifac
 import consensusAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 
-import { DEFAULT_CHAIN_URL } from '../src/test/constants';
+import { DEFAULT_CHAIN_URL } from '../src/constants';
 
 const log = debug('ts-nitro:util');
 
@@ -25,7 +25,7 @@ const getArgv = () => yargs.parserConfiguration({
     alias: 'f',
     type: 'string',
     describe: 'JSON file path to export addresses to',
-    default: './src/test/addresses.json',
+    default: './src/addresses.json',
   },
 }).argv;
 

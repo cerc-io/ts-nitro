@@ -1,6 +1,4 @@
-// RPC endpoint for the chain
-// Chain should be running locally
-export const DEFAULT_CHAIN_URL = 'http://127.0.0.1:8545';
+import { Actor } from '../types';
 
 // https://github.com/cerc-io/go-nitro/blob/ts-port-v1.0/scripts/test-configs/alice.toml
 export const ALICE_ADDRESS = '0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE';
@@ -25,12 +23,6 @@ export const BOB_CHAIN_PK = '59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f
 export const CHARLIE_CHAIN_PK = '47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a';
 export const DAVID_CHAIN_PK = '5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a';
 export const ERIN_CHAIN_PK = '7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6';
-
-interface Actor {
-  address: string;
-  privateKey: string;
-  chainPrivateKey: string;
-}
 
 export const ACTORS: { [key: string]: Actor } = {
   alice: {

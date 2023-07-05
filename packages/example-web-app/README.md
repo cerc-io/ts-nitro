@@ -28,7 +28,7 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
   yarn test:deploy-contracts
 
   # Expected output:
-  # Contracts deployed, addresses written to ~/ts-nitro/packages/util/src/test/addresses.json
+  # Contracts deployed, addresses written to ~/ts-nitro/packages/util/src/addresses.json
   ```
 
 * Build packages for browser environment
@@ -54,16 +54,16 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
 * Refresh the apps for enabling logs
 
-* Call methods `nitro.setupClient('erin')` and `nitro.setupClient('charlie')` separately in the 2 browsers
+* Call methods `setupClient('erin')` and `setupClient('charlie')` separately in the 2 browsers
 
 * Wait for `New peer found` log in console
 
-* Call method `nitro.directFund` with address of the other browser client and check logs
+* Call method `nitro.directFund` with address of the other browser client and amount to be allocated
 
   * For example, call `nitro.directFund` in Erin browser with Charlie's address
 
     ```
-    nitro.directFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
+    nitro.directFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d', 1_000_000)
     ```
 
   * Final expected log
@@ -73,12 +73,12 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
     Ledger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
     ```
 
-* Call method `nitro.virtualFund` with address of the other browser client and check logs
+* Call method `nitro.virtualFund` with address of the other browser client and amount to be allocated
 
   * Call `nitro.virtualFund` in Erin browser with Charlie's address
 
     ```
-    nitro.virtualFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
+    nitro.virtualFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d', 1_000)
     ```
 
   * Final expected log
@@ -127,7 +127,7 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 
 * Refresh the app for enabling logs
 
-* Call method `nitro.setupClient('erin')`
+* Call method `setupClient('erin')`
 
 * Call method `nitro.addPeerByMultiaddr` to connect to client Bob
 
@@ -135,10 +135,10 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
   nitro.addPeerByMultiaddr('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94', '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmJDxLM8rSybX78FH51iZq9PdrwCoCyyHRBCndNzcAYMes')
   ```
 
-* Call method `nitro.directFund` with address of client Bob and check logs
+* Call method `nitro.directFund` with address of client Bob and amount to be allocated
 
   ```
-  nitro.directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94')
+  nitro.directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94', 1_000_000)
   ```
 
 * Final expected log
@@ -152,7 +152,7 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 * Clear nitro client storage
 
   ```
-  nitro.clearClientStorage()
+  clearClientStorage()
   ```
 
 ## Getting Started with Create React App
