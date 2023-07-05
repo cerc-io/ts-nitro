@@ -160,24 +160,19 @@ export const getAllLedgerChannels = async (store: Store, consensusAppDefinition:
 // GetPaymentChannelsByLedger returns a `PaymentChannelInfo` for each active payment channel funded by the given ledger channel.
 export const getPaymentChannelsByLedger = async (ledgerId: Destination, s: Store, vm: VoucherManager): Promise<PaymentChannelInfo[]> => {
   // If a ledger channel is actively funding payment channels it must be in the form of a consensus channel
-  let getError: Error | undefined;
-  let con: ConsensusChannel | undefined;
+  let con: ConsensusChannel;
   try {
     // If the ledger channel is not a consensus channel we know that there are no payment channels funded by it
     con = await s.getConsensusChannelById(ledgerId);
   } catch (err) {
-    getError = err as Error;
+    if ((err as Error).message.includes(ErrNoSuchChannel.message)) {
+      return [];
+    }
+
+    throw new Error(`could not find any payment channels funded by ${ledgerId}: ${err}`);
   }
 
-  if (getError && (getError as Error).message.includes(ErrNoSuchChannel.message)) {
-    return [];
-  }
-
-  if (getError) {
-    throw new Error(`could not find any payment channels funded by ${ledgerId}: ${getError}`);
-  }
-
-  const toQuery = con!.consensusVars().outcome.fundingTargets();
+  const toQuery = con.consensusVars().outcome.fundingTargets();
 
   let paymentChannels: Channel[];
 
@@ -189,8 +184,7 @@ export const getPaymentChannelsByLedger = async (ledgerId: Destination, s: Store
 
   const toReturn: PaymentChannelInfo[] = [];
 
-  for (const p of paymentChannels) {
-    /* eslint-disable no-await-in-loop */
+  for await (const p of paymentChannels) {
     const [paid, remaining] = await getVoucherBalance(p.id, vm);
     const info = constructPaymentInfo(p, paid, remaining);
     toReturn.push(info);
