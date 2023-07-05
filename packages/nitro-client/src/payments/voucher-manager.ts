@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { Buffer } from 'buffer';
+import _ from 'lodash';
 
 import { Destination } from '../types/destination';
 import { Address } from '../types/types';
@@ -54,8 +55,10 @@ export class VoucherManager {
   }
 
   // Remove deletes the channel's status
-  // TODO: Can throw an error
-  remove(channelId: string): void {}
+  remove(channelId: Destination): void {
+    // TODO: Return error instead of panicking
+    this.store.removeVoucherInfo(channelId);
+  }
 
   // Pay will deduct amount from balance and add it to paid, returning a signed voucher for the
   // total amount paid.
@@ -79,9 +82,10 @@ export class VoucherManager {
     const newAmount: bigint = BigInt(vInfo.largestVoucher.amount!) + BigInt(amount!);
     const voucher = new Voucher({ amount: newAmount, channelId });
 
-    vInfo.largestVoucher = voucher;
+    // Use cloneDeep and Go structs are assigned by value
+    vInfo.largestVoucher = _.cloneDeep(voucher);
 
-    await voucher.sign(pk);
+    voucher.sign(pk);
 
     this.store.setVoucherInfo(channelId, vInfo);
 
@@ -89,9 +93,37 @@ export class VoucherManager {
   }
 
   // Receive validates the incoming voucher, and returns the total amount received so far
-  // TODO: Can throw an error
-  receive(voucher: Voucher): bigint | undefined {
-    return BigInt(0);
+  async receive(voucher: Voucher): Promise<bigint | undefined> {
+    const [vInfo, ok] = await this.store.getVoucherInfo(voucher.channelId);
+    if (!ok) {
+      throw new Error('channel not registered');
+    }
+    assert(vInfo);
+
+    // We only care about vouchers when we are the recipient of the payment
+    if (vInfo.channelPayee !== this.me) {
+      return BigInt(0);
+    }
+
+    const received = BigInt(voucher.amount!);
+    if (received > vInfo.startingBalance!) {
+      throw new Error('channel has insufficient funds');
+    }
+
+    const receivedSoFar = vInfo.largestVoucher.amount;
+    if (!(received > receivedSoFar!)) {
+      return receivedSoFar;
+    }
+
+    const signer = voucher.recoverSigner();
+    if (signer !== vInfo.channelPayer) {
+      throw new Error(`wrong signer: ${signer}, ${vInfo.channelPayer}`);
+    }
+
+    vInfo.largestVoucher = voucher;
+
+    this.store.setVoucherInfo(voucher.channelId, vInfo);
+    return received;
   }
 
   // ChannelRegistered returns  whether a channel has been registered with the voucher manager or not

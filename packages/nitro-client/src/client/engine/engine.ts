@@ -479,14 +479,13 @@ export class Engine {
         allCompleted.completedObjectives.push(objective);
       }
 
-      for (const voucher of message.payments) {
+      for await (const voucher of message.payments) {
         try {
           // TODO: return the amount we paid?
-          this.vm.receive(voucher);
+          await this.vm.receive(voucher);
         } catch (err) {
           return [new EngineEvent(), new Error(`error accepting payment voucher: ${err}`)];
         } finally {
-          // TODO: Check correctness
           allCompleted.receivedVouchers.push(voucher);
         }
 
