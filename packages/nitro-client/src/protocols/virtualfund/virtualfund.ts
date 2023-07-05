@@ -449,7 +449,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       const intermediaries = participants.slice(1, participants.length - 1);
       let foundMyself = false;
 
-      for (const [i, intermediary] of intermediaries.entries()) {
+      for await (const [i, intermediary] of intermediaries.entries()) {
         if (myAddress === intermediary) {
           foundMyself = true;
           // I am intermediary `i` and participant `p`

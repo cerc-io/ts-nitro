@@ -158,7 +158,7 @@ export class DurableStore implements Store {
         case ConsensusChannel: {
           const consensusChannel = rel as ConsensusChannel;
           try {
-            this.setConsensusChannel(consensusChannel);
+            await this.setConsensusChannel(consensusChannel);
           } catch (err) {
             throw new Error(`error setting consensus channel ${consensusChannel.id} from objective ${obj.id()}: ${err}`);
           }
