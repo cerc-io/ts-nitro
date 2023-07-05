@@ -41,7 +41,9 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
 ### Run
 
-* Run a client for Alice (`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`):
+<!-- TODO: Pay from Alice to Bob -->
+
+* Run a client for Alice (`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`) with `wait` flag to keep it running:
 
   ```bash
   # In packages/server
@@ -54,8 +56,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Run another client for Bob (`0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94`) and pass in Alice's address as a counterparty to create the ledger channel with:
 
   ```bash
-  # In packages/server
-  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --counterparty 0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE --direct-fund
+  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --direct-fund --counterparty 0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -64,22 +65,81 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   # .
   # ts-nitro:engine Objective DirectFunding-0xc47be3b1d43b90be058eaad3cd4f2250e4f9645792125011003bc548d33d2ebc is complete & returned to API +10ms
   # ts-nitro:server Ledger channel created with id 0xc47be3b1d43b90be058eaad3cd4f2250e4f9645792125011003bc548d33d2ebc
-  # .
-  # .
+  ```
+
+  <!-- TODO: getLedgerChannel -->
+
+* Run client for Bob again to create virtual payment channel:
+
+  ```bash
+  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --virtual-fund --counterparty 0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE
+
+  # Final Expected output:
   # ts-nitro:engine Objective VirtualFund-0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af is complete & returned to API +0ms
   # ts-nitro:server Virtual payment channel created with id 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
+  ```
+
+  <!-- TODO: getPaymentChannel -->
+
+* Run client for Bob to make payment with virtual payment channel id from above:
+
+  ```bash
+  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --pay 50 --virtual-payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af --wait
+
+  # Expected output:
+  # ts-nitro:engine Constructed Engine +0ms
+  # ts-nitro:server Started P2PMessageService +0ms
   # .
   # .
   # ts-nitro:engine Sending message: {"to":"0xAAA662","from":"0xBBB676","payloadSummaries":[],"proposalSummaries":[],"payments":[{"amount":50,"channelId":"0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa"}],"rejectedObjectives":[]} +8ms
-  # .
-  # .
+  ```
+
+  * Wait for voucher receieved log in client Alice
+
+    ```
+    # Expected output:
+    ts-nitro:server Received voucher: {
+    ts-nitro:server   "ChannelId": "0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af",
+    ts-nitro:server   "Amount": 50,
+    ts-nitro:server   "Signature": {
+    ts-nitro:server     "R": "iGoxsptIeA/0u/vTgSEcZ6+mE3kvclXJkhbKnv6l4RE=",
+    ts-nitro:server     "S": "WWt7vEKRjENPIn7GAVIvTv2RzCYwVqQPxJIWFsPjCvw=",
+    ts-nitro:server     "V": 28
+    ts-nitro:server   }
+    ts-nitro:server } +8s
+    ```
+
+  * Close client Bob after getting above log
+
+* Close virtual payment channel using client Bob (Get channel id from `virtual-fund` logs)
+
+  ```bash
+  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --virtual-defund --virtual-payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
+
+  # Final Expected output:
   # ts-nitro:engine Objective VirtualDefund-0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa is complete & returned to API +1ms
   # ts-nitro:server Virtual payment channel with id 0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa closed
-  # .
-  # .
+  ```
+
+* Close the ledger channel using client Bob (Get channel id from `direct-fund` logs)
+
+  ```bash
+  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --direct-defund --ledger-channel 0xc47be3b1d43b90be058eaad3cd4f2250e4f9645792125011003bc548d33d2ebc
+
+  # Final Expected output:
   # ts-nitro:engine Objective DirectDefunding-0x49ee60de0e1beebdf6070690cde0f66c86d576a6b2721001e6f7b0eaa11b3223 is complete & returned to API +1ms
   # ts-nitro:server Ledger channel with id 0x49ee60de0e1beebdf6070690cde0f66c86d576a6b2721001e6f7b0eaa11b3223 closed
   ```
+
+  <!-- TODO: Check balance on chain -->
+
+### Clean up
+
+Clear nitro client storage
+
+```
+rm -r alice-db bob-db
+```
 
 ## `ts-nitro` - `go-nitro`
 

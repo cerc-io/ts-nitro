@@ -25,7 +25,7 @@ export class P2PMessageService implements MessageService {
   static async newMessageService(
     relayMultiAddr: string,
     me: Address,
-    pk: Uint8Array,
+    pk: Buffer,
     logWriter?: WritableStream,
   ): Promise<P2PMessageService> {
     const baseP2PMessageService = await BaseP2PMessageService.newMessageService(

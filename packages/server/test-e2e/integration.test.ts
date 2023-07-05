@@ -33,7 +33,12 @@ describe('test Client', () => {
     assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
     const aliceStore = new MemStore(hex2Bytes(ACTORS.alice.privateKey));
-    const aliceMsgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, ALICE_MESSAGING_PORT, aliceStore.getAddress());
+    const aliceMsgService = await createP2PMessageService(
+      process.env.RELAY_MULTIADDR,
+      ALICE_MESSAGING_PORT,
+      aliceStore.getAddress(),
+      hex2Bytes(ACTORS.alice.privateKey),
+    );
     aliceMetrics = new Metrics();
 
     aliceClient = await setupClient(
@@ -49,7 +54,12 @@ describe('test Client', () => {
     expect(aliceClient.address).to.equal(ACTORS.alice.address);
 
     const bobStore = new MemStore(hex2Bytes(ACTORS.bob.privateKey));
-    const bobMsgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, BOB_MESSAGING_PORT, bobStore.getAddress());
+    const bobMsgService = await createP2PMessageService(
+      process.env.RELAY_MULTIADDR,
+      BOB_MESSAGING_PORT,
+      bobStore.getAddress(),
+      hex2Bytes(ACTORS.bob.privateKey),
+    );
     bobMetrics = new Metrics();
 
     bobClient = await setupClient(

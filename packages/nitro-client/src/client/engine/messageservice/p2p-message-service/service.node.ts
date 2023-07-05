@@ -42,7 +42,7 @@ export class P2PMessageService implements MessageService {
     ip: string,
     port: number,
     me: Address,
-    pk: Uint8Array,
+    pk: Buffer,
     useMdnsPeerDiscovery: boolean,
     logWriter?: WritableStream,
   ): Promise<P2PMessageService> {

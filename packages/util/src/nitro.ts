@@ -12,21 +12,6 @@ const log = debug('ts-nitro:util:nitro');
 const CHALLENGE_DURATION = 0;
 const ASSET = `0x${'00'.repeat(20)}`;
 
-const createP2PMessageService = async (relayMultiAddr: string, me: string): Promise<P2PMessageService> => {
-  const keys = await import('@libp2p/crypto/keys');
-
-  // TODO: Generate private key from a string
-  const privateKey = await keys.generateKeyPair('Ed25519');
-
-  // Type error thrown in NodeJS build
-  // TODO: Move file to separate package which is only used for browser build
-  return (P2PMessageService as any).newMessageService(
-    relayMultiAddr,
-    me,
-    privateKey.bytes,
-  );
-};
-
 export class Nitro {
   client: Client;
 
@@ -54,7 +39,9 @@ export class Nitro {
       store = new MemStore(hex2Bytes(pk));
     }
 
-    const msgService = await createP2PMessageService(relayMultiaddr, store.getAddress());
+    // Type error thrown in NodeJS build
+    // TODO: Move file to separate package which is only used for browser build
+    const msgService = await (P2PMessageService as any).newMessageService(relayMultiaddr, store.getAddress(), hex2Bytes(pk));
 
     const client = await setupClient(
       msgService,
@@ -76,7 +63,6 @@ export class Nitro {
 
   async addPeerByMultiaddr(address: string, multiaddrString: string): Promise<void> {
     const { multiaddr } = await import('@multiformats/multiaddr');
-
     const multi = multiaddr(multiaddrString);
     await this.msgService.addPeerByMultiaddr(address, multi);
   }

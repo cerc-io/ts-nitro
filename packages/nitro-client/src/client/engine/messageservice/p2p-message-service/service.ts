@@ -21,6 +21,8 @@ import type { PeerId } from '@libp2p/interface-peer-id';
 import type { PeerProtocolsChangeData } from '@libp2p/interface-peer-store';
 // @ts-expect-error
 import { Multiaddr } from '@multiformats/multiaddr';
+// @ts-expect-error
+import type { Peer } from '@cerc-io/peer';
 
 import { SafeSyncMap } from '../../../../internal/safesync/safesync';
 import { Message, deserializeMessage } from '../../../../protocols/messages';
@@ -92,6 +94,8 @@ export class BaseP2PMessageService implements MessageService {
   // Custom channel storing ids of peers to whom self info has been sent
   private sentInfoToPeer = Channel<PeerId>(BUFFER_SIZE);
 
+  private peer?: Peer;
+
   constructor(params: ConstructorOptions) {
     Object.assign(this, params);
   }
@@ -102,7 +106,7 @@ export class BaseP2PMessageService implements MessageService {
   static async newMessageService(
     relayMultiAddr: string,
     me: Address,
-    pk: Uint8Array,
+    pk: Buffer,
     initOptions: PeerInitConfig = {},
     logWriter?: WritableStream,
   ): Promise<BaseP2PMessageService> {
@@ -114,10 +118,16 @@ export class BaseP2PMessageService implements MessageService {
       logger: log,
     });
 
-    const { unmarshalPrivateKey, marshalPrivateKey, marshalPublicKey } = await import('@libp2p/crypto/keys');
+    const {
+      unmarshalPrivateKey, marshalPrivateKey, marshalPublicKey, generateKeyPairFromSeed,
+    } = await import('@libp2p/crypto/keys');
 
     try {
-      const messageKey = await unmarshalPrivateKey(pk);
+      // TODO: Unmarshall private key similar to go-nitro
+      // const messageKey = await unmarshalPrivateKey(pk);
+      // Workaround to get a libp2p private key from `pk` passed to message service
+      const messageKey = await generateKeyPairFromSeed('Ed25519', pk);
+
       ms.key = messageKey;
     } catch (err) {
       ms.checkError(err as Error);
@@ -129,10 +139,10 @@ export class BaseP2PMessageService implements MessageService {
     const { Peer } = await import('@cerc-io/peer');
     // TODO: Debug connection issue with webrtc enabled
     // Disabled by setting nodejs option to true below
-    const peer = new Peer(relayMultiAddr, true);
+    ms.peer = new Peer(relayMultiAddr, true);
     const peerId = await PeerIdFactory.createFromPrivKey(ms.key);
 
-    await peer.init(
+    await ms.peer.init(
       initOptions,
       {
         id: peerId.toString(),
@@ -141,10 +151,10 @@ export class BaseP2PMessageService implements MessageService {
       },
     );
 
-    assert(peer.node);
-    ms.p2pHost = peer.node;
+    assert(ms.peer.node);
+    ms.p2pHost = ms.peer.node;
     assert(ms.p2pHost);
-    ms.p2pHost.peerStore.addEventListener('change:protocols', ms.handlePeerProtocols.bind(ms));
+    ms.p2pHost.addEventListener('peer:connect', ms.handlePeerConnect.bind(ms));
 
     ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
 
@@ -166,31 +176,23 @@ export class BaseP2PMessageService implements MessageService {
   }
 
   // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
-  private async handlePeerProtocols({ detail: data }: CustomEvent<PeerProtocolsChangeData>) {
+  private async handlePeerConnect({ detail: data }: CustomEvent<Connection>) {
     assert(this.p2pHost);
     assert(this.p2pHost);
 
-    // Ignore self protocol changes
-    if (data.peerId.equals(this.p2pHost.peerId)) {
-      return;
-    }
-
-    // Ignore if PEER_EXCHANGE_PROTOCOL_ID is not handled by remote peer
-    if (!data.protocols.includes(PEER_EXCHANGE_PROTOCOL_ID)) {
+    // Ignore for connection with relay node
+    if (this.peer!.relayNodeMultiaddr.equals(data.remoteAddr)) {
       return;
     }
 
     try {
-      const stream = await this.p2pHost.dialProtocol(
-        data.peerId,
-        PEER_EXCHANGE_PROTOCOL_ID,
-      );
+      const stream = await data.newStream(PEER_EXCHANGE_PROTOCOL_ID);
 
       await this.sendPeerInfo(stream);
       stream.close();
 
       // Use a non-blocking channel send in case no one is listening
-      this.sentInfoToPeer.push(data.peerId);
+      this.sentInfoToPeer.push(data.remotePeer);
     } catch (err) {
       this.checkError(err as Error);
     }

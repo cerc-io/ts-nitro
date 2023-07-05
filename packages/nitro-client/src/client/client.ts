@@ -2,7 +2,7 @@ import debug from 'debug';
 import assert from 'assert';
 import { ethers } from 'ethers';
 
-import type { ReadWriteChannel } from '@cerc-io/ts-channel';
+import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import Channel from '@cerc-io/ts-channel';
 import { go, randUint64 } from '@cerc-io/nitro-util';
 
@@ -55,7 +55,7 @@ export class Client {
 
   private failedObjectives?: ReadWriteChannel<ObjectiveId>;
 
-  private receivedVouchers?: ReadWriteChannel<Voucher>;
+  private _receivedVouchers?: ReadWriteChannel<Voucher>;
 
   private chainId?: bigint;
 
@@ -94,7 +94,7 @@ export class Client {
 
     c.failedObjectives = Channel<ObjectiveId>(100);
     // Using a larger buffer since payments can be sent frequently.
-    c.receivedVouchers = Channel<Voucher>(1000);
+    c._receivedVouchers = Channel<Voucher>(1000);
 
     c.channelNotifier = ChannelNotifier.newChannelNotifier(store, c.vm);
     // Start the engine in a go routine
@@ -217,7 +217,7 @@ export class Client {
       }
 
       for await (const payment of update.receivedVouchers) {
-        await this.receivedVouchers!.push(payment);
+        await this._receivedVouchers!.push(payment);
       }
 
       for await (const updated of update.ledgerChannelUpdates) {
@@ -256,6 +256,11 @@ export class Client {
   // TODO: Implement
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async close(): Promise<void> {}
+
+  // ReceivedVouchers returns a chan that receives a voucher every time we receive a payment voucher
+  receivedVouchers(): ReadChannel<Voucher> {
+    return this._receivedVouchers!;
+  }
 
   // GetLedgerChannel returns the ledger channel with the given id.
   // If no ledger channel exists with the given id an error is returned.
