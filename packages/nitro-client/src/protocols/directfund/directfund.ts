@@ -115,7 +115,6 @@ export class Objective implements ObjectiveInterface {
     // props has c.id as c and
     // transactionSumbmitted as a key instead of transactionSubmitted (typo from go-nitro custom serialization)
     const props = fromJSON(this.jsonEncodingMap, data, new Map([['transactionSumbmitted', 'transactionSubmitted']]));
-
     return new Objective(_.set(props, 'c', new channel.Channel({ id: props.c })));
   }
 
