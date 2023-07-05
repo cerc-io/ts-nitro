@@ -209,7 +209,7 @@ export class MemStore implements Store {
   }
 
   // GetChannelsByIds returns a collection of channels with the given ids
-  getChannelsByIds(ids: string[]): Channel[] {
+  getChannelsByIds(ids: Destination[]): Channel[] {
     const toReturn: Channel[] = [];
 
     let err: Error;
@@ -224,7 +224,7 @@ export class MemStore implements Store {
       }
 
       // If the channel is one of the ones we're looking for, add it to the list
-      if (contains(ids, ch.id.value)) {
+      if (contains(ids, ch.id)) {
         toReturn.push(ch);
       }
 

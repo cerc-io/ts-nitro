@@ -139,6 +139,24 @@ export const constructLedgerInfoFromChannel = (c: Channel): LedgerChannelInfo =>
   });
 };
 
+// GetAllLedgerChannels returns a `LedgerChannelInfo` for each ledger channel in the store.
+export const getAllLedgerChannels = (store: Store, consensusAppDefinition: Address): LedgerChannelInfo[] => {
+  const toReturn: LedgerChannelInfo[] = [];
+  const allConsensus = store.getAllConsensusChannels();
+
+  for (const con of allConsensus) {
+    toReturn.push(constructLedgerInfoFromConsensus(con));
+  }
+
+  const allChannels = store.getChannelsByAppDefinition(consensusAppDefinition);
+
+  for (const c of allChannels) {
+    toReturn.push(constructLedgerInfoFromChannel(c));
+  }
+
+  return toReturn;
+};
+
 // GetLedgerChannelInfo returns the LedgerChannelInfo for the given channel
 // It does this by querying the provided store
 export const getLedgerChannelInfo = async (id: Destination, store: Store): Promise<LedgerChannelInfo> => {
