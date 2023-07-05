@@ -68,16 +68,16 @@ const getLatestSupportedOrPreFund = (channel: Channel): State => {
   return channel.preFundState();
 };
 
-export const getVoucherBalance = (id: Destination, vm: VoucherManager): [bigint | undefined, bigint | undefined] => {
+export const getVoucherBalance = async (id: Destination, vm: VoucherManager): Promise<[bigint | undefined, bigint | undefined]> => {
   let paid: bigint | undefined = BigInt(0);
   let remaining: bigint | undefined = BigInt(0);
 
-  if (!vm.channelRegistered(id)) {
+  if (!(await vm.channelRegistered(id))) {
     return [paid, remaining];
   }
 
-  paid = vm.paid(id);
-  remaining = vm.remaining(id);
+  paid = await vm.paid(id);
+  remaining = await vm.remaining(id);
 
   return [paid, remaining];
 };
@@ -108,11 +108,11 @@ export const constructPaymentInfo = (c: Channel, paid?: bigint, remaining?: bigi
 
 // GetPaymentChannelInfo returns the PaymentChannelInfo for the given channel
 // It does this by querying the provided store and voucher manager
-export const getPaymentChannelInfo = (id: Destination, store: Store, vm: VoucherManager): PaymentChannelInfo => {
-  const [c, channelFound] = store.getChannelById(id);
+export const getPaymentChannelInfo = async (id: Destination, store: Store, vm: VoucherManager): Promise<PaymentChannelInfo> => {
+  const [c, channelFound] = await store.getChannelById(id);
 
   if (channelFound) {
-    const [paid, remaining] = getVoucherBalance(id, vm);
+    const [paid, remaining] = await getVoucherBalance(id, vm);
 
     return constructPaymentInfo(c, paid, remaining);
   }
@@ -141,12 +141,12 @@ export const constructLedgerInfoFromChannel = (c: Channel): LedgerChannelInfo =>
 
 // GetLedgerChannelInfo returns the LedgerChannelInfo for the given channel
 // It does this by querying the provided store
-export const getLedgerChannelInfo = (id: Destination, store: Store): LedgerChannelInfo => {
-  const [c, ok] = store.getChannelById(id);
+export const getLedgerChannelInfo = async (id: Destination, store: Store): Promise<LedgerChannelInfo> => {
+  const [c, ok] = await store.getChannelById(id);
   if (ok) {
     return constructLedgerInfoFromChannel(c);
   }
 
-  const con = store.getConsensusChannelById(id)!;
+  const con = await store.getConsensusChannelById(id)!;
   return constructLedgerInfoFromConsensus(con);
 };

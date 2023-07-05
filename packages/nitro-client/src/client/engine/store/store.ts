@@ -21,37 +21,37 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 
   // Read an existing objective
   // TODO: Can throw an error
-  getObjectiveById (id: ObjectiveId): Objective
+  getObjectiveById (id: ObjectiveId): Objective | Promise<Objective>
 
   // Get the objective that currently owns the channel with the supplied ChannelId
   // TODO: Can throw an error
-  getObjectiveByChannelId (channelId: Destination): [Objective | undefined, boolean]
+  getObjectiveByChannelId (channelId: Destination): [Objective | undefined, boolean] | Promise<[Objective | undefined, boolean]>
 
   // Write an objective
   // TODO: Can throw an error
-  setObjective (obj: Objective): void
+  setObjective (obj: Objective): void | Promise<void>
 
   // Returns a collection of channels with the given ids
   // TODO: Can throw an error
-  getChannelsByIds (ids: string[]): Channel[]
+  getChannelsByIds (ids: string[]): Channel[] | Promise<Channel[]>
 
   // TODO: Can throw an error
-  getChannelById (id: Destination): [Channel, boolean]
+  getChannelById (id: Destination): [Channel, boolean] | Promise<[Channel, boolean]>
 
   // Returns any channels that includes the given participant
-  getChannelsByParticipant (participant: Address): Channel[]
+  getChannelsByParticipant (participant: Address): Channel[] | Promise<Channel[]>
 
   // TODO: Can throw an error
-  setChannel (ch: Channel): void
+  setChannel (ch: Channel): void | Promise<void>
 
-  destroyChannel (id: Destination): void
+  destroyChannel (id: Destination): void | Promise<void>
 
   // Returns any channels that includes the given app definition
   // TODO: Can throw an error
-  getChannelsByAppDefinition (appDef: Address): Channel[]
+  getChannelsByAppDefinition (appDef: Address): Channel[] | Promise<Channel[]>
 
   // Release channel from being owned by any objective
-  releaseChannelFromOwnership (channelId: Destination): void
+  releaseChannelFromOwnership (channelId: Destination): void | Promise<void>
 
   // The behavior of Close after the first call is undefined
   // TODO: Check for io.Closer alternative
@@ -60,17 +60,14 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 }
 
 export interface ConsensusChannelStore {
-  // TODO: Can throw an error
-  getAllConsensusChannels (): ConsensusChannel[]
 
-  // TODO: Can throw an error
-  getConsensusChannel (counterparty: Address): [ConsensusChannel | undefined, boolean]
+  getAllConsensusChannels (): ConsensusChannel[] | Promise<ConsensusChannel[]>
 
-  // TODO: Can throw an error
-  getConsensusChannelById (id: Destination): ConsensusChannel | undefined
+  getConsensusChannel (counterparty: Address): [ConsensusChannel | undefined, boolean] | Promise<[ConsensusChannel | undefined, boolean]>
 
-  // TODO: Can throw an error
-  setConsensusChannel (ch: ConsensusChannel): void
+  getConsensusChannelById (id: Destination): ConsensusChannel | Promise<ConsensusChannel>
 
-  destroyConsensusChannel (id: Destination): void
+  setConsensusChannel (ch: ConsensusChannel): void | Promise<void>
+
+  destroyConsensusChannel (id: Destination): void | Promise<void>
 }

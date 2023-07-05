@@ -1,6 +1,8 @@
 import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
+import { Level } from 'level';
+import type { AbstractSublevel, AbstractSublevelOptions } from 'abstract-level';
 
 import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
 
@@ -9,47 +11,77 @@ import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
 import { VoucherInfo } from '../../../payments/vouchers';
-import { SafeSyncMap } from '../../../internal/safesync/safesync';
 import { ObjectiveId } from '../../../protocols/messages';
 import { Address } from '../../../types/types';
 import { getAddressFromSecretKeyBytes } from '../../../crypto/keys';
-import { VirtualChannel } from '../../../channel/virtual';
 import { Destination } from '../../../types/destination';
-import { isDirectFundObjective, Objective as DirectFundObjective } from '../../../protocols/directfund/directfund';
-import { isDirectDefundObjective, Objective as DirectDefundObjective } from '../../../protocols/directdefund/directdefund';
-import { isVirtualFundObjective, Objective as VirtualFundObjective } from '../../../protocols/virtualfund/virtualfund';
-import { isVirtualDefundObjective, Objective as VirtualDefundObjective } from '../../../protocols/virtualdefund/virtualdefund';
+import { contains, decodeObjective } from './memstore';
+import { VirtualChannel } from '../../../channel/virtual';
+import { Objective as DirectFundObjective } from '../../../protocols/directfund/directfund';
+import { Objective as DirectDefundObjective } from '../../../protocols/directdefund/directdefund';
+import { Objective as VirtualFundObjective } from '../../../protocols/virtualfund/virtualfund';
+import { Objective as VirtualDefundObjective } from '../../../protocols/virtualdefund/virtualdefund';
 
-export class MemStore implements Store {
-  objectives: SafeSyncMap<Buffer>;
+export class DurableStore implements Store {
+  private objectives?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
 
-  channels: SafeSyncMap<Buffer>;
+  private channels?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
 
-  consensusChannels: SafeSyncMap<Buffer>;
+  private consensusChannels?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
 
-  channelToObjective: SafeSyncMap<ObjectiveId>;
+  private channelToObjective?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, string>;
 
-  vouchers: SafeSyncMap<Buffer>;
+  private vouchers?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
 
   // the signing key of the store's engine
-  key: string;
+  private key: string = '';
 
   // the (Ethereum) address associated to the signing key
-  address: string;
+  private address: string = '';
 
-  constructor(key: Buffer) {
-    this.key = bytes2Hex(key);
-    this.address = getAddressFromSecretKeyBytes(key);
+  // the location where the store's data is stored
+  private location: string = '';
 
-    this.objectives = new SafeSyncMap();
-    this.channels = new SafeSyncMap();
-    this.consensusChannels = new SafeSyncMap();
-    this.channelToObjective = new SafeSyncMap();
-    this.vouchers = new SafeSyncMap();
+  private db?: Level<string, Buffer>;
+
+  // NewDurableStore creates a new DurableStore that uses the given location to store its data
+  // In NodeJS, location must be a directory path where LevelDB will store its files
+  // In browsers, location is the name of the IDBDatabase to be opened.
+  static newDurableStore(key: Buffer, location: string): Store {
+    const ps = new DurableStore();
+    ps.key = bytes2Hex(key);
+    ps.address = getAddressFromSecretKeyBytes(key);
+    ps.location = location;
+
+    ps.db = new Level<string, Buffer>(location, { valueEncoding: 'buffer' });
+
+    ps.objectives = ps.openDB<Buffer>('objectives', { valueEncoding: 'buffer' });
+    ps.channels = ps.openDB<Buffer>('channels', { valueEncoding: 'buffer' });
+    ps.consensusChannels = ps.openDB<Buffer>('consensus_channels', { valueEncoding: 'buffer' });
+    ps.channelToObjective = ps.openDB('channel_to_objective');
+    ps.vouchers = ps.openDB<Buffer>('vouchers', { valueEncoding: 'buffer' });
+
+    return ps;
   }
 
-  // Since this is a memory store, there is nothing to close
-  close(): void {}
+  private openDB<V = string>(
+    name: string,
+    options: AbstractSublevelOptions<string, V> = {},
+  ): AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, V> {
+    let subDb;
+    try {
+      subDb = this.db!.sublevel<string, V>(name, options);
+    } catch (err) {
+      this.checkError(err as Error);
+      assert(subDb);
+    }
+
+    return subDb;
+  }
+
+  async close(): Promise<void> {
+    await this.db!.close();
+  }
 
   getAddress(): Address {
     return this.address;
@@ -60,26 +92,23 @@ export class MemStore implements Store {
     return val;
   }
 
-  getObjectiveById(id: ObjectiveId): Objective {
-    // todo: locking
-    const [objJSON, ok] = this.objectives.load(id);
-
-    // return immediately if no such objective exists
-    if (!ok) {
-      throw new Error(`${ErrNoSuchObjective}: ${id}`);
+  async getObjectiveById(id: ObjectiveId): Promise<Objective> {
+    let objJSON: Buffer;
+    try {
+      objJSON = await this.objectives!.get(id);
+    } catch (err) {
+      throw ErrNoSuchObjective;
     }
 
     let obj: Objective;
     try {
-      assert(objJSON);
-      /* eslint-disable @typescript-eslint/no-use-before-define */
       obj = decodeObjective(id, objJSON);
     } catch (err) {
       throw new Error(`error decoding objective ${id}: ${err}`);
     }
 
     try {
-      this.populateChannelData(obj);
+      await this.populateChannelData(obj);
     } catch (err) {
       // TODO: Handle partial return
       // return existing objective data along with error
@@ -91,7 +120,7 @@ export class MemStore implements Store {
     return obj;
   }
 
-  public setObjective(obj: Objective): void {
+  async setObjective(obj: Objective): Promise<void> {
     // todo: locking
     let objJSON: Buffer;
     try {
@@ -100,14 +129,14 @@ export class MemStore implements Store {
       throw new Error(`error setting objective ${obj.id()}: ${err}`);
     }
 
-    this.objectives.store(obj.id(), objJSON);
+    await this.objectives!.put(obj.id(), objJSON);
 
-    for (const rel of obj.related()) {
+    for await (const rel of obj.related()) {
       switch (rel.constructor) {
         case VirtualChannel: {
           const ch = rel as VirtualChannel;
           try {
-            this.setChannel(ch);
+            await this.setChannel(ch);
           } catch (err) {
             throw new Error(`error setting virtual channel ${ch.id} from objective ${obj.id()}: ${err}`);
           }
@@ -118,7 +147,7 @@ export class MemStore implements Store {
         case Channel: {
           const channel = rel as Channel;
           try {
-            this.setChannel(channel);
+            await this.setChannel(channel);
           } catch (err) {
             throw new Error(`error setting channel ${channel.id} from objective ${obj.id()}: ${err}`);
           }
@@ -143,48 +172,71 @@ export class MemStore implements Store {
     }
 
     // Objective ownership can only be transferred if the channel is not owned by another objective
-    const [prevOwner, isOwned] = this.channelToObjective.load(obj.ownsChannel().string());
+    let prevOwner: ObjectiveId = '';
+    let isOwned: boolean = false;
+
+    try {
+      const res = await this.channelToObjective!.get(obj.ownsChannel().string());
+      prevOwner = res;
+      isOwned = true;
+    } catch (err) {
+      // Ignore err if not found in DB
+    }
 
     if (obj.getStatus() === ObjectiveStatus.Approved) {
-      if (!prevOwner) {
-        this.channelToObjective.store(obj.ownsChannel().string(), obj.id());
+      if (!isOwned) {
+        try {
+          await this.channelToObjective!.put(obj.ownsChannel().string(), obj.id());
+        } catch (err) {
+          this.checkError(err as Error);
+        }
       }
+
       if (isOwned && prevOwner !== obj.id()) {
         throw new Error(`cannot transfer ownership of channel from objective ${prevOwner} to ${obj.id()}`);
       }
     }
   }
 
-  public setChannel(ch: Channel): void {
+  // SetChannel sets the channel in the store.
+  async setChannel(ch: Channel): Promise<void> {
     const chJSON = Buffer.from(JSONbigNative.stringify(ch), 'utf-8');
 
-    this.channels.store(ch.id.string(), chJSON);
+    await this.channels!.put(ch.id.string(), chJSON);
   }
 
   // destroyChannel deletes the channel with id id.
-  destroyChannel(id: Destination): void {
-    this.channels.delete(id.string());
+  async destroyChannel(id: Destination): Promise<void> {
+    try {
+      await this.channels!.del(id.string());
+    } catch (err) {
+      this.checkError(err as Error);
+    }
   }
 
   // SetConsensusChannel sets the channel in the store.
-  setConsensusChannel(ch: ConsensusChannel): void {
+  async setConsensusChannel(ch: ConsensusChannel): Promise<void> {
     if (ch.id.isZero()) {
       throw new Error('cannot store a channel with a zero id');
     }
 
     const chJSON = Buffer.from(JSONbigNative.stringify(ch), 'utf-8');
-
-    this.consensusChannels.store(ch.id.string(), chJSON);
+    await this.consensusChannels!.put(ch.id.string(), chJSON);
   }
 
   // DestroyChannel deletes the channel with id id.
-  destroyConsensusChannel(id: Destination): void {
-    this.consensusChannels.delete(id.string());
+  async destroyConsensusChannel(id: Destination): Promise<void> {
+    try {
+      await this.consensusChannels!.del(id.string());
+    } catch (err) {
+      this.checkError(err as Error);
+    }
   }
 
-  getChannelById(id: Destination): [Channel, boolean] {
+  // GetChannelById retrieves the channel with the supplied id, if it exists.
+  async getChannelById(id: Destination): Promise<[Channel, boolean]> {
     try {
-      const ch = this._getChannelById(id);
+      const ch = await this._getChannelById(id);
 
       return [ch, true];
     } catch (err) {
@@ -192,14 +244,15 @@ export class MemStore implements Store {
     }
   }
 
-  private _getChannelById(id: Destination): Channel {
-    const [chJSON, ok] = this.channels.load(id.string());
-
-    if (!ok) {
+  // _getChannelById returns the stored channel
+  private async _getChannelById(id: Destination): Promise<Channel> {
+    let chJSON: Buffer;
+    try {
+      chJSON = await this.channels!.get(id.string());
+    } catch (err) {
       throw ErrNoSuchChannel;
     }
 
-    assert(chJSON);
     try {
       const ch = Channel.fromJSON(chJSON.toString());
       return ch;
@@ -209,18 +262,20 @@ export class MemStore implements Store {
   }
 
   // GetChannelsByIds returns a collection of channels with the given ids
-  getChannelsByIds(ids: string[]): Channel[] {
+  async getChannelsByIds(ids: string[]): Promise<Channel[]> {
     const toReturn: Channel[] = [];
+    // We know every channel has a unique id
+    // so we can stop looking once we've found the correct number of channels
 
     let err: Error;
 
-    this.channels.range((key: string, chJSON: Buffer): boolean => {
+    for await (const [key, chJSON] of this.channels!.iterator()) {
       let ch: Channel;
       try {
         ch = Channel.fromJSON(chJSON.toString());
       } catch (unmarshalErr) {
         err = unmarshalErr as Error;
-        return false;
+        break;
       }
 
       // If the channel is one of the ones we're looking for, add it to the list
@@ -230,11 +285,9 @@ export class MemStore implements Store {
 
       // If we've found all the channels we need, stop looking
       if (toReturn.length === ids.length) {
-        return false;
+        break;
       }
-
-      return true; // otherwise, continue looking
-    });
+    }
 
     if (err!) {
       throw err;
@@ -244,42 +297,43 @@ export class MemStore implements Store {
   }
 
   // GetChannelsByAppDefinition returns any channels that include the given app definition
-  getChannelsByAppDefinition(appDef: Address): Channel[] {
+  async getChannelsByAppDefinition(appDef: Address): Promise<Channel[]> {
     const toReturn: Channel[] = [];
     let err: Error;
 
-    this.channels.range((key: string, chJSON: Buffer): boolean => {
+    for await (const [key, chJSON] of this.channels!.iterator()) {
       let ch: Channel;
 
       try {
         ch = Channel.fromJSON(chJSON.toString());
-      } catch (unmarshalErr) {
-        err = unmarshalErr as Error;
-        return false;
+      } catch (unmarshErr) {
+        err = unmarshErr as Error;
+        break;
       }
 
       if (ch.appDefinition === appDef) {
         toReturn.push(ch);
       }
-      return true; // channel not found: continue looking
-    });
+    }
 
     if (err!) {
       throw err;
     }
+
     return toReturn;
   }
 
   // GetChannelsByParticipant returns any channels that include the given participant
-  getChannelsByParticipant(participant: Address): Channel[] {
+  async getChannelsByParticipant(participant: Address): Promise<Channel[]> {
     const toReturn: Channel[] = [];
 
-    this.channels.range((key: string, chJSON: Buffer) => {
+    for await (const [key, chJSON] of this.channels!.iterator()) {
       let ch: Channel;
       try {
         ch = Channel.fromJSON(chJSON.toString());
       } catch (err) {
-        return true; // channel not found, continue looking
+        // eslint-disable-next-line no-continue
+        continue; // channel not found, continue looking
       }
 
       const { participants } = ch;
@@ -288,43 +342,44 @@ export class MemStore implements Store {
           toReturn.push(ch);
         }
       }
+    }
 
-      return true; // channel not found: continue looking
-    });
     return toReturn;
   }
 
   // GetConsensusChannelById returns a ConsensusChannel with the given channel id
-  getConsensusChannelById(id: Destination): ConsensusChannel {
-    const [chJSON, ok] = this.consensusChannels.load(id.string());
+  async getConsensusChannelById(id: Destination): Promise<ConsensusChannel> {
+    let ch: ConsensusChannel;
+    let chJSON: Buffer;
 
-    if (!ok) {
+    try {
+      chJSON = await this.consensusChannels!.get(id.string());
+    } catch (err) {
       throw ErrNoSuchChannel;
     }
-    assert(chJSON);
 
-    let ch: ConsensusChannel;
     try {
       ch = ConsensusChannel.fromJSON(chJSON.toString());
     } catch (err) {
-      throw new Error(`error unmarshaling channel ${id.string()}`);
+      throw new Error(`error unmarshaling channel ${ch!.id}`);
     }
-
     return ch;
   }
 
   // getConsensusChannel returns a ConsensusChannel between the calling client and
   // the supplied counterparty, if such channel exists
-  getConsensusChannel(counterparty: Address): [ConsensusChannel | undefined, boolean] {
-    let channel: ConsensusChannel | undefined;
+  async getConsensusChannel(counterparty: Address): Promise<[ConsensusChannel | undefined, boolean]> {
+    let channel: ConsensusChannel;
     let ok = false;
 
-    this.consensusChannels.range((key: string, chJSON: Buffer): boolean => {
-      let ch = new ConsensusChannel({});
+    for await (const [key, chJSON] of this.consensusChannels!.iterator()) {
+      let ch: ConsensusChannel;
+
       try {
         ch = ConsensusChannel.fromJSON(chJSON.toString());
       } catch (err) {
-        return true; // channel not found, continue looking
+        // eslint-disable-next-line no-continue
+        continue; // channel not found, continue looking
       }
 
       const participants = ch.participants();
@@ -332,51 +387,53 @@ export class MemStore implements Store {
         if (participants[0] === counterparty || participants[1] === counterparty) {
           channel = ch;
           ok = true;
-          return false; // we have found the target channel: break the forEach loop
+          break; // we have found the target channel: break the forEach loop
         }
       }
 
-      return true; // channel not found: continue looking
-    });
+      // eslint-disable-next-line no-continue
+      continue; // channel not found: continue looking
+    }
 
-    return [channel, ok];
+    return [channel!, ok];
   }
 
-  getAllConsensusChannels(): ConsensusChannel[] {
+  async getAllConsensusChannels(): Promise<ConsensusChannel[]> {
     const toReturn: ConsensusChannel[] = [];
-    let err: Error;
+    let unmarshErr: Error | undefined;
 
-    this.consensusChannels.range((key: string, chJSON: Buffer): boolean => {
+    for await (const [key, chJSON] of this.consensusChannels!.iterator()) {
       let ch: ConsensusChannel;
 
       try {
         ch = ConsensusChannel.fromJSON(chJSON.toString());
-      } catch (unmarshalErr) {
-        err = unmarshalErr as Error;
-        return false;
+      } catch (err) {
+        unmarshErr = err as Error;
+        break;
       }
 
-      toReturn.push(ch);
-      return true; // channel not found: continue looking
-    });
-
-    if (err!) {
-      throw err;
+      toReturn.push(ch!);
     }
+
+    if (unmarshErr) {
+      throw unmarshErr;
+    }
+
     return toReturn;
   }
 
-  getObjectiveByChannelId(channelId: Destination): [Objective | undefined, boolean] {
-    // todo: locking
-    const [id, found] = this.channelToObjective.load(channelId.string());
-    if (!found) {
+  async getObjectiveByChannelId(channelId: Destination): Promise<[Objective | undefined, boolean]> {
+    let id: ObjectiveId;
+
+    try {
+      id = await this.channelToObjective!.get(channelId.string());
+    } catch (err) {
       return [undefined, false];
     }
 
     let objective: Objective;
     try {
-      assert(id);
-      objective = this.getObjectiveById(id);
+      objective = await this.getObjectiveById(id);
     } catch (err) {
       // TODO: Handle partial return
       // Return undefined in case of error for now as the partial value is not actually being used
@@ -389,7 +446,7 @@ export class MemStore implements Store {
   // populateChannelData fetches stored Channel data relevant to the given
   // objective and attaches it to the objective. The channel data is attached
   // in-place of the objectives existing channel pointers.
-  populateChannelData(obj: Objective): void {
+  async populateChannelData(obj: Objective): Promise<void> {
     const id = obj.id();
 
     switch (obj.constructor) {
@@ -398,7 +455,7 @@ export class MemStore implements Store {
 
         let ch: Channel;
         try {
-          ch = this._getChannelById(o.c!.id);
+          ch = await this._getChannelById(o.c!.id);
         } catch (err) {
           throw new Error(`error retrieving channel data for objective ${id}: ${err}`);
         }
@@ -412,7 +469,7 @@ export class MemStore implements Store {
 
         let ch: Channel;
         try {
-          ch = this._getChannelById(o.c!.id);
+          ch = await this._getChannelById(o.c!.id);
         } catch (err) {
           throw new Error(`error retrieving channel data for objective ${id}: ${err}`);
         }
@@ -424,13 +481,14 @@ export class MemStore implements Store {
       case VirtualFundObjective: {
         const o = obj as VirtualFundObjective;
 
-        let ch: Channel;
+        let v: Channel;
         try {
-          ch = this._getChannelById(o.v!.id);
+          v = await this._getChannelById(o.v!.id);
         } catch (err) {
           throw new Error(`error retrieving virtual channel data for objective ${id}: ${err}`);
         }
-        o.v = new VirtualChannel(ch);
+
+        o.v = new VirtualChannel(v);
 
         const zeroAddress = new Destination();
 
@@ -440,7 +498,7 @@ export class MemStore implements Store {
         ) {
           let left: ConsensusChannel;
           try {
-            left = this.getConsensusChannelById(o.toMyLeft.channel.id);
+            left = await this.getConsensusChannelById(o.toMyLeft.channel.id);
           } catch (err) {
             throw new Error(`error retrieving left ledger channel data for objective ${id}: ${err}`);
           }
@@ -454,7 +512,7 @@ export class MemStore implements Store {
         ) {
           let right: ConsensusChannel;
           try {
-            right = this.getConsensusChannelById(o.toMyRight.channel.id);
+            right = await this.getConsensusChannelById(o.toMyRight.channel.id);
           } catch (err) {
             throw new Error(`error retrieving right ledger channel data for objective ${id}: ${err}`);
           }
@@ -467,13 +525,13 @@ export class MemStore implements Store {
       case VirtualDefundObjective: {
         const o = obj as VirtualDefundObjective;
 
-        let ch: Channel;
+        let v: Channel;
         try {
-          ch = this._getChannelById(o.v!.id);
+          v = await this._getChannelById(o.v!.id);
         } catch (err) {
           throw new Error(`error retrieving virtual channel data for objective ${id}: ${err}`);
         }
-        o.v = new VirtualChannel(ch);
+        o.v = new VirtualChannel(v);
 
         const zeroAddress = new Destination();
 
@@ -482,7 +540,7 @@ export class MemStore implements Store {
         ) {
           let left: ConsensusChannel;
           try {
-            left = this.getConsensusChannelById(o.toMyLeft.id);
+            left = await this.getConsensusChannelById(o.toMyLeft.id);
           } catch (err) {
             throw new Error(`error retrieving left ledger channel data for objective ${id}: ${err}`);
           }
@@ -495,7 +553,7 @@ export class MemStore implements Store {
         ) {
           let right: ConsensusChannel;
           try {
-            right = this.getConsensusChannelById(o.toMyRight.id);
+            right = await this.getConsensusChannelById(o.toMyRight.id);
           } catch (err) {
             throw new Error(`error retrieving right ledger channel data for objective ${id}: ${err}`);
           }
@@ -510,69 +568,53 @@ export class MemStore implements Store {
     }
   }
 
-  releaseChannelFromOwnership(channelId: Destination): void {
-    this.channelToObjective.delete(channelId.string());
+  async releaseChannelFromOwnership(channelId: Destination): Promise<void> {
+    try {
+      await this.channelToObjective!.del(channelId.string());
+    } catch (err) {
+      this.checkError(err as Error);
+    }
+  }
+
+  // checkError is a helper function that panics if an error is not nil
+  // TODO: Longer term we should return errors instead of panicking
+  private checkError(err: Error) {
+    if (err) {
+      throw err;
+    }
   }
 
   setVoucherInfo(channelId: Destination, v: VoucherInfo): void {
-    const jsonData = Buffer.from(JSONbigNative.stringify(v));
+    const vJSON = Buffer.from(JSONbigNative.stringify(v));
 
-    this.vouchers.store(channelId.string(), jsonData);
+    this.vouchers!.put(channelId.string(), vJSON);
   }
 
-  getVoucherInfo(channelId: Destination): [VoucherInfo | undefined, boolean] {
-    const [data, ok] = this.vouchers.load(channelId.string());
-    if (!ok) {
-      return [undefined, false];
-    }
-
-    assert(data);
+  async getVoucherInfo(channelId: Destination): Promise<[VoucherInfo | undefined, boolean]> {
+    let err;
+    let v: VoucherInfo | undefined;
 
     try {
-      const v = VoucherInfo.fromJSON(data.toString());
+      const vJSON = await this.vouchers!.get(channelId.string());
+
+      try {
+        v = VoucherInfo.fromJSON(vJSON.toString());
+        return [v, true];
+      } catch (jsonErr) {
+        err = jsonErr;
+      }
+    } catch (dbErr) {
+      err = null;
+    }
+
+    if (!err) {
       return [v, true];
-    } catch (err) {
-      return [undefined, false];
     }
+
+    return [v, false];
   }
 
-  removeVoucherInfo(channelId: Destination): void {
-    this.vouchers.delete(channelId.string());
+  async removeVoucherInfo(channelId: Destination): Promise<void> {
+    return this.vouchers!.del(channelId.string());
   }
-}
-
-// decodeObjective is a helper which encapsulates the deserialization
-// of Objective JSON data. The decoded objectives will not have any
-// channel data other than the channel Id.
-export function decodeObjective(id: ObjectiveId, data: Buffer): Objective {
-  switch (true) {
-    case isDirectFundObjective(id): {
-      const dfo = DirectFundObjective.fromJSON(data.toString());
-      return dfo;
-    }
-    case isDirectDefundObjective(id): {
-      const ddfo = DirectDefundObjective.fromJSON(data.toString());
-      return ddfo;
-    }
-    case isVirtualFundObjective(id): {
-      const vfo = VirtualFundObjective.fromJSON(data.toString());
-      return vfo;
-    }
-    case isVirtualDefundObjective(id): {
-      const dvfo = VirtualDefundObjective.fromJSON(data.toString());
-      return dvfo;
-    }
-    default:
-      throw new Error(`objective id ${id} does not correspond to a known Objective type`);
-  }
-}
-
-// contains is a helper function which returns true if the given item is included in col
-export function contains<T extends Destination | ObjectiveId>(col: T[], item: T): boolean {
-  for (const [, i] of col.entries()) {
-    if (i === item) {
-      return true;
-    }
-  }
-  return false;
 }

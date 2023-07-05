@@ -188,7 +188,7 @@ export class Client {
 
   // GetPaymentChannel returns the payment channel with the given id.
   // If no ledger channel exists with the given id an error is returned.
-  getPaymentChannel(id: Destination): PaymentChannelInfo {
+  async getPaymentChannel(id: Destination): Promise<PaymentChannelInfo> {
     assert(this.store);
     assert(this.vm);
     return getPaymentChannelInfo(id, this.store, this.vm);
@@ -254,7 +254,7 @@ export class Client {
 
   // GetLedgerChannel returns the ledger channel with the given id.
   // If no ledger channel exists with the given id an error is returned.
-  getLedgerChannel(id: Destination): LedgerChannelInfo {
+  async getLedgerChannel(id: Destination): Promise<LedgerChannelInfo> {
     assert(this.store);
     return getLedgerChannelInfo(id, this.store);
   }

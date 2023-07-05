@@ -25,19 +25,13 @@ Run relay node using v2 watcher
   * Copy the deployed contract addresses from 1st repo
 
     ```bash
-    cp <PATH_TO_FIRST_REPO>/packages/util/src/test/addresses.json <PATH_TO_SECOND_REPO>/packages/util/src/test/
+    cp <PATH_TO_FIRST_REPO>/packages/util/src/addresses.json <PATH_TO_SECOND_REPO>/packages/util/src/
     ```
 
   * Build packages for browser environment
 
     ```
     yarn build:browser --ignore @cerc-io/example-web-app
-    ```
-
-  * Run script to workaround build issue in react app with ESM modules
-
-    ```
-    yarn build:fix-modules
     ```
 
   * Set the relay node multiaddr in example-web-app [.env](./packages/example-web-app/.env)
@@ -77,10 +71,10 @@ Run relay node using v2 watcher
 
   * Wait for `New peer found` log in console
 
-  * Call method `directFund` with address of client Alice and check logs
+  * Call method `nitro.directFund` with address of client Alice and amount to be allocated
 
     ```
-    directFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
+    nitro.directFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE', 1_000_000)
     ```
 
     Final expected log
@@ -90,10 +84,10 @@ Run relay node using v2 watcher
     Ledger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
     ```
 
-  * Call method `virtualFund` with address of client Alice
+  * Call method `nitro.virtualFund` with address of client Alice and amount to be allocated
 
     ```
-    virtualFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
+    nitro.virtualFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE', 1_000)
     ```
 
     Final expected log

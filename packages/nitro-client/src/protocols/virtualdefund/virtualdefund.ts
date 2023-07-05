@@ -56,11 +56,12 @@ const FinalTurnNum: Uint64 = BigInt(2);
 export const ObjectivePrefix = 'VirtualDefund-';
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
-type GetChannelByIdFunction = (id: Destination) => [channel.Channel | undefined, boolean];
+type GetChannelByIdFunction = (id: Destination) => [channel.Channel | undefined, boolean] | Promise<[channel.Channel | undefined, boolean]>;
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
-type GetTwoPartyConsensusLedgerFunction = (counterparty: Address) => [ConsensusChannel | undefined, boolean];
+type GetTwoPartyConsensusLedgerFunction = (counterparty: Address) => [ConsensusChannel | undefined, boolean] |
+Promise<[ConsensusChannel | undefined, boolean]>;
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
 export function getSignedStatePayload(b: Buffer): SignedState {
@@ -209,14 +210,14 @@ export class Objective implements ObjectiveInterface {
   }
 
   // NewObjective constructs a new virtual defund objective
-  static newObjective(
+  static async newObjective(
     request: ObjectiveRequest,
     preApprove: boolean,
     myAddress: Address,
     largestPaymentAmount: bigint | undefined,
     getChannel: GetChannelByIdFunction,
     getConsensusChannel: GetTwoPartyConsensusLedgerFunction,
-  ): Objective {
+  ): Promise<Objective> {
     let status: ObjectiveStatus;
 
     if (preApprove) {
@@ -225,7 +226,7 @@ export class Objective implements ObjectiveInterface {
       status = ObjectiveStatus.Unapproved;
     }
 
-    const [c, found] = getChannel(request.channelId);
+    const [c, found] = await getChannel(request.channelId);
 
     if (!found) {
       throw new Error(`Could not find channel ${request.channelId}`);
@@ -241,14 +242,14 @@ export class Objective implements ObjectiveInterface {
 
     if (myAddress === alice) {
       const rightOfAlice = v.participants[1];
-      [rightLedger, ok] = getConsensusChannel(rightOfAlice);
+      [rightLedger, ok] = await getConsensusChannel(rightOfAlice);
 
       if (!ok) {
         throw new Error(`Could not find a ledger channel between ${alice} and ${rightOfAlice}`);
       }
     } else if (myAddress === bob) {
       const leftOfBob = v.participants[v.participants.length - 2];
-      [leftLedger, ok] = getConsensusChannel(leftOfBob);
+      [leftLedger, ok] = await getConsensusChannel(leftOfBob);
 
       if (!ok) {
         throw new Error(`Could not find a ledger channel between ${leftOfBob} and ${bob}`);
@@ -267,13 +268,15 @@ export class Objective implements ObjectiveInterface {
           const leftOfMe = v.participants[p - 1];
           const rightOfMe = v.participants[p + 1];
 
-          [leftLedger, ok] = getConsensusChannel(leftOfMe);
+          // eslint-disable-next-line no-await-in-loop
+          [leftLedger, ok] = await getConsensusChannel(leftOfMe);
 
           if (!ok) {
             throw new Error(`Could not find a ledger channel between ${leftOfMe} and ${myAddress}`);
           }
 
-          [rightLedger, ok] = getConsensusChannel(rightOfMe);
+          // eslint-disable-next-line no-await-in-loop
+          [rightLedger, ok] = await getConsensusChannel(rightOfMe);
 
           if (!rightLedger) {
             throw new Error(`Could not find a ledger channel between ${myAddress} and ${rightOfMe}`);
@@ -303,14 +306,14 @@ export class Objective implements ObjectiveInterface {
   }
 
   // ConstructObjectiveFromPayload takes in a message payload and constructs an objective from it.
-  static constructObjectiveFromPayload(
+  static async constructObjectiveFromPayload(
     p: ObjectivePayload,
     preapprove: boolean,
     myAddress: Address,
     getChannel: GetChannelByIdFunction,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
     latestVoucherAmount?: bigint,
-  ): Objective {
+  ): Promise<Objective> {
     if (!latestVoucherAmount) {
       // eslint-disable-next-line no-param-reassign
       latestVoucherAmount = BigInt(0);

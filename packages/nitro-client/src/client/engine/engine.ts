@@ -308,7 +308,7 @@ export class Engine {
 
       assert(this.store);
       const id = getProposalObjectiveId(proposal);
-      const obj = this.store.getObjectiveById(id);
+      const obj = await this.store.getObjectiveById(id);
 
       if (obj.getStatus() === ObjectiveStatus.Completed) {
         this.logger(`Ignoring proposal for complected objective ${obj.id()}`);
@@ -345,7 +345,7 @@ export class Engine {
       for await (const payload of message.objectivePayloads) {
         let objective: Objective;
         try {
-          objective = this.getOrCreateObjective(payload);
+          objective = await this.getOrCreateObjective(payload);
         } catch (err) {
           return [new EngineEvent(), err as Error];
         }
@@ -366,7 +366,7 @@ export class Engine {
             [objective, sideEffects] = objective.reject();
 
             try {
-              this.store.setObjective(objective);
+              await this.store.setObjective(objective);
             } catch (err) {
               return [new EngineEvent(), err as Error];
             }
@@ -418,7 +418,7 @@ export class Engine {
 
         let o: Objective;
         try {
-          o = this.store.getObjectiveById(id);
+          o = await this.store.getObjectiveById(id);
         } catch (err) {
           return [new EngineEvent(), err as Error];
         }
@@ -456,7 +456,7 @@ export class Engine {
       for (const entry of message.rejectedObjectives) {
         let objective: Objective;
         try {
-          objective = this.store.getObjectiveById(entry);
+          objective = await this.store.getObjectiveById(entry);
         } catch (err) {
           return [new EngineEvent(), err as Error];
         }
@@ -471,7 +471,7 @@ export class Engine {
         // counterparty has already notified all other interested parties. We can therefore ignore the side effects
         [objective] = objective.reject();
         try {
-          this.store.setObjective(objective);
+          await this.store.setObjective(objective);
         } catch (err) {
           return [new EngineEvent(), err as Error];
         }
@@ -490,7 +490,7 @@ export class Engine {
           allCompleted.receivedVouchers.push(voucher);
         }
 
-        const [c, ok] = this.store.getChannelById(voucher.channelId);
+        const [c, ok] = await this.store.getChannelById(voucher.channelId);
         if (!ok) {
           return [new EngineEvent(), new Error(`could not fetch channel for voucher ${voucher}`)];
         }
@@ -498,7 +498,7 @@ export class Engine {
         let paid: bigint | undefined;
         let remaining: bigint | undefined;
         try {
-          [paid, remaining] = getVoucherBalance(c.id, this.vm);
+          [paid, remaining] = await getVoucherBalance(c.id, this.vm);
         } catch (err) {
           return [new EngineEvent(), err as Error];
         }
@@ -536,7 +536,7 @@ export class Engine {
       this.logger(`handling chain event: ${chainEvent.string()}`);
 
       // eslint-disable-next-line prefer-const
-      let [objective, ok] = this.store!.getObjectiveByChannelId(chainEvent.channelID());
+      let [objective, ok] = await this.store!.getObjectiveByChannelId(chainEvent.channelID());
 
       if (!ok) {
         // TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
@@ -602,7 +602,7 @@ export class Engine {
         case or instanceof VirtualFundObjectiveRequest: {
           let vfo: VirtualFundObjective;
           try {
-            vfo = VirtualFundObjective.newObjective(
+            vfo = await VirtualFundObjective.newObjective(
               or as VirtualFundObjectiveRequest,
               true,
               myAddress,
@@ -618,7 +618,7 @@ export class Engine {
           const lastParticipant = vfo.v!.participants.length - 1;
           if (vfo.myRole === lastParticipant || vfo.myRole === PAYER_INDEX) {
             try {
-              this.registerPaymentChannel(vfo);
+              await this.registerPaymentChannel(vfo);
             } catch (err) {
               throw new Error(`could not register channel with payment/receipt manager: ${err}`);
             }
@@ -631,9 +631,9 @@ export class Engine {
           let minAmount: bigint | undefined = BigInt(0);
           const request = or as VirtualDefundObjectiveRequest;
 
-          if (this.vm!.channelRegistered(request.channelId)) {
+          if (await this.vm!.channelRegistered(request.channelId)) {
             try {
-              const paid = this.vm!.paid(request.channelId);
+              const paid = await this.vm!.paid(request.channelId);
 
               minAmount = paid;
             } catch (err) {
@@ -642,7 +642,7 @@ export class Engine {
           }
 
           try {
-            const vdfo = VirtualDefundObjective.newObjective(
+            const vdfo = await VirtualDefundObjective.newObjective(
               request,
               true,
               myAddress,
@@ -660,7 +660,7 @@ export class Engine {
 
         case or instanceof DirectFundObjectiveRequest:
           try {
-            const dfo = DirectFundObjective.newObjective(
+            const dfo = await DirectFundObjective.newObjective(
               or as DirectFundObjectiveRequest,
               true,
               myAddress,
@@ -679,7 +679,7 @@ export class Engine {
           const request = or as DirectDefundObjectiveRequest;
           let ddfo: DirectDefundObjective;
           try {
-            ddfo = DirectDefundObjective.newObjective(
+            ddfo = await DirectDefundObjective.newObjective(
               request,
               true,
               this.store.getConsensusChannelById.bind(this.store),
@@ -723,7 +723,7 @@ export class Engine {
       throw new Error(`handleAPIEvent: Error making payment: ${err}`);
     }
 
-    const [c, ok] = this.store!.getChannelById(cId);
+    const [c, ok] = await this.store!.getChannelById(cId);
 
     if (!ok) {
       throw new Error(`handleAPIEvent: Could not get channel from the store ${cId}`);
@@ -738,7 +738,7 @@ export class Engine {
 
     let info: PaymentChannelInfo;
     try {
-      info = getPaymentChannelInfo(cId, this.store!, this.vm!);
+      info = await getPaymentChannelInfo(cId, this.store!, this.vm!);
     } catch (err) {
       throw new Error(`handleAPIEvent: Error querying channel info: ${err}`);
     }
@@ -831,9 +831,9 @@ export class Engine {
         return outgoing;
       }
 
-      this.store.setObjective(crankedObjective);
+      await this.store.setObjective(crankedObjective);
 
-      const notifEvents = this.generateNotifications(crankedObjective);
+      const notifEvents = await this.generateNotifications(crankedObjective);
 
       outgoing.merge(notifEvents);
 
@@ -844,7 +844,7 @@ export class Engine {
       // Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
       if (waitingFor === 'WaitingForNothing') {
         outgoing.completedObjectives = outgoing.completedObjectives.concat(crankedObjective);
-        this.store.releaseChannelFromOwnership(crankedObjective.ownsChannel());
+        await this.store.releaseChannelFromOwnership(crankedObjective.ownsChannel());
 
         try {
           this.spawnConsensusChannelIfDirectFundObjective(crankedObjective);
@@ -864,14 +864,14 @@ export class Engine {
   }
 
   // generateNotifications takes an objective and constructs notifications for any related channels for that objective.
-  private generateNotifications(o: Objective): EngineEvent {
+  private async generateNotifications(o: Objective): Promise<EngineEvent> {
     const outgoing = new EngineEvent();
 
     for (const rel of o.related()) {
       switch (rel.constructor) {
         case VirtualChannel: {
           const vc = rel as VirtualChannel;
-          const [paid, remaining] = getVoucherBalance(vc.id, this.vm!);
+          const [paid, remaining] = await getVoucherBalance(vc.id, this.vm!);
           const info = constructPaymentInfo(vc, paid, remaining);
           outgoing.paymentChannelUpdates.push(info);
 
@@ -903,7 +903,7 @@ export class Engine {
     return outgoing;
   }
 
-  private registerPaymentChannel(vfo: VirtualFundObjective): void {
+  private async registerPaymentChannel(vfo: VirtualFundObjective): Promise<void> {
     assert(vfo.v);
     const postfund = vfo.v.postFundState();
     let startingBalance: bigint = BigInt(0);
@@ -926,7 +926,7 @@ export class Engine {
   //
   // The associated Channel will remain in the store.
   // TODO: Can throw an error
-  private spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): void {
+  private async spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): Promise<void> {
     let deferredCompleteRecordFunction;
     try {
       const completeRecordFunction = this.metrics!.recordFunctionDuration(this.spawnConsensusChannelIfDirectFundObjective.name);
@@ -938,7 +938,7 @@ export class Engine {
         try {
           assert(this.store);
           this.store.setConsensusChannel(c);
-          this.store.destroyChannel(c.id);
+          await this.store.destroyChannel(c.id);
         } catch (err) {
           throw new Error(`Could not create, store, or destroy consensus channel for objective ${crankedObjective.id()}: ${err}`);
         }
@@ -952,7 +952,7 @@ export class Engine {
 
   // getOrCreateObjective retrieves the objective from the store.
   // If the objective does not exist, it creates the objective using the supplied payload and stores it in the store
-  private getOrCreateObjective(p: ObjectivePayload): Objective {
+  private async getOrCreateObjective(p: ObjectivePayload): Promise<Objective> {
     let deferredCompleteRecordFunction;
     try {
       const completeRecordFunction = this.metrics!.recordFunctionDuration(this.getOrCreateObjective.name);
@@ -963,13 +963,13 @@ export class Engine {
       const id = p.objectiveId;
 
       try {
-        const objective = this.store.getObjectiveById(id);
+        const objective = await this.store.getObjectiveById(id);
         return objective;
       } catch (err) {
         if ((err as Error).message.includes(ErrNoSuchObjective.message)) {
           let newObj: Objective;
           try {
-            newObj = this.constructObjectiveFromMessage(id, p);
+            newObj = await this.constructObjectiveFromMessage(id, p);
           } catch (constructErr) {
             throw new Error(`error constructing objective from message: ${constructErr}`);
           }
@@ -977,7 +977,7 @@ export class Engine {
           this.metrics!.recordObjectiveStarted(newObj.id());
 
           try {
-            this.store.setObjective(newObj);
+            await this.store.setObjective(newObj);
           } catch (setErr) {
             throw new Error(`error setting objective in store: ${setErr}`);
           }
@@ -998,7 +998,7 @@ export class Engine {
   }
 
   // constructObjectiveFromMessage Constructs a new objective (of the appropriate concrete type) from the supplied payload.
-  private constructObjectiveFromMessage(id: ObjectiveId, p: ObjectivePayload): Objective {
+  private async constructObjectiveFromMessage(id: ObjectiveId, p: ObjectivePayload): Promise<Objective> {
     let deferredCompleteRecordFunction;
     try {
       this.logger(`Constructing objective ${id} from message`);
@@ -1016,7 +1016,7 @@ export class Engine {
         case isVirtualFundObjective(id): {
           let vfo: VirtualFundObjective;
           try {
-            vfo = VirtualFundObjective.constructObjectiveFromPayload(
+            vfo = await VirtualFundObjective.constructObjectiveFromPayload(
               p,
               false,
               this.store.getAddress(),
@@ -1027,7 +1027,7 @@ export class Engine {
           }
 
           try {
-            this.registerPaymentChannel(vfo);
+            await this.registerPaymentChannel(vfo);
           } catch (err) {
             throw new Error(`could not register channel with payment/receipt manager.\n\ttarget channel: ${id}\n\terr: ${err}`);
           }
@@ -1043,10 +1043,10 @@ export class Engine {
           }
 
           let minAmount: bigint | undefined = BigInt(0);
-          if (this.vm.channelRegistered(vId)) {
+          if (await this.vm.channelRegistered(vId)) {
             let paid: bigint | undefined;
             try {
-              paid = this.vm.paid(vId);
+              paid = await this.vm.paid(vId);
             } catch (err) {
               throw new Error(`could not determine virtual channel id from objective ${id}: ${err}`);
             }
@@ -1056,7 +1056,7 @@ export class Engine {
 
           let vdfo: VirtualDefundObjective;
           try {
-            vdfo = VirtualDefundObjective.constructObjectiveFromPayload(
+            vdfo = await VirtualDefundObjective.constructObjectiveFromPayload(
               p,
               false,
               this.store.getAddress(),
@@ -1074,7 +1074,7 @@ export class Engine {
           let ddfo: DirectDefundObjective;
           try {
             // TODO: Implement
-            ddfo = DirectDefundObjective.constructObjectiveFromPayload(
+            ddfo = await DirectDefundObjective.constructObjectiveFromPayload(
               p,
               false,
               this.store.getConsensusChannelById.bind(this.store),

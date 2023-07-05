@@ -1,6 +1,7 @@
 import yargs from 'yargs';
 import debug from 'debug';
 import assert from 'assert';
+import path from 'path';
 import 'dotenv/config';
 
 import {
@@ -8,7 +9,9 @@ import {
   createOutcome,
   DEFAULT_CHAIN_URL,
 } from '@cerc-io/util';
-import { Destination, MemStore } from '@cerc-io/nitro-client';
+import {
+  Destination, DurableStore, MemStore, Store,
+} from '@cerc-io/nitro-client';
 import { JSONbigNative, hex2Bytes } from '@cerc-io/nitro-util';
 
 import { createP2PMessageService, waitForPeerInfoExchange } from './utils/index';
@@ -80,13 +83,23 @@ const getArgv = () => yargs.parserConfiguration({
     default: false,
     describe: 'Whether to close a ledger channel with the given counterparty',
   },
+  store: {
+    type: 'string',
+    describe: 'Directory path to use for DurableStore',
+  },
 }).argv;
 
 const main = async () => {
   const argv = getArgv();
   assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
-  const store = new MemStore(hex2Bytes(argv.pk));
+  let store: Store;
+  if (argv.store) {
+    store = DurableStore.newDurableStore(hex2Bytes(argv.pk), path.resolve(argv.store));
+  } else {
+    store = new MemStore(hex2Bytes(argv.pk));
+  }
+
   const msgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, argv.port, store.getAddress());
 
   const [client] = await setupClient(
@@ -150,7 +163,7 @@ const main = async () => {
       log(`Ledger channel created with id ${ledgerChannelResponse.channelId.string()}`);
       ledgerChannelId = ledgerChannelResponse.channelId;
 
-      const ledgerChannelStatus = client.getLedgerChannel(ledgerChannelId);
+      const ledgerChannelStatus = await client.getLedgerChannel(ledgerChannelId);
       log(`Ledger channel ${ledgerChannelId.string()} status:\n`, JSONbigNative.stringify(ledgerChannelStatus, null, 2));
     }
 
@@ -180,7 +193,7 @@ const main = async () => {
       log(`Virtual payment channel created with id ${virtualPaymentChannelResponse.channelId.string()}`);
       const virtualPaymentChannelId = virtualPaymentChannelResponse.channelId;
 
-      let virtualPaymentChannelStatus = client.getPaymentChannel(virtualPaymentChannelId);
+      let virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
       log(
         `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
         JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
@@ -194,7 +207,7 @@ const main = async () => {
         const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
         await delay(3000);
 
-        virtualPaymentChannelStatus = client.getPaymentChannel(virtualPaymentChannelId);
+        virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
         log(
           `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
           JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
@@ -206,7 +219,7 @@ const main = async () => {
         await client.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
         log(`Virtual payment channel with id ${virtualPaymentChannelResponse.channelId.string()} closed`);
 
-        virtualPaymentChannelStatus = client.getPaymentChannel(virtualPaymentChannelId);
+        virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
         log(
           `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
           JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
@@ -220,7 +233,7 @@ const main = async () => {
       await client.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
       log(`Ledger channel with id ${ledgerChannelId.string()} closed`);
 
-      const ledgerChannelStatus = client.getLedgerChannel(ledgerChannelId);
+      const ledgerChannelStatus = await client.getLedgerChannel(ledgerChannelId);
       log(`Ledger channel ${ledgerChannelId.string()} status:\n`, JSONbigNative.stringify(ledgerChannelStatus, null, 2));
     }
 

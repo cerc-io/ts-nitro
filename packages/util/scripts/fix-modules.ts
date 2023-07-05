@@ -33,6 +33,12 @@ const MODULES = [
       './keys',
     ],
   },
+  {
+    path: '../../node_modules/@multiformats/multiaddr',
+    subPaths: [
+      '.',
+    ],
+  },
 ];
 
 async function main() {

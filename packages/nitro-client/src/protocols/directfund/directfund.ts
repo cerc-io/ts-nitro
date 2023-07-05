@@ -48,13 +48,13 @@ export function fundOnChainEffect(cId: Destination, asset: string, amount: Funds
 
 // GetChannelByIdFunction specifies a function that can be used to retrieve channels from a store.
 interface GetChannelsByParticipantFunction {
-  (participant: Address): channel.Channel[];
+  (participant: Address): channel.Channel[] | Promise<channel.Channel[]>;
 }
 
 // GetTwoPartyConsensusLedgerFuncion describes functions which return a ConsensusChannel ledger channel between
 // the calling client and the given counterparty, if such a channel exists.
 interface GetTwoPartyConsensusLedgerFunction {
-  (counterparty: Address): [ConsensusChannel | undefined, boolean];
+  (counterparty: Address): [ConsensusChannel | undefined, boolean] | Promise<[ConsensusChannel | undefined, boolean]>;
 }
 
 // getSignedStatePayload takes in a serialized signed state payload and returns the deserialized SignedState.
@@ -67,12 +67,12 @@ const getSignedStatePayload = (b: Buffer): SignedState => {
 };
 
 // channelsExistWithCounterparty returns true if a channel or consensus_channel exists with the counterparty
-const channelsExistWithCounterparty = (
+const channelsExistWithCounterparty = async (
   counterparty: Address,
   getChannels: GetChannelsByParticipantFunction,
   getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
-): boolean => {
-  const channels = getChannels(counterparty);
+): Promise<boolean> => {
+  const channels = await getChannels(counterparty);
 
   for (const c of channels) {
     if (c.participants.length === 2) {
@@ -80,7 +80,7 @@ const channelsExistWithCounterparty = (
     }
   }
 
-  const [, ok] = getTwoPartyConsensusLedger(counterparty);
+  const [, ok] = await getTwoPartyConsensusLedger(counterparty);
 
   return ok;
 };
@@ -131,14 +131,14 @@ export class Objective implements ObjectiveInterface {
     Object.assign(this, params);
   }
 
-  public static newObjective(
+  public static async newObjective(
     request: ObjectiveRequest,
     preApprove: boolean,
     myAddress: Address,
     chainId: bigint | undefined,
     getChannels: GetChannelsByParticipantFunction,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
-  ): Objective {
+  ): Promise<Objective> {
     const initialState = new State({
       participants: [myAddress, request.counterParty],
       channelNonce: request.nonce,
@@ -171,7 +171,7 @@ export class Objective implements ObjectiveInterface {
       throw new Error(`could not create new objective: ${err}`);
     }
 
-    if (channelsExistWithCounterparty(request.counterParty, getChannels, getTwoPartyConsensusLedger)) {
+    if (await channelsExistWithCounterparty(request.counterParty, getChannels, getTwoPartyConsensusLedger)) {
       throw new Error(`A channel already exists with counterparty ${request.counterParty}`);
     }
 
