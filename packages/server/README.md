@@ -67,7 +67,25 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   # ts-nitro:server Ledger channel created with id 0xc47be3b1d43b90be058eaad3cd4f2250e4f9645792125011003bc548d33d2ebc
   ```
 
-  <!-- TODO: getLedgerChannel -->
+* Run command to get ledger channel information
+
+  ```bash
+  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --get-ledger-channel --ledger-channel 0xc47be3b1d43b90be058eaad3cd4f2250e4f9645792125011003bc548d33d2ebc
+
+  # Expected output:
+  #   ts-nitro:server Ledger channel 0xc659e1bfdba882e256d590ecc032260e2c582c378a403d30818cfc0f1eafec3a status:
+  # ts-nitro:server  {
+  #   "ID": "0xc47be3b1d43b90be058eaad3cd4f2250e4f9645792125011003bc548d33d2ebc",
+  #   "Status": "Open",
+  #   "Balance": {
+  #     "AssetAddress": "0x0000000000000000000000000000000000000000",
+  #     "Hub": "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
+  #     "Client": "0xbbb676f9cff8d242e9eac39d063848807d3d1d94",
+  #     "HubBalance": 1000000,
+  #     "ClientBalance": 1000000
+  #   }
+  #   } +2ms
+  ```
 
 * Run client for Bob again to create virtual payment channel:
 
@@ -79,12 +97,30 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   # ts-nitro:server Virtual payment channel created with id 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
   ```
 
-  <!-- TODO: getPaymentChannel -->
+* Run command to get payment channel information
+
+  ```bash
+  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --get-payment-channel --payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
+
+  # Expected output:
+  # ts-nitro:server Virtual payment channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af status:
+  # ts-nitro:server  {
+  #   "ID": "0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af",
+  #   "Status": "Open",
+  #   "Balance": {
+  #     "AssetAddress": "0x0000000000000000000000000000000000000000",
+  #     "Payee": "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
+  #     "Payer": "0xbbb676f9cff8d242e9eac39d063848807d3d1d94",
+  #     "PaidSoFar": 0,
+  #     "RemainingFunds": 1000
+  #   }
+  # } +1ms
+  ```
 
 * Run client for Bob to make payment with virtual payment channel id from above:
 
   ```bash
-  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --pay 50 --virtual-payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af --wait
+  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --pay 50 --payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af --wait
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -114,7 +150,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Close virtual payment channel using client Bob (Get channel id from `virtual-fund` logs)
 
   ```bash
-  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --virtual-defund --virtual-payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
+  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --virtual-defund --payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af --get-payment-channel
 
   # Final Expected output:
   # ts-nitro:engine Objective VirtualDefund-0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa is complete & returned to API +1ms
@@ -124,7 +160,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Close the ledger channel using client Bob (Get channel id from `direct-fund` logs)
 
   ```bash
-  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --direct-defund --ledger-channel 0xc47be3b1d43b90be058eaad3cd4f2250e4f9645792125011003bc548d33d2ebc
+  yarn start -p 3005 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --direct-defund --ledger-channel 0xc47be3b1d43b90be058eaad3cd4f2250e4f9645792125011003bc548d33d2ebc --get-ledger-channel
 
   # Final Expected output:
   # ts-nitro:engine Objective DirectDefunding-0x49ee60de0e1beebdf6070690cde0f66c86d576a6b2721001e6f7b0eaa11b3223 is complete & returned to API +1ms

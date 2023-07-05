@@ -70,6 +70,16 @@ const getArgv = () => yargs.parserConfiguration({
     default: false,
     describe: 'Whether to create a virtual payment channel with the given counterparty',
   },
+  getLedgerChannel: {
+    type: 'boolean',
+    default: false,
+    describe: 'Whether to get information about a ledger channel',
+  },
+  getPaymentChannel: {
+    type: 'boolean',
+    default: false,
+    describe: 'Whether to get information about a virtual payment channel',
+  },
   pay: {
     type: 'number',
     describe: 'Amount to pay on the virtual payment channel with the given counterparty',
@@ -88,7 +98,7 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'Directory path to use for DurableStore',
   },
-  virtualPaymentChannel: {
+  paymentChannel: {
     type: 'string',
     describe: 'Id of virtual payment channel to use',
   },
@@ -147,6 +157,8 @@ const main = async () => {
     await waitForPeerInfoExchange(1, [msgService]);
   }
 
+  let ledgerChannelIdString = argv.ledgerChannel;
+  let paymentChannelIdString = argv.paymentChannel;
   const counterParty = argv.counterparty;
   const asset = `0x${'00'.repeat(20)}`;
 
@@ -174,10 +186,7 @@ const main = async () => {
 
     await client.objectiveCompleteChan(ledgerChannelResponse.id).shift();
     log(`Ledger channel created with id ${ledgerChannelResponse.channelId.string()}`);
-    const ledgerChannelId = ledgerChannelResponse.channelId;
-
-    const ledgerChannelStatus = await client.getLedgerChannel(ledgerChannelId);
-    log(`Ledger channel ${ledgerChannelId.string()} status:\n`, JSONbigNative.stringify(ledgerChannelStatus, null, 2));
+    ledgerChannelIdString = ledgerChannelResponse.channelId.string();
   }
 
   if (argv.virtualFund) {
@@ -205,53 +214,54 @@ const main = async () => {
 
     await client.objectiveCompleteChan(virtualPaymentChannelResponse.id).shift();
     log(`Virtual payment channel created with id ${virtualPaymentChannelResponse.channelId.string()}`);
-    const virtualPaymentChannelId = virtualPaymentChannelResponse.channelId;
-
-    const virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
-    log(
-      `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
-      JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
-    );
+    paymentChannelIdString = virtualPaymentChannelResponse.channelId.string();
   }
 
   if (argv.pay !== undefined) {
-    assert(argv.virtualPaymentChannel, 'Provide virtual-payment-channel id for payment');
-    const virtualPaymentChannelId = new Destination(argv.virtualPaymentChannel);
+    assert(argv.paymentChannel, 'Provide virtual-payment-channel id for payment');
+    const virtualPaymentChannelId = new Destination(argv.paymentChannel);
     await client.pay(virtualPaymentChannelId, BigInt(argv.pay));
 
     // TODO: Wait for the payment to be processed
-
-    const virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
-    log(
-      `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
-      JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
-    );
   }
 
   if (argv.virtualDefund) {
-    assert(argv.virtualPaymentChannel, 'Provide virtual-payment-channel id to close channel');
-    const virtualPaymentChannelId = new Destination(argv.virtualPaymentChannel);
+    assert(paymentChannelIdString, 'Provide virtual-payment-channel id to close channel');
+    const virtualPaymentChannelId = new Destination(paymentChannelIdString);
     const closeVirtualChannelObjectiveId = await client.closeVirtualChannel(virtualPaymentChannelId);
     await client.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
     log(`Virtual payment channel with id ${virtualPaymentChannelId.string()} closed`);
-
-    const virtualPaymentChannelStatus = await client.getPaymentChannel(virtualPaymentChannelId);
-    log(
-      `Virtual payment channel ${virtualPaymentChannelId.string()} status:\n`,
-      JSONbigNative.stringify(virtualPaymentChannelStatus, null, 2),
-    );
   }
 
   if (argv.directDefund) {
-    assert(argv.ledgerChannel, 'Provide ledger-channel id for payment');
-    const ledgerChannelId: Destination = new Destination(argv.ledgerChannel);
+    assert(ledgerChannelIdString, 'Provide ledger-channel id for payment');
+    const ledgerChannelId: Destination = new Destination(ledgerChannelIdString);
     const closeLedgerChannelObjectiveId = await client.closeLedgerChannel(ledgerChannelId);
 
     await client.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
     log(`Ledger channel with id ${ledgerChannelId.string()} closed`);
+  }
 
+  if (argv.getLedgerChannel) {
+    assert(ledgerChannelIdString, 'Provide ledger-channel id for get-ledger-channel');
+    const ledgerChannelId = new Destination(ledgerChannelIdString);
     const ledgerChannelStatus = await client.getLedgerChannel(ledgerChannelId);
-    log(`Ledger channel ${ledgerChannelId.string()} status:\n`, JSONbigNative.stringify(ledgerChannelStatus, null, 2));
+
+    log(
+      `Ledger channel ${ledgerChannelId.string()} status:\n`,
+      JSONbigNative.stringify(ledgerChannelStatus, null, 2),
+    );
+  }
+
+  if (argv.getPaymentChannel) {
+    assert(paymentChannelIdString, 'Provide payment-channel id for get-payment-channel');
+    const paymentChannelId = new Destination(paymentChannelIdString);
+    const paymentChannelStatus = await client.getLedgerChannel(paymentChannelId);
+
+    log(
+      `Virtual payment channel ${paymentChannelId.string()} status:\n`,
+      JSONbigNative.stringify(paymentChannelStatus, null, 2),
+    );
   }
 
   // Call async method to log message on receiving vouchers

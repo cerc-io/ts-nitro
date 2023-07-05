@@ -3,7 +3,7 @@ import debug from 'debug';
 import {
   Client, Destination, DurableStore, MemStore, P2PMessageService, Store,
 } from '@cerc-io/nitro-client';
-import { hex2Bytes } from '@cerc-io/nitro-util';
+import { JSONbigNative, hex2Bytes } from '@cerc-io/nitro-util';
 
 import { createOutcome, setupClient, subscribeVoucherLogs } from './helpers';
 
@@ -129,5 +129,25 @@ export class Nitro {
 
     await this.client.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
     log(`Ledger channel with id ${ledgerChannelId.string()} closed`);
+  }
+
+  async getLedgerChannel(ledgerChannel: string): Promise<void> {
+    const ledgerChannelId = new Destination(ledgerChannel);
+    const ledgerChannelStatus = await this.client.getLedgerChannel(ledgerChannelId);
+
+    log(
+      `Ledger channel ${ledgerChannelId.string()} status:\n`,
+      JSONbigNative.stringify(ledgerChannelStatus, null, 2),
+    );
+  }
+
+  async getPaymentChannel(paymentChannel: string): Promise<void> {
+    const paymentChannelId = new Destination(paymentChannel);
+    const paymentChannelStatus = await this.client.getLedgerChannel(paymentChannelId);
+
+    log(
+      `Virtual payment channel ${paymentChannelId.string()} status:\n`,
+      JSONbigNative.stringify(paymentChannelStatus, null, 2),
+    );
   }
 }
