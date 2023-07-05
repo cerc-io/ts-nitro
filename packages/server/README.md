@@ -41,12 +41,6 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
 ### Run
 
-* In `nodejs-ts-nitro` repo change directory to `packages/server`
-
-    ```bash
-    cd packages/server
-    ```
-
 * Run a client for Alice (`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`):
 
   ```bash
