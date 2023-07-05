@@ -34,12 +34,6 @@ Run relay node using v2 watcher
     yarn build:browser --ignore @cerc-io/example-web-app
     ```
 
-  * Run script to workaround build issue in react app with ESM modules
-
-    ```
-    yarn build:fix-modules
-    ```
-
   * Set the relay node multiaddr in example-web-app [.env](./packages/example-web-app/.env)
 
   * Run browser app in dev mode
@@ -73,14 +67,14 @@ Run relay node using v2 watcher
 
   * Refresh the app for enabling logs
 
-  * Call method `setupClient('erin')`
+  * Call method `tsNitro.setupClient('erin')`
 
   * Wait for `New peer found` log in console
 
-  * Call method `directFund` with address of client Alice and check logs
+  * Call method `tsNitro.directFund` with address of client Alice and check logs
 
     ```
-    directFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
+    tsNitro.directFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
     ```
 
     Final expected log
@@ -90,10 +84,10 @@ Run relay node using v2 watcher
     Ledger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
     ```
 
-  * Call method `virtualFund` with address of client Alice
+  * Call method `tsNitro.virtualFund` with address of client Alice
 
     ```
-    virtualFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
+    tsNitro.virtualFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
     ```
 
     Final expected log

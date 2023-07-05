@@ -17,12 +17,15 @@ import { createP2PMessageService } from './utils';
 
 declare global {
   interface Window {
-    setupClient: (name: string) => Promise<void>
-    client?: Client;
-    msgService?: P2PMessageService;
-    addPeerByMultiaddr?: (address: string, multiaddrString: string) => Promise<void>
-    directFund?: (clientAddress: string) => Promise<void>
-    virtualFund?: (clientAddress: string) => Promise<void>
+    tsNitro: {
+      setupClient: (name: string) => Promise<void>
+      destroyDB: (name: string) => Promise<void>
+      client?: Client;
+      msgService?: P2PMessageService;
+      addPeerByMultiaddr?: (address: string, multiaddrString: string) => Promise<void>
+      directFund?: (clientAddress: string) => Promise<void>
+      virtualFund?: (clientAddress: string) => Promise<void>
+    }
   }
 }
 
@@ -62,11 +65,18 @@ function App () {
   }, []);
 
   useEffect(() => {
-    window.setupClient = async (name: string, useDurableStore = false) => {
-      const actor = ACTORS[name];
-      assert(actor, `Actor with name ${name} does not exists`);
+    window.tsNitro = {
+      setupClient: async (name: string) => {
+        const actor = ACTORS[name];
+        assert(actor, `Actor with name ${name} does not exists`);
 
-      await init(actor.privateKey, actor.chainPrivateKey, useDurableStore ? `${name}-db` : undefined);
+        await init(actor.privateKey, actor.chainPrivateKey, `${name}-db`);
+      },
+      destroyDB: async () => {
+        // Delete all databases
+        const dbs = await window.indexedDB.databases();
+        dbs.forEach(db => window.indexedDB.deleteDatabase(db.name!));
+      }
     };
   }, [init]);
 
@@ -75,9 +85,9 @@ function App () {
       return;
     }
 
-    window.msgService = msgService;
+    window.tsNitro.msgService = msgService;
 
-    window.addPeerByMultiaddr = async (address: string, multiaddrString: string) => {
+    window.tsNitro.addPeerByMultiaddr = async (address: string, multiaddrString: string) => {
       const multi = multiaddr(multiaddrString);
       await msgService!.addPeerByMultiaddr(address, multi);
     };
@@ -88,14 +98,14 @@ function App () {
       return;
     }
 
-    window.client = client;
+    window.tsNitro.client = client;
     const challengeDuration = 0;
     const asset = `0x${'00'.repeat(20)}`;
 
-    window.directFund = async (counterParty: string) => {
+    window.tsNitro.directFund = async (counterParty: string) => {
       const outcome = createOutcome(
         asset,
-        window.client!.address,
+        client!.address,
         counterParty,
         1_000_000
       );
@@ -110,7 +120,7 @@ function App () {
       console.log(`Ledger channel created with id ${response.channelId.string()}\n`);
     };
 
-    window.virtualFund = async (counterParty: string) => {
+    window.tsNitro.virtualFund = async (counterParty: string) => {
       const intermediaries: string[] = [];
       const outcome = createOutcome(
         asset,

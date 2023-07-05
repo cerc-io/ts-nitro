@@ -83,7 +83,7 @@ const getArgv = () => yargs.parserConfiguration({
     default: false,
     describe: 'Whether to close a ledger channel with the given counterparty',
   },
-  durableStore: {
+  store: {
     type: 'string',
     describe: 'Directory path to use for DurableStore',
   },
@@ -94,8 +94,8 @@ const main = async () => {
   assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
   let store: Store;
-  if (argv.durableStore) {
-    store = DurableStore.newDurableStore(hex2Bytes(argv.pk), path.resolve(argv.durableStore));
+  if (argv.store) {
+    store = DurableStore.newDurableStore(hex2Bytes(argv.pk), path.resolve(argv.store));
   } else {
     store = new MemStore(hex2Bytes(argv.pk));
   }

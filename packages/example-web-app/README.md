@@ -37,12 +37,6 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
   yarn build:browser --ignore @cerc-io/example-web-app
   ```
 
-* Run script to workaround build issue in react app with ESM modules
-
-  ```
-  yarn build:fix-modules
-  ```
-
 * Set the relay node multiaddr in example-web-app [.env](./.env)
 
 * Run browser app in dev mode
@@ -60,22 +54,16 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
 * Refresh the apps for enabling logs
 
-* Call methods `setupClient('erin')` and `setupClient('charlie')` separately in the 2 browsers
-
-  * To setup client with durable store (indexedDB) call setupClient like this:
-
-    ```
-    setupClient('erin', true)
-    ```
+* Call methods `tsNitro.setupClient('erin')` and `tsNitro.setupClient('charlie')` separately in the 2 browsers
 
 * Wait for `New peer found` log in console
 
-* Call method `directFund` with address of the other browser client and check logs
+* Call method `tsNitro.directFund` with address of the other browser client and check logs
 
-  * For example, call directFund in Erin browser with Charlie's address
+  * For example, call `tsNitro.directFund` in Erin browser with Charlie's address
 
     ```
-    directFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
+    tsNitro.directFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
     ```
 
   * Final expected log
@@ -85,12 +73,12 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
     Ledger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
     ```
 
-* Call method `virtualFund` with address of the other browser client and check logs
+* Call method `tsNitro.virtualFund` with address of the other browser client and check logs
 
-  * Call virtualFund in Erin browser with Charlie's address
+  * Call `tsNitro.virtualFund` in Erin browser with Charlie's address
 
     ```
-    virtualFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
+    tsNitro.virtualFund('0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d')
     ```
 
   * Final expected log
@@ -139,24 +127,32 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 
 * Refresh the app for enabling logs
 
-* Call method `setupClient('erin')`
+* Call method `tsNitro.setupClient('erin')`
 
-* Call method `addPeerByMultiaddr` to connect to client Bob
-
-  ```
-  addPeerByMultiaddr('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94', '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmJDxLM8rSybX78FH51iZq9PdrwCoCyyHRBCndNzcAYMes')
-  ```
-
-* Call method `directFund` with address of client Bob and check logs
+* Call method `tsNitro.addPeerByMultiaddr` to connect to client Bob
 
   ```
-  directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94')
+  tsNitro.addPeerByMultiaddr('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94', '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmJDxLM8rSybX78FH51iZq9PdrwCoCyyHRBCndNzcAYMes')
+  ```
+
+* Call method `tsNitro.directFund` with address of client Bob and check logs
+
+  ```
+  tsNitro.directFund('0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94')
   ```
 
 * Final expected log
 
   ```
   ts-nitro:engine Objective DirectFunding-0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978 is complete & returned to API +22ms
+  ```
+
+## Clean up
+
+* Destroy all IndexedDB databases for clients created in the browser
+
+  ```
+  tsNitro.destroyDB()
   ```
 
 ## Getting Started with Create React App

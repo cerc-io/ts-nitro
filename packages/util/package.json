@@ -16,7 +16,7 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "build": "yarn clean && tsc",
+    "build": "yarn clean && tsc && if [ \"$TARGET\" = \"browser\" ]; then yarn build:fix-modules; fi",
     "clean": "rm -rf ./dist",
     "test:deploy-contracts": "yarn ts-node scripts/deploy-contracts.ts",
     "build:fix-modules": "yarn ts-node scripts/fix-modules.ts"
