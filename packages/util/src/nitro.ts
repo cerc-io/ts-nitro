@@ -58,7 +58,7 @@ export class Nitro {
 
     const msgService = await createP2PMessageService(relayMultiaddr, store.getAddress());
 
-    const [client] = await setupClient(
+    const client = await setupClient(
       msgService,
       store,
       {
