@@ -1,11 +1,11 @@
 import debug from 'debug';
 
 import {
-  Client, DurableStore, MemStore, P2PMessageService, Store,
+  Client, Destination, DurableStore, MemStore, P2PMessageService, Store,
 } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
 
-import { createOutcome, setupClient } from './helpers';
+import { createOutcome, setupClient, subscribeVoucherLogs } from './helpers';
 
 const log = debug('ts-nitro:util:nitro');
 
@@ -52,6 +52,7 @@ export class Nitro {
       },
     );
 
+    subscribeVoucherLogs(client);
     return new Nitro(client, msgService);
   }
 
@@ -60,6 +61,8 @@ export class Nitro {
     const dbs = await window.indexedDB.databases();
     dbs.forEach((db) => window.indexedDB.deleteDatabase(db.name!));
   }
+
+  // TODO: Implement close method
 
   async addPeerByMultiaddr(address: string, multiaddrString: string): Promise<void> {
     const { multiaddr } = await import('@multiformats/multiaddr');
@@ -103,5 +106,28 @@ export class Nitro {
 
     await this.client.objectiveCompleteChan(response.id).shift();
     log(`Virtual payment channel created with id ${response.channelId.string()}\n`);
+  }
+
+  async pay(virtualPaymentChannel: string, amount: number): Promise<void> {
+    const virtualPaymentChannelId = new Destination(virtualPaymentChannel);
+    await this.client.pay(virtualPaymentChannelId, BigInt(amount));
+
+    // TODO: Wait for the payment to be processed
+  }
+
+  async virtualDefund(virtualPaymentChannel: string): Promise<void> {
+    const virtualPaymentChannelId = new Destination(virtualPaymentChannel);
+    const closeVirtualChannelObjectiveId = await this.client.closeVirtualChannel(virtualPaymentChannelId);
+
+    await this.client.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
+    log(`Virtual payment channel with id ${virtualPaymentChannelId.string()} closed`);
+  }
+
+  async directDefund(ledgerChannel: string): Promise<void> {
+    const ledgerChannelId: Destination = new Destination(ledgerChannel);
+    const closeLedgerChannelObjectiveId = await this.client.closeLedgerChannel(ledgerChannelId);
+
+    await this.client.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
+    log(`Ledger channel with id ${ledgerChannelId.string()} closed`);
   }
 }

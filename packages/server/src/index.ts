@@ -8,11 +8,12 @@ import {
   setupClient,
   createOutcome,
   DEFAULT_CHAIN_URL,
+  subscribeVoucherLogs,
 } from '@cerc-io/util';
 import {
   Destination, DurableStore, MemStore, Store,
 } from '@cerc-io/nitro-client';
-import { JSONbigNative, hex2Bytes, go } from '@cerc-io/nitro-util';
+import { JSONbigNative, hex2Bytes } from '@cerc-io/nitro-util';
 
 import { createP2PMessageService, waitForPeerInfoExchange } from './utils/index';
 import { DirectFundParams, VirtualFundParams } from './types';
@@ -253,18 +254,8 @@ const main = async () => {
     log(`Ledger channel ${ledgerChannelId.string()} status:\n`, JSONbigNative.stringify(ledgerChannelStatus, null, 2));
   }
 
-  go(async () => {
-    while (true) {
-      // eslint-disable-next-line no-await-in-loop
-      const voucher = await client.receivedVouchers().shift();
-
-      if (voucher === undefined) {
-        break;
-      }
-
-      log(`Received voucher: ${JSONbigNative.stringify(voucher, null, 2)}`);
-    }
-  });
+  // Call async method to log message on receiving vouchers
+  subscribeVoucherLogs(client);
 
   // TODO: Update instructions in browser setup
   // TODO: Update instructions for ts-nitro - go-nitro setup
