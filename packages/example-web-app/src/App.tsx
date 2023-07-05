@@ -17,9 +17,9 @@ import { createP2PMessageService } from './utils';
 
 declare global {
   interface Window {
-    tsNitro: {
+    nitro: {
       setupClient: (name: string) => Promise<void>
-      destroyDB: (name: string) => Promise<void>
+      clearClientStorage: (name: string) => Promise<void>
       client?: Client;
       msgService?: P2PMessageService;
       addPeerByMultiaddr?: (address: string, multiaddrString: string) => Promise<void>
@@ -65,14 +65,14 @@ function App () {
   }, []);
 
   useEffect(() => {
-    window.tsNitro = {
+    window.nitro = {
       setupClient: async (name: string) => {
         const actor = ACTORS[name];
         assert(actor, `Actor with name ${name} does not exists`);
 
         await init(actor.privateKey, actor.chainPrivateKey, `${name}-db`);
       },
-      destroyDB: async () => {
+      clearClientStorage: async () => {
         // Delete all databases
         const dbs = await window.indexedDB.databases();
         dbs.forEach(db => window.indexedDB.deleteDatabase(db.name!));
@@ -85,9 +85,9 @@ function App () {
       return;
     }
 
-    window.tsNitro.msgService = msgService;
+    window.nitro.msgService = msgService;
 
-    window.tsNitro.addPeerByMultiaddr = async (address: string, multiaddrString: string) => {
+    window.nitro.addPeerByMultiaddr = async (address: string, multiaddrString: string) => {
       const multi = multiaddr(multiaddrString);
       await msgService!.addPeerByMultiaddr(address, multi);
     };
@@ -98,11 +98,11 @@ function App () {
       return;
     }
 
-    window.tsNitro.client = client;
+    window.nitro.client = client;
     const challengeDuration = 0;
     const asset = `0x${'00'.repeat(20)}`;
 
-    window.tsNitro.directFund = async (counterParty: string) => {
+    window.nitro.directFund = async (counterParty: string) => {
       const outcome = createOutcome(
         asset,
         client!.address,
@@ -120,7 +120,7 @@ function App () {
       console.log(`Ledger channel created with id ${response.channelId.string()}\n`);
     };
 
-    window.tsNitro.virtualFund = async (counterParty: string) => {
+    window.nitro.virtualFund = async (counterParty: string) => {
       const intermediaries: string[] = [];
       const outcome = createOutcome(
         asset,

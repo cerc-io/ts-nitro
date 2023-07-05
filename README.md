@@ -67,14 +67,14 @@ Run relay node using v2 watcher
 
   * Refresh the app for enabling logs
 
-  * Call method `tsNitro.setupClient('erin')`
+  * Call method `nitro.setupClient('erin')`
 
   * Wait for `New peer found` log in console
 
-  * Call method `tsNitro.directFund` with address of client Alice and check logs
+  * Call method `nitro.directFund` with address of client Alice and check logs
 
     ```
-    tsNitro.directFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
+    nitro.directFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
     ```
 
     Final expected log
@@ -84,10 +84,10 @@ Run relay node using v2 watcher
     Ledger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
     ```
 
-  * Call method `tsNitro.virtualFund` with address of client Alice
+  * Call method `nitro.virtualFund` with address of client Alice
 
     ```
-    tsNitro.virtualFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
+    nitro.virtualFund('0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE')
     ```
 
     Final expected log
