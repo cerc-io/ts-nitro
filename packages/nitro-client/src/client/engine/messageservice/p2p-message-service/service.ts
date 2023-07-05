@@ -339,7 +339,6 @@ export class BaseP2PMessageService implements MessageService {
     /* eslint-disable no-await-in-loop */
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
-        // eslint-disable-next-line no-await-in-loop
         const s = await this.p2pHost.dialProtocol(peerInfo.id, PROTOCOL_ID);
 
         // TODO: Implement buffered writer

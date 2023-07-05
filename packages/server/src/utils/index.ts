@@ -19,9 +19,9 @@ export const createP2PMessageService = async (relayMultiAddr: string, port: numb
 };
 
 // waitForPeerInfoExchange waits for all the P2PMessageServices to receive peer info from each other
-/* eslint-disable no-await-in-loop */
 export async function waitForPeerInfoExchange(numOfPeers: number, services: P2PMessageService[]) {
   for (let i = 0; i < numOfPeers; i += 1) {
+    /* eslint-disable no-await-in-loop */
     await Promise.all(services.map((service) => service.peerInfoReceived().shift()));
   }
 }

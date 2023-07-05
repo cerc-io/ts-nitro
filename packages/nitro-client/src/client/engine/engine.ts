@@ -359,7 +359,7 @@ export class Engine {
             if (objective instanceof DirectDefundObjective) {
               // If we just approved a direct defund objective, destroy the consensus channel
               // to prevent it being used (a Channel will now take over governance)
-              this.store.destroyConsensusChannel(objective.c!.id);
+              await this.store.destroyConsensusChannel(objective.c!.id);
             }
           } else {
             let sideEffects: SideEffects;
@@ -453,7 +453,7 @@ export class Engine {
         allCompleted.merge(progressEvent);
       }
 
-      for (const entry of message.rejectedObjectives) {
+      for await (const entry of message.rejectedObjectives) {
         let objective: Objective;
         try {
           objective = await this.store.getObjectiveById(entry);
@@ -479,14 +479,13 @@ export class Engine {
         allCompleted.completedObjectives.push(objective);
       }
 
-      for (const voucher of message.payments) {
+      for await (const voucher of message.payments) {
         try {
           // TODO: return the amount we paid?
-          this.vm.receive(voucher);
+          await this.vm.receive(voucher);
         } catch (err) {
           return [new EngineEvent(), new Error(`error accepting payment voucher: ${err}`)];
         } finally {
-          // TODO: Check correctness
           allCompleted.receivedVouchers.push(voucher);
         }
 
@@ -689,7 +688,7 @@ export class Engine {
           }
           this.metrics!.recordObjectiveStarted(ddfo.id());
           // If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-          this.store.destroyConsensusChannel(request.channelId);
+          await this.store.destroyConsensusChannel(request.channelId);
           return await this.attemptProgress(ddfo);
         }
 
@@ -847,7 +846,7 @@ export class Engine {
         await this.store.releaseChannelFromOwnership(crankedObjective.ownsChannel());
 
         try {
-          this.spawnConsensusChannelIfDirectFundObjective(crankedObjective);
+          await this.spawnConsensusChannelIfDirectFundObjective(crankedObjective);
         } catch (err) {
           return outgoing;
         }
@@ -867,7 +866,7 @@ export class Engine {
   private async generateNotifications(o: Objective): Promise<EngineEvent> {
     const outgoing = new EngineEvent();
 
-    for (const rel of o.related()) {
+    for await (const rel of o.related()) {
       switch (rel.constructor) {
         case VirtualChannel: {
           const vc = rel as VirtualChannel;
@@ -937,7 +936,9 @@ export class Engine {
         const c: ConsensusChannel = dfo.createConsensusChannel();
         try {
           assert(this.store);
-          this.store.setConsensusChannel(c);
+          await this.store.setConsensusChannel(c);
+
+          // Destroy the channel since the consensus channel takes over governance:
           await this.store.destroyChannel(c.id);
         } catch (err) {
           throw new Error(`Could not create, store, or destroy consensus channel for objective ${crankedObjective.id()}: ${err}`);

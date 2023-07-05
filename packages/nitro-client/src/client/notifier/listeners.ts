@@ -26,7 +26,6 @@ export class PaymentChannelListeners {
     return new PaymentChannelListeners({ listeners: [] });
   }
 
-  /* eslint-disable no-await-in-loop */
   // Notify notifies all listeners of a payment channel update.
   // It only notifies listeners if the new info is different from the previous info.
   async notify(info: PaymentChannelInfo): Promise<void> {
@@ -34,7 +33,7 @@ export class PaymentChannelListeners {
       return;
     }
 
-    for (const [, list] of this.listeners!.entries()) {
+    for await (const [, list] of this.listeners!.entries()) {
       await list.push(info);
     }
     this.prev = info;

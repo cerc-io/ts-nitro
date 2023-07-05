@@ -1,7 +1,5 @@
 import debug from 'debug';
 
-// @ts-expect-error
-import { multiaddr } from '@multiformats/multiaddr';
 import {
   Client, DurableStore, MemStore, P2PMessageService, Store,
 } from '@cerc-io/nitro-client';
@@ -77,6 +75,8 @@ export class Nitro {
   }
 
   async addPeerByMultiaddr(address: string, multiaddrString: string): Promise<void> {
+    const { multiaddr } = await import('@multiformats/multiaddr');
+
     const multi = multiaddr(multiaddrString);
     await this.msgService.addPeerByMultiaddr(address, multi);
   }

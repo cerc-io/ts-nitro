@@ -10,9 +10,8 @@
 
 import { ethers } from 'ethers';
 import _ from 'lodash';
-import { Buffer } from 'buffer';
 
-import { Bytes32, signVoucher } from '@statechannels/nitro-protocol';
+import { Bytes32, Voucher as NitroVoucher } from '@statechannels/nitro-protocol';
 import {
   FieldDescription, fromJSON, hex2Bytes, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
@@ -20,8 +19,7 @@ import {
 import { Signature } from '../channel/state/state';
 import { Address } from '../types/types';
 import { Destination } from '../types/destination';
-import { equal, recoverEthereumMessageSigner, signatureJsonEncodingMap } from '../crypto/signatures';
-import * as nitroAbi from '../abi/types';
+import * as nc from '../crypto/signatures';
 
 export class Voucher {
   channelId: Destination = new Destination();
@@ -33,7 +31,7 @@ export class Voucher {
   static jsonEncodingMap: Record<string, FieldDescription> = {
     channelId: { type: 'class', value: Destination },
     amount: { type: 'bigint' },
-    signature: { type: 'object', value: signatureJsonEncodingMap },
+    signature: { type: 'object', value: nc.signatureJsonEncodingMap },
   };
 
   static fromJSON(data: string): Voucher {
@@ -54,46 +52,46 @@ export class Voucher {
   }
 
   hash(): Bytes32 {
+    const voucherTy = {
+      type: 'tuple',
+      components: [
+        { name: 'channelId', type: 'bytes32' },
+        {
+          name: 'amount',
+          type: 'uint256',
+        },
+      ],
+    } as ethers.utils.ParamType;
+
+    const nitroVoucher: NitroVoucher = { channelId: this.channelId.string(), amount: this.amount!.toString() };
+
+    let encoded: string;
     try {
-      const encoded = ethers.utils.defaultAbiCoder.encode(
-        [nitroAbi.Destination, nitroAbi.Uint256],
-        [this.channelId, this.amount],
-      );
-      return ethers.utils.keccak256(encoded);
+      encoded = ethers.utils.defaultAbiCoder.encode([voucherTy], [nitroVoucher]);
     } catch (err) {
       throw new Error(`failed to encode voucher: ${err}`);
     }
+
+    return ethers.utils.keccak256(encoded);
   }
 
-  async sign(pk: Buffer): Promise<void> {
-    const wallet = new ethers.Wallet(pk);
+  sign(pk: Buffer): void {
+    const hash = this.hash();
+    const sig = nc.signEthereumMessage(Buffer.from(hash), pk);
 
-    // Using util method from nitro-protocol instead of go-nitro port
-    const sig = await signVoucher(
-      {
-        amount: this.amount!.toString(),
-        channelId: this.channelId.string(),
-      },
-      wallet,
-    );
-
-    this.signature = {
-      r: hex2Bytes(sig.r),
-      s: hex2Bytes(sig.s),
-      v: sig.v,
-    };
+    this.signature = sig;
   }
 
   recoverSigner(): Address {
     const hash = this.hash();
-    return recoverEthereumMessageSigner(Buffer.from(ethers.utils.arrayify(hash)), this.signature);
+    return nc.recoverEthereumMessageSigner(hex2Bytes((hash)), this.signature);
   }
 
   // Equal returns true if the two vouchers have the same channel id, amount and signatures
   equal(other: Voucher): boolean {
     return _.isEqual(this.channelId, other.channelId)
     && this.amount === other.amount
-    && equal(this.signature, other.signature);
+    && nc.equal(this.signature, other.signature);
   }
 }
 
