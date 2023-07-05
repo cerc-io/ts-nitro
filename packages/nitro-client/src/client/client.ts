@@ -37,7 +37,9 @@ import {
 } from '../protocols/virtualdefund/virtualdefund';
 import { Destination } from '../types/destination';
 import { PaymentChannelInfo, LedgerChannelInfo } from './query/types';
-import { getPaymentChannelInfo, getLedgerChannelInfo, getAllLedgerChannels } from './query/query';
+import {
+  getPaymentChannelInfo, getLedgerChannelInfo, getAllLedgerChannels, getPaymentChannelsByLedger,
+} from './query/query';
 
 const log = debug('ts-nitro:client');
 
@@ -261,9 +263,17 @@ export class Client {
   receivedVouchers(): ReadChannel<Voucher> {
     return this._receivedVouchers!;
   }
+  // GetPaymentChannelsByLedger returns all active payment channels that are funded by the given ledger channel.
+  getPaymentChannelsByLedger(ledgerId: Destination): PaymentChannelInfo[] {
+    assert(this.store);
+    assert(this.vm);
+    return getPaymentChannelsByLedger(ledgerId, this.store, this.vm);
+  }
+
   // GetAllLedgerChannels returns all ledger channels.
   getAllLedgerChannels(): LedgerChannelInfo[] {
-    return getAllLedgerChannels(this.store!, this.engine.getConsensusAppAddress());
+    assert(this.store);
+    return getAllLedgerChannels(this.store, this.engine.getConsensusAppAddress());
   }
 
   // GetLedgerChannel returns the ledger channel with the given id.

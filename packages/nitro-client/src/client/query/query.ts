@@ -8,7 +8,7 @@ import {
   ChannelStatus, LedgerChannelBalance, LedgerChannelInfo, PaymentChannelInfo, PaymentChannelBalance,
 } from './types';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
-import { Store } from '../engine/store/store';
+import { Store, ErrNoSuchChannel } from '../engine/store/store';
 
 const getStatusFromChannel = (c: Channel): ChannelStatus => {
   if (c.finalSignedByMe()) {
@@ -152,6 +152,47 @@ export const getAllLedgerChannels = (store: Store, consensusAppDefinition: Addre
 
   for (const c of allChannels) {
     toReturn.push(constructLedgerInfoFromChannel(c));
+  }
+
+  return toReturn;
+};
+
+// GetPaymentChannelsByLedger returns a `PaymentChannelInfo` for each active payment channel funded by the given ledger channel.
+export const getPaymentChannelsByLedger = (ledgerId: Destination, s: Store, vm: VoucherManager): PaymentChannelInfo[] => {
+  // If a ledger channel is actively funding payment channels it must be in the form of a consensus channel
+  let getError: Error | undefined;
+  let con: ConsensusChannel | undefined;
+  try {
+    // If the ledger channel is not a consensus channel we know that there are no payment channels funded by it
+    con = s.getConsensusChannelById(ledgerId);
+  } catch (err) {
+    getError = err as Error;
+  }
+
+  if (getError && (getError as Error).message.includes(ErrNoSuchChannel.message)) {
+    return [];
+  }
+
+  if (getError) {
+    throw new Error(`could not find any payment channels funded by ${ledgerId}: ${getError}`);
+  }
+
+  const toQuery = con!.consensusVars().outcome.fundingTargets();
+
+  let paymentChannels: Channel[];
+
+  try {
+    paymentChannels = s.getChannelsByIds(toQuery);
+  } catch (err) {
+    throw new Error(`could not query the store about ids ${toQuery}: ${err}`);
+  }
+
+  const toReturn: PaymentChannelInfo[] = [];
+
+  for (const p of paymentChannels) {
+    const [paid, remaining] = getVoucherBalance(p.id, vm);
+    const info = constructPaymentInfo(p, paid, remaining);
+    toReturn.push(info);
   }
 
   return toReturn;

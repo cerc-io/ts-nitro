@@ -570,7 +570,7 @@ export function decodeObjective(id: ObjectiveId, data: Buffer): Objective {
 // contains is a helper function which returns true if the given item is included in col
 export function contains<T extends Destination | ObjectiveId>(col: T[], item: T): boolean {
   for (const [, i] of col.entries()) {
-    if (i === item) {
+    if (_.isEqual(i, item)) {
       return true;
     }
   }
