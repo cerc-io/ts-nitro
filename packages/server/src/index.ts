@@ -322,5 +322,5 @@ main()
   });
 
 process.on('uncaughtException', (err) => {
-  log('uncaughtException', err);
+  log('uncaughtException', err.message);
 });
