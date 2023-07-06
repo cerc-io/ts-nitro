@@ -1207,14 +1207,10 @@ export class ConsensusChannel {
 
   // Clone returns a deep copy of the receiver.
   clone(): ConsensusChannel {
-    let clonedProposalQueue: SignedProposal[] = [];
+    const clonedProposalQueue: SignedProposal[] = new Array((this._proposalQueue ?? []).length);
 
-    if (this._proposalQueue !== null) {
-      clonedProposalQueue = new Array(this._proposalQueue.length);
-
-      for (let i = 0; i < this._proposalQueue.length; i += 1) {
-        clonedProposalQueue[i] = this._proposalQueue[i].clone();
-      }
+    for (let i = 0; i < (this._proposalQueue ?? []).length; i += 1) {
+      clonedProposalQueue[i] = this._proposalQueue![i].clone();
     }
 
     const d = new ConsensusChannel({

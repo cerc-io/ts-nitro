@@ -93,6 +93,8 @@ export class Objective implements ObjectiveInterface {
 
   private transactionSubmitted: boolean = false; // whether a transition for the objective has been submitted or not
 
+  // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+  // (other than Id) from the field C is discarded
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
     c: { type: 'class', value: Destination },

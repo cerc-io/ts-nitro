@@ -37,7 +37,6 @@ const computeEthereumSignedMessageDigest = (message: Buffer): Buffer => {
 // "\x19Ethereum Signed Message:\n" + len(message).
 // See https://github.com/ethereum/go-ethereum/pull/2940 and EIPs 191, 721.
 export const signEthereumMessage = (message: Buffer, secretKey: Buffer): Signature => {
-  console.log('signEthereumMessage bytes2Hex', bytes2Hex(secretKey));
   const sig = utilSignData(message.toString(), `0x${bytes2Hex(secretKey)}`);
 
   // This step is necessary to remain compatible with the ecrecover precompile

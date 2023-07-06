@@ -180,6 +180,8 @@ export class Objective implements ObjectiveInterface {
   // n+1 is Bob
   myRole: number = 0;
 
+  // NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
+  // the virtual and ledger channels (other than Ids) is discarded
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
     v: { type: 'class', value: Destination },
