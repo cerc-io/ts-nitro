@@ -18,6 +18,8 @@ import { Address } from '../../../../types/types';
 import { MessageService } from '../messageservice';
 import { BaseP2PMessageService, BasicPeerInfo, PeerInfo } from './service';
 
+const MDNS_TAG = 'ts-nitro';
+
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
 export class P2PMessageService implements MessageService {
   private baseP2PMessageService: BaseP2PMessageService;
@@ -62,6 +64,7 @@ export class P2PMessageService implements MessageService {
       const { mdns } = await import('@libp2p/mdns');
       mdnsService = mdns({
         interval: 20e3,
+        serviceTag: MDNS_TAG,
       });
 
       assert(mdnsService);
