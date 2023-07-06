@@ -55,7 +55,15 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
 * Refresh the apps for enabling logs
 
-* Call methods `setupClient('charlie')` and `setupClient('david')` separately in the 2 browsers
+* Setup clients
+  * In first browser
+    ```
+    const nitro = await setupClient('charlie')
+    ```
+  * In second browser
+    ```
+    const nitro = await setupClient('david')
+    ```
 
 * Wait for `New peer found` log in console
 
@@ -108,7 +116,10 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 * Open [app](http://localhost:3000) in browser
 * Open console in browser inspect and enable debug logs by setting `localStorage.debug = 'ts-nitro:*'`
 * Refresh the app for enabling logs
-* Call method `setupClient('david')`
+* Setup client
+  ```
+  const nitro = await setupClient('david')
+  ```
 * Run a `go-nitro` client for Erin (`0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01`):
 
   ```bash

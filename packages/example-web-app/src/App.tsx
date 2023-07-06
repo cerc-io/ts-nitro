@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import assert from 'assert';
 
-import { test } from '@cerc-io/nitro-client';
 import {
   ACTORS,
   DEFAULT_CHAIN_URL,
@@ -13,21 +12,20 @@ import './App.css';
 
 declare global {
   interface Window {
-    nitro?: Nitro
-    setupClient: (name: string) => Promise<void>
-    clearClientStorage: () => Promise<void>
+    setupClient: (name: string) => Promise<Nitro>
+    clearClientStorage: () => Promise<boolean>
   }
 }
 
 window.clearClientStorage = Nitro.clearClientStorage;
 
 // Method to setup nitro client with test actors
-window.setupClient = async (name: string) => {
+window.setupClient = async (name: string): Promise<Nitro> => {
   const actor = ACTORS[name];
   assert(actor, `Actor with name ${name} does not exists`);
   assert(process.env.REACT_APP_RELAY_MULTIADDR);
 
-  window.nitro = await Nitro.setupClient(
+  return Nitro.setupClient(
     actor.privateKey,
     DEFAULT_CHAIN_URL,
     actor.chainPrivateKey,
@@ -37,18 +35,17 @@ window.setupClient = async (name: string) => {
 };
 
 function App () {
-  const [data, setData] = useState('');
-
   useEffect(() => {
-    const res = test();
-    setData(res);
+    window.onunhandledrejection = (err) => {
+      // Log unhandled errors instead of stopping application
+      console.log(err);
+    }
   }, []);
 
   return (
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <p>{data}</p>
       </header>
     </div>
   );

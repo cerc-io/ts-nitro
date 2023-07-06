@@ -81,8 +81,12 @@ const getArgv = () => yargs.parserConfiguration({
     describe: 'Whether to get information about a virtual payment channel',
   },
   pay: {
+    type: 'boolean',
+    describe: 'Whether to pay on the virtual payment channel with the given counterparty',
+  },
+  amount: {
     type: 'number',
-    describe: 'Amount to pay on the virtual payment channel with the given counterparty',
+    describe: 'Amount for fund and pay methods',
   },
   virtualDefund: {
     type: 'boolean',
@@ -171,7 +175,7 @@ const main = async () => {
         asset,
         client.address,
         counterParty,
-        1_000_000,
+        argv.amount ?? 1_000_000,
       ),
       appDefinition: asset,
       appData: '0x00',
@@ -199,7 +203,7 @@ const main = async () => {
         asset,
         client.address,
         counterParty,
-        1_000,
+        argv.amount ?? 1_000,
       ),
       appDefinition: asset,
       nonce: Date.now(),
@@ -217,10 +221,10 @@ const main = async () => {
     paymentChannelIdString = virtualPaymentChannelResponse.channelId.string();
   }
 
-  if (argv.pay !== undefined) {
+  if (argv.pay) {
     assert(paymentChannelIdString, 'Provide payment-channel id for payment');
     const virtualPaymentChannelId = new Destination(paymentChannelIdString);
-    await client.pay(virtualPaymentChannelId, BigInt(argv.pay));
+    await client.pay(virtualPaymentChannelId, BigInt(argv.amount ?? 0));
 
     // TODO: Wait for the payment to be processed
   }

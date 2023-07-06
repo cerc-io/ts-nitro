@@ -45,7 +45,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
   ```bash
   # In packages/server
-  yarn start -p 3006 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --wait
+  yarn cli -p 3006 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --wait
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -56,7 +56,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
   ```bash
   # In packages/server
-  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --direct-fund --counterparty 0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94
+  yarn cli -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --direct-fund --counterparty 0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -70,7 +70,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Run command to get ledger channel information
 
   ```bash
-  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --get-ledger-channel --ledger-channel 0xe29e2d7ee060fb78b279ac4c8f5cc9bf59334f3e0d25315d5e3c822ed0303d9e
+  yarn cli -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --get-ledger-channel --ledger-channel 0xe29e2d7ee060fb78b279ac4c8f5cc9bf59334f3e0d25315d5e3c822ed0303d9e
 
   # Expected output:
   #   ts-nitro:server Ledger channel 0xe29e2d7ee060fb78b279ac4c8f5cc9bf59334f3e0d25315d5e3c822ed0303d9e status:
@@ -90,7 +90,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Run client for Bob again to create virtual payment channel:
 
   ```bash
-  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --virtual-fund --counterparty 0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94
+  yarn cli -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --virtual-fund --counterparty 0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94
 
   # Final Expected output:
   # ts-nitro:engine Objective VirtualFund-0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af is complete & returned to API +0ms
@@ -100,7 +100,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Run command to get payment channel information
 
   ```bash
-  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --get-payment-channel --payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
+  yarn cli -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --get-payment-channel --payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
 
   # Expected output:
   # ts-nitro:server Virtual payment channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af status:
@@ -120,7 +120,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Run client for Bob to make payment with virtual payment channel id from above:
 
   ```bash
-  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --pay 50 --payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af --wait
+  yarn cli -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --pay --amount 50 --payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af --wait
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -150,7 +150,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Close virtual payment channel using client Bob (Get channel id from `virtual-fund` logs)
 
   ```bash
-  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --virtual-defund --payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af --get-payment-channel
+  yarn cli -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --virtual-defund --payment-channel 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af --get-payment-channel
 
   # Final Expected output:
   # ts-nitro:engine Objective VirtualDefund-0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa is complete & returned to API +1ms
@@ -172,7 +172,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Close the ledger channel using client Bob (Get channel id from `direct-fund` logs)
 
   ```bash
-  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --direct-defund --ledger-channel 0xe29e2d7ee060fb78b279ac4c8f5cc9bf59334f3e0d25315d5e3c822ed0303d9e --get-ledger-channel
+  yarn cli -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --store ./alice-db --direct-defund --ledger-channel 0xe29e2d7ee060fb78b279ac4c8f5cc9bf59334f3e0d25315d5e3c822ed0303d9e --get-ledger-channel
 
   # Final Expected output:
   # ts-nitro:engine Objective DirectDefunding-0xe29e2d7ee060fb78b279ac4c8f5cc9bf59334f3e0d25315d5e3c822ed0303d9e is complete & returned to API +1ms
@@ -238,7 +238,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 
   ```bash
   # In ts-nitro/packages/server
-  yarn start -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --counterparty 0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01 --cp-peer-id 16Uiu2HAmJDxLM8rSybX78FH51iZq9PdrwCoCyyHRBCndNzcAYMes --cp-port 3006 --direct-fund
+  yarn cli -p 3005 --pk 2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d --chainpk ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --counterparty 0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01 --cp-peer-id 16Uiu2HAmJDxLM8rSybX78FH51iZq9PdrwCoCyyHRBCndNzcAYMes --cp-port 3006 --direct-fund
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
