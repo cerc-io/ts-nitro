@@ -45,7 +45,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
   ```bash
   # In packages/server
-  yarn start -p 3006 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db
+  yarn start -p 3006 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --store ./bob-db --wait
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -155,6 +155,18 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   # Final Expected output:
   # ts-nitro:engine Objective VirtualDefund-0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa is complete & returned to API +1ms
   # ts-nitro:server Virtual payment channel with id 0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa closed
+  # ts-nitro:server Virtual payment channel 0x78d563cf7e92b55c4086efa0424d4b1fdf71cfe06ad1fc79371924655d929637 status:
+  # ts-nitro:server  {
+  # "ID": "0x78d563cf7e92b55c4086efa0424d4b1fdf71cfe06ad1fc79371924655d929637",
+  # "Status": "Complete",
+  # "Balance": {
+  #   "AssetAddress": "0x0000000000000000000000000000000000000000",
+  #   "Payee": "0xbbb676f9cff8d242e9eac39d063848807d3d1d94",
+  #   "Payer": "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
+  #   "PaidSoFar": 125,
+  #   "RemainingFunds": 875
+  # }
+  # } +4ms
   ```
 
 * Close the ledger channel using client Bob (Get channel id from `direct-fund` logs)
@@ -165,6 +177,18 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   # Final Expected output:
   # ts-nitro:engine Objective DirectDefunding-0xe29e2d7ee060fb78b279ac4c8f5cc9bf59334f3e0d25315d5e3c822ed0303d9e is complete & returned to API +1ms
   # ts-nitro:server Ledger channel with id 0xe29e2d7ee060fb78b279ac4c8f5cc9bf59334f3e0d25315d5e3c822ed0303d9e closed
+  # ts-nitro:server Ledger channel 0xa7cb480e3f8252735e937e19683098295a1fab85609dfa04098bff3df71c4082 status:
+  # ts-nitro:server  {
+  # "ID": "0xa7cb480e3f8252735e937e19683098295a1fab85609dfa04098bff3df71c4082",
+  # "Status": "Complete",
+  # "Balance": {
+  #   "AssetAddress": "0x0000000000000000000000000000000000000000",
+  #   "Hub": "0xbbb676f9cff8d242e9eac39d063848807d3d1d94",
+  #   "Client": "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
+  #   "HubBalance": 1000125,
+  #   "ClientBalance": 999875
+  # }
+  # } +3ms
   ```
 
   <!-- TODO: Check balance on chain -->

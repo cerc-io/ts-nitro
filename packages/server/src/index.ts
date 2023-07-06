@@ -20,6 +20,8 @@ import { DirectFundParams, VirtualFundParams } from './types';
 
 const log = debug('ts-nitro:server');
 
+const ErrConnectionClosed = 'the connection is being closed';
+
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
 }).options({
@@ -290,5 +292,9 @@ main()
   });
 
 process.on('uncaughtException', (err) => {
+  if (err.message.includes(ErrConnectionClosed)) {
+    return;
+  }
+
   log('uncaughtException', err);
 });
