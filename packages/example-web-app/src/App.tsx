@@ -39,7 +39,7 @@ function App () {
     window.onunhandledrejection = (err) => {
       // Log unhandled errors instead of stopping application
       console.log(err);
-    }
+    };
   }, []);
 
   return (
