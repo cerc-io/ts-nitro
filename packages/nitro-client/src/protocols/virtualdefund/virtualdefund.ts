@@ -94,21 +94,21 @@ export function validateFinalOutcome(
   minAmount?: bigint,
 ): void {
   // Check the outcome participants are correct
-  const alice = vFixed.participants[0];
-  const bob = vFixed.participants[vFixed.participants.length - 1];
+  const alice = vFixed.participants![0];
+  const bob = vFixed.participants![vFixed.participants!.length - 1];
 
-  if (!_.isEqual(initialOutcome.allocations.value[0].destination, Destination.addressToDestination(alice))) {
-    throw new Error(`0th allocation is not to Alice but to ${initialOutcome.allocations.value[0].destination}`);
+  if (!_.isEqual(initialOutcome.allocations.value![0].destination, Destination.addressToDestination(alice))) {
+    throw new Error(`0th allocation is not to Alice but to ${initialOutcome.allocations.value![0].destination}`);
   }
-  if (!_.isEqual(initialOutcome.allocations.value[1].destination, Destination.addressToDestination(bob))) {
-    throw new Error(`1st allocation is not to Bob but to ${initialOutcome.allocations.value[0].destination}`);
+  if (!_.isEqual(initialOutcome.allocations.value![1].destination, Destination.addressToDestination(bob))) {
+    throw new Error(`1st allocation is not to Bob but to ${initialOutcome.allocations.value![0].destination}`);
   }
 
   // Check the amounts are correct
-  const initialAliceAmount = initialOutcome.allocations.value[0].amount;
-  const initialBobAmount = initialOutcome.allocations.value[1].amount;
-  const finalAliceAmount = finalOutcome.allocations.value[0].amount;
-  const finalBobAmount = finalOutcome.allocations.value[1].amount;
+  const initialAliceAmount = initialOutcome.allocations.value![0].amount;
+  const initialBobAmount = initialOutcome.allocations.value![1].amount;
+  const finalAliceAmount = finalOutcome.allocations.value![0].amount;
+  const finalBobAmount = finalOutcome.allocations.value![1].amount;
   const paidToBob = BigInt(finalBobAmount!) - BigInt(initialBobAmount!);
   const paidFromAlice = BigInt(initialAliceAmount!) - BigInt(finalAliceAmount!);
 
@@ -180,22 +180,50 @@ export class Objective implements ObjectiveInterface {
   // n+1 is Bob
   myRole: number = 0;
 
+  // NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
+  // the virtual and ledger channels (other than Ids) is discarded
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
+    v: { type: 'class', value: Destination },
+    toMyLeft: { type: 'class', value: Destination },
+    toMyRight: { type: 'class', value: Destination },
     minimumPaymentAmount: { type: 'bigint' },
-    v: { type: 'class', value: VirtualChannel },
-    toMyLeft: { type: 'class', value: ConsensusChannel },
-    toMyRight: { type: 'class', value: ConsensusChannel },
     myRole: { type: 'number' },
   };
 
   static fromJSON(data: string): Objective {
+    // props has v.id as v and
+    // toMyLeft.id as toMyLeft and
+    // toMyRight.id as toMyRight
     const props = fromJSON(this.jsonEncodingMap, data);
-    return new Objective(props);
+
+    return new Objective({
+      status: props.status,
+      minimumPaymentAmount: props.minimumPaymentAmount,
+      v: new VirtualChannel({ id: props.v }),
+      toMyLeft: _.isEqual(props.toMyLeft, new Destination()) ? undefined : new ConsensusChannel({ id: props.toMyLeft }),
+      toMyRight: _.isEqual(props.toMyRight, new Destination()) ? undefined : new ConsensusChannel({ id: props.toMyRight }),
+      myRole: props.myRole,
+    });
   }
 
   toJSON(): any {
-    return toJSON(Objective.jsonEncodingMap, this);
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+
+    const left = this.toMyLeft ? this.toMyLeft.id : new Destination();
+    const right = this.toMyRight ? this.toMyRight.id : new Destination();
+
+    const jsonObjective = {
+      status: this.status,
+      v: this.vId(),
+      toMyLeft: left,
+      toMyRight: right,
+      minimumPaymentAmount: this.minimumPaymentAmount,
+      myRole: this.myRole,
+    };
+
+    return toJSON(Objective.jsonEncodingMap, jsonObjective);
   }
 
   constructor(params: {
@@ -233,29 +261,29 @@ export class Objective implements ObjectiveInterface {
     }
 
     const v = new VirtualChannel({ ...c });
-    const alice = v.participants[0];
-    const bob = v.participants[v.participants.length - 1];
+    const alice = v.participants![0];
+    const bob = v.participants![v.participants!.length - 1];
 
     let leftLedger: ConsensusChannel | undefined;
     let rightLedger: ConsensusChannel | undefined;
     let ok: boolean;
 
     if (myAddress === alice) {
-      const rightOfAlice = v.participants[1];
+      const rightOfAlice = v.participants![1];
       [rightLedger, ok] = await getConsensusChannel(rightOfAlice);
 
       if (!ok) {
         throw new Error(`Could not find a ledger channel between ${alice} and ${rightOfAlice}`);
       }
     } else if (myAddress === bob) {
-      const leftOfBob = v.participants[v.participants.length - 2];
+      const leftOfBob = v.participants![v.participants!.length - 2];
       [leftLedger, ok] = await getConsensusChannel(leftOfBob);
 
       if (!ok) {
         throw new Error(`Could not find a ledger channel between ${leftOfBob} and ${bob}`);
       }
     } else {
-      const intermediaries = v.participants.slice(1, -1);
+      const intermediaries = v.participants!.slice(1, -1);
       let foundMyself = false;
 
       for (let i = 0; i < intermediaries.length; i += 1) {
@@ -265,8 +293,8 @@ export class Objective implements ObjectiveInterface {
           foundMyself = true;
           // I am intermediary `i` and participant `p`
           const p = i + 1; // participants[p] === intermediaries[i]
-          const leftOfMe = v.participants[p - 1];
-          const rightOfMe = v.participants[p + 1];
+          const leftOfMe = v.participants![p - 1];
+          const rightOfMe = v.participants![p + 1];
 
           // eslint-disable-next-line no-await-in-loop
           [leftLedger, ok] = await getConsensusChannel(leftOfMe);
@@ -367,7 +395,7 @@ export class Objective implements ObjectiveInterface {
   }
 
   private initialOutcome(): SingleAssetExit {
-    return this.v!.postFundState().outcome.value[0];
+    return this.v!.postFundState().outcome.value![0];
   }
 
   private generateFinalOutcome(): SingleAssetExit {
@@ -378,8 +406,8 @@ export class Objective implements ObjectiveInterface {
     // Since Alice is responsible for issuing vouchers she always has the largest payment amount
     // This means she can just set her FinalOutcomeFromAlice based on the largest voucher amount she has sent
     const finalOutcome = this.initialOutcome().clone();
-    finalOutcome.allocations.value[0].amount = BigInt(finalOutcome.allocations.value[0].amount!) - BigInt(this.minimumPaymentAmount!);
-    finalOutcome.allocations.value[1].amount = BigInt(finalOutcome.allocations.value[1].amount!) + BigInt(this.minimumPaymentAmount!);
+    finalOutcome.allocations.value![0].amount = BigInt(finalOutcome.allocations.value![0].amount!) - BigInt(this.minimumPaymentAmount!);
+    finalOutcome.allocations.value![1].amount = BigInt(finalOutcome.allocations.value![1].amount!) + BigInt(this.minimumPaymentAmount!);
     return finalOutcome;
   }
 
@@ -409,7 +437,7 @@ export class Objective implements ObjectiveInterface {
     updated.status = ObjectiveStatus.Rejected;
 
     const peers: Address[] = [];
-    for (const [i, peer] of this.v!.participants.entries()) {
+    for (const [i, peer] of (this.v!.participants ?? []).entries()) {
       if (i !== this.myRole) {
         peers.push(peer);
       }
@@ -474,9 +502,9 @@ export class Objective implements ObjectiveInterface {
   // otherParticipants returns the participants in the channel that are not the current participant.
   private otherParticipants(): Address[] {
     const others: Address[] = [];
-    for (let i = 0; i < this.v!.participants.length; i += 1) {
+    for (let i = 0; i < (this.v!.participants ?? []).length; i += 1) {
       if (i !== this.myRole) {
-        others.push(this.v!.participants[i]);
+        others.push(this.v!.participants![i]);
       }
     }
     return others;
@@ -501,7 +529,7 @@ export class Objective implements ObjectiveInterface {
 
     // If we don't know the amount yet we send a message to alice to request it
     if (!updated.isAlice() && !updated.hasFinalStateFromAlice()) {
-      const alice = this.v!.participants[0];
+      const alice = this.v!.participants![0];
       const messages = Message.createObjectivePayloadMessage(updated.id(), this.vId(), RequestFinalStatePayload, alice);
       sideEffects.messagesToSend.push(...messages);
       return [updated, sideEffects, WaitingForFinalStateFromAlice];
@@ -578,12 +606,12 @@ export class Objective implements ObjectiveInterface {
 
   // isBob returns true if the receiver represents participant n+1 in the virtualdefund protocol.
   private isBob(): boolean {
-    return this.myRole === this.v!.participants.length - 1;
+    return this.myRole === (this.v!.participants ?? []).length - 1;
   }
 
   // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
   private ledgerProposal(ledger: ConsensusChannel): Proposal {
-    const left = this.finalState().outcome.value[0].allocations.value[0].amount;
+    const left = this.finalState().outcome.value![0].allocations.value![0].amount;
     return Proposal.newRemoveProposal(ledger.id, this.vId(), left);
   }
 
@@ -608,7 +636,7 @@ export class Objective implements ObjectiveInterface {
       // Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
       // to create a valid message with ordered proposals:
 
-      const message = Message.createSignedProposalMessage(receipient, ...ledger.proposalQueue());
+      const message = Message.createSignedProposalMessage(receipient, ...(ledger.proposalQueue() ?? []));
       sideEffects.messagesToSend.push(message);
     } else {
       // If the proposal is next in the queue we accept it
@@ -624,7 +652,7 @@ export class Objective implements ObjectiveInterface {
 
         // ledger sideEffect
         const proposals = ledger.proposalQueue();
-        if (proposals.length !== 0) {
+        if (proposals !== null && proposals.length !== 0) {
           sideEffects.proposalsToProcess.push(proposals[0].proposal);
         }
 
@@ -684,8 +712,8 @@ export class Objective implements ObjectiveInterface {
           validateFinalOutcome(
             updated.v!,
             updated.initialOutcome(),
-            ss.state().outcome.value[0],
-            this.v!.participants[this.myRole],
+            ss.state().outcome.value![0],
+            this.v!.participants![this.myRole],
             updated.minimumPaymentAmount,
           );
         } catch (err) {

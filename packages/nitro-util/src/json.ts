@@ -72,7 +72,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
 
     case 'array': {
       if (fieldJsonValue === null) {
-        return [];
+        return null;
       }
 
       assert(fieldType.value);
@@ -152,22 +152,22 @@ export function decodeMap(
   return mapValue;
 }
 
-function encodeObject(objectDescription: Record<string, FieldDescription>, objectValue: Object): any {
+function encodeObject(objectDescription: Record<string, FieldDescription>, objectValue: any): any {
   const resultObject: any = {};
 
-  Object.entries(objectValue).forEach(([key, value]) => {
-    const valueDescription = objectDescription[key];
-    const capitalizedKey = capitalizeFirstLetter(key);
-    resultObject[capitalizedKey] = encodeValue(valueDescription, value);
+  Object.keys(objectDescription).forEach((fieldKey) => {
+    const valueDescription = objectDescription[fieldKey];
+    const capitalizedKey = capitalizeFirstLetter(fieldKey);
+    resultObject[capitalizedKey] = encodeValue(valueDescription, objectValue[fieldKey]);
   });
 
   return resultObject;
 }
 
-function encodeArray(valueDescription: FieldDescription, arrayValue: Array<any>): any {
-  return arrayValue.length === 0
-    ? null
-    : arrayValue.map((value) => encodeValue(valueDescription, value));
+function encodeArray(valueDescription: FieldDescription, arrayValue: Array<any> | null): any {
+  return Array.isArray(arrayValue)
+    ? arrayValue.map((value) => encodeValue(valueDescription, value))
+    : null;
 }
 
 function encodeValue(fieldType: FieldDescription, fieldValue: any): any {

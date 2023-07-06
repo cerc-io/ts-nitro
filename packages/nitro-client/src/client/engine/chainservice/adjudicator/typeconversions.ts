@@ -14,7 +14,7 @@ export function convertAssetMetadata(am: AssetMetadata): ExitFormat.AssetMetadat
 }
 
 export function convertAllocations(as: Allocations): ExitFormat.AllocationStruct[] {
-  return as.value.map((a): ExitFormat.AllocationStruct => ({
+  return (as.value ?? []).map((a): ExitFormat.AllocationStruct => ({
     destination: a.destination.value,
     amount: a.amount!,
     allocationType: a.allocationType,
@@ -23,7 +23,7 @@ export function convertAllocations(as: Allocations): ExitFormat.AllocationStruct
 }
 
 export function convertOutcome(o: Exit): ExitFormat.SingleAssetExitStruct[] {
-  return o.value.map((sae) => ({
+  return (o.value ?? []).map((sae) => ({
     asset: sae.asset,
     assetMetadata: convertAssetMetadata(sae.assetMetadata!),
     allocations: convertAllocations(sae.allocations),
@@ -32,7 +32,7 @@ export function convertOutcome(o: Exit): ExitFormat.SingleAssetExitStruct[] {
 
 export function convertFixedPart(fp: FixedPart): INitroTypes.FixedPartStruct {
   return {
-    participants: fp.participants,
+    participants: fp.participants ?? [],
     channelNonce: fp.channelNonce,
     appDefinition: fp.appDefinition,
     challengeDuration: BigInt(fp.challengeDuration),
@@ -51,9 +51,12 @@ export function convertVariablePart(vp: VariablePart): INitroTypes.VariablePartS
 export function convertSignature(s: Signature): INitroTypes.SignatureStruct {
   const sig = {
     v: s.v,
-    r: s.r.slice(0, 32),
-    s: s.s.slice(0, 32), // TODO we should just use 32 byte types, which would remove the need for this function
+    r: Buffer.alloc(32),
+    s: Buffer.alloc(32), // TODO we should just use 32 byte types, which would remove the need for this function
   };
+
+  (s.r ?? Buffer.alloc(0)).copy(sig.r);
+  (s.s ?? Buffer.alloc(0)).copy(sig.s);
 
   return sig;
 }

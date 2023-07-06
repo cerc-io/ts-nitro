@@ -342,7 +342,7 @@ export class Engine {
       this.logMessage(message, Incoming);
       const allCompleted = new EngineEvent();
 
-      for await (const payload of message.objectivePayloads) {
+      for await (const payload of (message.objectivePayloads ?? [])) {
         let objective: Objective;
         try {
           objective = await this.getOrCreateObjective(payload);
@@ -410,7 +410,7 @@ export class Engine {
         allCompleted.merge(progressEvent);
       }
 
-      for await (const entry of message.ledgerProposals) {
+      for await (const entry of (message.ledgerProposals ?? [])) {
         // The ledger protocol requires us to process these proposals in turnNum order.
         // Here we rely on the sender having packed them into the message in that order, and do not apply any checks or sorting of our own.
 
@@ -437,7 +437,6 @@ export class Engine {
 
         let updatedObjective: Objective;
         try {
-          // TODO: Implement for all protocols
           updatedObjective = objective.receiveProposal(entry);
         } catch (err) {
           return [new EngineEvent(), err as Error];
@@ -453,7 +452,7 @@ export class Engine {
         allCompleted.merge(progressEvent);
       }
 
-      for await (const entry of message.rejectedObjectives) {
+      for await (const entry of (message.rejectedObjectives ?? [])) {
         let objective: Objective;
         try {
           objective = await this.store.getObjectiveById(entry);
@@ -479,7 +478,7 @@ export class Engine {
         allCompleted.completedObjectives.push(objective);
       }
 
-      for await (const voucher of message.payments) {
+      for await (const voucher of (message.payments ?? [])) {
         try {
           // TODO: return the amount we paid?
           await this.vm.receive(voucher);
@@ -614,7 +613,7 @@ export class Engine {
           this.metrics!.recordObjectiveStarted(vfo.id());
 
           // Only Alice or Bob care about registering the objective and keeping track of vouchers
-          const lastParticipant = vfo.v!.participants.length - 1;
+          const lastParticipant = (vfo.v!.participants ?? []).length - 1;
           if (vfo.myRole === lastParticipant || vfo.myRole === PAYER_INDEX) {
             try {
               await this.registerPaymentChannel(vfo);
@@ -908,7 +907,7 @@ export class Engine {
     let startingBalance: bigint = BigInt(0);
 
     // TODO: Assumes one asset for now
-    startingBalance = BigInt(postfund.outcome.value[0].allocations.value[0].amount!);
+    startingBalance = BigInt(postfund.outcome.value![0].allocations.value![0].amount!);
 
     assert(this.vm);
 
@@ -1120,12 +1119,21 @@ export class Engine {
 
   // recordMessageMetrics records metrics for a message
   private recordMessageMetrics(message: Message): void {
-    this.metrics!.recordQueueLength(`msg_proposal_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.ledgerProposals.length);
-    this.metrics!.recordQueueLength(`msg_payment_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.payments.length);
-    this.metrics!.recordQueueLength(`msg_payload_count,sender=${this.store?.getAddress()},receiver=${message.to}`, message.objectivePayloads.length);
+    this.metrics!.recordQueueLength(
+      `msg_proposal_count,sender=${this.store?.getAddress()},receiver=${message.to}`,
+      (message.ledgerProposals ?? []).length,
+    );
+    this.metrics!.recordQueueLength(
+      `msg_payment_count,sender=${this.store?.getAddress()},receiver=${message.to}`,
+      (message.payments ?? []).length,
+    );
+    this.metrics!.recordQueueLength(
+      `msg_payload_count,sender=${this.store?.getAddress()},receiver=${message.to}`,
+      (message.objectivePayloads ?? []).length,
+    );
 
     let totalPayloadsSize = 0;
-    for (const p of message.objectivePayloads) {
+    for (const p of (message.objectivePayloads ?? [])) {
       totalPayloadsSize += p.payloadData.length;
     }
 

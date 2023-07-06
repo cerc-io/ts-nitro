@@ -44,10 +44,10 @@ export class Channel extends FixedPart {
   latestSupportedStateTurnNum: Uint64 = BigInt(0);
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    ...super.jsonEncodingMap,
     id: { type: 'class', value: Destination },
     myIndex: { type: 'number' },
     onChainFunding: { type: 'class', value: Funds },
+    ...super.jsonEncodingMap,
     signedStateForTurnNum: { type: 'map', key: { type: 'uint64' }, value: { type: 'class', value: SignedState } },
     latestSupportedStateTurnNum: { type: 'uint64' },
   };
@@ -111,7 +111,7 @@ export class Channel extends FixedPart {
 
   // MyDestination returns the client's destination
   myDestination(): Destination {
-    return Destination.addressToDestination(this.participants[this.myIndex]);
+    return Destination.addressToDestination(this.participants![this.myIndex]);
   }
 
   // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.

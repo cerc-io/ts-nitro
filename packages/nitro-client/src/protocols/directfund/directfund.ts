@@ -1,6 +1,7 @@
 import assert from 'assert';
 import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
+import _ from 'lodash';
 
 import Channel from '@cerc-io/ts-channel';
 import type { ReadWriteChannel } from '@cerc-io/ts-channel';
@@ -75,7 +76,7 @@ const channelsExistWithCounterparty = async (
   const channels = await getChannels(counterparty);
 
   for (const c of channels) {
-    if (c.participants.length === 2) {
+    if ((c.participants ?? []).length === 2) {
       return true;
     }
   }
@@ -100,23 +101,33 @@ export class Objective implements ObjectiveInterface {
 
   private transactionSubmitted: boolean = false;
 
+  // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+  // (other than Id) from the field C is discarded
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
-    c: { type: 'class', value: channel.Channel },
+    c: { type: 'class', value: Destination },
     myDepositSafetyThreshold: { type: 'class', value: Funds },
     myDepositTarget: { type: 'class', value: Funds },
     fullyFundedThreshold: { type: 'class', value: Funds },
     latestBlockNumber: { type: 'number' },
-    transactionSubmitted: { type: 'boolean' },
+    transactionSumbmitted: { type: 'boolean' },
   };
 
   static fromJSON(data: string): Objective {
-    const props = fromJSON(this.jsonEncodingMap, data);
-    return new Objective(props);
+    // props has c.id as c and
+    // transactionSumbmitted as a key instead of transactionSubmitted (typo from go-nitro custom serialization)
+    const props = fromJSON(this.jsonEncodingMap, data, new Map([['transactionSumbmitted', 'transactionSubmitted']]));
+    return new Objective(_.set(props, 'c', new channel.Channel({ id: props.c })));
   }
 
   toJSON(): any {
-    return toJSON(Objective.jsonEncodingMap, this);
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+    return toJSON(
+      Objective.jsonEncodingMap,
+      _.set(_.cloneDeep(this), 'c', this.c!.id),
+      new Map([['transactionSubmitted', 'transactionSumbmitted']]),
+    );
   }
 
   constructor(params: {
@@ -212,8 +223,8 @@ export class Objective implements ObjectiveInterface {
 
     let myIndex = 0;
     let foundMyAddress = false;
-    for (let i = 0; i < initialState.participants.length; i += 1) {
-      if (initialState.participants[i] === myAddress) {
+    for (let i = 0; i < (initialState.participants ?? []).length; i += 1) {
+      if (initialState.participants![i] === myAddress) {
         myIndex = i;
         foundMyAddress = true;
         break;
@@ -263,20 +274,40 @@ export class Objective implements ObjectiveInterface {
     const followerSig = signedPostFund.getParticipantSignature(Follower);
     const signatures: [Signature, Signature] = [leaderSig, followerSig];
 
-    if (signedPostFund.state().outcome.value.length !== 1) {
+    if ((signedPostFund.state().outcome.value ?? []).length !== 1) {
       throw new Error('A consensus channel only supports a single asset');
     }
 
-    const assetExit = signedPostFund.state().outcome.value[0];
+    const assetExit = signedPostFund.state().outcome.value![0];
     const { turnNum } = signedPostFund.state();
     const outcome = LedgerOutcome.fromExit(assetExit);
 
     if (ledger.myIndex === Leader) {
-      const con = ConsensusChannel.newLeaderChannel(ledger, turnNum, outcome, signatures);
+      const con = ConsensusChannel.newLeaderChannel(
+        new FixedPart({
+          participants: ledger.participants,
+          channelNonce: ledger.channelNonce,
+          appDefinition: ledger.appDefinition,
+          challengeDuration: ledger.challengeDuration,
+        }),
+        turnNum,
+        outcome,
+        signatures,
+      );
       con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
       return con;
     }
-    const con = ConsensusChannel.newFollowerChannel(ledger, turnNum, outcome, signatures);
+    const con = ConsensusChannel.newFollowerChannel(
+      new FixedPart({
+        participants: ledger.participants,
+        channelNonce: ledger.channelNonce,
+        appDefinition: ledger.appDefinition,
+        challengeDuration: ledger.challengeDuration,
+      }),
+      turnNum,
+      outcome,
+      signatures,
+    );
     con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
     return con;
   }
@@ -302,7 +333,7 @@ export class Objective implements ObjectiveInterface {
 
     assert(this.c);
     updated.status = ObjectiveStatus.Rejected;
-    const peer = this.c.participants[1 - this.c.myIndex];
+    const peer = this.c.participants![1 - this.c.myIndex];
 
     const sideEffects = new SideEffects({
       messagesToSend: Message.createRejectionNoticeMessage(this.id(), peer),
@@ -354,9 +385,9 @@ export class Objective implements ObjectiveInterface {
   private otherParticipants(): Address[] {
     const others: Address[] = [];
 
-    for (let i = 0; i < this.c!.participants.length; i += 1) {
+    for (let i = 0; i < (this.c!.participants ?? []).length; i += 1) {
       if (i !== this.c!.myIndex) {
-        others.push(this.c!.participants[i]);
+        others.push(this.c!.participants![i]);
       }
     }
 
@@ -552,7 +583,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   // TODO: uint32 replacement
   challengeDuration: number = 0;
 
-  outcome: Exit = new Exit([]);
+  outcome: Exit = new Exit();
 
   appDefinition: Address = ethers.constants.AddressZero;
 

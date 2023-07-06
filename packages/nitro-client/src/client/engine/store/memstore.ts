@@ -283,7 +283,7 @@ export class MemStore implements Store {
       }
 
       const { participants } = ch;
-      for (const p of participants) {
+      for (const p of (participants ?? [])) {
         if (p === participant) {
           toReturn.push(ch);
         }
@@ -328,8 +328,8 @@ export class MemStore implements Store {
       }
 
       const participants = ch.participants();
-      if (participants.length === 2) {
-        if (participants[0] === counterparty || participants[1] === counterparty) {
+      if ((participants ?? []).length === 2) {
+        if (participants![0] === counterparty || participants![1] === counterparty) {
           channel = ch;
           ok = true;
           return false; // we have found the target channel: break the forEach loop

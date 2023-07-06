@@ -93,18 +93,35 @@ export class Connection {
 
   guaranteeInfo: GuaranteeInfo = new GuaranteeInfo({});
 
+  // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+  // other than the ID is dropped
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    channel: { type: 'class', value: ConsensusChannel },
+    channel: { type: 'class', value: Destination },
     guaranteeInfo: { type: 'class', value: GuaranteeInfo },
   };
 
-  static fromJSON(data: string): Connection {
+  static fromJSON(data: string): Connection | undefined {
+    if (data === 'null') {
+      return undefined;
+    }
+
+    // props has channel.id as channel
     const props = fromJSON(this.jsonEncodingMap, data);
-    return new Connection(props);
+    return new Connection({
+      channel: new ConsensusChannel({ id: props.channel }),
+      guaranteeInfo: props.guaranteeInfo,
+    });
   }
 
   toJSON(): any {
-    return toJSON(Connection.jsonEncodingMap, this);
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+    const jsonConnection = {
+      channel: this.channel!.id,
+      guaranteeInfo: this.guaranteeInfo,
+    };
+
+    return toJSON(Connection.jsonEncodingMap, jsonConnection);
   }
 
   constructor(params: {
@@ -218,15 +235,18 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
   myRole: number = 0; // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
 
+  // TODO: Handle undefined in serialization
   private a0?: Funds; // Initial balance for Alice
 
   private b0?: Funds; // Initial balance for Bob
 
+  // NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
+  // the virtual and ledger channels (other than Ids) is discarded
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
-    v: { type: 'class', value: VirtualChannel },
-    toMyLeft: { type: 'class', value: Connection },
-    toMyRight: { type: 'class', value: Connection },
+    v: { type: 'class', value: Destination },
+    toMyLeft: { type: 'buffer' },
+    toMyRight: { type: 'buffer' },
     n: { type: 'number' },
     myRole: { type: 'number' },
     a0: { type: 'class', value: Funds },
@@ -234,12 +254,40 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   };
 
   static fromJSON(data: string): Objective {
+    // props has v.id as v and JSON buffers for toMyLeft and toMyRight
     const props = fromJSON(this.jsonEncodingMap, data);
-    return new Objective(props);
+
+    return new Objective({
+      status: props.status,
+      v: new VirtualChannel({ id: props.v }),
+      toMyLeft: Connection.fromJSON((props.toMyLeft as Buffer).toString()),
+      toMyRight: Connection.fromJSON((props.toMyRight as Buffer).toString()),
+      n: props.n,
+      myRole: props.myRole,
+      a0: props.a0,
+      b0: props.b0,
+    });
   }
 
   toJSON(): any {
-    return toJSON(Objective.jsonEncodingMap, this);
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+
+    const left = this.toMyLeft ? Buffer.from(JSONbigNative.stringify(this.toMyLeft)) : Buffer.from('null');
+    const right = this.toMyRight ? Buffer.from(JSONbigNative.stringify(this.toMyRight)) : Buffer.from('null');
+
+    const jsonObjective = {
+      status: this.status,
+      v: this.v!.id,
+      toMyLeft: left,
+      toMyRight: right,
+      n: this.n,
+      myRole: this.myRole,
+      a0: this.a0,
+      b0: this.b0,
+    };
+
+    return toJSON(Objective.jsonEncodingMap, jsonObjective);
   }
 
   constructor(params: {
@@ -321,8 +369,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // Infer MyRole
     let found = false;
-    for (let i = 0; i < initialStateOfV.participants.length; i += 1) {
-      const addr = initialStateOfV.participants[i];
+    for (let i = 0; i < (initialStateOfV.participants ?? []).length; i += 1) {
+      const addr = initialStateOfV.participants![i];
       if (addr === myAddress) {
         init.myRole = i;
         found = true;
@@ -336,23 +384,23 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     init.v = v;
 
     // NewSingleHopVirtualChannel will error unless there are at least 3 participants
-    init.n = initialStateOfV.participants.length - 2;
+    init.n = (initialStateOfV.participants ?? []).length - 2;
 
     init.a0 = new Funds(new Map<Address, bigint>());
     init.b0 = new Funds(new Map<Address, bigint>());
 
-    for (const outcome of initialStateOfV.outcome.value) {
+    for (const outcome of (initialStateOfV.outcome.value ?? [])) {
       const { asset } = outcome;
 
-      if (!_.isEqual(outcome.allocations.value[0].destination, Destination.addressToDestination(initialStateOfV.participants[0]))) {
+      if (!_.isEqual(outcome.allocations.value![0].destination, Destination.addressToDestination(initialStateOfV.participants![0]))) {
         throw new Error('Allocation in slot 0 does not correspond to participant 0');
       }
-      const amount0 = outcome.allocations.value[0].amount;
+      const amount0 = outcome.allocations.value![0].amount;
 
-      if (!_.isEqual(outcome.allocations.value[1].destination, Destination.addressToDestination(initialStateOfV.participants[init.n + 1]))) {
+      if (!_.isEqual(outcome.allocations.value![1].destination, Destination.addressToDestination(initialStateOfV.participants![init.n + 1]))) {
         throw new Error(`Allocation in slot 1 does not correspond to participant ${init.n + 1}`);
       }
-      const amount1 = outcome.allocations.value[1].amount;
+      const amount1 = outcome.allocations.value![1].amount;
 
       if (!init.a0.value.has(asset)) {
         init.a0.value.set(asset, BigInt(0));
@@ -379,8 +427,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         init.a0,
         init.b0,
         v.id,
-        Destination.addressToDestination(init.v.participants[init.myRole - 1]),
-        Destination.addressToDestination(init.v.participants[init.myRole]),
+        Destination.addressToDestination(init.v.participants![init.myRole - 1]),
+        Destination.addressToDestination(init.v.participants![init.myRole]),
       );
     }
 
@@ -396,8 +444,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         init.a0,
         init.b0,
         init.v.id,
-        Destination.addressToDestination(init.v.participants[init.myRole]),
-        Destination.addressToDestination(init.v.participants[init.myRole + 1]),
+        Destination.addressToDestination(init.v.participants![init.myRole]),
+        Destination.addressToDestination(init.v.participants![init.myRole + 1]),
       );
     }
 
@@ -430,6 +478,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       throw new Error(`could not get signed state payload: ${err}`);
     }
     const { participants } = initialState.state();
+    assert(participants);
 
     let leftC: ConsensusChannel | undefined;
     let rightC: ConsensusChannel | undefined;
@@ -520,9 +569,9 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   private otherParticipants(): Address[] {
     const otherParticipants: Address[] = [];
 
-    for (let i = 0; i < this.v!.participants.length; i += 1) {
+    for (let i = 0; i < (this.v!.participants ?? []).length; i += 1) {
       if (i !== this.myRole) {
-        otherParticipants.push(this.v!.participants[i]);
+        otherParticipants.push(this.v!.participants![i]);
       }
     }
 
@@ -759,7 +808,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // Since the proposal queue is constructed with consecutive turn numbers, we can pass it straight in
     // to create a valid message with ordered proposals:
-    const message = Message.createSignedProposalMessage(receipient, ...connection.channel!.proposalQueue());
+    const message = Message.createSignedProposalMessage(receipient, ...(connection.channel!.proposalQueue() ?? []));
 
     sideEffects.messagesToSend.push(message);
 
@@ -779,7 +828,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // ledger sideEffect
     const proposals = ledger.proposalQueue();
-    if (proposals.length !== 0) {
+    if (proposals && proposals.length !== 0) {
       sideEffects.proposalsToProcess.push(proposals[0].proposal);
     }
 

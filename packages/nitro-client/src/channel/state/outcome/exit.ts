@@ -35,7 +35,7 @@ export class SingleAssetExit {
   // Can be used to encode arbitrary additional information that applies to all allocations.
   assetMetadata: AssetMetadata = { assetType: 0, metadata: null };
 
-  allocations: Allocations = new Allocations([]);
+  allocations: Allocations = new Allocations();
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     asset: { type: 'address' },
@@ -100,17 +100,19 @@ type EasyExit = Map<Address, SingleAssetExit>;
 // Exit is an ordered list of SingleAssetExits
 export class Exit {
   // Access using value property
-  value: SingleAssetExit[];
+  value: SingleAssetExit[] | null;
 
   static fromJSON(data: string): Exit {
     // jsonValue is a JSON array of SingleAssetExit
     // Call fromJSON on individual elements of the array
     const jsonValue = JSONbigNative.parse(data);
-    assert(Array.isArray(jsonValue));
 
-    const value = jsonValue.map((singleAssetExitValue): SingleAssetExit => {
-      return SingleAssetExit.fromJSON(JSONbigNative.stringify(singleAssetExitValue));
-    });
+    let value = null;
+    if (Array.isArray(jsonValue)) {
+      value = jsonValue.map((singleAssetExitValue): SingleAssetExit => {
+        return SingleAssetExit.fromJSON(JSONbigNative.stringify(singleAssetExitValue));
+      });
+    }
 
     return new Exit(value);
   }
@@ -118,17 +120,19 @@ export class Exit {
   toJSON(): any {
     // Return the array of SingleAssetExit JSON directly
     // (Exit is not a struct in go-nitro, just an array of SingleAssetExit)
-    return this.value.map((singleAssetExit) => {
-      return singleAssetExit.toJSON();
-    });
+    return this.value === null ? null : this.value.map((singleAssetExit) => singleAssetExit.toJSON());
   }
 
-  constructor(value: SingleAssetExit[]) {
+  constructor(value: SingleAssetExit[] | null = null) {
     this.value = value;
   }
 
   // Equal returns true if the supplied Exit is deeply equal to the receiver.
   equal(b: Exit): boolean {
+    if (this.value === null || b.value === null) {
+      return this.value === b.value;
+    }
+
     if (this.value.length !== b.value.length) {
       return false;
     }
@@ -145,9 +149,8 @@ export class Exit {
   // Clone returns a deep clone of the receiver.
   clone(): Exit {
     const clone = new Exit([]);
-
-    for (const [i, sae] of this.value.entries()) {
-      clone.value[i] = sae.clone();
+    for (const [i, sae] of (this.value ?? []).entries()) {
+      clone.value![i] = sae.clone();
     }
 
     return clone;
@@ -160,7 +163,7 @@ export class Exit {
   totalAllocated(): Funds {
     const fullValue = new Funds();
 
-    for (const assetExit of this.value) {
+    for (const assetExit of (this.value ?? [])) {
       fullValue.value.set(assetExit.asset, assetExit.totalAllocated());
     }
 
@@ -171,7 +174,7 @@ export class Exit {
   totalAllocatedFor(dest: Destination): Funds {
     const total = new Funds();
 
-    for (const assetAllocation of this.value) {
+    for (const assetAllocation of (this.value ?? [])) {
       total.value.set(assetAllocation.asset, assetAllocation.totalAllocatedFor(dest));
     }
 
@@ -191,8 +194,8 @@ export class Exit {
   // For these reasons, the transformation should be considered non-invertibile and used with care.
   toEasyExit(): EasyExit {
     const easy: EasyExit = new Map<Address, SingleAssetExit>();
-    for (const [i] of this.value.entries()) {
-      easy.set(this.value[i].asset, this.value[i]);
+    for (const [i] of (this.value ?? []).entries()) {
+      easy.set(this.value![i].asset, this.value![i]);
     }
     return easy;
   }

@@ -76,17 +76,19 @@ export class Allocation {
 // Allocations is an array of type Allocation
 export class Allocations {
   // Access using value property
-  value: Allocation[];
+  value: Allocation[] | null;
 
   static fromJSON(data: string): Allocations {
     // jsonValue is a JSON array of Allocation
     // Call fromJSON on individual elements of the array
     const jsonValue = JSONbigNative.parse(data);
-    assert(Array.isArray(jsonValue));
 
-    const value = jsonValue.map((allocation): Allocation => {
-      return Allocation.fromJSON(JSONbigNative.stringify(allocation));
-    });
+    let value = null;
+    if (Array.isArray(jsonValue)) {
+      value = jsonValue.map((allocation): Allocation => {
+        return Allocation.fromJSON(JSONbigNative.stringify(allocation));
+      });
+    }
 
     return new Allocations(value);
   }
@@ -94,17 +96,19 @@ export class Allocations {
   toJSON(): any {
     // Return the array of Allocation JSON directly
     // (Allocations is not a struct in go-nitro, just an array of Allocation)
-    return this.value.map((singleAssetExit) => {
-      return singleAssetExit.toJSON();
-    });
+    return this.value === null ? null : this.value.map((singleAssetExit) => singleAssetExit.toJSON());
   }
 
-  constructor(value: Allocation[]) {
+  constructor(value: Allocation[] | null = null) {
     this.value = value;
   }
 
   // Equal returns true if each of the supplied Allocations matches the receiver Allocation in the same position, and false otherwise.
   equal(b: Allocations): boolean {
+    if (this.value === null || b.value === null) {
+      return this.value === b.value;
+    }
+
     if (this.value.length !== b.value.length) {
       return false;
     }
@@ -121,8 +125,8 @@ export class Allocations {
   // Clone returns a deep copy of the receiver
   clone(): Allocations {
     const clone = new Allocations([]);
-    for (let i = 0; i < this.value.length; i += 1) {
-      clone.value[i] = this.value[i].clone();
+    for (let i = 0; i < (this.value ?? []).length; i += 1) {
+      clone.value![i] = this.value![i].clone();
     }
 
     return clone;
@@ -131,7 +135,7 @@ export class Allocations {
   // Total returns the toal amount allocated, summed across all destinations (regardless of AllocationType)
   total(): bigint {
     let total = BigInt(0);
-    this.value.forEach((allocation) => {
+    (this.value ?? []).forEach((allocation) => {
       total += BigInt(allocation.amount!);
     });
 
@@ -141,7 +145,7 @@ export class Allocations {
   // TotalFor returns the total amount allocated to the given dest (regardless of AllocationType)
   totalFor(dest: Destination): bigint {
     let total = BigInt(0);
-    this.value.forEach((allocation) => {
+    (this.value ?? []).forEach((allocation) => {
       if (_.isEqual(allocation.destination, dest)) {
         total += BigInt(allocation.amount!);
       }
@@ -159,7 +163,7 @@ export class Allocations {
     const bigZero = BigInt(0);
     let surplus = funding;
 
-    for (const allocation of this.value) {
+    for (const allocation of (this.value ?? [])) {
       if (allocation.equal(given)) {
         return surplus! >= given.amount!;
       }
@@ -190,8 +194,8 @@ export class Allocations {
     }
 
     const newAllocations: Allocation[] = [];
-    for (let i = 0; i < this.value.length; i += 1) {
-      newAllocations.push(this.value[i].clone());
+    for (let i = 0; i < (this.value ?? []).length; i += 1) {
+      newAllocations.push(this.value![i].clone());
 
       /* eslint-disable default-case */
       switch (newAllocations[i].destination) {

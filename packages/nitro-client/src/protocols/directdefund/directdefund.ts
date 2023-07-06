@@ -1,6 +1,8 @@
 import assert from 'assert';
 import { Buffer } from 'buffer';
 import isEqual from 'lodash/isEqual';
+import set from 'lodash/set';
+import cloneDeep from 'lodash/cloneDeep';
 
 import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
@@ -91,20 +93,30 @@ export class Objective implements ObjectiveInterface {
 
   private transactionSubmitted: boolean = false; // whether a transition for the objective has been submitted or not
 
+  // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
+  // (other than Id) from the field C is discarded
   static jsonEncodingMap: Record<string, FieldDescription> = {
     status: { type: 'number' },
-    c: { type: 'class', value: channel.Channel },
+    c: { type: 'class', value: Destination },
     finalTurnNum: { type: 'uint64' },
-    transactionSubmitted: { type: 'boolean' },
+    transactionSumbmitted: { type: 'boolean' },
   };
 
   static fromJSON(data: string): Objective {
-    const props = fromJSON(this.jsonEncodingMap, data);
-    return new Objective(props);
+    // props has c.id as c and
+    // transactionSumbmitted as a key instead of transactionSubmitted (typo from go-nitro custom serialization)
+    const props = fromJSON(this.jsonEncodingMap, data, new Map([['transactionSumbmitted', 'transactionSubmitted']]));
+    return new Objective(set(props, 'c', new channel.Channel({ id: props.c })));
   }
 
   toJSON(): any {
-    return toJSON(Objective.jsonEncodingMap, this);
+    // Use a custom object
+    // (according to MarshalJSON implementation in go-nitro)
+    return toJSON(
+      Objective.jsonEncodingMap,
+      set(cloneDeep(this), 'c', this.c!.id),
+      new Map([['transactionSubmitted', 'transactionSumbmitted']]),
+    );
   }
 
   constructor(params: {
@@ -212,7 +224,7 @@ export class Objective implements ObjectiveInterface {
   reject(): [ObjectiveInterface, SideEffects] {
     const updated = this.clone();
     updated.status = ObjectiveStatus.Rejected;
-    const peer = this.c!.participants[1 - this.c!.myIndex];
+    const peer = this.c!.participants![1 - this.c!.myIndex];
 
     const sideEffects = new SideEffects({ messagesToSend: Message.createRejectionNoticeMessage(this.id(), peer) });
     return [updated, sideEffects];
@@ -382,7 +394,7 @@ export class Objective implements ObjectiveInterface {
   // otherParticipants returns the participants in the channel that are not the current participant.
   private otherParticipants(): Address[] {
     const others: Address[] = [];
-    this.c!.participants.forEach((p, i) => {
+    (this.c!.participants ?? []).forEach((p, i) => {
       if (i !== this.c!.myIndex) {
         others.push(p);
       }

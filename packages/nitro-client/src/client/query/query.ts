@@ -24,15 +24,15 @@ const getStatusFromChannel = (c: Channel): ChannelStatus => {
   return ChannelStatus.Open;
 };
 
-const getPaymentChannelBalance = (participants: Address[], outcome: Exit): PaymentChannelBalance => {
-  const numParticipants = participants.length;
+const getPaymentChannelBalance = (participants: Address[] | null, outcome: Exit): PaymentChannelBalance => {
+  const numParticipants = participants!.length;
   // TODO: We assume single asset outcomes
-  const sao = outcome.value[0];
+  const sao = outcome.value![0];
   const { asset } = sao;
-  const payer = participants[0];
-  const payee = participants[numParticipants - 1];
-  const paidSoFar = BigInt(sao.allocations.value[1].amount!);
-  const remaining = BigInt(sao.allocations.value[0].amount!);
+  const payer = participants![0];
+  const payee = participants![numParticipants - 1];
+  const paidSoFar = BigInt(sao.allocations.value![1].amount!);
+  const remaining = BigInt(sao.allocations.value![0].amount!);
   return new PaymentChannelBalance({
     assetAddress: asset,
     payer,
@@ -44,12 +44,12 @@ const getPaymentChannelBalance = (participants: Address[], outcome: Exit): Payme
 
 const getLedgerBalanceFromState = (latest: State): LedgerChannelBalance => {
   // TODO: We assume single asset outcomes
-  const outcome = latest.outcome.value[0];
+  const outcome = latest.outcome.value![0];
   const { asset } = outcome;
-  const client = latest.participants[0];
-  const clientBalance = BigInt(outcome.allocations.value[0].amount!);
-  const hub = latest.participants[1];
-  const hubBalance = BigInt(outcome.allocations.value[1].amount!);
+  const client = latest.participants![0];
+  const clientBalance = BigInt(outcome.allocations.value![0].amount!);
+  const hub = latest.participants![1];
+  const hubBalance = BigInt(outcome.allocations.value![1].amount!);
 
   return new LedgerChannelBalance({
     assetAddress: asset,
@@ -87,7 +87,7 @@ export const constructPaymentInfo = (c: Channel, paid?: bigint, remaining?: bigi
 
   // ADR 0009 allows for intermediaries to exit the protocol before receiving all signed post funds
   // So for intermediaries we return Open once they have signed their post fund state
-  const amIntermediary: boolean = c.myIndex !== 0 && c.myIndex !== c.participants.length - 1;
+  const amIntermediary: boolean = c.myIndex !== 0 && c.myIndex !== (c.participants ?? []).length - 1;
   if (amIntermediary && c.postFundSignedByMe()) {
     status = ChannelStatus.Open;
   }
