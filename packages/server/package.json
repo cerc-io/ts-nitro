@@ -26,7 +26,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "DEBUG=ts-nitro:* ts-node src/index.ts",
+    "cli": "DEBUG=ts-nitro:* ts-node src/index.ts",
     "lint": "eslint .",
     "test:e2e": "DEBUG=ts-nitro:* mocha test-e2e/**/*.test.ts --bail",
     "test:deploy-contracts": "DEBUG=ts-nitro:* yarn ts-node test-e2e/scripts/deploy-contracts.ts",

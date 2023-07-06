@@ -6,7 +6,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
-  FieldDescription, Uint64, fromJSON, toJSON,
+  FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
@@ -295,7 +295,7 @@ export class Objective implements ObjectiveInterface {
         break;
       }
       default:
-        throw new Error(`objective ${updated} cannot handle event ${event}`);
+        throw new Error(`objective ${JSONbigNative.stringify(updated)} cannot handle event ${JSONbigNative.stringify(event)}`);
     }
 
     return updated;

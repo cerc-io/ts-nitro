@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import assert from 'assert';
 
 import type { ReadChannel } from '@cerc-io/ts-channel';
@@ -42,7 +43,7 @@ export class P2PMessageService implements MessageService {
     ip: string,
     port: number,
     me: Address,
-    pk: Uint8Array,
+    pk: Buffer,
     useMdnsPeerDiscovery: boolean,
     logWriter?: WritableStream,
   ): Promise<P2PMessageService> {
@@ -101,7 +102,7 @@ export class P2PMessageService implements MessageService {
   }
 
   // Closes the P2PMessageService
-  close(): void {
+  close(): Promise<void> {
     return this.baseP2PMessageService.close();
   }
 

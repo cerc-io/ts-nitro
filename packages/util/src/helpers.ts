@@ -1,3 +1,5 @@
+import debug from 'debug';
+
 import {
   P2PMessageService,
   Client,
@@ -12,12 +14,15 @@ import {
   AllocationType,
   Allocations,
 } from '@cerc-io/nitro-client';
+import { JSONbigNative } from '@cerc-io/nitro-util';
 
 import {
   nitroAdjudicatorAddress,
   virtualPaymentAppAddress,
   consensusAppAddress,
 } from './addresses.json';
+
+const log = debug('ts-nitro:util:helpers');
 
 /**
  * setupClient sets up a client using the given args
@@ -112,4 +117,18 @@ export function createOutcome(
       ]),
     }),
   ]);
+}
+
+export async function subscribeVoucherLogs(client: Client): Promise<void> {
+  // Log voucher messages from channel in loop
+  while (true) {
+    // eslint-disable-next-line no-await-in-loop
+    const voucher = await client.receivedVouchers().shift();
+
+    if (voucher === undefined) {
+      break;
+    }
+
+    log(`Received voucher: ${JSONbigNative.stringify(voucher, null, 2)}`);
+  }
 }

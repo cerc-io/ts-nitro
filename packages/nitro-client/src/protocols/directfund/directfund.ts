@@ -369,7 +369,7 @@ export class Objective implements ObjectiveInterface {
 
     if (!(event instanceof DepositedEvent)) {
       // TODO: Handle partial return case if required
-      throw new Error(`objective ${updated} cannot handle event ${event}`);
+      throw new Error(`objective ${JSONbigNative.stringify(updated)} cannot handle event ${JSONbigNative.stringify(event)}`);
     }
 
     const de = event;

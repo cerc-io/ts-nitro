@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+
 import type { ReadChannel } from '@cerc-io/ts-channel';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
@@ -25,7 +27,7 @@ export class P2PMessageService implements MessageService {
   static async newMessageService(
     relayMultiAddr: string,
     me: Address,
-    pk: Uint8Array,
+    pk: Buffer,
     logWriter?: WritableStream,
   ): Promise<P2PMessageService> {
     const baseP2PMessageService = await BaseP2PMessageService.newMessageService(
@@ -59,7 +61,7 @@ export class P2PMessageService implements MessageService {
   }
 
   // Closes the P2PMessageService
-  close(): void {
+  close(): Promise<void> {
     return this.baseP2PMessageService.close();
   }
 
