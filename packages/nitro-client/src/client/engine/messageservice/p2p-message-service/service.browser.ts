@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+
 import type { ReadChannel } from '@cerc-io/ts-channel';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';

@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import assert from 'assert';
 
 import type { ReadChannel } from '@cerc-io/ts-channel';

@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+
 import {
   P2PMessageService,
 } from '@cerc-io/nitro-client';

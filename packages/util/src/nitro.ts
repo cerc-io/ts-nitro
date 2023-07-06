@@ -56,10 +56,11 @@ export class Nitro {
     return new Nitro(client, msgService);
   }
 
-  static async clearClientStorage(): Promise<void> {
+  static async clearClientStorage(): Promise<boolean> {
     // Delete all databases in browser
     const dbs = await window.indexedDB.databases();
     dbs.forEach((db) => window.indexedDB.deleteDatabase(db.name!));
+    return true;
   }
 
   // TODO: Implement close method

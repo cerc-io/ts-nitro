@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+
 import { Allocations } from '../../../../channel/state/outcome/allocation';
 import { AssetMetadata, Exit } from '../../../../channel/state/outcome/exit';
 import { FixedPart, VariablePart } from '../../../../channel/state/state';
