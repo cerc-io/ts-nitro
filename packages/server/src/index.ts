@@ -293,6 +293,7 @@ main()
 
 process.on('uncaughtException', (err) => {
   if (err.message.includes(ErrConnectionClosed)) {
+    log('uncaughtException', err.message);
     return;
   }
 
