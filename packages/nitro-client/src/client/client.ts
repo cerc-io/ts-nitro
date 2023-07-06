@@ -263,6 +263,7 @@ export class Client {
   receivedVouchers(): ReadChannel<Voucher> {
     return this._receivedVouchers!;
   }
+
   // GetPaymentChannelsByLedger returns all active payment channels that are funded by the given ledger channel.
   getPaymentChannelsByLedger(ledgerId: Destination): Promise<PaymentChannelInfo[]> {
     assert(this.store);
