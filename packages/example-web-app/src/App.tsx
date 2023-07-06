@@ -6,6 +6,7 @@ import {
   DEFAULT_CHAIN_URL,
   Nitro
 } from '@cerc-io/util';
+import { JSONbigNative } from '@cerc-io/nitro-util';
 
 import logo from './logo.svg';
 import './App.css';
@@ -14,6 +15,7 @@ declare global {
   interface Window {
     setupClient: (name: string) => Promise<Nitro>
     clearClientStorage: () => Promise<boolean>
+    out: (jsonObject: any) => void
   }
 }
 
@@ -32,6 +34,10 @@ window.setupClient = async (name: string): Promise<Nitro> => {
     process.env.REACT_APP_RELAY_MULTIADDR,
     `${name}-db`
   );
+};
+
+window.out = (jsonObject) => {
+  console.log(JSONbigNative.stringify(jsonObject, null, 2));
 };
 
 function App () {
