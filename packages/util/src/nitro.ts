@@ -66,9 +66,7 @@ export class Nitro {
   // TODO: Implement close method
 
   async addPeerByMultiaddr(address: string, multiaddrString: string): Promise<void> {
-    const { multiaddr } = await import('@multiformats/multiaddr');
-    const multi = multiaddr(multiaddrString);
-    await this.msgService.addPeerByMultiaddr(address, multi);
+    await this.msgService.addPeerByMultiaddr(address, multiaddrString);
   }
 
   async directFund(counterParty: string, amount: number): Promise<void> {

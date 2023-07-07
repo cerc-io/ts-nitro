@@ -11,11 +11,11 @@ import {
   subscribeVoucherLogs,
 } from '@cerc-io/util';
 import {
-  Destination, DurableStore, MemStore, Store,
+  Destination, DurableStore, MemStore, P2PMessageService, Store,
 } from '@cerc-io/nitro-client';
 import { JSONbigNative, hex2Bytes } from '@cerc-io/nitro-util';
 
-import { createP2PMessageService, waitForPeerInfoExchange } from './utils/index';
+import { waitForPeerInfoExchange } from './utils/index';
 import { DirectFundParams, VirtualFundParams } from './types';
 
 const log = debug('ts-nitro:server');
@@ -52,13 +52,9 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'Counterparty to create channel(s) against',
   },
-  cpPeerId: {
+  cpMultiaddr: {
     type: 'string',
-    describe: "Counterparty's peer id",
-  },
-  cpPort: {
-    type: 'number',
-    describe: "Counterparty's message service port",
+    describe: "Counterparty's peer multiaddr",
   },
   directFund: {
     type: 'boolean',
@@ -138,7 +134,7 @@ const main = async () => {
     store = new MemStore(hex2Bytes(argv.pk));
   }
 
-  const msgService = await createP2PMessageService(process.env.RELAY_MULTIADDR, argv.port, store.getAddress(), hex2Bytes(argv.pk));
+  const msgService = await P2PMessageService.newMessageService(process.env.RELAY_MULTIADDR, store.getAddress(), hex2Bytes(argv.pk));
 
   const client = await setupClient(
     msgService,
@@ -151,21 +147,11 @@ const main = async () => {
 
   log('Started P2PMessageService');
 
-  if (argv.cpPeerId) {
-    assert(argv.cpPort, 'Specify counterparty message service port');
+  if (argv.cpMultiaddr) {
     assert(argv.counterparty, 'Specify counterparty address');
 
-    const { peerIdFromString } = await import('@libp2p/peer-id');
-
-    const peerInfo = {
-      port: argv.cpPort,
-      id: peerIdFromString(argv.cpPeerId),
-      address: argv.counterparty,
-      ipAddress: '127.0.0.1',
-    };
-
-    log('Adding peer', peerInfo);
-    await msgService.addPeers([peerInfo]);
+    log('Adding client', argv.counterparty);
+    await msgService.addPeerByMultiaddr(argv.counterparty, argv.cpMultiaddr);
   } else {
     // Wait for a peer to be discovered
     await waitForPeerInfoExchange(1, [msgService]);
