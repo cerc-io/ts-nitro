@@ -59,6 +59,7 @@ export const browserConfig: webpack.Configuration = merge(baseConfig, {
     '@libp2p/peer-id': '@libp2p/peer-id',
     'uint8arrays/to-string': 'uint8arrays/to-string',
     'uint8arrays/from-string': 'uint8arrays/from-string',
+    '@multiformats/multiaddr': '@multiformats/multiaddr',
   },
 });
 

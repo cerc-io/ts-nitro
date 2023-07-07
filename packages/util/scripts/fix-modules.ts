@@ -34,7 +34,7 @@ const MODULES = [
     ],
   },
   {
-    path: '../../node_modules/@multiformats/multiaddr',
+    path: '../nitro-client/node_modules/@multiformats/multiaddr',
     subPaths: [
       '.',
     ],
