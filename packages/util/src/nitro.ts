@@ -137,8 +137,17 @@ export class Nitro {
     return this.client.getLedgerChannel(ledgerChannelId);
   }
 
+  async getAllLedgerChannels(): Promise<LedgerChannelInfo[]> {
+    return this.client.getAllLedgerChannels();
+  }
+
   async getPaymentChannel(paymentChannel: string): Promise<PaymentChannelInfo> {
     const paymentChannelId = new Destination(paymentChannel);
     return this.client.getPaymentChannel(paymentChannelId);
+  }
+
+  async getPaymentChannelsByLedger(ledgerChannel: string): Promise<PaymentChannelInfo[]> {
+    const ledgerChannelId = new Destination(ledgerChannel);
+    return this.client.getPaymentChannelsByLedger(ledgerChannelId);
   }
 }
