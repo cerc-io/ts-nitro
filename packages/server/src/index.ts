@@ -75,10 +75,20 @@ const getArgv = () => yargs.parserConfiguration({
     default: false,
     describe: 'Whether to get information about a ledger channel',
   },
+  getAllLedgerChannels: {
+    type: 'boolean',
+    default: false,
+    describe: 'Whether to get information about all ledger channels',
+  },
   getPaymentChannel: {
     type: 'boolean',
     default: false,
     describe: 'Whether to get information about a virtual payment channel',
+  },
+  getPaymentChannelsByLedger: {
+    type: 'boolean',
+    default: false,
+    describe: 'Whether to get information about all active payment channels that are funded by the given ledger channel',
   },
   pay: {
     type: 'boolean',
@@ -265,6 +275,24 @@ const main = async () => {
     log(
       `Ledger channel ${ledgerChannelId.string()} status:\n`,
       JSONbigNative.stringify(ledgerChannelStatus, null, 2),
+    );
+  }
+
+  if (argv.getAllLedgerChannels) {
+    const allLedgerChannels = await client.getAllLedgerChannels();
+    log(
+      'All ledger channel:\n',
+      JSONbigNative.stringify(allLedgerChannels, null, 2),
+    );
+  }
+
+  if (argv.getPaymentChannelsByLedger) {
+    assert(ledgerChannelIdString, 'Provide ledger-channel id to get all active payment channels');
+    const ledgerChannelId = new Destination(ledgerChannelIdString);
+    const paymentChannelsByLedger = await client.getPaymentChannelsByLedger(ledgerChannelId);
+    log(
+      `All active payment channels on ledger channel ${ledgerChannelId.string()}:\n`,
+      JSONbigNative.stringify(paymentChannelsByLedger, null, 2),
     );
   }
 
