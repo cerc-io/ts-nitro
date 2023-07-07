@@ -262,7 +262,7 @@ export class DurableStore implements Store {
   }
 
   // GetChannelsByIds returns a collection of channels with the given ids
-  async getChannelsByIds(ids: string[]): Promise<Channel[]> {
+  async getChannelsByIds(ids: Destination[]): Promise<Channel[]> {
     const toReturn: Channel[] = [];
     // We know every channel has a unique id
     // so we can stop looking once we've found the correct number of channels
@@ -279,7 +279,7 @@ export class DurableStore implements Store {
       }
 
       // If the channel is one of the ones we're looking for, add it to the list
-      if (contains(ids, ch.id.value)) {
+      if (contains(ids, ch.id)) {
         toReturn.push(ch);
       }
 

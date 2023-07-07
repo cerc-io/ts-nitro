@@ -209,7 +209,7 @@ export class MemStore implements Store {
   }
 
   // GetChannelsByIds returns a collection of channels with the given ids
-  getChannelsByIds(ids: string[]): Channel[] {
+  getChannelsByIds(ids: Destination[]): Channel[] {
     const toReturn: Channel[] = [];
 
     let err: Error;
@@ -224,7 +224,7 @@ export class MemStore implements Store {
       }
 
       // If the channel is one of the ones we're looking for, add it to the list
-      if (contains(ids, ch.id.value)) {
+      if (contains(ids, ch.id)) {
         toReturn.push(ch);
       }
 
@@ -570,7 +570,7 @@ export function decodeObjective(id: ObjectiveId, data: Buffer): Objective {
 // contains is a helper function which returns true if the given item is included in col
 export function contains<T extends Destination | ObjectiveId>(col: T[], item: T): boolean {
   for (const [, i] of col.entries()) {
-    if (i === item) {
+    if (_.isEqual(i, item)) {
       return true;
     }
   }

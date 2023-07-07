@@ -8,7 +8,7 @@ import {
   ChannelStatus, LedgerChannelBalance, LedgerChannelInfo, PaymentChannelInfo, PaymentChannelBalance,
 } from './types';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
-import { Store } from '../engine/store/store';
+import { Store, ErrNoSuchChannel } from '../engine/store/store';
 
 const getStatusFromChannel = (c: Channel): ChannelStatus => {
   if (c.finalSignedByMe()) {
@@ -137,6 +137,60 @@ export const constructLedgerInfoFromChannel = (c: Channel): LedgerChannelInfo =>
     status: getStatusFromChannel(c),
     balance: getLedgerBalanceFromState(latest),
   });
+};
+
+// GetAllLedgerChannels returns a `LedgerChannelInfo` for each ledger channel in the store.
+export const getAllLedgerChannels = async (store: Store, consensusAppDefinition: Address): Promise<LedgerChannelInfo[]> => {
+  const toReturn: LedgerChannelInfo[] = [];
+  const allConsensus = await store.getAllConsensusChannels();
+
+  for (const con of allConsensus) {
+    toReturn.push(constructLedgerInfoFromConsensus(con));
+  }
+
+  const allChannels = await store.getChannelsByAppDefinition(consensusAppDefinition);
+
+  for (const c of allChannels) {
+    toReturn.push(constructLedgerInfoFromChannel(c));
+  }
+
+  return toReturn;
+};
+
+// GetPaymentChannelsByLedger returns a `PaymentChannelInfo` for each active payment channel funded by the given ledger channel.
+export const getPaymentChannelsByLedger = async (ledgerId: Destination, s: Store, vm: VoucherManager): Promise<PaymentChannelInfo[]> => {
+  // If a ledger channel is actively funding payment channels it must be in the form of a consensus channel
+  let con: ConsensusChannel;
+  try {
+    // If the ledger channel is not a consensus channel we know that there are no payment channels funded by it
+    con = await s.getConsensusChannelById(ledgerId);
+  } catch (err) {
+    if ((err as Error).message.includes(ErrNoSuchChannel.message)) {
+      return [];
+    }
+
+    throw new Error(`could not find any payment channels funded by ${ledgerId}: ${err}`);
+  }
+
+  const toQuery = con.consensusVars().outcome.fundingTargets();
+
+  let paymentChannels: Channel[];
+
+  try {
+    paymentChannels = await s.getChannelsByIds(toQuery);
+  } catch (err) {
+    throw new Error(`could not query the store about ids ${toQuery}: ${err}`);
+  }
+
+  const toReturn: PaymentChannelInfo[] = [];
+
+  for await (const p of paymentChannels) {
+    const [paid, remaining] = await getVoucherBalance(p.id, vm);
+    const info = constructPaymentInfo(p, paid, remaining);
+    toReturn.push(info);
+  }
+
+  return toReturn;
 };
 
 // GetLedgerChannelInfo returns the LedgerChannelInfo for the given channel

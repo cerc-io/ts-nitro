@@ -33,7 +33,7 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 
   // Returns a collection of channels with the given ids
   // TODO: Can throw an error
-  getChannelsByIds (ids: string[]): Channel[] | Promise<Channel[]>
+  getChannelsByIds (ids: Destination[]): Channel[] | Promise<Channel[]>
 
   // TODO: Can throw an error
   getChannelById (id: Destination): [Channel, boolean] | Promise<[Channel, boolean]>
