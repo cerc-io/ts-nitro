@@ -23,13 +23,6 @@ const log = debug('ts-nitro:server');
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
 }).options({
-  port: {
-    alias: 'p',
-    type: 'number',
-    require: true,
-    demandOption: true,
-    describe: 'Message service port',
-  },
   pk: {
     type: 'string',
     require: true,
