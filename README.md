@@ -30,7 +30,7 @@ Run relay node using v2 watcher
 
   * Build packages for browser environment
 
-    ```
+    ```bash
     yarn build:browser --ignore @cerc-io/example-web-app
     ```
 
@@ -38,7 +38,7 @@ Run relay node using v2 watcher
 
   * Run browser app in dev mode
 
-    ```
+    ```bash
     cd packages/example-web-app
 
     yarn start
@@ -47,11 +47,14 @@ Run relay node using v2 watcher
 ### Run
 
 * Open [app](http://localhost:3000) in browser
+
 * Open console in browser inspect and enable debug logs by setting `localStorage.debug = 'ts-nitro:*'`
+
 * Refresh the app for enabling logs
+
 * Setup client
 
-  ```
+  ```bash
   const nitro = await setupClient('charlie')
   ```
 
@@ -107,9 +110,10 @@ Run relay node using v2 watcher
     ```
 
   * Wait for voucher received log in client Charlie
+
 * Check status of payment channel after making payments in browser
 
-    ```
+    ```bash
     out(await nitro.getPaymentChannel("<$PAYMENT_CHANNEL_ID>"))
     ```
 
@@ -164,13 +168,17 @@ Run relay node using v2 watcher
     # Expected output:
     # Result: 1000050
     ```
+
 ### Clean up
 
 * In NodeJS environment clear storage by deleting DB directories in `/packages/server`
+
     ```bash
     rm -r ./out
     ```
+
 * In browser apps call `clearClientStorage` method to delete all indexedDBs
-    ```
+
+    ```bash
     clearClientStorage()
     ```

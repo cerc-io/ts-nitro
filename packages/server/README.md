@@ -43,7 +43,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
 * In `nodejs-ts-nitro` repo change directory to `packages/server`
 
-    ```
+    ```bash
     cd packages/server
     ```
 
@@ -166,7 +166,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
   * Wait for voucher receieved log in client Bob
 
-    ```
+    ```bash
     # Expected output:
     # ts-nitro:util:helpers Received voucher: {
     # ts-nitro:util:helpers   "ChannelId": "0x033d8dcf8a34333cf7807082c03cb940241a3a115a7fa44e47de2c9ec7e5e992",
@@ -180,7 +180,9 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
     ```
 
   * Close client Alice after getting above log
+
   * Pay command can be run multiple times
+
 * Check status of payment channel after making payments
 
     ```bash
@@ -207,7 +209,6 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   #    "RemainingFunds": 900
   #   }
   # } +1ms
-
   ```
 
 * Close the ledger channel using client Alice
@@ -279,6 +280,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 ### Setup
 
 * Follow the setup steps in the [`ts-nitro`-`ts-nitro`](#setup) section
+
 * In `statechannels/go-nitro`, checkout to branch required for interops
 
   ```bash

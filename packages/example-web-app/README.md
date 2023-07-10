@@ -33,7 +33,7 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
 * Build packages for browser environment
 
-  ```
+  ```bash
   yarn build:browser --ignore @cerc-io/example-web-app
   ```
 
@@ -41,7 +41,7 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
 * Run browser app in dev mode
 
-  ```
+  ```bash
   cd packages/example-web-app
 
   yarn start
@@ -56,15 +56,16 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 * Refresh the apps for enabling logs
 
 * Setup clients
+
   * In first browser
 
-    ```
+    ```bash
     const nitro = await setupClient('charlie')
     ```
 
   * In second browser
 
-    ```
+    ```bash
     const nitro = await setupClient('david')
     ```
 
@@ -74,20 +75,20 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
   * For example, call `nitro.directFund` in Charlie's browser with David's address
 
-    ```
+    ```bash
     await nitro.directFund('0x111A00868581f73AB42FEEF67D235Ca09ca1E8db', 1_000_000)
     ```
 
   * Final expected log
 
-    ```
+    ```bash
     ts-nitro:engine Objective DirectFunding-0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978 is complete & returned to API +22ms
     Ledger channel created with id 0x841b8725d82bdbd67650b101183143dcccf29083e0b127ca90f0f8f81cfd8978
     ```
 
 * Assign ledger channel id in the log above to a variable in the console
 
-    ```
+    ```bash
     let LEDGER_CHANNEL_ID = "<LEDGER_CHANNEL_ID>"
     ```
 
@@ -95,26 +96,26 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
   * Call `nitro.virtualFund` in Charlie's browser with David's address
 
-    ```
+    ```bash
     await nitro.virtualFund('0x111A00868581f73AB42FEEF67D235Ca09ca1E8db', 1_000)
     ```
 
   * Final expected log
 
-    ```
+    ```bash
     # ts-nitro:engine Objective VirtualFund-0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af is complete & returned to API +0ms
     Virtual payment channel created with id 0x8b0275a133addd8df2eafc84f2283ddf560a6c75eaafa1709e1f513bee5787af
     ```
 
 * Assign payment channel id in the log above to a variable in the console
 
-    ```
+    ```bash
     let PAYMENT_CHANNEL_ID = "<PAYMENT_CHANNEL_ID>"
     ```
 
 * Make payment with payment channel id from above log
 
-    ```
+    ```bash
     await nitro.pay(PAYMENT_CHANNEL_ID, 50)
     ```
 
@@ -122,13 +123,13 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
 
 * Close the virtual payment channel
 
-    ```
+    ```bash
     await nitro.virtualDefund(PAYMENT_CHANNEL_ID)
     ```
 
 * Close the ledger channel
 
-    ```
+    ```bash
     await nitro.directDefund(LEDGER_CHANNEL_ID)
     ```
 
@@ -189,11 +190,14 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 ### Run
 
 * Open [app](http://localhost:3000) in browser
+
 * Open console in browser inspect and enable debug logs by setting `localStorage.debug = 'ts-nitro:*'`
+
 * Refresh the app for enabling logs
+
 * Setup client
 
-  ```
+  ```bash
   const nitro = await setupClient('david')
   ```
 
@@ -234,73 +238,75 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 
 * In David's browser call method `nitro.addPeerByMultiaddr` in browser console to connect to client Erin
 
-  ```
+  ```bash
   await nitro.addPeerByMultiaddr('0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01', '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmF7aWvcJoAWWE5LqRoxnZJUBbeKmtWrb2EN7VZgH9hXVH')
   ```
 
 * Call method `nitro.directFund` with address of client Erin and check logs
 
-  ```
+  ```bash
   await nitro.directFund('0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01', 1_000_000)
   ```
+
   * Final expected log
 
-      ```
+      ```bash
       ts-nitro:engine Objective DirectFunding-0x4dd0702edd3fe2878c49c54dfeeb299b50e6f411392bd0d38e01b55c08b0ada8 is complete & returned to API +4ms
       ts-nitro:util:nitro Ledger channel created with id 0x4dd0702edd3fe2878c49c54dfeeb299b50e6f411392bd0d38e01b55c08b0ada8 +0ms
       ```
 
 * Assign ledger channel id in the log above to a variable in the console
 
-    ```
+    ```bash
     let LEDGER_CHANNEL_ID = "<LEDGER_CHANNEL_ID>"
     ```
 
 * Call `nitro.virtualFund` in David's browser
 
-    ```
+    ```bash
     await nitro.virtualFund('0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01', 1_000)
     ```
+
   * Final expected log
 
-        ```
-        ts-nitro:engine Objective VirtualFund-0xe8d50281289a80080a23d4ab683e409e7331903b8bfdaad82301bc62a3213faf is complete & returned to API +2ms
-        ts-nitro:util:nitro Virtual payment channel created with id 0xe8d50281289a80080a23d4ab683e409e7331903b8bfdaad82301bc62a3213faf +1m
-        ```
+    ```bash
+      ts-nitro:engine Objective VirtualFund-0xe8d50281289a80080a23d4ab683e409e7331903b8bfdaad82301bc62a3213faf is complete & returned to API +2ms
+      ts-nitro:util:nitro Virtual payment channel created with id 0xe8d50281289a80080a23d4ab683e409e7331903b8bfdaad82301bc62a3213faf +1m
+    ```
 
 * Assign payment channel id in the log above to a variable in the console
 
-    ```
+    ```bash
     let PAYMENT_CHANNEL_ID = "<PAYMENT_CHANNEL_ID>"
     ```
 
 * Make payment with payment channel id from above log
 
-    ```
+    ```bash
     await nitro.pay(PAYMENT_CHANNEL_ID, 50)
     ```
 
 * Check payment channel status
 
-    ```
+    ```bash
     out(await nitro.getPaymentChannel(PAYMENT_CHANNEL_ID))
     ```
 
 * Close the virtual payment channel
 
-    ```
+    ```bash
     await nitro.virtualDefund(PAYMENT_CHANNEL_ID)
     ```
 
 * Close the ledger channel
 
-    ```
+    ```bash
     await nitro.directDefund(LEDGER_CHANNEL_ID)
     ```
 
 * Get status of ledger channel
 
-    ```
+    ```bash
     out(await nitro.getLedgerChannel(LEDGER_CHANNEL_ID))
     ```
 
@@ -342,7 +348,7 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 
 * Clear nitro client storage
 
-  ```
+  ```bash
   clearClientStorage()
   ```
 
