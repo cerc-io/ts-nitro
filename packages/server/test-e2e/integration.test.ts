@@ -2,7 +2,9 @@
 import assert from 'assert';
 import { expect } from 'chai';
 
-import { Client, MemStore, Metrics } from '@cerc-io/nitro-client';
+import {
+  Client, MemStore, Metrics, P2PMessageService,
+} from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
 import {
   setupClient,
@@ -13,14 +15,12 @@ import {
 
 import { DirectFundParams } from '../src/types';
 import {
-  ALICE_MESSAGING_PORT,
-  BOB_MESSAGING_PORT,
   METRICS_KEYS_CLIENT_INSTANTIATION,
   METRICS_MESSAGE_KEYS_VALUES,
   METRICS_KEYS_DIRECT_FUND,
   METRICS_KEYS_FUNCTIONS,
 } from './constants';
-import { createP2PMessageService, waitForPeerInfoExchange } from '../src/utils';
+import { waitForPeerInfoExchange } from '../src/utils';
 import { getMetricsKey, getMetricsMessageObj, getMetricsMessage } from './utils';
 
 describe('test Client', () => {
@@ -33,9 +33,8 @@ describe('test Client', () => {
     assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
     const aliceStore = new MemStore(hex2Bytes(ACTORS.alice.privateKey));
-    const aliceMsgService = await createP2PMessageService(
+    const aliceMsgService = await P2PMessageService.newMessageService(
       process.env.RELAY_MULTIADDR,
-      ALICE_MESSAGING_PORT,
       aliceStore.getAddress(),
       hex2Bytes(ACTORS.alice.privateKey),
     );
@@ -54,9 +53,8 @@ describe('test Client', () => {
     expect(aliceClient.address).to.equal(ACTORS.alice.address);
 
     const bobStore = new MemStore(hex2Bytes(ACTORS.bob.privateKey));
-    const bobMsgService = await createP2PMessageService(
+    const bobMsgService = await P2PMessageService.newMessageService(
       process.env.RELAY_MULTIADDR,
-      BOB_MESSAGING_PORT,
       bobStore.getAddress(),
       hex2Bytes(ACTORS.bob.privateKey),
     );

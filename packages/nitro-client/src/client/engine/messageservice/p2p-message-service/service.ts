@@ -18,10 +18,6 @@ import type { IncomingStreamData } from '@libp2p/interface-registrar';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error
-import type { PeerProtocolsChangeData } from '@libp2p/interface-peer-store';
-// @ts-expect-error
-import { Multiaddr } from '@multiformats/multiaddr';
-// @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
 
 import { SafeSyncMap } from '../../../../internal/safesync/safesync';
@@ -76,7 +72,7 @@ interface ConstructorOptions {
 }
 
 // P2PMessageService is a rudimentary message service that uses TCP to send and receive messages.
-export class BaseP2PMessageService implements MessageService {
+export class P2PMessageService implements MessageService {
   // For forwarding processed messages to the engine
   private toEngine?: ReadWriteChannel<Message>;
 
@@ -110,8 +106,8 @@ export class BaseP2PMessageService implements MessageService {
     pk: Buffer,
     initOptions: PeerInitConfig = {},
     logWriter?: WritableStream,
-  ): Promise<BaseP2PMessageService> {
-    const ms = new BaseP2PMessageService({
+  ): Promise<P2PMessageService> {
+    const ms = new P2PMessageService({
       toEngine: Channel<Message>(BUFFER_SIZE),
       newPeerInfo: Channel<BasicPeerInfo>(BUFFER_SIZE),
       peers: new SafeSyncMap<BasicPeerInfo>(),
@@ -427,20 +423,23 @@ export class BaseP2PMessageService implements MessageService {
 
   // Custom method to add peer using multiaddr
   // Used for adding peers that support transports other than tcp
-  async addPeerByMultiaddr(clientAddress: Address, multiaddr: Multiaddr) {
+  async addPeerByMultiaddr(clientAddress: Address, multiaddrString: string) {
     // Ignore ourselves
     if (clientAddress === this.me) {
       return;
     }
 
-    const peerIdString = multiaddr.getPeerId();
+    const { multiaddr } = await import('@multiformats/multiaddr');
+    const multi = multiaddr(multiaddrString);
+
+    const peerIdString = multi.getPeerId();
     assert(peerIdString);
     const { peerIdFromString } = await import('@libp2p/peer-id');
     const peerId = peerIdFromString(peerIdString);
 
     await this.p2pHost.peerStore.addressBook.add(
       peerId,
-      [multiaddr],
+      [multi],
     );
 
     this.peers!.store(clientAddress, { id: peerId, address: clientAddress });

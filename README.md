@@ -54,7 +54,7 @@ Run relay node using v2 watcher
     cd packages/server
 
     # In packages/server
-    yarn cli -p 3006 --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+    yarn cli --pk 0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4 --chainpk 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
 
     # Expected output:
     # ts-nitro:engine Constructed Engine +0ms
