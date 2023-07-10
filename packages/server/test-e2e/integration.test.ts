@@ -11,6 +11,8 @@ import {
   createOutcome,
   DEFAULT_CHAIN_URL,
   ACTORS,
+  createPeerIdFromKey,
+  createPeerAndInit,
 } from '@cerc-io/util';
 
 import { DirectFundParams } from '../src/types';
@@ -33,10 +35,11 @@ describe('test Client', () => {
     assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
     const aliceStore = new MemStore(hex2Bytes(ACTORS.alice.privateKey));
+    const alicePeerIdObj = await createPeerIdFromKey(hex2Bytes(ACTORS.alice.privateKey));
+    const alicePeer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, alicePeerIdObj);
     const aliceMsgService = await P2PMessageService.newMessageService(
-      process.env.RELAY_MULTIADDR,
       aliceStore.getAddress(),
-      hex2Bytes(ACTORS.alice.privateKey),
+      alicePeer,
     );
     aliceMetrics = new Metrics();
 
@@ -53,10 +56,11 @@ describe('test Client', () => {
     expect(aliceClient.address).to.equal(ACTORS.alice.address);
 
     const bobStore = new MemStore(hex2Bytes(ACTORS.bob.privateKey));
+    const bobPeerIdObj = await createPeerIdFromKey(hex2Bytes(ACTORS.bob.privateKey));
+    const bobPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, bobPeerIdObj);
     const bobMsgService = await P2PMessageService.newMessageService(
-      process.env.RELAY_MULTIADDR,
       bobStore.getAddress(),
-      hex2Bytes(ACTORS.bob.privateKey),
+      bobPeer,
     );
     bobMetrics = new Metrics();
 

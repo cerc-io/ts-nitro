@@ -10,6 +10,8 @@ import {
   createOutcome,
   DEFAULT_CHAIN_URL,
   subscribeVoucherLogs,
+  createPeerIdFromKey,
+  createPeerAndInit,
 } from '@cerc-io/util';
 import {
   Destination, DurableStore, MemStore, P2PMessageService, Store,
@@ -132,7 +134,9 @@ const main = async () => {
     store = new MemStore(hex2Bytes(argv.pk));
   }
 
-  const msgService = await P2PMessageService.newMessageService(process.env.RELAY_MULTIADDR, store.getAddress(), hex2Bytes(argv.pk));
+  const peerIdObj = await createPeerIdFromKey(hex2Bytes(argv.pk));
+  const peer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, peerIdObj);
+  const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
   const client = await setupClient(
     msgService,
