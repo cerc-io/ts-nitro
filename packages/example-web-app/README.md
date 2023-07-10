@@ -174,7 +174,13 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 
 * Follow the setup steps in the [`ts-nitro`-`ts-nitro`](#setup) section
 
-* In `statechannels/go-nitro`, install dependencies:
+* In `statechannels/go-nitro`, checkout to branch required for interops
+
+  ```bash
+  git checkout ts-interop
+  ```
+
+* Install dependencies:
 
   ```bash
   go mod tidy
