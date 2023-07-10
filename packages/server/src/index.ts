@@ -114,6 +114,10 @@ const getArgv = () => yargs.parserConfiguration({
     default: false,
     describe: 'Whether to keep CLI running',
   },
+  intermediaries: {
+    type: 'array',
+    default: [],
+  },
 }).argv;
 
 const main = async () => {
@@ -139,6 +143,9 @@ const main = async () => {
   );
 
   log('Started P2PMessageService');
+
+  log(`Waiting for ${argv.intermediaries.length} intermediaries to be discovered`);
+  await waitForPeerInfoExchange(argv.intermediaries.length, [msgService]);
 
   if (argv.cpMultiaddr) {
     assert(argv.counterparty, 'Specify counterparty address');
@@ -186,7 +193,7 @@ const main = async () => {
     assert(counterParty, 'Specify counterparty address');
     const virtualFundparams: VirtualFundParams = {
       counterParty,
-      intermediaries: [],
+      intermediaries: argv.intermediaries,
       challengeDuration: 0,
       outcome: createOutcome(
         asset,
