@@ -4,9 +4,11 @@ import assert from 'assert';
 import {
   ACTORS,
   DEFAULT_CHAIN_URL,
-  Nitro
+  Nitro,
+  createPeerIdFromKey,
+  createPeerAndInit
 } from '@cerc-io/util';
-import { JSONbigNative } from '@cerc-io/nitro-util';
+import { JSONbigNative, hex2Bytes } from '@cerc-io/nitro-util';
 
 import logo from './logo.svg';
 import './App.css';
@@ -27,11 +29,15 @@ window.setupClient = async (name: string): Promise<Nitro> => {
   assert(actor, `Actor with name ${name} does not exists`);
   assert(process.env.REACT_APP_RELAY_MULTIADDR);
 
+  // Create peer instance
+  const peerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
+  const peer = await createPeerAndInit(process.env.REACT_APP_RELAY_MULTIADDR, {}, peerIdObj);
+
   return Nitro.setupClient(
     actor.privateKey,
     DEFAULT_CHAIN_URL,
     actor.chainPrivateKey,
-    process.env.REACT_APP_RELAY_MULTIADDR,
+    peer,
     `${name}-db`
   );
 };

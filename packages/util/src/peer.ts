@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+
 // @ts-expect-error
 import { Peer as PeerInterface, PeerInitConfig, PeerIdObj } from '@cerc-io/peer';
 
