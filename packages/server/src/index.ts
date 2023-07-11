@@ -145,6 +145,8 @@ const main = async () => {
 
   log('Started P2PMessageService');
 
+  const peersToConnect: string[] = argv.counterparty ? [argv.counterparty] : [];
+  peersToConnect.push(...(argv.intermediaries as string[]));
 
   let peersToAdd: any[] = [];
   if (argv.additionalPeers) {
@@ -161,6 +163,16 @@ const main = async () => {
   // Wait for peers to be discovered
   log(`Waiting for ${argv.intermediaries.length} intermediaries to be discovered`);
   await waitForPeerInfoExchange(argv.intermediaries.length - peersToAdd.length + 1, [msgService]);
+
+  // Check that all required peers are dialable
+  for await (const peer of peersToConnect) {
+    const [dialable, errString] = await msgService.isPeerDialable(peer);
+    if (!dialable) {
+      throw new Error(`Not able to dial peer with address ${peer}: ${errString}`);
+    } else {
+      console.log(`Peer with address ${peer} is dialable`);
+    }
+  }
 
   let ledgerChannelIdString = argv.ledgerChannel;
   let paymentChannelIdString = argv.paymentChannel;

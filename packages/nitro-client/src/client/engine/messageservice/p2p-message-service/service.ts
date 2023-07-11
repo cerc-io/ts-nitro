@@ -34,6 +34,8 @@ const BUFFER_SIZE = 1_000;
 const NUM_CONNECT_ATTEMPTS = 20;
 const RETRY_SLEEP_DURATION = 5 * 1000; // milliseconds
 const ERR_CONNECTION_CLOSED = 'the connection is being closed';
+const ERR_PEER_NOT_FOUND = 'peer info not found';
+const ERR_PEER_DIAL_FAILED = 'peer dial failed';
 
 // BasicPeerInfo contains the basic information about a peer
 export interface BasicPeerInfo {
@@ -480,5 +482,25 @@ export class P2PMessageService implements MessageService {
       connections = connections.filter((connection) => !peerId.equals(connection.remotePeer));
       this.logger(`Connected and sent info to peer ${peerId.toString()}`);
     }
+  }
+
+  // Custom method to check if a peer is known and dialable
+  async isPeerDialable(peerAddress: string): Promise<[boolean, string]> {
+    assert(this.peers);
+
+    // Try to load peer from the peers info map
+    const [peerInfo, foundPeer] = this.peers.load(peerAddress);
+    if (!foundPeer) {
+      return [false, ERR_PEER_NOT_FOUND];
+    }
+    assert(peerInfo);
+
+    try {
+      await this.p2pHost.dial(peerInfo.id);
+    } catch (err) {
+      return [false, ERR_PEER_DIAL_FAILED];
+    }
+
+    return [true, ''];
   }
 }
