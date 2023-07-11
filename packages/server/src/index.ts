@@ -169,10 +169,10 @@ const main = async () => {
   await waitForPeerInfoExchange(argv.intermediaries.length - peersToAdd.length + 1, [msgService]);
 
   // Check that all required peers are dialable
-  for await (const peer of peersToConnect) {
-    const [dialable, errString] = await msgService.isPeerDialable(peer);
+  for await (const peerToConnect of peersToConnect) {
+    const [dialable, errString] = await msgService.isPeerDialable(peerToConnect);
     if (!dialable) {
-      throw new Error(`Not able to dial peer with address ${peer}: ${errString}`);
+      throw new Error(`Not able to dial peer with address ${peerToConnect}: ${errString}`);
     }
   }
 

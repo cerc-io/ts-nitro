@@ -18,6 +18,8 @@ import type { IncomingStreamData } from '@libp2p/interface-registrar';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error
+import { PeerProtocolsChangeData } from '@libp2p/interface-peer-store';
+// @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
 
 import { SafeSyncMap } from '../../../../internal/safesync/safesync';
@@ -131,6 +133,7 @@ export class P2PMessageService implements MessageService {
     ms.p2pHost = ms.peer.node;
     assert(ms.p2pHost);
     ms.p2pHost.addEventListener('peer:connect', ms.handlePeerConnect.bind(ms));
+    ms.p2pHost.peerStore.addEventListener('change:protocols', ms.handleChangeProtocols.bind(ms));
 
     ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
 
@@ -151,24 +154,46 @@ export class P2PMessageService implements MessageService {
     return PeerIdFactory.createFromPrivKey(this.key);
   }
 
-  // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
-  private async handlePeerConnect({ detail: data }: CustomEvent<Connection>) {
-    assert(this.p2pHost);
-    assert(this.p2pHost);
-
-    // Ignore for connection with relay node
-    if (this.peer!.relayNodeMultiaddr.equals(data.remoteAddr)) {
+  private async handleChangeProtocols({ detail: data }: CustomEvent<PeerProtocolsChangeData>) {
+    // Ignore self protocol changes
+    if (data.peerId.equals(this.p2pHost.peerId)) {
       return;
     }
 
+    // Ignore if PEER_EXCHANGE_PROTOCOL_ID is not handled by remote peer
+    if (!data.protocols.includes(PEER_EXCHANGE_PROTOCOL_ID)) {
+      return;
+    }
+
+    // Returns existing connection
+    const connection = await this.p2pHost.dial(data.peerId);
+    await this.exchangePeerInfo(connection);
+  }
+
+  // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
+  private async handlePeerConnect({ detail: data }: CustomEvent<Connection>) {
+    assert(this.p2pHost);
+
+    // Get protocols supported by remote peer
+    const protocols = await this.p2pHost.peerStore.protoBook.get(data.remotePeer);
+
+    // The protocol may not be updated in the list and will be handled later on change:protocols event
+    if (!protocols.includes(PEER_EXCHANGE_PROTOCOL_ID)) {
+      return;
+    }
+
+    await this.exchangePeerInfo(data);
+  }
+
+  private async exchangePeerInfo(connection: Connection) {
     try {
-      const stream = await data.newStream(PEER_EXCHANGE_PROTOCOL_ID);
+      const stream = await connection.newStream(PEER_EXCHANGE_PROTOCOL_ID);
 
       await this.sendPeerInfo(stream);
       stream.close();
 
       // Use a non-blocking channel send in case no one is listening
-      this.sentInfoToPeer.push(data.remotePeer);
+      this.sentInfoToPeer.push(connection.remotePeer);
     } catch (err) {
       this.checkError(err as Error);
     }
