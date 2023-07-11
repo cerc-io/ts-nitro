@@ -1,6 +1,6 @@
 import yargs from 'yargs';
 import debug from 'debug';
-import { BigNumber, Wallet, providers } from 'ethers';
+import { Wallet, providers } from 'ethers';
 
 import { DEFAULT_CHAIN_URL } from '../src/constants';
 
@@ -31,18 +31,19 @@ async function main() {
   const argv = getArgv();
 
   const provider = new providers.JsonRpcProvider(argv.chainurl);
-  let balance: BigNumber;
+  let address: string;
 
   if (argv.address) {
-    balance = await provider.getBalance(argv.address);
+    address = argv.address;
   } else if (argv.key) {
     const signer = new Wallet(argv.key, provider);
-    balance = await signer.getBalance();
+    address = await signer.getAddress();
   } else {
-    throw new Error('Provide either address or private key of account');
+    throw new Error('Provide either address or private key of an account');
   }
 
-  log(`Balance of account ${argv.address} is ${balance.toString()}`);
+  const balance = await provider.getBalance(address);
+  log(`Balance of account ${address} is ${balance.toString()}`);
 }
 
 main()

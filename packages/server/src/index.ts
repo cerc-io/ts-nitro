@@ -153,7 +153,7 @@ const main = async () => {
     const data = fs.readFileSync(path.resolve(argv.additionalPeers), 'utf-8');
     peersToAdd = JSON.parse(data);
 
-    for await (const [, peerToAdd] of peersToAdd) {
+    for await (const [, peerToAdd] of Array.from(peersToAdd).entries()) {
       log('Adding client', peerToAdd.address);
       await msgService.addPeerByMultiaddr(peerToAdd.address, peerToAdd.multiaddr);
       peersToConnect.push(peerToAdd.address);
@@ -169,8 +169,6 @@ const main = async () => {
     const [dialable, errString] = await msgService.isPeerDialable(peer);
     if (!dialable) {
       throw new Error(`Not able to dial peer with address ${peer}: ${errString}`);
-    } else {
-      console.log(`Peer with address ${peer} is dialable`);
     }
   }
 
