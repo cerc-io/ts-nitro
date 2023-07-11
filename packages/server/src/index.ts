@@ -1,6 +1,7 @@
 import yargs from 'yargs';
 import debug from 'debug';
 import assert from 'assert';
+import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
 
@@ -45,9 +46,9 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'Counterparty to create channel(s) against',
   },
-  cpMultiaddr: {
+  additionalPeers: {
     type: 'string',
-    describe: "Counterparty's peer multiaddr",
+    describe: 'JSON file path with peer multiaddrs to be added',
   },
   directFund: {
     type: 'boolean',
@@ -144,18 +145,22 @@ const main = async () => {
 
   log('Started P2PMessageService');
 
-  log(`Waiting for ${argv.intermediaries.length} intermediaries to be discovered`);
-  await waitForPeerInfoExchange(argv.intermediaries.length, [msgService]);
 
-  if (argv.cpMultiaddr) {
-    assert(argv.counterparty, 'Specify counterparty address');
+  let peersToAdd: any[] = [];
+  if (argv.additionalPeers) {
+    const data = fs.readFileSync(path.resolve(argv.additionalPeers), 'utf-8');
+    peersToAdd = JSON.parse(data);
 
-    log('Adding client', argv.counterparty);
-    await msgService.addPeerByMultiaddr(argv.counterparty, argv.cpMultiaddr);
-  } else {
-    // Wait for a peer to be discovered
-    await waitForPeerInfoExchange(1, [msgService]);
+    for await (const [, peerToAdd] of peersToAdd) {
+      log('Adding client', peerToAdd.address);
+      await msgService.addPeerByMultiaddr(peerToAdd.address, peerToAdd.multiaddr);
+      peersToConnect.push(peerToAdd.address);
+    }
   }
+
+  // Wait for peers to be discovered
+  log(`Waiting for ${argv.intermediaries.length} intermediaries to be discovered`);
+  await waitForPeerInfoExchange(argv.intermediaries.length - peersToAdd.length + 1, [msgService]);
 
   let ledgerChannelIdString = argv.ledgerChannel;
   let paymentChannelIdString = argv.paymentChannel;
