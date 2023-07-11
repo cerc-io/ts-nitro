@@ -69,6 +69,16 @@ export class Nitro {
     await this.msgService.addPeerByMultiaddr(address, multiaddrString);
   }
 
+  async isPeerDialable(address: string): Promise<[boolean, string]> {
+    const [dialable, errString] = await this.msgService.isPeerDialable(address);
+
+    if (!dialable) {
+      return [false, `Not able to dial peer with address ${address}: ${errString}`];
+    }
+
+    return [true, `Peer with address ${address} is dialable`];
+  }
+
   async directFund(counterParty: string, amount: number): Promise<void> {
     const outcome = createOutcome(
       ASSET,

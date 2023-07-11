@@ -1,6 +1,7 @@
 import yargs from 'yargs';
 import debug from 'debug';
 import assert from 'assert';
+import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
 
@@ -45,9 +46,9 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'Counterparty to create channel(s) against',
   },
-  cpMultiaddr: {
+  additionalPeers: {
     type: 'string',
-    describe: "Counterparty's peer multiaddr",
+    describe: 'JSON file path with peer multiaddrs to be added',
   },
   directFund: {
     type: 'boolean',
@@ -114,6 +115,10 @@ const getArgv = () => yargs.parserConfiguration({
     default: false,
     describe: 'Whether to keep CLI running',
   },
+  intermediaries: {
+    type: 'array',
+    default: [],
+  },
 }).argv;
 
 const main = async () => {
@@ -140,14 +145,31 @@ const main = async () => {
 
   log('Started P2PMessageService');
 
-  if (argv.cpMultiaddr) {
-    assert(argv.counterparty, 'Specify counterparty address');
+  const peersToConnect: string[] = argv.counterparty ? [argv.counterparty] : [];
+  peersToConnect.push(...(argv.intermediaries as string[]));
 
-    log('Adding client', argv.counterparty);
-    await msgService.addPeerByMultiaddr(argv.counterparty, argv.cpMultiaddr);
-  } else {
-    // Wait for a peer to be discovered
-    await waitForPeerInfoExchange(1, [msgService]);
+  let peersToAdd: any[] = [];
+  if (argv.additionalPeers) {
+    const data = fs.readFileSync(path.resolve(argv.additionalPeers), 'utf-8');
+    peersToAdd = JSON.parse(data);
+
+    for await (const [, peerToAdd] of Array.from(peersToAdd).entries()) {
+      log('Adding client', peerToAdd.address);
+      await msgService.addPeerByMultiaddr(peerToAdd.address, peerToAdd.multiaddr);
+      peersToConnect.push(peerToAdd.address);
+    }
+  }
+
+  // Wait for peers to be discovered
+  log(`Waiting for ${argv.intermediaries.length} intermediaries to be discovered`);
+  await waitForPeerInfoExchange(argv.intermediaries.length - peersToAdd.length + 1, [msgService]);
+
+  // Check that all required peers are dialable
+  for await (const peer of peersToConnect) {
+    const [dialable, errString] = await msgService.isPeerDialable(peer);
+    if (!dialable) {
+      throw new Error(`Not able to dial peer with address ${peer}: ${errString}`);
+    }
   }
 
   let ledgerChannelIdString = argv.ledgerChannel;
@@ -186,7 +208,7 @@ const main = async () => {
     assert(counterParty, 'Specify counterparty address');
     const virtualFundparams: VirtualFundParams = {
       counterParty,
-      intermediaries: [],
+      intermediaries: argv.intermediaries,
       challengeDuration: 0,
       outcome: createOutcome(
         asset,
