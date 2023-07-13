@@ -25,7 +25,7 @@ Run relay node using v2 watcher
   * Copy the deployed contract addresses from 1st repo
 
     ```bash
-    cp <PATH_TO_FIRST_REPO>/packages/util/src/addresses.json <PATH_TO_SECOND_REPO>/packages/util/src/
+    cp <PATH_TO_FIRST_REPO>/packages/nitro-util/nitro-addresses.json <PATH_TO_SECOND_REPO>/packages/example-web-app/src/nitro-addresses.json
     ```
 
   * Build packages for browser environment

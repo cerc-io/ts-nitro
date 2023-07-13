@@ -11,23 +11,22 @@ import './App.css';
 const {
   ACTORS,
   DEFAULT_CHAIN_URL,
-  Nitro,
   createPeerIdFromKey,
   createPeerAndInit
-} = utils
+} = utils;
 
 declare global {
   interface Window {
-    setupClient: (name: string) => Promise<Nitro>
+    setupClient: (name: string) => Promise<utils.Nitro>
     clearClientStorage: () => Promise<boolean>
     out: (jsonObject: any) => void
   }
 }
 
-window.clearClientStorage = Nitro.clearClientStorage;
+window.clearClientStorage = utils.Nitro.clearClientStorage;
 
 // Method to setup nitro client with test actors
-window.setupClient = async (name: string): Promise<Nitro> => {
+window.setupClient = async (name: string): Promise<utils.Nitro> => {
   const actor = ACTORS[name];
   assert(actor, `Actor with name ${name} does not exists`);
   assert(process.env.REACT_APP_RELAY_MULTIADDR);
@@ -36,7 +35,7 @@ window.setupClient = async (name: string): Promise<Nitro> => {
   const peerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
   const peer = await createPeerAndInit(process.env.REACT_APP_RELAY_MULTIADDR, {}, peerIdObj);
 
-  return Nitro.setupClient(
+  return utils.Nitro.setupClient(
     actor.privateKey,
     DEFAULT_CHAIN_URL,
     actor.chainPrivateKey,

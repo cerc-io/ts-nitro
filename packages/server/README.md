@@ -28,7 +28,13 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
   yarn test:deploy-contracts
 
   # Expected output:
-  # Contracts deployed, addresses written to ~/ts-nitro/packages/util/src/addresses.json
+  # Contracts deployed, addresses written to ~/ts-nitro/packages/nitro-util/nitro-addresses.json
+  ```
+
+* Copy over the JSON file with deployed contract addresses:
+
+  ```bash
+  yarn test:copy-addresses
   ```
 
 * Build packages for node environment

@@ -4,3 +4,6 @@ dist
 
 # DurableStore directory
 out
+
+# Deployed nitro contract addresses json
+src/nitro-addresses.json

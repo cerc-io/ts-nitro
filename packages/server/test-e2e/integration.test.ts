@@ -3,8 +3,7 @@ import assert from 'assert';
 import { expect } from 'chai';
 
 import {
-  Client, MemStore, Metrics, P2PMessageService,
-  utils,
+  Client, MemStore, Metrics, P2PMessageService, utils,
 } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
 
