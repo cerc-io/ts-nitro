@@ -36,6 +36,7 @@ const BUFFER_SIZE = 1_000;
 const NUM_CONNECT_ATTEMPTS = 20;
 const RETRY_SLEEP_DURATION = 5 * 1000; // milliseconds
 const ERR_CONNECTION_CLOSED = 'the connection is being closed';
+const ERR_PROTOCOL_FAIL = 'protocol selection failed';
 const ERR_PEER_NOT_FOUND = 'peer info not found';
 const ERR_PEER_DIAL_FAILED = 'peer dial failed';
 
@@ -384,7 +385,7 @@ export class P2PMessageService implements MessageService {
   // checkError panics if the message service is running and there is an error, otherwise it just returns
   // eslint-disable-next-line n/handle-callback-err
   private checkError(err: Error) {
-    if (err.message.includes(ERR_CONNECTION_CLOSED)) {
+    if (err.message.includes(ERR_CONNECTION_CLOSED) || err.message.includes(ERR_PROTOCOL_FAIL)) {
       log('uncaughtException', err.message);
       return;
     }
