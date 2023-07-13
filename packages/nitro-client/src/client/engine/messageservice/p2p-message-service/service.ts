@@ -143,6 +143,8 @@ export class P2PMessageService implements MessageService {
       });
     });
 
+    await ms.exchangeInfoWithConnectedPeers();
+
     return ms;
   }
 
@@ -152,6 +154,17 @@ export class P2PMessageService implements MessageService {
 
     assert(this.key);
     return PeerIdFactory.createFromPrivKey(this.key);
+  }
+
+  // Method to exchange info with already connected peers
+  private async exchangeInfoWithConnectedPeers() {
+    const peerIds = this.p2pHost.getPeers();
+
+    await Promise.all(peerIds.map(async (peerId: PeerId) => {
+      const connection: Connection = await this.p2pHost.dial(peerId);
+
+      await this.handlePeerConnect({ detail: connection } as CustomEvent<Connection>);
+    }));
   }
 
   private async handleChangeProtocols({ detail: data }: CustomEvent<PeerProtocolsChangeData>) {
