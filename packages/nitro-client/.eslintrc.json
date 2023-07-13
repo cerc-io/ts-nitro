@@ -24,7 +24,7 @@
     "import/no-extraneous-dependencies": [
       "error",
       {
-        "devDependencies": ["webpack.*.ts", "test/**/*.test.ts"]
+        "devDependencies": ["webpack.*.ts", "test/**/*.test.ts", "scripts/**/*.ts"]
       }
     ],
     "max-classes-per-file": "off",

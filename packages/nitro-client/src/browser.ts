@@ -11,6 +11,8 @@ export { Destination } from './types/destination';
 export { Metrics, GetMetrics } from './client/engine/metrics';
 export { LedgerChannelInfo, PaymentChannelInfo } from './client/query/types';
 
+export * as utils from './utils';
+
 export const test = (): string => {
   // eslint-disable-next-line no-console
   console.log('Test from nitro-client');

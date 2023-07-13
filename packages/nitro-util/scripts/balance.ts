@@ -2,7 +2,7 @@ import yargs from 'yargs';
 import debug from 'debug';
 import { Wallet, providers } from 'ethers';
 
-import { DEFAULT_CHAIN_URL } from '../src/constants';
+import { utils } from '@cerc-io/nitro-client';
 
 const log = debug('ts-nitro:util');
 
@@ -13,7 +13,7 @@ const getArgv = () => yargs.parserConfiguration({
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
-    default: DEFAULT_CHAIN_URL,
+    default: utils.DEFAULT_CHAIN_URL,
   },
   address: {
     alias: 'a',

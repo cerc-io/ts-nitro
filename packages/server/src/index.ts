@@ -6,20 +6,25 @@ import path from 'path';
 import 'dotenv/config';
 
 import {
-  setupClient,
-  createOutcome,
-  DEFAULT_CHAIN_URL,
-  subscribeVoucherLogs,
-} from '@cerc-io/util';
-import {
+  utils,
   Destination, DurableStore, MemStore, P2PMessageService, Store,
 } from '@cerc-io/nitro-client';
 import { JSONbigNative, hex2Bytes } from '@cerc-io/nitro-util';
 
 import { waitForPeerInfoExchange } from './utils/index';
 import { DirectFundParams, VirtualFundParams } from './types';
+import contractAddresses from './nitro-addresses.json';
 
 const log = debug('ts-nitro:server');
+
+const {
+  setupClient,
+  createOutcome,
+  DEFAULT_CHAIN_URL,
+  subscribeVoucherLogs,
+  createPeerIdFromKey,
+  createPeerAndInit,
+} = utils;
 
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
@@ -41,6 +46,10 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'RPC endpoint for the chain',
     default: DEFAULT_CHAIN_URL,
+  },
+  contracts: {
+    type: 'string',
+    describe: 'File path of the deployed nitro contract addresses',
   },
   counterparty: {
     type: 'string',
@@ -132,7 +141,9 @@ const main = async () => {
     store = new MemStore(hex2Bytes(argv.pk));
   }
 
-  const msgService = await P2PMessageService.newMessageService(process.env.RELAY_MULTIADDR, store.getAddress(), hex2Bytes(argv.pk));
+  const peerIdObj = await createPeerIdFromKey(hex2Bytes(argv.pk));
+  const peer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, peerIdObj);
+  const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
   const client = await setupClient(
     msgService,
@@ -140,6 +151,7 @@ const main = async () => {
     {
       chainURL: argv.chainurl,
       chainPk: argv.chainpk,
+      contractAddresses,
     },
   );
 
@@ -165,10 +177,10 @@ const main = async () => {
   await waitForPeerInfoExchange(argv.intermediaries.length - peersToAdd.length + 1, [msgService]);
 
   // Check that all required peers are dialable
-  for await (const peer of peersToConnect) {
-    const [dialable, errString] = await msgService.isPeerDialable(peer);
+  for await (const peerToConnect of peersToConnect) {
+    const [dialable, errString] = await msgService.isPeerDialable(peerToConnect);
     if (!dialable) {
-      throw new Error(`Not able to dial peer with address ${peer}: ${errString}`);
+      throw new Error(`Not able to dial peer with address ${peerToConnect}: ${errString}`);
     }
   }
 

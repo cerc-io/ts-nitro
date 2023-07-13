@@ -1,0 +1,68 @@
+name: Publish package
+on:
+  release:
+    types: [published]
+jobs:
+  npm_publish_node:
+    name: Push packages to gitea
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 18.x ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: 'https://npm.pkg.github.com'
+      - name: "Install dependencies"
+      - run: yarn
+      - name: Run yarn build
+        run: |
+          yarn build:node
+      - name: Configure git.vdb.to npm registry
+        run: |
+          npm config set @cerc-io:registry https://git.vdb.to/api/packages/cerc-io/npm/
+      - name: Authenticate to git.vdb.to registry
+        run: |
+          npm config set -- '//git.vdb.to/api/packages/cerc-io/npm/:_authToken' "${{ secrets.GITEA_PUBLISH_TOKEN }}"
+      - name: lerna publish
+        run: |
+          yarn lerna publish from-package --no-git-tag-version --yes
+
+  npm_publish_browser:
+    name: Push nitro-client-browser package to gitea
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 18.x ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: 'https://npm.pkg.github.com'
+      - name: "Install dependencies"
+        run: yarn
+      - name: Run yarn build
+        run: |
+          yarn build:browser --ignore @cerc-io/example-web-app
+      - name: Rename nitro-client package
+        run: |
+          cd packages/nitro-client
+          yarn build:update-package-name
+          cd ../../
+      - name: Configure git.vdb.to npm registry
+        run: |
+          npm config set @cerc-io:registry https://git.vdb.to/api/packages/cerc-io/npm/
+      - name: Authenticate to git.vdb.to registry
+        run: |
+          npm config set -- '//git.vdb.to/api/packages/cerc-io/npm/:_authToken' "${{ secrets.GITEA_PUBLISH_TOKEN }}"
+      - name: npm publish nitro-client-browser
+        run: |
+          cd packages/nitro-client
+          npm publish

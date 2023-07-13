@@ -1,9 +1,16 @@
 import debug from 'debug';
 
-import {
-  Client, Destination, DurableStore, MemStore, P2PMessageService, Store, LedgerChannelInfo, PaymentChannelInfo,
-} from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
+// @ts-expect-error
+import type { Peer } from '@cerc-io/peer';
+
+import { Client } from '../client/client';
+import { P2PMessageService } from '../client/engine/messageservice/p2p-message-service/service';
+import { Store } from '../client/engine/store/store';
+import { MemStore } from '../client/engine/store/memstore';
+import { DurableStore } from '../client/engine/store/durablestore';
+import { Destination } from '../types/destination';
+import { LedgerChannelInfo, PaymentChannelInfo } from '../client/query/types';
 
 import { createOutcome, setupClient, subscribeVoucherLogs } from './helpers';
 
@@ -29,7 +36,8 @@ export class Nitro {
     pk: string,
     chainURL: string,
     chainPk: string,
-    relayMultiaddr: string,
+    contractAddresses: { [key: string]: string },
+    peer: Peer,
     location?: string,
   ): Promise<Nitro> {
     let store: Store;
@@ -39,9 +47,7 @@ export class Nitro {
       store = new MemStore(hex2Bytes(pk));
     }
 
-    // Type error thrown in NodeJS build
-    // TODO: Move file to separate package which is only used for browser build
-    const msgService = await (P2PMessageService as any).newMessageService(relayMultiaddr, store.getAddress(), hex2Bytes(pk));
+    const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
     const client = await setupClient(
       msgService,
@@ -49,6 +55,7 @@ export class Nitro {
       {
         chainPk,
         chainURL,
+        contractAddresses,
       },
     );
 

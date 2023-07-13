@@ -3,15 +3,9 @@ import assert from 'assert';
 import { expect } from 'chai';
 
 import {
-  Client, MemStore, Metrics, P2PMessageService,
+  Client, MemStore, Metrics, P2PMessageService, utils,
 } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
-import {
-  setupClient,
-  createOutcome,
-  DEFAULT_CHAIN_URL,
-  ACTORS,
-} from '@cerc-io/util';
 
 import { DirectFundParams } from '../src/types';
 import {
@@ -22,6 +16,16 @@ import {
 } from './constants';
 import { waitForPeerInfoExchange } from '../src/utils';
 import { getMetricsKey, getMetricsMessageObj, getMetricsMessage } from './utils';
+import contractAddresses from '../src/nitro-addresses.json';
+
+const {
+  setupClient,
+  createOutcome,
+  DEFAULT_CHAIN_URL,
+  ACTORS,
+  createPeerIdFromKey,
+  createPeerAndInit,
+} = utils;
 
 describe('test Client', () => {
   let aliceClient: Client;
@@ -33,10 +37,11 @@ describe('test Client', () => {
     assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
     const aliceStore = new MemStore(hex2Bytes(ACTORS.alice.privateKey));
+    const alicePeerIdObj = await createPeerIdFromKey(hex2Bytes(ACTORS.alice.privateKey));
+    const alicePeer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, alicePeerIdObj);
     const aliceMsgService = await P2PMessageService.newMessageService(
-      process.env.RELAY_MULTIADDR,
       aliceStore.getAddress(),
-      hex2Bytes(ACTORS.alice.privateKey),
+      alicePeer,
     );
     aliceMetrics = new Metrics();
 
@@ -46,6 +51,7 @@ describe('test Client', () => {
       {
         chainPk: ACTORS.alice.chainPrivateKey,
         chainURL: DEFAULT_CHAIN_URL,
+        contractAddresses,
       },
       aliceMetrics,
     );
@@ -53,10 +59,11 @@ describe('test Client', () => {
     expect(aliceClient.address).to.equal(ACTORS.alice.address);
 
     const bobStore = new MemStore(hex2Bytes(ACTORS.bob.privateKey));
+    const bobPeerIdObj = await createPeerIdFromKey(hex2Bytes(ACTORS.bob.privateKey));
+    const bobPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, bobPeerIdObj);
     const bobMsgService = await P2PMessageService.newMessageService(
-      process.env.RELAY_MULTIADDR,
       bobStore.getAddress(),
-      hex2Bytes(ACTORS.bob.privateKey),
+      bobPeer,
     );
     bobMetrics = new Metrics();
 
@@ -66,6 +73,7 @@ describe('test Client', () => {
       {
         chainPk: ACTORS.bob.chainPrivateKey,
         chainURL: DEFAULT_CHAIN_URL,
+        contractAddresses,
       },
       bobMetrics,
     );

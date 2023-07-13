@@ -18,6 +18,8 @@ import type { IncomingStreamData } from '@libp2p/interface-registrar';
 // @ts-expect-error
 import type { PeerId } from '@libp2p/interface-peer-id';
 // @ts-expect-error
+import { PeerProtocolsChangeData } from '@libp2p/interface-peer-store';
+// @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
 
 import { SafeSyncMap } from '../../../../internal/safesync/safesync';
@@ -103,10 +105,8 @@ export class P2PMessageService implements MessageService {
   // If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
   // Otherwise, peers must be added manually via `AddPeers`.
   static async newMessageService(
-    relayMultiAddr: string,
     me: Address,
-    pk: Buffer,
-    initOptions: PeerInitConfig = {},
+    peer: Peer,
     logWriter?: WritableStream,
   ): Promise<P2PMessageService> {
     const ms = new P2PMessageService({
@@ -117,43 +117,23 @@ export class P2PMessageService implements MessageService {
       logger: log,
     });
 
-    const {
-      unmarshalPrivateKey, marshalPrivateKey, marshalPublicKey, generateKeyPairFromSeed,
-    } = await import('@libp2p/crypto/keys');
+    ms.peer = peer;
+    assert(ms.peer.peerId);
+    const { unmarshalPrivateKey } = await import('@libp2p/crypto/keys');
 
     try {
-      // TODO: Unmarshall private key similar to go-nitro
-      // const messageKey = await unmarshalPrivateKey(pk);
-      // Workaround to get a libp2p private key from `pk` passed to message service
-      const messageKey = await generateKeyPairFromSeed('Ed25519', pk);
+      const messageKey = await unmarshalPrivateKey(ms.peer.peerId.privateKey!);
 
       ms.key = messageKey;
     } catch (err) {
       ms.checkError(err as Error);
     }
 
-    assert(ms.key);
-    const PeerIdFactory = await import('@libp2p/peer-id-factory');
-
-    const { Peer } = await import('@cerc-io/peer');
-    // TODO: Debug connection issue with webrtc enabled
-    // Disabled by setting nodejs option to true below
-    ms.peer = new Peer(relayMultiAddr, true);
-    const peerId = await PeerIdFactory.createFromPrivKey(ms.key);
-
-    await ms.peer.init(
-      initOptions,
-      {
-        id: peerId.toString(),
-        privKey: Buffer.from(marshalPrivateKey(ms.key)).toString('base64'),
-        pubKey: Buffer.from(marshalPublicKey(ms.key.public)).toString('base64'),
-      },
-    );
-
     assert(ms.peer.node);
     ms.p2pHost = ms.peer.node;
     assert(ms.p2pHost);
     ms.p2pHost.addEventListener('peer:connect', ms.handlePeerConnect.bind(ms));
+    ms.p2pHost.peerStore.addEventListener('change:protocols', ms.handleChangeProtocols.bind(ms));
 
     ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
 
@@ -162,6 +142,8 @@ export class P2PMessageService implements MessageService {
         stream.close();
       });
     });
+
+    await ms.exchangeInfoWithConnectedPeers();
 
     return ms;
   }
@@ -174,24 +156,57 @@ export class P2PMessageService implements MessageService {
     return PeerIdFactory.createFromPrivKey(this.key);
   }
 
-  // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
-  private async handlePeerConnect({ detail: data }: CustomEvent<Connection>) {
-    assert(this.p2pHost);
-    assert(this.p2pHost);
+  // Method to exchange info with already connected peers
+  private async exchangeInfoWithConnectedPeers() {
+    const peerIds = this.p2pHost.getPeers();
 
-    // Ignore for connection with relay node
-    if (this.peer!.relayNodeMultiaddr.equals(data.remoteAddr)) {
+    await Promise.all(peerIds.map(async (peerId: PeerId) => {
+      const connection: Connection = await this.p2pHost.dial(peerId);
+
+      await this.handlePeerConnect({ detail: connection } as CustomEvent<Connection>);
+    }));
+  }
+
+  private async handleChangeProtocols({ detail: data }: CustomEvent<PeerProtocolsChangeData>) {
+    // Ignore self protocol changes
+    if (data.peerId.equals(this.p2pHost.peerId)) {
       return;
     }
 
+    // Ignore if PEER_EXCHANGE_PROTOCOL_ID is not handled by remote peer
+    if (!data.protocols.includes(PEER_EXCHANGE_PROTOCOL_ID)) {
+      return;
+    }
+
+    // Returns existing connection
+    const connection = await this.p2pHost.dial(data.peerId);
+    await this.exchangePeerInfo(connection);
+  }
+
+  // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
+  private async handlePeerConnect({ detail: data }: CustomEvent<Connection>) {
+    assert(this.p2pHost);
+
+    // Get protocols supported by remote peer
+    const protocols = await this.p2pHost.peerStore.protoBook.get(data.remotePeer);
+
+    // The protocol may not be updated in the list and will be handled later on change:protocols event
+    if (!protocols.includes(PEER_EXCHANGE_PROTOCOL_ID)) {
+      return;
+    }
+
+    await this.exchangePeerInfo(data);
+  }
+
+  private async exchangePeerInfo(connection: Connection) {
     try {
-      const stream = await data.newStream(PEER_EXCHANGE_PROTOCOL_ID);
+      const stream = await connection.newStream(PEER_EXCHANGE_PROTOCOL_ID);
 
       await this.sendPeerInfo(stream);
       stream.close();
 
       // Use a non-blocking channel send in case no one is listening
-      this.sentInfoToPeer.push(data.remotePeer);
+      this.sentInfoToPeer.push(connection.remotePeer);
     } catch (err) {
       this.checkError(err as Error);
     }

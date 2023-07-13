@@ -21,3 +21,6 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Deployed nitro contract addresses json
+src/nitro-addresses.json

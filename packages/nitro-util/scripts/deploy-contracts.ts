@@ -4,11 +4,10 @@ import path from 'path';
 import debug from 'debug';
 import { ContractFactory, providers } from 'ethers';
 
+import { utils } from '@cerc-io/nitro-client';
 import nitroAdjudicatorArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
 import consensusAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
-
-import { DEFAULT_CHAIN_URL } from '../src/constants';
 
 const log = debug('ts-nitro:util');
 
@@ -19,13 +18,13 @@ const getArgv = () => yargs.parserConfiguration({
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
-    default: DEFAULT_CHAIN_URL,
+    default: utils.DEFAULT_CHAIN_URL,
   },
   addressesFilePath: {
     alias: 'f',
     type: 'string',
     describe: 'JSON file path to export addresses to',
-    default: './src/addresses.json',
+    default: './nitro-addresses.json',
   },
 }).argv;
 
