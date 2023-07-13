@@ -5,7 +5,7 @@ import { expect } from 'chai';
 import {
   Client, MemStore, Metrics, P2PMessageService, utils,
 } from '@cerc-io/nitro-client';
-import { hex2Bytes } from '@cerc-io/nitro-util';
+import { hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
 
 import { DirectFundParams } from '../src/types';
 import {
@@ -21,7 +21,6 @@ import contractAddresses from '../src/nitro-addresses.json';
 const {
   setupClient,
   createOutcome,
-  DEFAULT_CHAIN_URL,
   ACTORS,
   createPeerIdFromKey,
   createPeerAndInit,

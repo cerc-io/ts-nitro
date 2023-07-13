@@ -9,7 +9,7 @@ import {
   utils,
   Destination, DurableStore, MemStore, P2PMessageService, Store,
 } from '@cerc-io/nitro-client';
-import { JSONbigNative, hex2Bytes } from '@cerc-io/nitro-util';
+import { JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
 
 import { waitForPeerInfoExchange } from './utils/index';
 import { DirectFundParams, VirtualFundParams } from './types';
@@ -20,7 +20,6 @@ const log = debug('ts-nitro:server');
 const {
   setupClient,
   createOutcome,
-  DEFAULT_CHAIN_URL,
   subscribeVoucherLogs,
   createPeerIdFromKey,
   createPeerAndInit,

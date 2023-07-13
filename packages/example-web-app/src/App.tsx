@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import assert from 'assert';
 
 import { utils } from '@cerc-io/nitro-client';
-import { JSONbigNative, hex2Bytes } from '@cerc-io/nitro-util';
+import { JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
 
 import contractAddresses from './nitro-addresses.json';
 import logo from './logo.svg';
@@ -10,7 +10,6 @@ import './App.css';
 
 const {
   ACTORS,
-  DEFAULT_CHAIN_URL,
   createPeerIdFromKey,
   createPeerAndInit
 } = utils;
