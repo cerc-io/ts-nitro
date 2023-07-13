@@ -1,17 +1,20 @@
 import React, { useEffect } from 'react';
 import assert from 'assert';
 
-import {
+import { utils } from '@cerc-io/nitro-client';
+import { JSONbigNative, hex2Bytes } from '@cerc-io/nitro-util';
+
+import contractAddresses from './nitro-addresses.json';
+import logo from './logo.svg';
+import './App.css';
+
+const {
   ACTORS,
   DEFAULT_CHAIN_URL,
   Nitro,
   createPeerIdFromKey,
   createPeerAndInit
-} from '@cerc-io/util';
-import { JSONbigNative, hex2Bytes } from '@cerc-io/nitro-util';
-
-import logo from './logo.svg';
-import './App.css';
+} = utils
 
 declare global {
   interface Window {
@@ -37,6 +40,7 @@ window.setupClient = async (name: string): Promise<Nitro> => {
     actor.privateKey,
     DEFAULT_CHAIN_URL,
     actor.chainPrivateKey,
+    contractAddresses,
     peer,
     `${name}-db`
   );

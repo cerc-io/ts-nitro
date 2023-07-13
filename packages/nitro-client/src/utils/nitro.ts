@@ -1,11 +1,16 @@
 import debug from 'debug';
 
-import {
-  Client, Destination, DurableStore, MemStore, P2PMessageService, Store, LedgerChannelInfo, PaymentChannelInfo,
-} from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
 // @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
+
+import { Client } from '../client/client';
+import { P2PMessageService } from '../client/engine/messageservice/p2p-message-service/service';
+import { Store } from '../client/engine/store/store';
+import { MemStore } from '../client/engine/store/memstore';
+import { DurableStore } from '../client/engine/store/durablestore';
+import { Destination } from '../types/destination';
+import { LedgerChannelInfo, PaymentChannelInfo } from '../client/query/types';
 
 import { createOutcome, setupClient, subscribeVoucherLogs } from './helpers';
 
@@ -31,6 +36,7 @@ export class Nitro {
     pk: string,
     chainURL: string,
     chainPk: string,
+    contractAddresses: { [key: string]: string },
     peer: Peer,
     location?: string,
   ): Promise<Nitro> {
@@ -49,6 +55,7 @@ export class Nitro {
       {
         chainPk,
         chainURL,
+        contractAddresses,
       },
     );
 

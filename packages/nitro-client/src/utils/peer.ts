@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer';
 
 // @ts-expect-error
-import { Peer as PeerInterface, PeerInitConfig, PeerIdObj } from '@cerc-io/peer';
+import type { Peer as PeerInterface, PeerInitConfig, PeerIdObj } from '@cerc-io/peer';
 
 export const createPeerIdFromKey = async (pk: Buffer): Promise<PeerIdObj> => {
   const {

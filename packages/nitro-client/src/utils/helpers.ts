@@ -1,26 +1,16 @@
 import debug from 'debug';
 
-import {
-  P2PMessageService,
-  Client,
-  Store,
-  EthChainService,
-  PermissivePolicy,
-  Metrics,
-  Allocation,
-  Destination,
-  Exit,
-  SingleAssetExit,
-  AllocationType,
-  Allocations,
-} from '@cerc-io/nitro-client';
 import { JSONbigNative } from '@cerc-io/nitro-util';
 
-import {
-  nitroAdjudicatorAddress,
-  virtualPaymentAppAddress,
-  consensusAppAddress,
-} from './addresses.json';
+import { P2PMessageService } from '../client/engine/messageservice/p2p-message-service/service';
+import { Client } from '../client/client';
+import { Store } from '../client/engine/store/store';
+import { EthChainService } from '../client/engine/chainservice/eth-chainservice';
+import { PermissivePolicy } from '../client/engine/policy-maker';
+import { Metrics } from '../client/engine/metrics';
+import { SingleAssetExit, Exit } from '../channel/state/outcome/exit';
+import { Allocation, AllocationType, Allocations } from '../channel/state/outcome/allocation';
+import { Destination } from '../types/destination';
 
 const log = debug('ts-nitro:util:helpers');
 
@@ -36,21 +26,23 @@ export async function setupClient(
   store: Store,
   options: {
     chainPk: string,
-    chainURL: string
+    chainURL: string,
+    contractAddresses: { [key: string]: string },
   },
   metricsApi?: Metrics,
 ): Promise<Client> {
   const {
     chainPk,
     chainURL,
+    contractAddresses,
   } = options;
 
   const chainService = await EthChainService.newEthChainService(
     chainURL,
     chainPk,
-    nitroAdjudicatorAddress,
-    consensusAppAddress,
-    virtualPaymentAppAddress,
+    contractAddresses.nitroAdjudicatorAddress,
+    contractAddresses.consensusAppAddress,
+    contractAddresses.virtualPaymentAppAddress,
   );
 
   const client = await Client.new(

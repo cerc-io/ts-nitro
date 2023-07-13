@@ -4,16 +4,9 @@ import { expect } from 'chai';
 
 import {
   Client, MemStore, Metrics, P2PMessageService,
+  utils,
 } from '@cerc-io/nitro-client';
 import { hex2Bytes } from '@cerc-io/nitro-util';
-import {
-  setupClient,
-  createOutcome,
-  DEFAULT_CHAIN_URL,
-  ACTORS,
-  createPeerIdFromKey,
-  createPeerAndInit,
-} from '@cerc-io/util';
 
 import { DirectFundParams } from '../src/types';
 import {
@@ -24,6 +17,16 @@ import {
 } from './constants';
 import { waitForPeerInfoExchange } from '../src/utils';
 import { getMetricsKey, getMetricsMessageObj, getMetricsMessage } from './utils';
+import contractAddresses from '../src/nitro-addresses.json';
+
+const {
+  setupClient,
+  createOutcome,
+  DEFAULT_CHAIN_URL,
+  ACTORS,
+  createPeerIdFromKey,
+  createPeerAndInit,
+} = utils;
 
 describe('test Client', () => {
   let aliceClient: Client;
@@ -49,6 +52,7 @@ describe('test Client', () => {
       {
         chainPk: ACTORS.alice.chainPrivateKey,
         chainURL: DEFAULT_CHAIN_URL,
+        contractAddresses,
       },
       aliceMetrics,
     );
@@ -70,6 +74,7 @@ describe('test Client', () => {
       {
         chainPk: ACTORS.bob.chainPrivateKey,
         chainURL: DEFAULT_CHAIN_URL,
+        contractAddresses,
       },
       bobMetrics,
     );

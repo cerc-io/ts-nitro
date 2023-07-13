@@ -5,14 +5,22 @@
   "license": "MIT",
   "scripts": {
     "lint": "eslint .",
-    "build": "yarn clean && tsc",
-    "clean": "rm -rf ./dist"
+    "build": "yarn clean && tsc && if [ \"$TARGET\" = \"browser\" ]; then yarn build:fix-modules; fi",
+    "clean": "rm -rf ./dist",
+    "test:deploy-contracts": "yarn ts-node scripts/deploy-contracts.ts",
+    "test:copy-addresses": "cp ./nitro-addresses.json ../server/src/ && cp ./nitro-addresses.json ../example-web-app/src/",
+    "build:fix-modules": "yarn ts-node scripts/fix-modules.ts",
+    "balance": "DEBUG=ts-nitro:* yarn ts-node scripts/balance.ts"
   },
   "devDependencies": {
+    "@cerc-io/nitro-client": "^0.1.0",
+    "@npmcli/package-json": "^3.1.1",
+    "@statechannels/nitro-protocol": "^2.0.0-alpha.4",
     "@types/lodash": "^4.14.195",
     "@typescript-eslint/eslint-plugin": "^5.13.0",
     "@typescript-eslint/parser": "^5.0.0",
     "@types/json-bigint": "^1.0.1",
+    "@types/npmcli__package-json": "^2.0.0",
     "eslint": "^7.32.0 || ^8.2.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-airbnb-typescript": "^17.0.0",
@@ -21,7 +29,8 @@
     "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-n": "^15.0.0",
     "eslint-plugin-promise": "^6.0.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "yargs": "^17.7.2"
   },
   "dependencies": {
     "assert": "^2.0.0",

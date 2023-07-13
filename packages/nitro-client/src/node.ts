@@ -10,3 +10,5 @@ export { Allocation, AllocationType, Allocations } from './channel/state/outcome
 export { Destination } from './types/destination';
 export { Metrics, GetMetrics } from './client/engine/metrics';
 export { LedgerChannelInfo, PaymentChannelInfo } from './client/query/types';
+
+export * as utils from './utils';

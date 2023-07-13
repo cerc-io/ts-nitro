@@ -35,7 +35,6 @@
   "dependencies": {
     "@cerc-io/nitro-client": "^0.1.0",
     "@cerc-io/nitro-util": "^0.1.0",
-    "@cerc-io/util": "^0.1.0",
     "assert": "^2.0.0",
     "debug": "^4.3.4",
     "dotenv": "^16.0.3",
