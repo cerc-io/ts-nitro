@@ -11,12 +11,14 @@
     "build:node": "yarn index:node && webpack --config webpack.prod.ts --env target=node",
     "build:dev:browser": "yarn index:browser && webpack --config webpack.dev.ts --env target=browser",
     "build:dev:node": "yarn index:node && webpack --config webpack.dev.ts --env target=node",
+    "build:update-package-name": "yarn ts-node scripts/update-package-name.ts",
     "dev": "webpack --watch --config webpack.dev.ts",
     "lint": "eslint .",
     "test": "mocha"
   },
   "devDependencies": {
     "@libp2p/interface-peer-store": "1.2.9",
+    "@npmcli/package-json": "^3.1.1",
     "@typechain/ethers-v5": "^11.0.0",
     "@types/chai": "^4.3.5",
     "@types/debug": "^4.1.7",
