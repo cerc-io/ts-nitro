@@ -3,7 +3,7 @@ import assert from 'assert';
 import { expect } from 'chai';
 
 import {
-  Client, MemStore, Metrics, P2PMessageService, utils,
+  Client, MemStore, Metrics, P2PMessageService, utils, Destination,
 } from '@cerc-io/nitro-client';
 import { hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
 
@@ -31,6 +31,7 @@ describe('test Client', () => {
   let bobClient: Client;
   let aliceMetrics: Metrics;
   let bobMetrics: Metrics;
+  let ledgerChannelId: Destination;
 
   it('should instantiate Clients', async () => {
     assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
@@ -89,17 +90,18 @@ describe('test Client', () => {
     assert(aliceClient.address);
 
     const counterParty = ACTORS.bob.address;
-    const asset = `0x${'00'.repeat(20)}`;
+    const amount = 1_000_000;
+    const assetAddress = `0x${'00'.repeat(20)}`;
     const params: DirectFundParams = {
       counterParty,
       challengeDuration: 0,
       outcome: createOutcome(
-        asset,
+        assetAddress,
         aliceClient.address,
         counterParty,
-        1_000_000,
+        amount,
       ),
-      appDefinition: asset,
+      appDefinition: assetAddress,
       appData: '0x00',
       nonce: Date.now(),
     };
@@ -110,6 +112,7 @@ describe('test Client', () => {
       params.outcome,
     );
 
+    ledgerChannelId = response.channelId;
     await aliceClient.objectiveCompleteChan(response.id).shift();
 
     expect(response).to.have.property('id');
@@ -120,6 +123,9 @@ describe('test Client', () => {
 
     expect(aliceMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.alice.address, ACTORS.bob.address));
     expect(bobMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.bob.address, ACTORS.alice.address));
+
+    expect(aliceMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_size', ACTORS.alice.address, ACTORS.bob.address));
+    expect(bobMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_size', ACTORS.bob.address, ACTORS.alice.address));
 
     expect(aliceMetrics.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, ACTORS.alice.address, ACTORS.bob.address));
     expect(bobMetrics.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, ACTORS.bob.address, ACTORS.alice.address));
@@ -137,6 +143,19 @@ describe('test Client', () => {
     expect(aliceMetrics.getMetrics()[getMetricsKey(['handleObjectiveRequest'], ACTORS.alice.address)[0]]).to.be.above(0);
     expect(bobMetrics.getMetrics()[getMetricsKey(['constructObjectiveFromMessage'], ACTORS.bob.address)[0]]).to.be.above(0);
 
+    const ledgerChannelStatus = await aliceClient.getLedgerChannel(ledgerChannelId);
+    const expectedLedgerChannelStatus = {
+      iD: ledgerChannelId,
+      status: 'Open',
+      balance: {
+        assetAddress,
+        hub: ACTORS.bob.address,
+        client: ACTORS.alice.address,
+        hubBalance: BigInt(amount),
+        clientBalance: BigInt(amount),
+      },
+    };
+    expect(ledgerChannelStatus).to.deep.equal(expectedLedgerChannelStatus);
     // TODO: Implement and close services
     // client.close();
   });
