@@ -3,7 +3,8 @@ import assert from 'assert';
 import { expect } from 'chai';
 
 import {
-  Client, MemStore, Metrics, P2PMessageService, utils, Destination,
+  Client, MemStore, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
+  ChannelStatus, LedgerChannelBalance,
 } from '@cerc-io/nitro-client';
 import { hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
 
@@ -15,7 +16,9 @@ import {
   METRICS_KEYS_FUNCTIONS,
 } from './constants';
 import { waitForPeerInfoExchange } from '../src/utils';
-import { getMetricsKey, getMetricsMessageObj, getMetricsMessage } from './utils';
+import {
+  getMetricsKey, getMetricsMessageObj, getMetricsMessage,
+} from './utils';
 import contractAddresses from '../src/nitro-addresses.json';
 
 const {
@@ -91,17 +94,17 @@ describe('test Client', () => {
 
     const counterParty = ACTORS.bob.address;
     const amount = 1_000_000;
-    const assetAddress = `0x${'00'.repeat(20)}`;
+    const asset = `0x${'00'.repeat(20)}`;
     const params: DirectFundParams = {
       counterParty,
       challengeDuration: 0,
       outcome: createOutcome(
-        assetAddress,
+        asset,
         aliceClient.address,
         counterParty,
         amount,
       ),
-      appDefinition: assetAddress,
+      appDefinition: asset,
       appData: '0x00',
       nonce: Date.now(),
     };
@@ -144,17 +147,17 @@ describe('test Client', () => {
     expect(bobMetrics.getMetrics()[getMetricsKey(['constructObjectiveFromMessage'], ACTORS.bob.address)[0]]).to.be.above(0);
 
     const ledgerChannelStatus = await aliceClient.getLedgerChannel(ledgerChannelId);
-    const expectedLedgerChannelStatus = {
+    const expectedLedgerChannelStatus = new LedgerChannelInfo({
       iD: ledgerChannelId,
-      status: 'Open',
-      balance: {
-        assetAddress,
+      status: ChannelStatus.Open,
+      balance: new LedgerChannelBalance({
+        assetAddress: asset,
         hub: ACTORS.bob.address,
         client: ACTORS.alice.address,
         hubBalance: BigInt(amount),
         clientBalance: BigInt(amount),
-      },
-    };
+      }),
+    });
     expect(ledgerChannelStatus).to.deep.equal(expectedLedgerChannelStatus);
     // TODO: Implement and close services
     // client.close();
