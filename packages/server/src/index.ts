@@ -172,8 +172,11 @@ const main = async () => {
   }
 
   // Wait for peers to be discovered
-  log(`Waiting for ${argv.intermediaries.length} intermediaries to be discovered`);
-  await waitForPeerInfoExchange(argv.intermediaries.length - peersToAdd.length + 1, [msgService]);
+  const intermediariesCount = argv.intermediaries.length;
+  if (intermediariesCount > 0) {
+    log(`Waiting for ${intermediariesCount} intermediaries to be discovered`);
+  }
+  await waitForPeerInfoExchange(intermediariesCount - peersToAdd.length + 1, [msgService]);
 
   // Check that all required peers are dialable
   for await (const peerToConnect of peersToConnect) {

@@ -150,7 +150,7 @@ export class Channel extends FixedPart {
   // PreFundSignedByMe returns true if the calling client has signed the pre fund setup state, false otherwise.
   preFundSignedByMe(): boolean {
     if (this.signedStateForTurnNum.has(PreFundTurnNum)) {
-      if (this.signedStateForTurnNum.get(PreFundTurnNum)!.hasSignatureForParticipant(Number(this.myIndex))) {
+      if (this.signedStateForTurnNum.get(PreFundTurnNum)!.hasSignatureForParticipant(this.myIndex)) {
         return true;
       }
     }
@@ -160,7 +160,7 @@ export class Channel extends FixedPart {
   // PostFundSignedByMe returns true if the calling client has signed the post fund setup state, false otherwise.
   postFundSignedByMe(): boolean {
     if (this.signedStateForTurnNum.has(PostFundTurnNum)) {
-      if (this.signedStateForTurnNum.get(PostFundTurnNum)!.hasSignatureForParticipant(Number(this.myIndex))) {
+      if (this.signedStateForTurnNum.get(PostFundTurnNum)!.hasSignatureForParticipant(this.myIndex)) {
         return true;
       }
     }
@@ -180,7 +180,7 @@ export class Channel extends FixedPart {
   // FinalSignedByMe returns true if the calling client has signed a final state, false otherwise.
   finalSignedByMe(): boolean {
     for (const [, ss] of this.signedStateForTurnNum) {
-      if (ss.hasSignatureForParticipant(Number(this.myIndex)) && ss.state().isFinal) {
+      if (ss.hasSignatureForParticipant(this.myIndex) && ss.state().isFinal) {
         return true;
       }
     }

@@ -319,7 +319,7 @@ export class Objective implements ObjectiveInterface {
     }
 
     // Finalize and sign a state if no supported, finalized state exists
-    if (!latestSignedState.state().isFinal || !latestSignedState.hasSignatureForParticipant(Number(updated.c!.myIndex))) {
+    if (!latestSignedState.state().isFinal || !latestSignedState.hasSignatureForParticipant(updated.c!.myIndex)) {
       const stateToSign = latestSignedState.state().clone();
       if (!stateToSign.isFinal) {
         stateToSign.turnNum += BigInt(1);

@@ -92,8 +92,8 @@ export class SignedState {
   }
 
   // HasSignatureForParticipant returns true if the participant (at participantIndex) has a valid signature.
-  hasSignatureForParticipant(participantIndex: number): boolean {
-    const found = this.sigs.has(BigInt(participantIndex));
+  hasSignatureForParticipant(participantIndex: Uint): boolean {
+    const found = this.sigs.has(participantIndex);
     return found;
   }
 
