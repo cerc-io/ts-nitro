@@ -7,7 +7,7 @@ import { Buffer } from 'buffer';
 import { JSONbigNative } from './types';
 
 export interface FieldDescription {
-  type: 'class' | 'string' | 'address' | 'number' | 'bigint' | 'uint64' | 'boolean' | 'buffer' | 'object' | 'array' | 'map';
+  type: 'class' | 'string' | 'address' | 'number' | 'bigint' | 'uint' | 'uint64' | 'boolean' | 'buffer' | 'object' | 'array' | 'map';
   key?: FieldDescription;
   value?: FieldDescription | Record<string, FieldDescription> | any;
 }
@@ -42,6 +42,7 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
       return fieldJsonValue === null ? undefined : BigInt(fieldJsonValue);
     }
 
+    case 'uint':
     case 'uint64': {
       return BigInt(fieldJsonValue);
     }

@@ -3,7 +3,7 @@ import _ from 'lodash';
 import { Buffer } from 'buffer';
 
 import {
-  fromJSON, toJSON, FieldDescription, Uint64,
+  fromJSON, toJSON, FieldDescription, Uint, Uint64,
 } from '@cerc-io/nitro-util';
 
 import { Signature } from '../crypto/signatures';
@@ -17,7 +17,7 @@ import { FixedPart, State, ConstructorOptions as FixedPartConstructorOptions } f
 
 interface ConstructorOptions extends FixedPartConstructorOptions {
   id?: Destination;
-  myIndex?: number;
+  myIndex?: Uint;
   onChainFunding?: Funds;
   fixedPart?: FixedPart;
   signedStateForTurnNum?: Map<Uint64, SignedState>;
@@ -28,8 +28,7 @@ interface ConstructorOptions extends FixedPartConstructorOptions {
 export class Channel extends FixedPart {
   id: Destination = new Destination();
 
-  // TODO: uint replacement
-  myIndex: number = 0;
+  myIndex: Uint = BigInt(0);
 
   onChainFunding: Funds = new Funds();
 
@@ -45,7 +44,7 @@ export class Channel extends FixedPart {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     id: { type: 'class', value: Destination },
-    myIndex: { type: 'number' },
+    myIndex: { type: 'uint' },
     onChainFunding: { type: 'class', value: Funds },
     ...super.jsonEncodingMap,
     signedStateForTurnNum: { type: 'map', key: { type: 'uint64' }, value: { type: 'class', value: SignedState } },
@@ -67,7 +66,7 @@ export class Channel extends FixedPart {
   }
 
   // new constructs a new Channel from the supplied state.
-  static new(s: State, myIndex: number): Channel {
+  static new(s: State, myIndex: Uint): Channel {
     const c = new Channel({});
     s.validate();
 
@@ -110,7 +109,7 @@ export class Channel extends FixedPart {
 
   // MyDestination returns the client's destination
   myDestination(): Destination {
-    return Destination.addressToDestination(this.participants![this.myIndex]);
+    return Destination.addressToDestination(this.participants![Number(this.myIndex)]);
   }
 
   // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.

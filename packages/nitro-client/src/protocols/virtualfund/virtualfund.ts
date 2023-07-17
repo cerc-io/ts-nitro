@@ -6,7 +6,7 @@ import { Buffer } from 'buffer';
 import Channel from '@cerc-io/ts-channel';
 import type { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
-  FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON,
+  FieldDescription, JSONbigNative, Uint, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
@@ -231,9 +231,9 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
   toMyRight?: Connection;
 
-  private n: number = 0; // number of intermediaries
+  private n: Uint = BigInt(0); // number of intermediaries
 
-  myRole: number = 0; // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
+  myRole: Uint = BigInt(0); // index in the virtual funding protocol. 0 for Alice, n+1 for Bob. Otherwise, one of the intermediaries.
 
   // TODO: Handle undefined in serialization
   private a0?: Funds; // Initial balance for Alice
@@ -247,8 +247,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     v: { type: 'class', value: Destination },
     toMyLeft: { type: 'buffer' },
     toMyRight: { type: 'buffer' },
-    n: { type: 'number' },
-    myRole: { type: 'number' },
+    n: { type: 'uint' },
+    myRole: { type: 'uint' },
     a0: { type: 'class', value: Funds },
     b0: { type: 'class', value: Funds },
   };
@@ -372,7 +372,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     for (let i = 0; i < (initialStateOfV.participants ?? []).length; i += 1) {
       const addr = initialStateOfV.participants![i];
       if (addr === myAddress) {
-        init.myRole = i;
+        init.myRole = BigInt(i);
         found = true;
       }
     }
@@ -384,7 +384,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     init.v = v;
 
     // NewSingleHopVirtualChannel will error unless there are at least 3 participants
-    init.n = (initialStateOfV.participants ?? []).length - 2;
+    init.n = BigInt((initialStateOfV.participants ?? []).length - 2);
 
     init.a0 = new Funds(new Map<Address, bigint>());
     init.b0 = new Funds(new Map<Address, bigint>());
@@ -397,8 +397,11 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       }
       const amount0 = outcome.allocations.value![0].amount;
 
-      if (!_.isEqual(outcome.allocations.value![1].destination, Destination.addressToDestination(initialStateOfV.participants![init.n + 1]))) {
-        throw new Error(`Allocation in slot 1 does not correspond to participant ${init.n + 1}`);
+      if (!_.isEqual(
+        outcome.allocations.value![1].destination,
+        Destination.addressToDestination(initialStateOfV.participants![Number(init.n) + 1]),
+      )) {
+        throw new Error(`Allocation in slot 1 does not correspond to participant ${Number(init.n) + 1}`);
       }
       const amount1 = outcome.allocations.value![1].amount;
 
@@ -427,8 +430,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         init.a0,
         init.b0,
         v.id,
-        Destination.addressToDestination(init.v.participants![init.myRole - 1]),
-        Destination.addressToDestination(init.v.participants![init.myRole]),
+        Destination.addressToDestination(init.v.participants![Number(init.myRole) - 1]),
+        Destination.addressToDestination(init.v.participants![Number(init.myRole)]),
       );
     }
 
@@ -444,8 +447,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         init.a0,
         init.b0,
         init.v.id,
-        Destination.addressToDestination(init.v.participants![init.myRole]),
-        Destination.addressToDestination(init.v.participants![init.myRole + 1]),
+        Destination.addressToDestination(init.v.participants![Number(init.myRole)]),
+        Destination.addressToDestination(init.v.participants![Number(init.myRole) + 1]),
       );
     }
 
@@ -570,7 +573,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     const otherParticipants: Address[] = [];
 
     for (let i = 0; i < (this.v!.participants ?? []).length; i += 1) {
-      if (i !== this.myRole) {
+      if (i !== Number(this.myRole)) {
         otherParticipants.push(this.v!.participants![i]);
       }
     }
@@ -784,12 +787,12 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
   // isAlice returns true if the receiver represents participant 0 in the virtualfund protocol.
   private isAlice(): boolean {
-    return this.myRole === 0;
+    return Number(this.myRole) === 0;
   }
 
   // isBob returns true if the receiver represents participant n+1 in the virtualfund protocol.
   private isBob(): boolean {
-    return this.myRole === this.n + 1;
+    return this.myRole === this.n + BigInt(1);
   }
 
   // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state

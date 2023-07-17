@@ -236,7 +236,7 @@ export class Objective implements ObjectiveInterface {
 
     init.c = new channel.Channel({});
     try {
-      init.c = channel.Channel.new(initialState, myIndex);
+      init.c = channel.Channel.new(initialState, BigInt(myIndex));
     } catch (err) {
       throw new Error(`failed to initialize channel for direct-fund objective: ${err}`);
     }
@@ -333,7 +333,7 @@ export class Objective implements ObjectiveInterface {
 
     assert(this.c);
     updated.status = ObjectiveStatus.Rejected;
-    const peer = this.c.participants![1 - this.c.myIndex];
+    const peer = this.c.participants![1 - Number(this.c.myIndex)];
 
     const sideEffects = new SideEffects({
       messagesToSend: Message.createRejectionNoticeMessage(this.id(), peer),
@@ -386,7 +386,7 @@ export class Objective implements ObjectiveInterface {
     const others: Address[] = [];
 
     for (let i = 0; i < (this.c!.participants ?? []).length; i += 1) {
-      if (i !== this.c!.myIndex) {
+      if (i !== Number(this.c!.myIndex)) {
         others.push(this.c!.participants![i]);
       }
     }

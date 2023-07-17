@@ -1,7 +1,6 @@
 import assert from 'assert';
 import debug from 'debug';
 import { ethers } from 'ethers';
-import { Buffer } from 'buffer';
 
 import Channel from '@cerc-io/ts-channel';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
@@ -419,8 +418,6 @@ export class P2PMessageService implements MessageService {
       await this.p2pHost.peerStore.addressBook.add(
         p.id,
         [multi],
-        // TODO: Check if ttl option exists to set it like in go-nitro
-        // peerstore.PermanentAddrTTL
       );
       this.peers!.store(p.address, { id: p.id, address: p.address });
 

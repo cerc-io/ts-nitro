@@ -6,7 +6,7 @@ import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
 
 import {
-  FieldDescription, Uint64, fromJSON, toJSON, zeroValueSignature,
+  FieldDescription, Uint, Uint64, fromJSON, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
 import { Bytes32 } from '@statechannels/nitro-protocol';
 
@@ -48,10 +48,10 @@ export enum ProposalType {
   RemoveProposal = 'RemoveProposal',
 }
 
-type LedgerIndex = number;
+type LedgerIndex = Uint;
 
-export const Leader: LedgerIndex = 0;
-export const Follower: LedgerIndex = 1;
+export const Leader: LedgerIndex = BigInt(0);
+export const Follower: LedgerIndex = BigInt(1);
 
 // Balance is a convenient, ergonomic representation of a single-asset Allocation
 // of type 0, ie. a simple allocation.
@@ -899,7 +899,7 @@ export class ConsensusChannel {
 
   id: Destination = new Destination();
 
-  myIndex: LedgerIndex = 0;
+  myIndex: LedgerIndex = BigInt(0);
 
   onChainFunding: Funds = new Funds();
 
@@ -916,7 +916,7 @@ export class ConsensusChannel {
   static jsonEncodingMap: Record<string, FieldDescription> = {
     id: { type: 'class', value: Destination },
     onChainFunding: { type: 'class', value: Funds },
-    myIndex: { type: 'number' },
+    myIndex: { type: 'uint' },
     fP: { type: 'class', value: FixedPart },
     current: { type: 'class', value: SignedVars },
     proposalQueue: { type: 'array', value: { type: 'class', value: SignedProposal } },
@@ -980,16 +980,16 @@ export class ConsensusChannel {
       followerAddr: string;
 
     try {
-      leaderAddr = vars.asState(fp).recoverSigner(signatures[Leader]);
+      leaderAddr = vars.asState(fp).recoverSigner(signatures[Number(Leader)]);
 
-      if (leaderAddr !== fp.participants![Leader]) {
-        throw new Error(`Leader did not sign initial state: ${leaderAddr}, ${fp.participants![Leader]}`);
+      if (leaderAddr !== fp.participants![Number(Leader)]) {
+        throw new Error(`Leader did not sign initial state: ${leaderAddr}, ${fp.participants![Number(Leader)]}`);
       }
 
-      followerAddr = vars.asState(fp).recoverSigner(signatures[Follower]);
+      followerAddr = vars.asState(fp).recoverSigner(signatures[Number(Follower)]);
 
-      if (followerAddr !== fp.participants![Follower]) {
-        throw new Error(`Follower did not sign initial state: ${followerAddr}, ${fp.participants![Follower]}`);
+      if (followerAddr !== fp.participants![Number(Follower)]) {
+        throw new Error(`Follower did not sign initial state: ${followerAddr}, ${fp.participants![Number(Follower)]}`);
       }
     } catch (err) {
       throw new Error(`could not verify sig: ${err}`);
@@ -1126,13 +1126,13 @@ export class ConsensusChannel {
 
   // Leader returns the address of the participant responsible for proposing.
   leader(): Address {
-    return this.fp.participants![Leader];
+    return this.fp.participants![Number(Leader)];
   }
 
   // Follower returns the address of the participant who receives and contersigns
   // proposals.
   follower(): Address {
-    return this.fp.participants![Follower];
+    return this.fp.participants![Number(Follower)];
   }
 
   // FundingTargets returns a list of channels funded by the ConsensusChannel
@@ -1148,7 +1148,7 @@ export class ConsensusChannel {
   // values. It signs the resulting state using sk.
   private sign(vars: Vars, sk: Buffer): Signature {
     const signer = getAddressFromSecretKeyBytes(sk);
-    if (this.fp.participants![this.myIndex] !== signer) {
+    if (this.fp.participants![Number(this.myIndex)] !== signer) {
       throw new Error(`attempting to sign from wrong address: ${signer}`);
     }
 
@@ -1285,7 +1285,7 @@ export class ConsensusChannel {
           throw new Error(`unable to recover signer: ${err}`);
         }
 
-        if (signer !== this.fp.participants![Follower]) {
+        if (signer !== this.fp.participants![Number(Follower)]) {
           throw ErrWrongSigner;
         }
 

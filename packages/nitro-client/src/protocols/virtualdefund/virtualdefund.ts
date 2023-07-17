@@ -6,6 +6,7 @@ import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
   FieldDescription,
   JSONbigNative,
+  Uint,
   Uint64,
   fromJSON,
   toJSON,
@@ -178,7 +179,7 @@ export class Objective implements ObjectiveInterface {
   // 0 is Alice
   // 1...n is Irene, Ivan, ... (the n intermediaries)
   // n+1 is Bob
-  myRole: number = 0;
+  myRole: Uint = BigInt(0);
 
   // NOTE: Marshal -> Unmarshal is a lossy process. All channel data from
   // the virtual and ledger channels (other than Ids) is discarded
@@ -188,7 +189,7 @@ export class Objective implements ObjectiveInterface {
     toMyLeft: { type: 'class', value: Destination },
     toMyRight: { type: 'class', value: Destination },
     minimumPaymentAmount: { type: 'bigint' },
-    myRole: { type: 'number' },
+    myRole: { type: 'uint' },
   };
 
   static fromJSON(data: string): Objective {
@@ -232,7 +233,7 @@ export class Objective implements ObjectiveInterface {
     v?: VirtualChannel,
     toMyLeft?: ConsensusChannel,
     toMyRight?: ConsensusChannel,
-    myRole?: number
+    myRole?: Uint
   }) {
     Object.assign(this, params);
   }
@@ -399,7 +400,7 @@ export class Objective implements ObjectiveInterface {
   }
 
   private generateFinalOutcome(): SingleAssetExit {
-    if (this.myRole !== 0) {
+    if (Number(this.myRole) !== 0) {
       throw new Error('Only Alice should call generateFinalOutcome');
     }
 
@@ -438,7 +439,7 @@ export class Objective implements ObjectiveInterface {
 
     const peers: Address[] = [];
     for (const [i, peer] of (this.v!.participants ?? []).entries()) {
-      if (i !== this.myRole) {
+      if (i !== Number(this.myRole)) {
         peers.push(peer);
       }
     }
@@ -503,7 +504,7 @@ export class Objective implements ObjectiveInterface {
   private otherParticipants(): Address[] {
     const others: Address[] = [];
     for (let i = 0; i < (this.v!.participants ?? []).length; i += 1) {
-      if (i !== this.myRole) {
+      if (i !== Number(this.myRole)) {
         others.push(this.v!.participants![i]);
       }
     }
@@ -601,12 +602,12 @@ export class Objective implements ObjectiveInterface {
 
   // isAlice returns true if the receiver represents participant 0 in the virtualdefund protocol.
   private isAlice(): boolean {
-    return this.myRole === 0;
+    return Number(this.myRole) === 0;
   }
 
   // isBob returns true if the receiver represents participant n+1 in the virtualdefund protocol.
   private isBob(): boolean {
-    return this.myRole === (this.v!.participants ?? []).length - 1;
+    return Number(this.myRole) === (this.v!.participants ?? []).length - 1;
   }
 
   // ledgerProposal generates a ledger proposal to remove the guarantee for V for ledger
@@ -713,7 +714,7 @@ export class Objective implements ObjectiveInterface {
             updated.v!,
             updated.initialOutcome(),
             ss.state().outcome.value![0],
-            this.v!.participants![this.myRole],
+            this.v!.participants![Number(this.myRole)],
             updated.minimumPaymentAmount,
           );
         } catch (err) {
