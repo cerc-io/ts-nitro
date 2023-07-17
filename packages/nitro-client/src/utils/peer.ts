@@ -8,9 +8,8 @@ export const createPeerIdFromKey = async (pk: Buffer): Promise<PeerIdObj> => {
     marshalPrivateKey, marshalPublicKey, generateKeyPairFromSeed,
   } = await import('@libp2p/crypto/keys');
 
-  // TODO: Unmarshall private key similar to go-nitro
   // const messageKey = await unmarshalPrivateKey(pk);
-  // Workaround to get a libp2p private key from `pk` passed to message service
+  // Workaround to get a libp2p PrivateKey instance from `pk` passed to message service
   const messageKey = await generateKeyPairFromSeed('Ed25519', pk);
 
   const PeerIdFactory = await import('@libp2p/peer-id-factory');

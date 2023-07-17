@@ -486,8 +486,11 @@ export class P2PMessageService implements MessageService {
     while (connections.length) {
       const peerId = await this.sentInfoToPeer.shift();
       connections = connections.filter((connection) => !peerId.equals(connection.remotePeer));
-      // TODO: Uncomment after fixing old client info remaining in channel
-      // this.logger(`Connected and sent info to peer ${peerId.toString()}`);
+
+      // Filter and log message for peers that are sent info by connecting manually
+      if (peers.some((basicPeerInfo) => basicPeerInfo.id.equals(peerId))) {
+        this.logger(`Connected and sent info to peer ${peerId.toString()}`);
+      }
     }
   }
 
