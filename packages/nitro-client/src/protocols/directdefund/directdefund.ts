@@ -224,7 +224,7 @@ export class Objective implements ObjectiveInterface {
   reject(): [ObjectiveInterface, SideEffects] {
     const updated = this.clone();
     updated.status = ObjectiveStatus.Rejected;
-    const peer = this.c!.participants![1 - this.c!.myIndex];
+    const peer = this.c!.participants![1 - Number(this.c!.myIndex)];
 
     const sideEffects = new SideEffects({ messagesToSend: Message.createRejectionNoticeMessage(this.id(), peer) });
     return [updated, sideEffects];
@@ -319,7 +319,7 @@ export class Objective implements ObjectiveInterface {
     }
 
     // Finalize and sign a state if no supported, finalized state exists
-    if (!latestSignedState.state().isFinal || !latestSignedState.hasSignatureForParticipant(updated.c!.myIndex)) {
+    if (!latestSignedState.state().isFinal || !latestSignedState.hasSignatureForParticipant(Number(updated.c!.myIndex))) {
       const stateToSign = latestSignedState.state().clone();
       if (!stateToSign.isFinal) {
         stateToSign.turnNum += BigInt(1);
@@ -357,7 +357,7 @@ export class Objective implements ObjectiveInterface {
     // Withdrawal of funds
     if (!updated.fullyWithdrawn()) {
       // The first participant in the channel submits the withdrawAll transaction
-      if (updated.c!.myIndex === 0 && !updated.transactionSubmitted) {
+      if (Number(updated.c!.myIndex) === 0 && !updated.transactionSubmitted) {
         const withdrawAll = WithdrawAllTransaction.newWithdrawAllTransaction(updated.c!.id, latestSignedState);
         sideEffects.transactionsToSubmit.push(withdrawAll);
         updated.transactionSubmitted = true;
@@ -395,7 +395,7 @@ export class Objective implements ObjectiveInterface {
   private otherParticipants(): Address[] {
     const others: Address[] = [];
     (this.c!.participants ?? []).forEach((p, i) => {
-      if (i !== this.c!.myIndex) {
+      if (i !== Number(this.c!.myIndex)) {
         others.push(p);
       }
     });

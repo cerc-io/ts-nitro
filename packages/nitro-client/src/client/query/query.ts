@@ -87,7 +87,7 @@ export const constructPaymentInfo = (c: Channel, paid?: bigint, remaining?: bigi
 
   // ADR 0009 allows for intermediaries to exit the protocol before receiving all signed post funds
   // So for intermediaries we return Open once they have signed their post fund state
-  const amIntermediary: boolean = c.myIndex !== 0 && c.myIndex !== (c.participants ?? []).length - 1;
+  const amIntermediary: boolean = Number(c.myIndex) !== 0 && Number(c.myIndex) !== (c.participants ?? []).length - 1;
   if (amIntermediary && c.postFundSignedByMe()) {
     status = ChannelStatus.Open;
   }

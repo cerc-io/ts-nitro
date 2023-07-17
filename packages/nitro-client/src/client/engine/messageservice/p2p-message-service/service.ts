@@ -1,7 +1,6 @@
 import assert from 'assert';
 import debug from 'debug';
 import { ethers } from 'ethers';
-import { Buffer } from 'buffer';
 
 import Channel from '@cerc-io/ts-channel';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';

@@ -612,8 +612,8 @@ export class Engine {
           this.metrics!.recordObjectiveStarted(vfo.id());
 
           // Only Alice or Bob care about registering the objective and keeping track of vouchers
-          const lastParticipant = (vfo.v!.participants ?? []).length - 1;
-          if (vfo.myRole === lastParticipant || vfo.myRole === PAYER_INDEX) {
+          const lastParticipant = BigInt((vfo.v!.participants ?? []).length - 1);
+          if (vfo.myRole === lastParticipant || vfo.myRole === BigInt(PAYER_INDEX)) {
             try {
               await this.registerPaymentChannel(vfo);
             } catch (err) {

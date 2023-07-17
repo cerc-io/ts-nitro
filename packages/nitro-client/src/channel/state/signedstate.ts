@@ -2,7 +2,7 @@ import _ from 'lodash';
 import { Buffer } from 'buffer';
 
 import {
-  FieldDescription, Uint64, fromJSON, toJSON,
+  FieldDescription, Uint, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Signature, signatureJsonEncodingMap, equal } from '../../crypto/signatures';
@@ -13,12 +13,11 @@ import { Destination } from '../../types/destination';
 export class SignedState {
   private _state: State = new State({});
 
-  // TODO: uint replacement
-  private sigs: Map<number, Signature> = new Map(); // keyed by participant index
+  private sigs: Map<Uint, Signature> = new Map(); // keyed by participant index
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     state: { type: 'class', value: State },
-    sigs: { type: 'map', key: { type: 'number' }, value: { type: 'object', value: signatureJsonEncodingMap } },
+    sigs: { type: 'map', key: { type: 'uint' }, value: { type: 'object', value: signatureJsonEncodingMap } },
   };
 
   static fromJSON(data: string): SignedState {
@@ -32,7 +31,7 @@ export class SignedState {
 
   constructor(params: {
     _state?: State,
-    sigs?: Map<number, Signature>
+    sigs?: Map<Uint, Signature>
   }) {
     Object.assign(this, params);
   }
@@ -63,11 +62,11 @@ export class SignedState {
       const p = this.state().participants![i];
 
       if (p === signer) {
-        const found = this.sigs.has(i);
+        const found = this.sigs.has(BigInt(i));
         if (found) {
           throw new Error('Signature already exists for participant');
         } else {
-          this.sigs.set(i, sig);
+          this.sigs.set(BigInt(i), sig);
           return;
         }
       }
@@ -87,14 +86,14 @@ export class SignedState {
   signatures(): Signature[] {
     const sigs: Signature[] = [];
     for (let i = 0; i < (this._state.participants ?? []).length; i += 1) {
-      sigs.push(this.sigs.get(i)!);
+      sigs.push(this.sigs.get(BigInt(i))!);
     }
     return sigs;
   }
 
   // HasSignatureForParticipant returns true if the participant (at participantIndex) has a valid signature.
   hasSignatureForParticipant(participantIndex: number): boolean {
-    const found = this.sigs.has(participantIndex);
+    const found = this.sigs.has(BigInt(participantIndex));
     return found;
   }
 
@@ -108,7 +107,7 @@ export class SignedState {
   }
 
   // GetParticipantSignature returns the signature for the participant specified by participantIndex
-  getParticipantSignature(participantIndex: number): Signature {
+  getParticipantSignature(participantIndex: Uint): Signature {
     const found = this.sigs.has(participantIndex);
     if (!found) {
       throw new Error(`participant ${participantIndex} does not have a signature`);
@@ -137,9 +136,9 @@ export class SignedState {
 
   // Clone returns a deep copy of the receiver.
   clone(): SignedState {
-    const clonedSigs: Map<number, Signature> = new Map<number, Signature>();
+    const clonedSigs: Map<Uint, Signature> = new Map<Uint, Signature>();
     for (const [i, ss] of this.sigs) {
-      clonedSigs.set(i, _.cloneDeep(ss));
+      clonedSigs.set(BigInt(i), _.cloneDeep(ss));
     }
     return new SignedState({ _state: this._state.clone(), sigs: clonedSigs });
   }
