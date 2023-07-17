@@ -6,7 +6,7 @@ import {
   Client, MemStore, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
   ChannelStatus, LedgerChannelBalance,
 } from '@cerc-io/nitro-client';
-import { hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
+import { hex2Bytes, DEFAULT_CHAIN_URL, getBalanceByKey } from '@cerc-io/nitro-util';
 
 import { DirectFundParams } from '../src/types';
 import {
@@ -28,6 +28,9 @@ const {
   createPeerIdFromKey,
   createPeerAndInit,
 } = utils;
+
+const ALICE_BALANCE_AFTER_DIRECTFUND = '9999990425995322269314';
+const BOB_BALANCE_AFTER_DIRECTFUND = '9999999938424127028256';
 
 describe('test Client', () => {
   let aliceClient: Client;
@@ -159,6 +162,13 @@ describe('test Client', () => {
       }),
     });
     expect(ledgerChannelStatus).to.deep.equal(expectedLedgerChannelStatus);
+
+    const aliceBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
+    expect(aliceBalance.toString()).to.be.equal(ALICE_BALANCE_AFTER_DIRECTFUND);
+
+    const bobBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
+    expect(bobBalance.toString()).to.be.equal(BOB_BALANCE_AFTER_DIRECTFUND);
+
     // TODO: Implement and close services
     // client.close();
   });
