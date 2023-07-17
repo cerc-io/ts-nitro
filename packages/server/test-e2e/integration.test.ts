@@ -46,6 +46,7 @@ describe('test Client', () => {
   let bobMetrics: Metrics;
   let ledgerChannelId: Destination;
   let paymentChannelId: Destination;
+  const asset = `0x${'00'.repeat(20)}`;
 
   it('should instantiate Clients', async () => {
     assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
@@ -105,7 +106,6 @@ describe('test Client', () => {
 
     const counterParty = ACTORS.bob.address;
     const amount = 1_000_000;
-    const asset = `0x${'00'.repeat(20)}`;
     const params: DirectFundParams = {
       counterParty,
       challengeDuration: 0,
@@ -188,7 +188,6 @@ describe('test Client', () => {
   });
 
   it('should create virtual channel', async () => {
-    const asset = `0x${'00'.repeat(20)}`;
     const amount = 1_000_000;
     const counterParty = ACTORS.bob.address;
 
@@ -225,6 +224,56 @@ describe('test Client', () => {
         payer: ACTORS.alice.address,
         paidSoFar: BigInt(0),
         remainingFunds: BigInt(amount),
+      }),
+    });
+    expect(paymentChannelStatus).to.deep.equal(expectedPaymentChannelStatus);
+
+    const aliceBalance = await getBalanceByAddress(ACTORS.alice.address, DEFAULT_CHAIN_URL);
+    expect(aliceBalance.toString()).to.be.equal(ALICE_BALANCE_AFTER_DIRECTFUND);
+
+    const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
+    expect(aliceChainBalance.toString()).to.be.equal(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND);
+
+    const bobBalance = await getBalanceByAddress(ACTORS.bob.address, DEFAULT_CHAIN_URL);
+    expect(bobBalance.toString()).to.be.equal(BOB_BALANCE_AFTER_DIRECTFUND);
+
+    const bobChainBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
+    expect(bobChainBalance.toString()).to.be.equal(BOB_CHAIN_BALANCE_AFTER_DIRECTFUND);
+  });
+
+  it('should conduct multiple payments', async () => {
+    assert(paymentChannelId);
+
+    // First payment: Pay 50 from Alice to Bob
+    await aliceClient.pay(paymentChannelId, BigInt(50));
+
+    let paymentChannelStatus = await aliceClient.getPaymentChannel(paymentChannelId);
+    let expectedPaymentChannelStatus = new PaymentChannelInfo({
+      iD: paymentChannelId,
+      status: ChannelStatus.Open,
+      balance: new PaymentChannelBalance({
+        assetAddress: asset,
+        payee: ACTORS.bob.address,
+        payer: ACTORS.alice.address,
+        paidSoFar: BigInt(50),
+        remainingFunds: BigInt(999950),
+      }),
+    });
+    expect(paymentChannelStatus).to.deep.equal(expectedPaymentChannelStatus);
+
+    // Second payment: Pay 100 from Alice to Bob
+    await aliceClient.pay(paymentChannelId, BigInt(100));
+
+    paymentChannelStatus = await aliceClient.getPaymentChannel(paymentChannelId);
+    expectedPaymentChannelStatus = new PaymentChannelInfo({
+      iD: paymentChannelId,
+      status: ChannelStatus.Open,
+      balance: new PaymentChannelBalance({
+        assetAddress: asset,
+        payee: ACTORS.bob.address,
+        payer: ACTORS.alice.address,
+        paidSoFar: BigInt(150),
+        remainingFunds: BigInt(999850),
       }),
     });
     expect(paymentChannelStatus).to.deep.equal(expectedPaymentChannelStatus);
