@@ -34,7 +34,6 @@ export class FixedPart {
 
   appDefinition: Address = ethers.constants.AddressZero;
 
-  // TODO: uint32 replacement
   challengeDuration: number = 0;
 
   constructor(params: ConstructorOptions) {
@@ -110,7 +109,6 @@ export class State {
 
   appDefinition: Address = ethers.constants.AddressZero;
 
-  // TODO: uint32 replacement
   challengeDuration: number = 0;
 
   appData: Buffer | null = null;
@@ -186,7 +184,6 @@ export class State {
   }
 
   // encodes the state into a []bytes value
-  // TODO: Can throw an error
   // TODO: Implement (only if required)
   encode(): Buffer {
     return Buffer.from('');

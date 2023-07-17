@@ -96,19 +96,14 @@ export interface ChainEventHandler {
 export interface ChainService {
   eventFeed (): ReadChannel<ChainEvent>;
 
-  // TODO: Use protocols chain transaction type
-  // TODO: Can throw an error
   sendTransaction (tx: ChainTransaction): Promise<void>;
 
-  // TODO: Use Address type
   getConsensusAppAddress (): Address;
 
   getVirtualPaymentAppAddress (): Address;
 
-  // TODO: Can throw an error
   getChainId (): Promise<bigint>;
 
-  // TODO: Can throw an error
   close (): void;
 }
 

@@ -1,6 +1,5 @@
 import { Buffer } from 'buffer';
 
-// TODO: Use forked @statechannels/nitro-protocol
 import { decodeGuaranteeData, encodeGuaranteeData } from '@statechannels/nitro-protocol/dist/src/contract/outcome';
 
 import { Destination } from '../../../types/destination';

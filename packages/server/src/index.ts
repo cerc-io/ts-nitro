@@ -247,8 +247,6 @@ const main = async () => {
     assert(paymentChannelIdString, 'Provide payment-channel id for payment');
     const virtualPaymentChannelId = new Destination(paymentChannelIdString);
     await client.pay(virtualPaymentChannelId, BigInt(argv.amount ?? 0));
-
-    // TODO: Wait for the payment to be processed
   }
 
   if (argv.virtualDefund) {
@@ -311,17 +309,12 @@ const main = async () => {
   // Call async method to log message on receiving vouchers
   subscribeVoucherLogs(client);
 
-  // TODO: Update instructions in browser setup
-  // TODO: Update instructions for ts-nitro - go-nitro setup
-
   if (!argv.wait) {
-    // TODO: Fix closing client after creating virtual channel
     // Workaround for error on closing payment channel
     await new Promise<void>((resolve) => { setTimeout(() => resolve(), 1000); });
 
     await store.close();
     await msgService.close();
-    // TODO: Implement
     await client.close();
 
     process.exit(0);

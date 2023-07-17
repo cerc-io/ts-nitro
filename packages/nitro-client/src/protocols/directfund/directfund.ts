@@ -554,14 +554,10 @@ export class Objective implements ObjectiveInterface {
     return clone;
   }
 
-  // TODO: Can throw an error
-  // TODO: Check interface and implement
   marshalJSON(): Buffer {
     return Buffer.alloc(0);
   }
 
-  // TODO: Can throw an error
-  // TODO: Check interface and implement
   unmarshalJSON(b: Buffer): void {}
 }
 
@@ -580,7 +576,6 @@ export function isDirectFundObjective(id: ObjectiveId): boolean {
 export class ObjectiveRequest implements ObjectiveRequestInterface {
   counterParty: Address = ethers.constants.AddressZero;
 
-  // TODO: uint32 replacement
   challengeDuration: number = 0;
 
   outcome: Exit = new Exit();

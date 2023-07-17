@@ -1011,13 +1011,11 @@ export class ConsensusChannel {
   }
 
   // NewLeaderChannel constructs a new LeaderChannel
-  // TODO: Refactor to leader-channel file
   static newLeaderChannel(fp: FixedPart, turnNum: Uint64, outcome: LedgerOutcome, signatures: [Signature, Signature]): ConsensusChannel {
     return ConsensusChannel.newConsensusChannel(fp, Leader, turnNum, outcome, signatures);
   }
 
   // NewFollowerChannel constructs a new FollowerChannel
-  // TODO: Refactor to follower-channel file
   static newFollowerChannel(fp: FixedPart, turnNum: Uint64, outcome: LedgerOutcome, signatures: [Signature, Signature]): ConsensusChannel {
     return ConsensusChannel.newConsensusChannel(fp, Follower, turnNum, outcome, signatures);
   }

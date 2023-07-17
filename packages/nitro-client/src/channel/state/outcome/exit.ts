@@ -14,7 +14,6 @@ import { Allocation, Allocations } from './allocation';
 // eslint-disable-next-line import/no-cycle
 import { exitDepositSafetyThreshold, singleAssetExitDepositSafetyThreshold } from './deposit-safety';
 
-// TODO: uint8 replacement
 type AssetType = number;
 
 export type AssetMetadata = {

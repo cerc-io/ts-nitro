@@ -97,7 +97,6 @@ export class Channel extends FixedPart {
   }
 
   // MarshalJSON returns a JSON representation of the Channel
-  // TODO: Can throw an error
   marshalJSON(): Buffer {
     // Use toJSON method
     return Buffer.from('');
@@ -291,7 +290,7 @@ export class Channel extends FixedPart {
       this.latestSupportedStateTurnNum = s.turnNum;
     }
 
-    // TODO: update support
+    // TODO update support
 
     return true;
   }

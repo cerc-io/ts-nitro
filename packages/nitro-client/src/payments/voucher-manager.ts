@@ -9,13 +9,10 @@ import { Voucher, VoucherInfo } from './vouchers';
 // VoucherStore is an interface for storing voucher information that the voucher manager expects.
 // To avoid import cycles, this interface is defined in the payments package, but implemented in the store package.
 export interface VoucherStore {
-  // TODO: Can throw an error
   setVoucherInfo (channelId: Destination, v: VoucherInfo): void
 
-  // TODO: Can throw an error
   getVoucherInfo (channelId: Destination): [VoucherInfo | undefined, boolean] | Promise<[VoucherInfo | undefined, boolean]>
 
-  // TODO: Can throw an error
   removeVoucherInfo (channelId: Destination): void
 }
 
