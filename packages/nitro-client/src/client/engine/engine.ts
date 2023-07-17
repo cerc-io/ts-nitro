@@ -215,8 +215,8 @@ export class Engine {
     return this._toApi.readOnly();
   }
 
-  // TODO: Implement
-  close(): void { }
+  // TODO: Implement (if required)
+  close(): void {}
 
   // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
   // The loop exits when a struct is received on the stop channel. Engine.Close() sends that signal.

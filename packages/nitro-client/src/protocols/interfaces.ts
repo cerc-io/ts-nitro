@@ -110,7 +110,6 @@ export interface Storable {
 //   - After each update, it is cranked. This generates side effects and other metadata
 //   - The metadata will eventually indicate that the Objective has stalled OR the Objective has completed successfully
 export interface Objective extends Storable {
-
   id (): ObjectiveId
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects

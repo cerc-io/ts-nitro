@@ -254,7 +254,7 @@ export class Client {
   }
 
   // Close stops the client from responding to any input.
-  // TODO: Implement
+  // TODO: Implement (if required)
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async close(): Promise<void> {}
 
