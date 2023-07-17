@@ -95,11 +95,9 @@ export type WaitingFor = string;
 // Storable is an object that can be stored by the store.
 export interface Storable {
   // TODO: Implement Go encoding/json
-  // TODO: Can throw an error
   // marshalJSON (): Buffer
 
   // TODO: Implement Go encoding/json
-  // TODO: Can throw an error
   // unmarshalJSON (b: Buffer): void
 }
 
@@ -112,7 +110,6 @@ export interface Storable {
 //   - After each update, it is cranked. This generates side effects and other metadata
 //   - The metadata will eventually indicate that the Objective has stalled OR the Objective has completed successfully
 export interface Objective extends Storable {
-  // TODO: Update comments
 
   id (): ObjectiveId
 
@@ -123,11 +120,9 @@ export interface Objective extends Storable {
   reject (): [Objective, SideEffects]
 
   // returns an updated Objective (a copy, no mutation allowed), does not declare effects
-  // TODO: Can throw an error
   update (payload: ObjectivePayload): Objective
 
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  // TODO: Can throw an error
   crank (secretKey: Buffer): [Objective, SideEffects, WaitingFor]
 
   // Related returns a slice of related objects that need to be stored along with the objective
@@ -144,7 +139,6 @@ export interface Objective extends Storable {
 export interface ProposalReceiver extends Objective {
   // ReceiveProposal receives a signed proposal and returns an updated VirtualObjective.
   // It is used to update the objective with a proposal received from a peer.
-  // TODO: Can throw an error
   receiveProposal(signedProposal: SignedProposal): ProposalReceiver
 }
 

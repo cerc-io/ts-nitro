@@ -2,10 +2,8 @@ import { ReadChannel } from '@cerc-io/ts-channel';
 
 import { Message } from '../../../protocols/messages';
 
-// TODO: Add p2p implementation
 // TODO: Add tests
 export interface MessageService {
-  // TODO: Update comments
 
   // Out returns a chan for receiving messages from the message service
   out (): ReadChannel<Message>;
@@ -14,6 +12,5 @@ export interface MessageService {
   send (msg: Message): Promise<void>;
 
   // Close closes the message service
-  // TODO: Can throw an error
   close (): Promise<void>;
 }

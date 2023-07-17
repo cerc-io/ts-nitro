@@ -46,9 +46,6 @@ export class EthClient {
 }
 
 // connectToChain connects to the chain at the given url and returns a client and a transactor.
-// TODO: Add keyed transactor
-// TODO: Can run into an error
-// TODO: ctx required?
 export async function connectToChain(chainUrl: string, chainPK: Buffer): Promise<[EthClient, ethers.Signer]> {
   const client = await EthClient.dial(chainUrl);
   const txSigner = new ethers.Wallet(chainPK, client.provider);

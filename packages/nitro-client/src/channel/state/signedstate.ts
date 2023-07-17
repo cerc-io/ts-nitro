@@ -145,14 +145,12 @@ export class SignedState {
   }
 
   // MarshalJSON marshals the SignedState into JSON, implementing the Marshaler interface.
-  // TODO: Can throw an error
   marshalJSON(): Buffer {
     // Use toJSON method
     return Buffer.from('');
   }
 
   // UnmarshalJSON unmarshals the passed JSON into a SignedState, implementing the Unmarshaler interface.
-  // TODO: Can throw an error
   // Use SignedState.fromJSON
   unmarshalJSON(j: Buffer): void {}
 

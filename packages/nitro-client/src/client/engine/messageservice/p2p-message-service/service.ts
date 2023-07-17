@@ -226,7 +226,6 @@ export class P2PMessageService implements MessageService {
           for await (const msg of source) {
             temp += uint8ArrayToString(msg.subarray());
 
-            // TODO: Find a better way of doing this
             const delimiterIndex = temp.indexOf(DELIMITER);
             if (delimiterIndex !== -1) {
               raw = temp.slice(0, delimiterIndex);
@@ -296,7 +295,6 @@ export class P2PMessageService implements MessageService {
           for await (const msg of source) {
             temp += uint8ArrayToString(msg.subarray());
 
-            // TODO: Find a better way of doing this
             const delimiterIndex = temp.indexOf(DELIMITER);
             if (delimiterIndex !== -1) {
               raw = temp.slice(0, delimiterIndex);
@@ -357,14 +355,6 @@ export class P2PMessageService implements MessageService {
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
         const s = await this.p2pHost.dialProtocol(peerInfo.id, PROTOCOL_ID);
-
-        // TODO: Implement buffered writer
-        // writer := bufio.NewWriter(s)
-        // // We don't care about the number of bytes written
-        // _, err = writer.WriteString(raw + string(DELIMITER))
-        // ms.checkError(err)
-        // writer.Flush()
-        // s.Close()
 
         // Use await on pipe in place of writer.Flush()
         await pipe(

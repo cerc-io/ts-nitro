@@ -70,8 +70,6 @@ export class Nitro {
     return true;
   }
 
-  // TODO: Implement close method
-
   async addPeerByMultiaddr(address: string, multiaddrString: string): Promise<void> {
     await this.msgService.addPeerByMultiaddr(address, multiaddrString);
   }
@@ -127,8 +125,6 @@ export class Nitro {
   async pay(virtualPaymentChannel: string, amount: number): Promise<void> {
     const virtualPaymentChannelId = new Destination(virtualPaymentChannel);
     await this.client.pay(virtualPaymentChannelId, BigInt(amount));
-
-    // TODO: Wait for the payment to be processed
   }
 
   async virtualDefund(virtualPaymentChannel: string): Promise<void> {

@@ -3,7 +3,6 @@ import _ from 'lodash';
 import { Buffer } from 'buffer';
 
 import { FieldDescription, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
-// TODO: Use forked @statechannels/nitro-protocol
 import { signData as utilSignData } from '@statechannels/nitro-protocol/dist/src/signatures';
 
 // Signature is an ECDSA signature

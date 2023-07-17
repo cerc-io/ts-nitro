@@ -215,7 +215,7 @@ export class Engine {
     return this._toApi.readOnly();
   }
 
-  // TODO: Can throw an error
+  // TODO: Implement
   close(): void { }
 
   // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
@@ -567,7 +567,6 @@ export class Engine {
 
   // handleObjectiveRequest handles an ObjectiveRequest (triggered by a client API call).
   // It will attempt to spawn a new, approved objective.
-  // TODO: Can throw an error
   private async handleObjectiveRequest(or: ObjectiveRequest): Promise<EngineEvent> {
     let deferredSignalObjectiveStarted;
     let deferredCompleteRecordFunction;
@@ -923,7 +922,6 @@ export class Engine {
   // the supplied Objective if it is a directfund.Objective.
   //
   // The associated Channel will remain in the store.
-  // TODO: Can throw an error
   private async spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): Promise<void> {
     let deferredCompleteRecordFunction;
     try {
@@ -986,7 +984,6 @@ export class Engine {
           return newObj;
         }
 
-        // TODO: Check working
         /* eslint-disable @typescript-eslint/no-throw-literal */
         throw new ErrGetObjective({ wrappedError: err as Error, objectiveId: id });
       }
@@ -1073,7 +1070,6 @@ export class Engine {
         case isDirectDefundObjective(id): {
           let ddfo: DirectDefundObjective;
           try {
-            // TODO: Implement
             ddfo = await DirectDefundObjective.constructObjectiveFromPayload(
               p,
               false,
@@ -1110,7 +1106,6 @@ export class Engine {
   // logMessage logs a message to the engine's logger
   private logMessage(msg: Message, direction: MessageDirection): void {
     if (direction === Incoming) {
-      // TODO: Implement go logger EmbedObject (Implement MessageSummary.MarshalZerologObject)
       this.logger(`Received message: ${JSONbigNative.stringify(msg.summarize())}`);
     } else {
       this.logger(`Sending message: ${JSONbigNative.stringify(msg.summarize())}`);

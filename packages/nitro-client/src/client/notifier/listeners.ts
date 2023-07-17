@@ -10,10 +10,6 @@ export class PaymentChannelListeners {
   // prev is the previous payment channel info that was sent to the listeners.
   prev: PaymentChannelInfo = new PaymentChannelInfo({});
 
-  // TODO: Implement
-  // listenersLock is used to protect against concurrent access to the listeners slice.
-  // listenersLock *sync.Mutex
-
   constructor(params: {
     listeners?: ReadWriteChannel<PaymentChannelInfo>[];
     prev?: PaymentChannelInfo
@@ -47,10 +43,6 @@ export class LedgerChannelListeners {
 
   // prev is the previous ledger channel info that was sent to the listeners.
   prev: LedgerChannelInfo = new LedgerChannelInfo({});
-
-  // TODO: Implement
-  // listenersLock is used to protect against concurrent access to the listeners slice.
-  // listenersLock sync.Mutex
 
   constructor(params: {
     listeners?: ReadWriteChannel<LedgerChannelInfo>[];

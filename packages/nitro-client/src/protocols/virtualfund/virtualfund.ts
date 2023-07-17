@@ -154,7 +154,7 @@ export class Connection {
 
   // handleProposal receives a signed proposal and acts according to the leader / follower
   handleProposal(sp: SignedProposal): void {
-    // TODO: Create error in caller
+    // Commented as error handled in caller
     // if c == nil {
     //   return fmt.Errorf("nil connection should not handle proposals")
     // }
