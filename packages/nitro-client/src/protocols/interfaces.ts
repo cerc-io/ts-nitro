@@ -94,11 +94,8 @@ export type WaitingFor = string;
 
 // Storable is an object that can be stored by the store.
 export interface Storable {
-  // TODO: Implement Go encoding/json
-  // marshalJSON (): Buffer
-
-  // TODO: Implement Go encoding/json
-  // unmarshalJSON (b: Buffer): void
+  toJSON (): any
+  // static fromJSON(data: string): any
 }
 
 // Objective is the interface for off-chain protocols.
