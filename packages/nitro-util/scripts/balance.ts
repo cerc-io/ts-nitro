@@ -1,6 +1,5 @@
 import yargs from 'yargs';
 import debug from 'debug';
-import { BigNumber } from 'ethers';
 
 import { DEFAULT_CHAIN_URL } from '../src';
 import { getBalanceByAddress, getAddressByKey } from '../src/eth-client';
@@ -30,18 +29,16 @@ const getArgv = () => yargs.parserConfiguration({
 
 async function main() {
   const argv = getArgv();
-  let balance: BigNumber;
   let address: string;
 
   if (argv.address) {
     address = argv.address;
-    balance = await getBalanceByAddress(argv.address, DEFAULT_CHAIN_URL);
   } else if (argv.key) {
     address = await getAddressByKey(argv.key, DEFAULT_CHAIN_URL);
-    balance = await getBalanceByAddress(address, DEFAULT_CHAIN_URL);
   } else {
     throw new Error('Provide either address or private key of an account');
   }
+  const balance = await getBalanceByAddress(address, DEFAULT_CHAIN_URL);
   log(`Balance of account ${address} is ${balance.toString()}`);
 }
 
