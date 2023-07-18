@@ -324,4 +324,35 @@ describe('test Client', () => {
     const bobChainBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
     expect(bobChainBalance.toString()).to.be.equal(BOB_CHAIN_BALANCE_AFTER_DIRECTFUND);
   });
+
+  it('should close ledger channel', async () => {
+    const closeLedgerChannelObjectiveId = await aliceClient.closeLedgerChannel(ledgerChannelId);
+    await aliceClient.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
+
+    const ledgerChannelStatus = await aliceClient.getLedgerChannel(ledgerChannelId);
+    const expectedLedgerChannelStatus = new LedgerChannelInfo({
+      iD: ledgerChannelId,
+      status: ChannelStatus.Complete,
+      balance: new LedgerChannelBalance({
+        assetAddress: asset,
+        hub: ACTORS.bob.address,
+        client: ACTORS.alice.address,
+        hubBalance: BigInt(1000150),
+        clientBalance: BigInt(999850),
+      }),
+    });
+    expect(ledgerChannelStatus).to.deep.equal(expectedLedgerChannelStatus);
+
+    const aliceBalance = await getBalanceByAddress(ACTORS.alice.address, DEFAULT_CHAIN_URL);
+    expect(aliceBalance.toString()).to.be.equal(ALICE_BALANCE_AFTER_DIRECTDEFUND);
+
+    const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
+    expect(Number(aliceChainBalance)).to.be.lessThan(Number(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND));
+
+    const bobBalance = await getBalanceByAddress(ACTORS.bob.address, DEFAULT_CHAIN_URL);
+    expect(bobBalance.toString()).to.be.equal(BOB_BALANCE_AFTER_DIRECTDEFUND);
+
+    const bobChainBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
+    expect(bobChainBalance.toString()).to.be.equal(BOB_CHAIN_BALANCE_AFTER_DIRECTDEFUND);
+  });
 });
