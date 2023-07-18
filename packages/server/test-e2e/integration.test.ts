@@ -41,7 +41,31 @@ const BOB_CHAIN_BALANCE_AFTER_DIRECTFUND = '9999999938424127028256';
 const ALICE_BALANCE_AFTER_DIRECTDEFUND = '999850';
 const BOB_BALANCE_AFTER_DIRECTDEFUND = '1000150';
 
-describe('test payment flow', () => {
+async function createClient(actor: utils.Actor): Promise<[Client, P2PMessageService, Metrics]> {
+  assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
+  const clientStore = new MemStore(hex2Bytes(actor.privateKey));
+  const clientPeerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
+  const clientPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, clientPeerIdObj);
+  const clientMsgService = await P2PMessageService.newMessageService(
+    clientStore.getAddress(),
+    clientPeer,
+  );
+  const clientMetrics = new Metrics();
+
+  const client = await setupClient(
+    clientMsgService,
+    clientStore,
+    {
+      chainPk: ACTORS.alice.chainPrivateKey,
+      chainURL: DEFAULT_CHAIN_URL,
+      contractAddresses,
+    },
+    clientMetrics,
+  );
+
+  expect(client.address).to.equal(actor.address);
+  return [client, clientMsgService, clientMetrics];
+}
   let aliceClient: Client;
   let bobClient: Client;
   let aliceMetrics: Metrics;
@@ -370,5 +394,24 @@ describe('test payment flow', () => {
 
     await aliceClient.close();
     await bobClient.close();
+  });
+});
+
+describe('test payment flow with an intermediary', () => {
+  let aliceClient: Client;
+  let aliceMetrics: Metrics;
+  let aliceMsgService: P2PMessageService;
+  let bobClient: Client;
+  let bobMetrics: Metrics;
+  let bobMsgService: P2PMessageService;
+  let charlieClient: Client;
+  let charlieMetrics: Metrics;
+  let charlieMsgService: P2PMessageService;
+
+  it('should instantiate clients', async () => {
+    [aliceClient, aliceMsgService, aliceMetrics] = await createClient(ACTORS.alice);
+    [bobClient, bobMsgService, bobMetrics] = await createClient(ACTORS.bob);
+    [charlieClient, charlieMsgService, charlieMetrics] = await createClient(ACTORS.alice);
+    await waitForPeerInfoExchange(3, [aliceMsgService, bobMsgService, charlieMsgService]);
   });
 });
