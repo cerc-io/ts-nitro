@@ -367,5 +367,8 @@ describe('test payment flow', () => {
 
     const bobChainBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
     expect(bobChainBalance.toString()).to.be.equal(BOB_CHAIN_BALANCE_AFTER_DIRECTFUND);
+
+    await aliceClient.close();
+    await bobClient.close();
   });
 });

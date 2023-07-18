@@ -34,6 +34,12 @@ export class PaymentChannelListeners {
     }
     this.prev = info;
   }
+
+  close(): void {
+    for (const c of this.listeners) {
+      c.close();
+    }
+  }
 }
 
 // ledgerChannelListeners is a struct that holds a list of listeners for ledger channel info.
@@ -68,5 +74,11 @@ export class LedgerChannelListeners {
       await list.push(info);
     }
     this.prev = info;
+  }
+
+  close(): void {
+    for (const c of this.listeners) {
+      c.close();
+    }
   }
 }

@@ -427,7 +427,7 @@ export class EthChainService implements ChainService {
     return this.chain.chainID();
   }
 
-  close() {
+  close(): void {
     this.cancel();
   }
 }

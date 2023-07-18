@@ -254,9 +254,16 @@ export class Client {
   }
 
   // Close stops the client from responding to any input.
-  // TODO: Implement (if required)
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async close(): Promise<void> {}
+  async close(): Promise<void> {
+    assert(this.channelNotifier);
+    assert(this.engine);
+    assert(this.store);
+
+    this.channelNotifier.close();
+    await this.engine.close();
+    return this.store.close();
+  }
 
   // ReceivedVouchers returns a chan that receives a voucher every time we receive a payment voucher
   receivedVouchers(): ReadChannel<Voucher> {
