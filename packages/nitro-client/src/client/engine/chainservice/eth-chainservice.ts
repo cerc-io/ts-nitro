@@ -180,6 +180,7 @@ export class EthChainService implements ChainService {
   // sendTransaction sends the transaction and blocks until it has been submitted.
   async sendTransaction(tx: ChainTransaction): Promise<void> {
     assert(this.txSigner, 'txSigner not assigned in chainservice');
+    this.na = this.na.connect(this.txSigner);
 
     switch (tx.constructor) {
       case DepositTransaction: {
