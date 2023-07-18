@@ -11,8 +11,10 @@ import { MemStore } from '../client/engine/store/memstore';
 import { DurableStore } from '../client/engine/store/durablestore';
 import { Destination } from '../types/destination';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../client/query/types';
+import { EthChainService } from '../client/engine/chainservice/eth-chainservice';
 
 import { createOutcome, setupClient, subscribeVoucherLogs } from './helpers';
+import { ChainService } from '../client/engine/chainservice/chainservice';
 
 const log = debug('ts-nitro:util:nitro');
 
@@ -24,18 +26,21 @@ export class Nitro {
 
   msgService: P2PMessageService;
 
+  chainService: ChainService;
+
   constructor(
     client: Client,
     msgService: P2PMessageService,
+    chainService: ChainService,
   ) {
     this.client = client;
     this.msgService = msgService;
+    this.chainService = chainService;
   }
 
   static async setupClient(
     pk: string,
     chainURL: string,
-    chainPk: string,
     contractAddresses: { [key: string]: string },
     peer: Peer,
     location?: string,
@@ -49,18 +54,21 @@ export class Nitro {
 
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
+    const chainService = await EthChainService.newEthChainServiceWithoutSigner(
+      chainURL,
+      contractAddresses.nitroAdjudicatorAddress,
+      contractAddresses.consensusAppAddress,
+      contractAddresses.virtualPaymentAppAddress,
+    );
+
     const client = await setupClient(
       msgService,
       store,
-      {
-        chainPk,
-        chainURL,
-        contractAddresses,
-      },
+      chainService,
     );
 
     subscribeVoucherLogs(client);
-    return new Nitro(client, msgService);
+    return new Nitro(client, msgService, chainService);
   }
 
   static async clearClientStorage(): Promise<boolean> {
@@ -84,7 +92,7 @@ export class Nitro {
     return [true, `Peer with address ${address} is dialable`];
   }
 
-  async directFund(counterParty: string, amount: number): Promise<void> {
+  async directFund(counterParty: string, amount: number): Promise<string> {
     const outcome = createOutcome(
       ASSET,
       this.client.address,
@@ -100,6 +108,8 @@ export class Nitro {
 
     await this.client.objectiveCompleteChan(response.id).shift();
     log(`Ledger channel created with id ${response.channelId.string()}\n`);
+
+    return response.channelId.string();
   }
 
   async virtualFund(counterParty: string, amount: number): Promise<void> {

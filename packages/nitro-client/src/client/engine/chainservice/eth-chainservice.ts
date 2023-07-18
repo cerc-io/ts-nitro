@@ -5,7 +5,7 @@ import debug from 'debug';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@cerc-io/ts-channel';
-import { connectToChain, go, hex2Bytes } from '@cerc-io/nitro-util';
+import { go, hex2Bytes } from '@cerc-io/nitro-util';
 
 import {
   ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent,
@@ -20,6 +20,7 @@ import {
 import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 
 import { getChainHolding } from './eth-chain-helpers';
+import { connectToChain, connectToChainWithoutKey } from './utils/utils';
 
 const log = debug('ts-nitro:eth-chain-service');
 
@@ -44,7 +45,7 @@ interface EthChain {
   // Following Interfaces in Go have been implemented using EthClient.provider (ethers Provider)
   //  bind.ContractBackend (github.com/ethereum/go-ethereum/accounts/abi/bind)
   //  ethereum.TransactionReader (github.com/ethereum/go-ethereum)
-  provider: ethers.providers.JsonRpcProvider
+  provider: ethers.providers.BaseProvider
 
   chainID (): Promise<bigint>;
 }
@@ -65,7 +66,7 @@ export class EthChainService implements ChainService {
 
   private virtualPaymentAppAddress: string;
 
-  private txSigner: ethers.Signer;
+  private txSigner?: ethers.Signer;
 
   private out: ReadWriteChannel<ChainEvent>;
 
@@ -81,11 +82,11 @@ export class EthChainService implements ChainService {
     naAddress: string,
     consensusAppAddress: string,
     virtualPaymentAppAddress: string,
-    txSigner: ethers.Signer,
     out: ReadWriteChannel<ChainEvent>,
     logger: debug.Debugger,
     ctx: AbortController,
     cancel: () => void,
+    txSigner?: ethers.Signer,
   ) {
     this.chain = chain;
     this.na = na;
@@ -119,6 +120,24 @@ export class EthChainService implements ChainService {
     return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination);
   }
 
+  static async newEthChainServiceWithoutSigner(
+    chainUrl: string,
+    naAddress: Address,
+    caAddress: Address,
+    vpaAddress: Address,
+    logDestination?: WritableStream,
+  ): Promise<EthChainService> {
+    if (vpaAddress === caAddress) {
+      throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
+    }
+
+    const ethClient = await connectToChainWithoutKey(chainUrl);
+
+    const na = NitroAdjudicator__factory.connect(naAddress, ethClient.provider);
+
+    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, undefined, logDestination);
+  }
+
   // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
   // and listens to events from an eventSource
   private static _newEthChainService(
@@ -127,7 +146,7 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
-    txSigner: ethers.Signer,
+    txSigner?: ethers.Signer,
     logDestination?: WritableStream,
   ): EthChainService {
     const ctx = new AbortController();
@@ -142,11 +161,11 @@ export class EthChainService implements ChainService {
       naAddress,
       caAddress,
       vpaAddress,
-      txSigner,
       out,
       log,
       ctx,
       cancelCtx,
+      txSigner,
     );
 
     ecs.subscribeForLogs();
@@ -160,6 +179,8 @@ export class EthChainService implements ChainService {
 
   // sendTransaction sends the transaction and blocks until it has been submitted.
   async sendTransaction(tx: ChainTransaction): Promise<void> {
+    assert(this.txSigner, 'txSigner not assigned in chainservice');
+
     switch (tx.constructor) {
       case DepositTransaction: {
         const depositTx = tx as DepositTransaction;
@@ -177,6 +198,7 @@ export class EthChainService implements ChainService {
 
           const holdings = await this.na.holdings(tokenAddress, depositTx.channelId().value);
 
+          this.na.connect(this.txSigner);
           await this.na.deposit(tokenAddress, depositTx.channelId().value, holdings, amount, txOpts);
         }
 
@@ -200,6 +222,7 @@ export class EthChainService implements ChainService {
           sigs: nitroSignatures,
         };
 
+        this.na.connect(this.txSigner);
         await this.na.concludeAndTransferAllAssets(nitroFixedPart, candidate);
 
         break;
@@ -402,6 +425,24 @@ export class EthChainService implements ChainService {
 
   getChainId(): Promise<bigint> {
     return this.chain.chainID();
+  }
+
+  async setChainProvider(provider: ethers.providers.BaseProvider) {
+    // Close subscription of logs with previous provider
+    this.cancel();
+
+    // TODO: Wait for unsubscription in previous provider or refactor to setup client with metamask provider
+    await new Promise((resolve) => { setTimeout(resolve, 1000); });
+    this.chain.provider = provider;
+
+    // Set new AbortController and subscribe for logs with new provider
+    const ctx = new AbortController();
+    this.cancel = ctx.abort.bind(ctx);
+    this.subscribeForLogs();
+  }
+
+  setSigner(signer: ethers.Signer) {
+    this.txSigner = signer;
   }
 
   close() {

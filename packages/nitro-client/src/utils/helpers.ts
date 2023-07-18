@@ -11,6 +11,7 @@ import { Metrics } from '../client/engine/metrics';
 import { SingleAssetExit, Exit } from '../channel/state/outcome/exit';
 import { Allocation, AllocationType, Allocations } from '../channel/state/outcome/allocation';
 import { Destination } from '../types/destination';
+import { ChainService } from '../client/engine/chainservice/chainservice';
 
 const log = debug('ts-nitro:util:helpers');
 
@@ -24,27 +25,9 @@ const log = debug('ts-nitro:util:helpers');
 export async function setupClient(
   messageService: P2PMessageService,
   store: Store,
-  options: {
-    chainPk: string,
-    chainURL: string,
-    contractAddresses: { [key: string]: string },
-  },
+  chainService: ChainService,
   metricsApi?: Metrics,
 ): Promise<Client> {
-  const {
-    chainPk,
-    chainURL,
-    contractAddresses,
-  } = options;
-
-  const chainService = await EthChainService.newEthChainService(
-    chainURL,
-    chainPk,
-    contractAddresses.nitroAdjudicatorAddress,
-    contractAddresses.consensusAppAddress,
-    contractAddresses.virtualPaymentAppAddress,
-  );
-
   const client = await Client.new(
     messageService,
     chainService,
