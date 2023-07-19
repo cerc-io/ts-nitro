@@ -11,7 +11,3 @@ export async function connectToChain(chainUrl: string, chainPK: Buffer): Promise
 
   return [client, txSigner];
 }
-
-export async function connectToChainWithoutKey(chainUrl: string): Promise<EthClient> {
-  return EthClient.dial(chainUrl);
-}

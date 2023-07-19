@@ -20,7 +20,7 @@ import {
 import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 
 import { getChainHolding } from './eth-chain-helpers';
-import { connectToChain, connectToChainWithoutKey } from './utils/utils';
+import { connectToChain } from './utils/utils';
 
 const log = debug('ts-nitro:eth-chain-service');
 
@@ -66,7 +66,7 @@ export class EthChainService implements ChainService {
 
   private virtualPaymentAppAddress: string;
 
-  private txSigner?: ethers.Signer;
+  private txSigner: ethers.Signer;
 
   private out: ReadWriteChannel<ChainEvent>;
 
@@ -82,11 +82,11 @@ export class EthChainService implements ChainService {
     naAddress: string,
     consensusAppAddress: string,
     virtualPaymentAppAddress: string,
+    txSigner: ethers.Signer,
     out: ReadWriteChannel<ChainEvent>,
     logger: debug.Debugger,
     ctx: AbortController,
     cancel: () => void,
-    txSigner?: ethers.Signer,
   ) {
     this.chain = chain;
     this.na = na;
@@ -147,7 +147,7 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
-    txSigner?: ethers.Signer,
+    txSigner: ethers.Signer,
     logDestination?: WritableStream,
   ): EthChainService {
     const ctx = new AbortController();
@@ -162,11 +162,11 @@ export class EthChainService implements ChainService {
       naAddress,
       caAddress,
       vpaAddress,
+      txSigner,
       out,
       log,
       ctx,
       cancelCtx,
-      txSigner,
     );
 
     ecs.subscribeForLogs();
@@ -425,24 +425,6 @@ export class EthChainService implements ChainService {
 
   getChainId(): Promise<bigint> {
     return this.chain.chainID();
-  }
-
-  async setChainProvider(provider: ethers.providers.BaseProvider) {
-    // Close subscription of logs with previous provider
-    this.cancel();
-
-    // TODO: Wait for unsubscription in previous provider or refactor to setup client with metamask provider
-    await new Promise((resolve) => { setTimeout(resolve, 1000); });
-    this.chain.provider = provider;
-
-    // Set new AbortController and subscribe for logs with new provider
-    const ctx = new AbortController();
-    this.cancel = ctx.abort.bind(ctx);
-    this.subscribeForLogs();
-  }
-
-  setSigner(signer: ethers.Signer) {
-    this.txSigner = signer;
   }
 
   close() {
