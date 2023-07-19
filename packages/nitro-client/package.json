@@ -52,7 +52,6 @@
     "@cerc-io/peer": "^0.2.46",
     "@cerc-io/ts-channel": "1.0.3-ts-nitro-0.1.1",
     "@libp2p/crypto": "^1.0.4",
-    "@libp2p/mdns": "^6.0.0",
     "@libp2p/tcp": "^6.0.0",
     "@multiformats/multiaddr": "^11.1.4",
     "@statechannels/exit-format": "^0.2.0",

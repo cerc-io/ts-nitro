@@ -56,6 +56,8 @@ import { Destination } from '../../types/destination';
 
 const log = debug('ts-nitro:engine');
 
+const SENT_VOUCHERS_CHANNEL_BUFFER_SIZE = 100;
+
 class ErrUnhandledChainEvent extends Error {
   event?: ChainEvent;
 
@@ -210,7 +212,7 @@ export class Engine {
       metricsApi,
     );
 
-    e._sentVouchers = Channel<Voucher>(100);
+    e._sentVouchers = Channel<Voucher>(SENT_VOUCHERS_CHANNEL_BUFFER_SIZE);
 
     return e;
   }
