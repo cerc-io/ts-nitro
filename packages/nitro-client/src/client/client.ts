@@ -299,4 +299,9 @@ export class Client {
       throw err;
     }
   }
+
+  // Custom method to return the channel for vouchers being sent
+  sentVouchers(): ReadChannel<Voucher> {
+    return this.engine.sentVouchers;
+  }
 }

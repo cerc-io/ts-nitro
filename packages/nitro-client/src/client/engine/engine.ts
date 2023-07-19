@@ -56,6 +56,8 @@ import { Destination } from '../../types/destination';
 
 const log = debug('ts-nitro:engine');
 
+const SENT_VOUCHERS_CHANNEL_BUFFER_SIZE = 100;
+
 class ErrUnhandledChainEvent extends Error {
   event?: ChainEvent;
 
@@ -166,6 +168,9 @@ export class Engine {
 
   private vm?: VoucherManager;
 
+  // Custom channel for vouchers being sent
+  private _sentVouchers?: ReadWriteChannel<Voucher>;
+
   static new(
     vm: VoucherManager,
     msg: MessageService,
@@ -207,7 +212,14 @@ export class Engine {
       metricsApi,
     );
 
+    e._sentVouchers = Channel<Voucher>(SENT_VOUCHERS_CHANNEL_BUFFER_SIZE);
+
     return e;
+  }
+
+  get sentVouchers(): ReadChannel<Voucher> {
+    assert(this._sentVouchers);
+    return this._sentVouchers.readOnly();
   }
 
   get toApi(): ReadChannel<EngineEvent> {
@@ -747,6 +759,9 @@ export class Engine {
     });
 
     await this.executeSideEffects(se);
+
+    this._sentVouchers?.push(voucher);
+
     return ee;
   }
 

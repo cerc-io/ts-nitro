@@ -1,6 +1,7 @@
 import debug from 'debug';
+import { ethers } from 'ethers';
 
-import { JSONbigNative } from '@cerc-io/nitro-util';
+import { JSONbigNative, bytes2Hex } from '@cerc-io/nitro-util';
 
 import { P2PMessageService } from '../client/engine/messageservice/p2p-message-service/service';
 import { Client } from '../client/client';
@@ -11,6 +12,7 @@ import { Metrics } from '../client/engine/metrics';
 import { SingleAssetExit, Exit } from '../channel/state/outcome/exit';
 import { Allocation, AllocationType, Allocations } from '../channel/state/outcome/allocation';
 import { Destination } from '../types/destination';
+import { Signature } from '../crypto/signatures';
 
 const log = debug('ts-nitro:util:helpers');
 
@@ -123,4 +125,14 @@ export async function subscribeVoucherLogs(client: Client): Promise<void> {
 
     log(`Received voucher: ${JSONbigNative.stringify(voucher, null, 2)}`);
   }
+}
+
+export function getJoinedSignature(sig: Signature): string {
+  const ethersSignature = {
+    r: `0x${bytes2Hex(sig.r ?? Buffer.alloc(0))}`,
+    s: `0x${bytes2Hex(sig.s ?? Buffer.alloc(0))}`,
+    v: sig.v >= 27 ? sig.v - 27 : sig.v,
+  };
+
+  return ethers.utils.joinSignature(ethersSignature);
 }
