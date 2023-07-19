@@ -4,7 +4,7 @@ import { expect } from 'chai';
 
 import {
   Client, MemStore, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
-  ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance,
+  ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse,
 } from '@cerc-io/nitro-client';
 import {
   hex2Bytes, DEFAULT_CHAIN_URL, getBalanceByKey, getBalanceByAddress,
@@ -42,10 +42,11 @@ const ALICE_BALANCE_AFTER_DIRECTDEFUND = '999850';
 const BOB_BALANCE_AFTER_DIRECTDEFUND = '1000150';
 
 async function createClient(actor: utils.Actor): Promise<[Client, P2PMessageService, Metrics]> {
-  assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
   const clientStore = new MemStore(hex2Bytes(actor.privateKey));
+
   const clientPeerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
-  const clientPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, clientPeerIdObj);
+  const clientPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR!, {}, clientPeerIdObj);
+
   const clientMsgService = await P2PMessageService.newMessageService(
     clientStore.getAddress(),
     clientPeer,
@@ -62,9 +63,116 @@ async function createClient(actor: utils.Actor): Promise<[Client, P2PMessageServ
     },
     clientMetrics,
   );
-
   expect(client.address).to.equal(actor.address);
+
   return [client, clientMsgService, clientMetrics];
+}
+
+async function setUpLedgerChannel(clientA: Client, clientB: Client): Promise<ObjectiveResponse> {
+  const counterParty = clientB.address;
+  const amount = 1_000_000;
+  const asset = `0x${'00'.repeat(20)}`;
+
+  const params: DirectFundParams = {
+    counterParty,
+    challengeDuration: 0,
+    outcome: createOutcome(
+      asset,
+      clientA.address,
+      counterParty,
+      amount,
+    ),
+    appDefinition: asset,
+    appData: '0x00',
+    nonce: Date.now(),
+  };
+  const response = await clientA.createLedgerChannel(
+    params.counterParty,
+    params.challengeDuration,
+    params.outcome,
+  );
+
+  await clientA.objectiveCompleteChan(response.id).shift();
+  return response;
+}
+
+async function setUpVirtualChannel(clientA: Client, clientB: Client, intermediaries: string[]): Promise<ObjectiveResponse> {
+  const amount = 1_000_000;
+  const counterParty = clientB.address;
+  const asset = `0x${'00'.repeat(20)}`;
+
+  const params: VirtualFundParams = {
+    intermediaries,
+    counterParty,
+    challengeDuration: 0,
+    outcome: createOutcome(
+      asset,
+      clientA.address,
+      counterParty,
+      amount,
+    ),
+    nonce: Date.now(),
+    appDefinition: asset,
+  };
+  const response = await clientA.createVirtualPaymentChannel(
+    params.intermediaries,
+    params.counterParty,
+    params.challengeDuration,
+    params.outcome,
+  );
+
+  await clientA.objectiveCompleteChan(response.id).shift();
+  return response;
+}
+
+async function checkLedgerChannel(
+  client: Client,
+  hub: Client,
+  ledgerChannelId: Destination,
+  status: ChannelStatus,
+  clientBalance: bigint,
+  hubBalance: bigint,
+): Promise<void> {
+  const asset = `0x${'00'.repeat(20)}`;
+  const ledgerChannelStatus = await client.getLedgerChannel(ledgerChannelId);
+
+  const expectedLedgerChannelStatus = new LedgerChannelInfo({
+    iD: ledgerChannelId,
+    status,
+    balance: new LedgerChannelBalance({
+      assetAddress: asset,
+      hub: hub.address,
+      client: client.address,
+      hubBalance,
+      clientBalance,
+    }),
+  });
+  expect(ledgerChannelStatus).to.deep.equal(expectedLedgerChannelStatus);
+}
+
+async function checkVirtualChannel(
+  payer: Client,
+  payee: Client,
+  paymentChannelId: Destination,
+  status: ChannelStatus,
+  paidSoFar: bigint,
+  remainingFunds: bigint,
+): Promise<void> {
+  const asset = `0x${'00'.repeat(20)}`;
+  const paymentChannelStatus = await payer.getPaymentChannel(paymentChannelId);
+
+  const expectedPaymentChannelStatus = new PaymentChannelInfo({
+    iD: paymentChannelId,
+    status,
+    balance: new PaymentChannelBalance({
+      assetAddress: asset,
+      payee: payee.address,
+      payer: payer.address,
+      paidSoFar,
+      remainingFunds,
+    }),
+  });
+  expect(paymentChannelStatus).to.deep.equal(expectedPaymentChannelStatus);
 }
   let aliceClient: Client;
   let bobClient: Client;
@@ -407,11 +515,135 @@ describe('test payment flow with an intermediary', () => {
   let charlieClient: Client;
   let charlieMetrics: Metrics;
   let charlieMsgService: P2PMessageService;
+  let ledgerChannelAliceBob: ObjectiveResponse;
+  let ledgerChannelBobCharlie: ObjectiveResponse;
+  let virtualPaymentChannelAliceCharlie: ObjectiveResponse;
 
   it('should instantiate clients', async () => {
+    assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
+
     [aliceClient, aliceMsgService, aliceMetrics] = await createClient(ACTORS.alice);
     [bobClient, bobMsgService, bobMetrics] = await createClient(ACTORS.bob);
-    [charlieClient, charlieMsgService, charlieMetrics] = await createClient(ACTORS.alice);
-    await waitForPeerInfoExchange(3, [aliceMsgService, bobMsgService, charlieMsgService]);
+    [charlieClient, charlieMsgService, charlieMetrics] = await createClient(ACTORS.charlie);
+
+    await waitForPeerInfoExchange(2, [aliceMsgService, bobMsgService, charlieMsgService]);
+  });
+
+  it('should create ledger channels', async () => {
+    ledgerChannelAliceBob = await setUpLedgerChannel(aliceClient, bobClient);
+    await checkLedgerChannel(
+      aliceClient,
+      bobClient,
+      ledgerChannelAliceBob.channelId,
+      ChannelStatus.Open,
+      BigInt(1000000),
+      BigInt(1000000),
+    );
+
+    ledgerChannelBobCharlie = await setUpLedgerChannel(bobClient, charlieClient);
+    await checkLedgerChannel(
+      bobClient,
+      charlieClient,
+      ledgerChannelBobCharlie.channelId,
+      ChannelStatus.Open,
+      BigInt(1000000),
+      BigInt(1000000),
+    );
+  });
+
+  it('should create virtual channels', async () => {
+    virtualPaymentChannelAliceCharlie = await setUpVirtualChannel(aliceClient, charlieClient, [bobClient.address]);
+    await checkVirtualChannel(
+      aliceClient,
+      charlieClient,
+      virtualPaymentChannelAliceCharlie.channelId,
+      ChannelStatus.Open,
+      BigInt(0),
+      BigInt(1000000),
+    );
+  });
+
+  it('should conduct multiple payments', async () => {
+    await aliceClient.pay(virtualPaymentChannelAliceCharlie.channelId, BigInt(50));
+    await checkVirtualChannel(
+      aliceClient,
+      charlieClient,
+      virtualPaymentChannelAliceCharlie.channelId,
+      ChannelStatus.Open,
+      BigInt(50),
+      BigInt(999950),
+    );
+
+    await aliceClient.pay(virtualPaymentChannelAliceCharlie.channelId, BigInt(100));
+    await checkVirtualChannel(
+      aliceClient,
+      charlieClient,
+      virtualPaymentChannelAliceCharlie.channelId,
+      ChannelStatus.Open,
+      BigInt(150),
+      BigInt(999850),
+    );
+  });
+
+  it('should close the virtual channel', async () => {
+    const closeVirtualChannelObjectiveId = await aliceClient.closeVirtualChannel(virtualPaymentChannelAliceCharlie.channelId);
+    await aliceClient.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
+
+    await checkVirtualChannel(
+      aliceClient,
+      charlieClient,
+      virtualPaymentChannelAliceCharlie.channelId,
+      ChannelStatus.Complete,
+      BigInt(150),
+      BigInt(999850),
+    );
+
+    await checkLedgerChannel(
+      aliceClient,
+      bobClient,
+      ledgerChannelAliceBob.channelId,
+      ChannelStatus.Open,
+      BigInt(999850),
+      BigInt(1000150),
+    );
+
+    await checkLedgerChannel(
+      bobClient,
+      charlieClient,
+      ledgerChannelBobCharlie.channelId,
+      ChannelStatus.Open,
+      BigInt(0),
+      BigInt(0),
+    );
+  });
+
+  it('should close the ledger channels', async () => {
+    const closeLedgerChannelAliceBob = await aliceClient.closeLedgerChannel(ledgerChannelAliceBob.channelId);
+    await aliceClient.objectiveCompleteChan(closeLedgerChannelAliceBob).shift();
+
+    await checkLedgerChannel(
+      aliceClient,
+      bobClient,
+      ledgerChannelAliceBob.channelId,
+      ChannelStatus.Complete,
+      BigInt(999850),
+      BigInt(1000150),
+    );
+
+    const closeLedgerChannelBobCharlie = await bobClient.closeLedgerChannel(ledgerChannelBobCharlie.channelId);
+    await aliceClient.objectiveCompleteChan(closeLedgerChannelBobCharlie).shift();
+
+    await checkLedgerChannel(
+      bobClient,
+      charlieClient,
+      ledgerChannelBobCharlie.channelId,
+      ChannelStatus.Complete,
+      BigInt(0),
+      BigInt(0),
+    );
+
+    await aliceClient.close();
+    await bobClient.close();
+    await charlieClient.close();
   });
 });
