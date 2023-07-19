@@ -18,3 +18,7 @@ export function getMetricsMessageObj(obj: GetMetrics, fromAddress: string, toAdd
 export function getMetricsMessage(key: string, fromAddress: string, toAddress: string): string {
   return `${key},sender=${fromAddress},receiver=${toAddress},wallet=${fromAddress}`;
 }
+
+export type ContractAddresses = {
+  [key: string]: string;
+};
