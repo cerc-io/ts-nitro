@@ -7,7 +7,7 @@ import 'dotenv/config';
 
 import {
   utils,
-  Destination, DurableStore, MemStore, P2PMessageService, Store,
+  Destination, DurableStore, MemStore, P2PMessageService, Store, EthChainService,
 } from '@cerc-io/nitro-client';
 import { JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
 
@@ -144,14 +144,18 @@ const main = async () => {
   const peer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, peerIdObj);
   const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
+  const chainService = await EthChainService.newEthChainService(
+    argv.chainurl,
+    argv.chainpk,
+    contractAddresses.nitroAdjudicatorAddress,
+    contractAddresses.consensusAppAddress,
+    contractAddresses.virtualPaymentAppAddress,
+  );
+
   const client = await setupClient(
     msgService,
     store,
-    {
-      chainURL: argv.chainurl,
-      chainPk: argv.chainpk,
-      contractAddresses,
-    },
+    chainService,
   );
 
   log('Started P2PMessageService');

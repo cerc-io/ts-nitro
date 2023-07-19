@@ -1,11 +1,11 @@
 import assert from 'assert';
-import { ethers } from 'ethers';
+import { ethers, providers } from 'ethers';
 import debug from 'debug';
 
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@cerc-io/ts-channel';
-import { go, hex2Bytes } from '@cerc-io/nitro-util';
+import { EthClient, go, hex2Bytes } from '@cerc-io/nitro-util';
 
 import {
   ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent,
@@ -120,8 +120,8 @@ export class EthChainService implements ChainService {
     return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination);
   }
 
-  static async newEthChainServiceWithoutSigner(
-    chainUrl: string,
+  static async newEthChainServiceWithProvider(
+    provider: providers.JsonRpcProvider,
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
@@ -131,11 +131,12 @@ export class EthChainService implements ChainService {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
     }
 
-    const ethClient = await connectToChainWithoutKey(chainUrl);
+    const ethClient = new EthClient(provider);
+    const txSigner = provider.getSigner();
 
-    const na = NitroAdjudicator__factory.connect(naAddress, ethClient.provider);
+    const na = NitroAdjudicator__factory.connect(naAddress, txSigner);
 
-    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, undefined, logDestination);
+    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination);
   }
 
   // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
@@ -199,7 +200,6 @@ export class EthChainService implements ChainService {
 
           const holdings = await this.na.holdings(tokenAddress, depositTx.channelId().value);
 
-          this.na.connect(this.txSigner);
           await this.na.deposit(tokenAddress, depositTx.channelId().value, holdings, amount, txOpts);
         }
 
@@ -223,7 +223,6 @@ export class EthChainService implements ChainService {
           sigs: nitroSignatures,
         };
 
-        this.na.connect(this.txSigner);
         await this.na.concludeAndTransferAllAssets(nitroFixedPart, candidate);
 
         break;

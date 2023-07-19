@@ -8,7 +8,7 @@ export class EthClient {
     this.provider = provider;
   }
 
-  static async dial(chainUrl: string): Promise<EthClient> {
+  static dial(chainUrl: string): EthClient {
     // Connect to the Ethereum provider
     const provider = new ethers.providers.JsonRpcProvider(chainUrl);
     return new EthClient(provider);

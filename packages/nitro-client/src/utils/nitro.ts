@@ -1,4 +1,5 @@
 import debug from 'debug';
+import { providers } from 'ethers';
 
 import { hex2Bytes } from '@cerc-io/nitro-util';
 // @ts-expect-error
@@ -41,21 +42,17 @@ export class Nitro {
   static async setupClient(
     pk: string,
     chainURL: string,
+    chainPk: string,
     contractAddresses: { [key: string]: string },
     peer: Peer,
     location?: string,
   ): Promise<Nitro> {
-    let store: Store;
-    if (location) {
-      store = DurableStore.newDurableStore(hex2Bytes(pk), location);
-    } else {
-      store = new MemStore(hex2Bytes(pk));
-    }
-
+    const store = this.getStore(pk, location);
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
-    const chainService = await EthChainService.newEthChainServiceWithoutSigner(
+    const chainService = await EthChainService.newEthChainService(
       chainURL,
+      chainPk,
       contractAddresses.nitroAdjudicatorAddress,
       contractAddresses.consensusAppAddress,
       contractAddresses.virtualPaymentAppAddress,
@@ -69,6 +66,40 @@ export class Nitro {
 
     subscribeVoucherLogs(client);
     return new Nitro(client, msgService, chainService);
+  }
+
+  static async setupClientWithProvider(
+    pk: string,
+    provider: providers.JsonRpcProvider,
+    contractAddresses: { [key: string]: string },
+    peer: Peer,
+    location?: string,
+  ): Promise<Nitro> {
+    const store = this.getStore(pk, location);
+    const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
+
+    const chainService = await EthChainService.newEthChainServiceWithProvider(
+      provider,
+      contractAddresses.nitroAdjudicatorAddress,
+      contractAddresses.consensusAppAddress,
+      contractAddresses.virtualPaymentAppAddress,
+    );
+
+    const client = await setupClient(
+      msgService,
+      store,
+      chainService,
+    );
+
+    subscribeVoucherLogs(client);
+    return new Nitro(client, msgService, chainService);
+  }
+
+  private static getStore(pk: string, location?: string): Store {
+    if (location) {
+      return DurableStore.newDurableStore(hex2Bytes(pk), location);
+    }
+    return new MemStore(hex2Bytes(pk));
   }
 
   static async clearClientStorage(): Promise<boolean> {
