@@ -250,6 +250,10 @@ const main = async () => {
     assert(paymentChannelIdString, 'Provide payment-channel id for payment');
     const virtualPaymentChannelId = new Destination(paymentChannelIdString);
     await client.pay(virtualPaymentChannelId, BigInt(argv.amount ?? 0));
+
+    const sentVoucher = await client.sentVouchers().shift();
+    log(`Voucher sent for amount ${sentVoucher.amount}`);
+    log(`Hash: ${sentVoucher.hash()} Sig: ${utils.getJoinedSignature(sentVoucher.signature)}`);
   }
 
   if (argv.virtualDefund) {
