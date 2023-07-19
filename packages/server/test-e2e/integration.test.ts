@@ -33,13 +33,18 @@ const {
   createPeerIdFromKey,
   createPeerAndInit,
 } = utils;
-
 const ALICE_BALANCE_AFTER_DIRECTFUND = '0';
-const BOB_BALANCE_AFTER_DIRECTFUND = '0';
-const ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND = '9999990425995322269314';
-const BOB_CHAIN_BALANCE_AFTER_DIRECTFUND = '9999999938424127028256';
+const ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND = '9999990364419449297570';
 const ALICE_BALANCE_AFTER_DIRECTDEFUND = '999850';
+const ALICE_BALANCE_AFTER_DIRECTDEFUND_WITHINTERMEDIARY = '1999700';
+const BOB_BALANCE_AFTER_DIRECTFUND = '0';
+const BOB_CHAIN_BALANCE_AFTER_DIRECTFUND = '10000000000000000000000';
+const BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY = '10000000000000000000000';
 const BOB_BALANCE_AFTER_DIRECTDEFUND = '1000150';
+const BOB_BALANCE_AFTER_DIRECTDEFUND_WITHINTERMEDIARY = '3000150';
+const CHARLIE_BALANCE_AFTER_DIRECTFUND = '0';
+const CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY = '10000000000000000000000';
+const CHARLIE_BALANCE_AFTER_DIRECTDEFUND_WITHINTERMEDIARY = '1000150';
 
 async function createClient(actor: utils.Actor): Promise<[Client, P2PMessageService, Metrics]> {
   const clientStore = new MemStore(hex2Bytes(actor.privateKey));
@@ -189,60 +194,22 @@ async function checkBalance(
     expect(chainBalance.toString()).to.be.equal(clientChainBalance);
   }
 }
+
+describe('test payment flow', () => {
   let aliceClient: Client;
-  let bobClient: Client;
   let aliceMetrics: Metrics;
+  let aliceMsgService: P2PMessageService;
+  let bobClient: Client;
   let bobMetrics: Metrics;
-  let ledgerChannelId: Destination;
-  let paymentChannelId: Destination;
-  const asset = `0x${'00'.repeat(20)}`;
+  let bobMsgService: P2PMessageService;
+  let ledgerChannel: ObjectiveResponse;
+  let virtualPaymentChannel: ObjectiveResponse;
 
   it('should instantiate clients', async () => {
     assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
-    const aliceStore = new MemStore(hex2Bytes(ACTORS.alice.privateKey));
-    const alicePeerIdObj = await createPeerIdFromKey(hex2Bytes(ACTORS.alice.privateKey));
-    const alicePeer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, alicePeerIdObj);
-    const aliceMsgService = await P2PMessageService.newMessageService(
-      aliceStore.getAddress(),
-      alicePeer,
-    );
-    aliceMetrics = new Metrics();
-
-    aliceClient = await setupClient(
-      aliceMsgService,
-      aliceStore,
-      {
-        chainPk: ACTORS.alice.chainPrivateKey,
-        chainURL: DEFAULT_CHAIN_URL,
-        contractAddresses,
-      },
-      aliceMetrics,
-    );
-
-    expect(aliceClient.address).to.equal(ACTORS.alice.address);
-
-    const bobStore = new MemStore(hex2Bytes(ACTORS.bob.privateKey));
-    const bobPeerIdObj = await createPeerIdFromKey(hex2Bytes(ACTORS.bob.privateKey));
-    const bobPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, bobPeerIdObj);
-    const bobMsgService = await P2PMessageService.newMessageService(
-      bobStore.getAddress(),
-      bobPeer,
-    );
-    bobMetrics = new Metrics();
-
-    bobClient = await setupClient(
-      bobMsgService,
-      bobStore,
-      {
-        chainPk: ACTORS.bob.chainPrivateKey,
-        chainURL: DEFAULT_CHAIN_URL,
-        contractAddresses,
-      },
-      bobMetrics,
-    );
-
-    expect(bobClient.address).to.equal(ACTORS.bob.address);
+    [aliceClient, aliceMsgService, aliceMetrics] = await createClient(ACTORS.alice);
+    [bobClient, bobMsgService, bobMetrics] = await createClient(ACTORS.bob);
 
     await waitForPeerInfoExchange(1, [aliceMsgService, bobMsgService]);
 
@@ -251,38 +218,30 @@ async function checkBalance(
   });
 
   it('should create a ledger channel', async () => {
-    assert(aliceClient.address);
+    ledgerChannel = await setUpLedgerChannel(aliceClient, bobClient);
 
-    const counterParty = ACTORS.bob.address;
-    const amount = 1_000_000;
-    const params: DirectFundParams = {
-      counterParty,
-      challengeDuration: 0,
-      outcome: createOutcome(
-        asset,
-        aliceClient.address,
-        counterParty,
-        amount,
-      ),
-      appDefinition: asset,
-      appData: '0x00',
-      nonce: Date.now(),
-    };
-
-    const response = await aliceClient.createLedgerChannel(
-      params.counterParty,
-      params.challengeDuration,
-      params.outcome,
+    await checkLedgerChannel(
+      aliceClient,
+      bobClient,
+      ledgerChannel.channelId,
+      ChannelStatus.Open,
+      BigInt(1000000),
+      BigInt(1000000),
     );
 
-    ledgerChannelId = response.channelId;
-    await aliceClient.objectiveCompleteChan(response.id).shift();
+    await checkBalance(
+      ACTORS.alice,
+      DEFAULT_CHAIN_URL,
+      ALICE_BALANCE_AFTER_DIRECTFUND,
+      ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND,
+    );
 
-    expect(response).to.have.property('id');
-    expect(response).to.have.property('channelId');
-
-    // Check that channelId value is present as a substring in id
-    expect(response.id).to.contain(response.channelId.value);
+    await checkBalance(
+      ACTORS.bob,
+      DEFAULT_CHAIN_URL,
+      BOB_BALANCE_AFTER_DIRECTFUND,
+      BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
+    );
 
     expect(aliceMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.alice.address, ACTORS.bob.address));
     expect(bobMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.bob.address, ACTORS.alice.address));
@@ -305,215 +264,137 @@ async function checkBalance(
 
     expect(aliceMetrics.getMetrics()[getMetricsKey(['handleObjectiveRequest'], ACTORS.alice.address)[0]]).to.be.above(0);
     expect(bobMetrics.getMetrics()[getMetricsKey(['constructObjectiveFromMessage'], ACTORS.bob.address)[0]]).to.be.above(0);
-
-    const ledgerChannelStatus = await aliceClient.getLedgerChannel(ledgerChannelId);
-    const expectedLedgerChannelStatus = new LedgerChannelInfo({
-      iD: ledgerChannelId,
-      status: ChannelStatus.Open,
-      balance: new LedgerChannelBalance({
-        assetAddress: asset,
-        hub: ACTORS.bob.address,
-        client: ACTORS.alice.address,
-        hubBalance: BigInt(amount),
-        clientBalance: BigInt(amount),
-      }),
-    });
-    expect(ledgerChannelStatus).to.deep.equal(expectedLedgerChannelStatus);
-
-    const aliceBalance = await getBalanceByAddress(ACTORS.alice.address, DEFAULT_CHAIN_URL);
-    expect(aliceBalance.toString()).to.be.equal(ALICE_BALANCE_AFTER_DIRECTFUND);
-
-    const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
-    expect(aliceChainBalance.toString()).to.be.equal(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND);
-
-    const bobBalance = await getBalanceByAddress(ACTORS.bob.address, DEFAULT_CHAIN_URL);
-    expect(bobBalance.toString()).to.be.equal(BOB_BALANCE_AFTER_DIRECTFUND);
-
-    const bobChainBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
-    expect(bobChainBalance.toString()).to.be.equal(BOB_CHAIN_BALANCE_AFTER_DIRECTFUND);
-
-    // TODO: Implement and close services
-    // client.close();
   });
 
   it('should create a virtual channel', async () => {
-    const amount = 1_000_000;
-    const counterParty = ACTORS.bob.address;
-
-    const params: VirtualFundParams = {
-      intermediaries: [],
-      counterParty,
-      challengeDuration: 0,
-      outcome: createOutcome(
-        asset,
-        aliceClient.address,
-        counterParty,
-        amount,
-      ),
-      nonce: Date.now(),
-      appDefinition: asset,
-    };
-    const response = await aliceClient.createVirtualPaymentChannel(
-      params.intermediaries,
-      params.counterParty,
-      params.challengeDuration,
-      params.outcome,
+    virtualPaymentChannel = await setUpVirtualChannel(aliceClient, bobClient, []);
+    await checkVirtualChannel(
+      aliceClient,
+      bobClient,
+      virtualPaymentChannel.channelId,
+      ChannelStatus.Open,
+      BigInt(0),
+      BigInt(1000000),
     );
-    paymentChannelId = response.channelId;
 
-    await aliceClient.objectiveCompleteChan(response.id).shift();
+    await checkBalance(
+      ACTORS.alice,
+      DEFAULT_CHAIN_URL,
+      ALICE_BALANCE_AFTER_DIRECTFUND,
+      ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND,
+    );
 
-    const paymentChannelStatus = await aliceClient.getPaymentChannel(paymentChannelId);
-    const expectedPaymentChannelStatus = new PaymentChannelInfo({
-      iD: paymentChannelId,
-      status: ChannelStatus.Open,
-      balance: new PaymentChannelBalance({
-        assetAddress: asset,
-        payee: ACTORS.bob.address,
-        payer: ACTORS.alice.address,
-        paidSoFar: BigInt(0),
-        remainingFunds: BigInt(amount),
-      }),
-    });
-    expect(paymentChannelStatus).to.deep.equal(expectedPaymentChannelStatus);
-
-    const aliceBalance = await getBalanceByAddress(ACTORS.alice.address, DEFAULT_CHAIN_URL);
-    expect(aliceBalance.toString()).to.be.equal(ALICE_BALANCE_AFTER_DIRECTFUND);
-
-    const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
-    expect(aliceChainBalance.toString()).to.be.equal(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND);
-
-    const bobBalance = await getBalanceByAddress(ACTORS.bob.address, DEFAULT_CHAIN_URL);
-    expect(bobBalance.toString()).to.be.equal(BOB_BALANCE_AFTER_DIRECTFUND);
-
-    const bobChainBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
-    expect(bobChainBalance.toString()).to.be.equal(BOB_CHAIN_BALANCE_AFTER_DIRECTFUND);
+    await checkBalance(
+      ACTORS.bob,
+      DEFAULT_CHAIN_URL,
+      BOB_BALANCE_AFTER_DIRECTFUND,
+      BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
+    );
   });
 
   it('should conduct multiple payments', async () => {
-    assert(paymentChannelId);
-
     // First payment: Pay 50 from Alice to Bob
-    await aliceClient.pay(paymentChannelId, BigInt(50));
-
-    let paymentChannelStatus = await aliceClient.getPaymentChannel(paymentChannelId);
-    let expectedPaymentChannelStatus = new PaymentChannelInfo({
-      iD: paymentChannelId,
-      status: ChannelStatus.Open,
-      balance: new PaymentChannelBalance({
-        assetAddress: asset,
-        payee: ACTORS.bob.address,
-        payer: ACTORS.alice.address,
-        paidSoFar: BigInt(50),
-        remainingFunds: BigInt(999950),
-      }),
-    });
-    expect(paymentChannelStatus).to.deep.equal(expectedPaymentChannelStatus);
+    await aliceClient.pay(virtualPaymentChannel.channelId, BigInt(50));
+    await checkVirtualChannel(
+      aliceClient,
+      bobClient,
+      virtualPaymentChannel.channelId,
+      ChannelStatus.Open,
+      BigInt(50),
+      BigInt(999950),
+    );
 
     // Second payment: Pay 100 from Alice to Bob
-    await aliceClient.pay(paymentChannelId, BigInt(100));
+    await aliceClient.pay(virtualPaymentChannel.channelId, BigInt(100));
+    await checkVirtualChannel(
+      aliceClient,
+      bobClient,
+      virtualPaymentChannel.channelId,
+      ChannelStatus.Open,
+      BigInt(150),
+      BigInt(999850),
+    );
 
-    paymentChannelStatus = await aliceClient.getPaymentChannel(paymentChannelId);
-    expectedPaymentChannelStatus = new PaymentChannelInfo({
-      iD: paymentChannelId,
-      status: ChannelStatus.Open,
-      balance: new PaymentChannelBalance({
-        assetAddress: asset,
-        payee: ACTORS.bob.address,
-        payer: ACTORS.alice.address,
-        paidSoFar: BigInt(150),
-        remainingFunds: BigInt(999850),
-      }),
-    });
-    expect(paymentChannelStatus).to.deep.equal(expectedPaymentChannelStatus);
+    await checkBalance(
+      ACTORS.alice,
+      DEFAULT_CHAIN_URL,
+      ALICE_BALANCE_AFTER_DIRECTFUND,
+      ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND,
+    );
 
-    const aliceBalance = await getBalanceByAddress(ACTORS.alice.address, DEFAULT_CHAIN_URL);
-    expect(aliceBalance.toString()).to.be.equal(ALICE_BALANCE_AFTER_DIRECTFUND);
-
-    const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
-    expect(aliceChainBalance.toString()).to.be.equal(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND);
-
-    const bobBalance = await getBalanceByAddress(ACTORS.bob.address, DEFAULT_CHAIN_URL);
-    expect(bobBalance.toString()).to.be.equal(BOB_BALANCE_AFTER_DIRECTFUND);
-
-    const bobChainBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
-    expect(bobChainBalance.toString()).to.be.equal(BOB_CHAIN_BALANCE_AFTER_DIRECTFUND);
+    await checkBalance(
+      ACTORS.bob,
+      DEFAULT_CHAIN_URL,
+      BOB_BALANCE_AFTER_DIRECTFUND,
+      BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
+    );
   });
 
   it('should close the virtual channel', async () => {
-    const closeVirtualChannelObjectiveId = await aliceClient.closeVirtualChannel(paymentChannelId);
+    const closeVirtualChannelObjectiveId = await aliceClient.closeVirtualChannel(virtualPaymentChannel.channelId);
     await aliceClient.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
 
-    const paymentChannelStatus = await aliceClient.getPaymentChannel(paymentChannelId);
-    const expectedPaymentChannelStatus = new PaymentChannelInfo({
-      iD: paymentChannelId,
-      status: ChannelStatus.Complete,
-      balance: new PaymentChannelBalance({
-        assetAddress: asset,
-        payee: ACTORS.bob.address,
-        payer: ACTORS.alice.address,
-        paidSoFar: BigInt(150),
-        remainingFunds: BigInt(999850),
-      }),
-    });
-    expect(paymentChannelStatus).to.deep.equal(expectedPaymentChannelStatus);
+    await checkVirtualChannel(
+      aliceClient,
+      bobClient,
+      virtualPaymentChannel.channelId,
+      ChannelStatus.Complete,
+      BigInt(150),
+      BigInt(999850),
+    );
 
-    const ledgerChannelStatus = await aliceClient.getLedgerChannel(ledgerChannelId);
-    const expectedLedgerChannelStatus = new LedgerChannelInfo({
-      iD: ledgerChannelId,
-      status: ChannelStatus.Open,
-      balance: new LedgerChannelBalance({
-        assetAddress: asset,
-        hub: ACTORS.bob.address,
-        client: ACTORS.alice.address,
-        hubBalance: BigInt(1000150),
-        clientBalance: BigInt(999850),
-      }),
-    });
-    expect(ledgerChannelStatus).to.deep.equal(expectedLedgerChannelStatus);
+    await checkLedgerChannel(
+      aliceClient,
+      bobClient,
+      ledgerChannel.channelId,
+      ChannelStatus.Open,
+      BigInt(999850),
+      BigInt(1000150),
+    );
 
-    const aliceBalance = await getBalanceByAddress(ACTORS.alice.address, DEFAULT_CHAIN_URL);
-    expect(aliceBalance.toString()).to.be.equal(ALICE_BALANCE_AFTER_DIRECTFUND);
+    await checkBalance(
+      ACTORS.alice,
+      DEFAULT_CHAIN_URL,
+      ALICE_BALANCE_AFTER_DIRECTFUND,
+      ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND,
+    );
 
-    const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
-    expect(aliceChainBalance.toString()).to.be.equal(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND);
-
-    const bobBalance = await getBalanceByAddress(ACTORS.bob.address, DEFAULT_CHAIN_URL);
-    expect(bobBalance.toString()).to.be.equal(BOB_BALANCE_AFTER_DIRECTFUND);
-
-    const bobChainBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
-    expect(bobChainBalance.toString()).to.be.equal(BOB_CHAIN_BALANCE_AFTER_DIRECTFUND);
+    await checkBalance(
+      ACTORS.bob,
+      DEFAULT_CHAIN_URL,
+      BOB_BALANCE_AFTER_DIRECTFUND,
+      BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
+    );
   });
 
   it('should close the ledger channel', async () => {
-    const closeLedgerChannelObjectiveId = await aliceClient.closeLedgerChannel(ledgerChannelId);
-    await aliceClient.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
+    const closeLedgerChannel = await aliceClient.closeLedgerChannel(ledgerChannel.channelId);
+    await aliceClient.objectiveCompleteChan(closeLedgerChannel).shift();
 
-    const ledgerChannelStatus = await aliceClient.getLedgerChannel(ledgerChannelId);
-    const expectedLedgerChannelStatus = new LedgerChannelInfo({
-      iD: ledgerChannelId,
-      status: ChannelStatus.Complete,
-      balance: new LedgerChannelBalance({
-        assetAddress: asset,
-        hub: ACTORS.bob.address,
-        client: ACTORS.alice.address,
-        hubBalance: BigInt(1000150),
-        clientBalance: BigInt(999850),
-      }),
-    });
-    expect(ledgerChannelStatus).to.deep.equal(expectedLedgerChannelStatus);
-
-    const aliceBalance = await getBalanceByAddress(ACTORS.alice.address, DEFAULT_CHAIN_URL);
-    expect(aliceBalance.toString()).to.be.equal(ALICE_BALANCE_AFTER_DIRECTDEFUND);
+    await checkLedgerChannel(
+      aliceClient,
+      bobClient,
+      ledgerChannel.channelId,
+      ChannelStatus.Complete,
+      BigInt(999850),
+      BigInt(1000150),
+    );
 
     const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
     expect(Number(aliceChainBalance)).to.be.lessThan(Number(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND));
 
-    const bobBalance = await getBalanceByAddress(ACTORS.bob.address, DEFAULT_CHAIN_URL);
-    expect(bobBalance.toString()).to.be.equal(BOB_BALANCE_AFTER_DIRECTDEFUND);
+    await checkBalance(
+      ACTORS.alice,
+      DEFAULT_CHAIN_URL,
+      ALICE_BALANCE_AFTER_DIRECTDEFUND,
+    );
 
-    const bobChainBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
-    expect(bobChainBalance.toString()).to.be.equal(BOB_CHAIN_BALANCE_AFTER_DIRECTFUND);
+    await checkBalance(
+      ACTORS.bob,
+      DEFAULT_CHAIN_URL,
+      BOB_BALANCE_AFTER_DIRECTDEFUND,
+      BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
+    );
 
     await aliceClient.close();
     await bobClient.close();
