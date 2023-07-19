@@ -174,6 +174,21 @@ async function checkVirtualChannel(
   });
   expect(paymentChannelStatus).to.deep.equal(expectedPaymentChannelStatus);
 }
+
+async function checkBalance(
+  client: utils.Actor,
+  chainURL: string,
+  clientBalance: string,
+  clientChainBalance?: string,
+): Promise<void> {
+  const balance = await getBalanceByAddress(client.address, chainURL);
+  expect(balance.toString()).to.be.equal(clientBalance);
+
+  if (clientChainBalance) {
+    const chainBalance = await getBalanceByKey(client.chainPrivateKey, chainURL);
+    expect(chainBalance.toString()).to.be.equal(clientChainBalance);
+  }
+}
   let aliceClient: Client;
   let bobClient: Client;
   let aliceMetrics: Metrics;
@@ -549,6 +564,29 @@ describe('test payment flow with an intermediary', () => {
       BigInt(1000000),
       BigInt(1000000),
     );
+
+    const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
+    expect(Number(aliceChainBalance)).to.be.lessThan(Number(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND));
+
+    await checkBalance(
+      ACTORS.alice,
+      DEFAULT_CHAIN_URL,
+      ALICE_BALANCE_AFTER_DIRECTDEFUND,
+    );
+
+    await checkBalance(
+      ACTORS.bob,
+      DEFAULT_CHAIN_URL,
+      BOB_BALANCE_AFTER_DIRECTDEFUND,
+      BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY,
+    );
+
+    await checkBalance(
+      ACTORS.charlie,
+      DEFAULT_CHAIN_URL,
+      CHARLIE_BALANCE_AFTER_DIRECTFUND,
+      CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY,
+    );
   });
 
   it('should create virtual channels', async () => {
@@ -560,6 +598,26 @@ describe('test payment flow with an intermediary', () => {
       ChannelStatus.Open,
       BigInt(0),
       BigInt(1000000),
+    );
+
+    await checkBalance(
+      ACTORS.alice,
+      DEFAULT_CHAIN_URL,
+      ALICE_BALANCE_AFTER_DIRECTDEFUND,
+    );
+
+    await checkBalance(
+      ACTORS.bob,
+      DEFAULT_CHAIN_URL,
+      BOB_BALANCE_AFTER_DIRECTDEFUND,
+      BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY,
+    );
+
+    await checkBalance(
+      ACTORS.charlie,
+      DEFAULT_CHAIN_URL,
+      CHARLIE_BALANCE_AFTER_DIRECTFUND,
+      CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY,
     );
   });
 
@@ -582,6 +640,26 @@ describe('test payment flow with an intermediary', () => {
       ChannelStatus.Open,
       BigInt(150),
       BigInt(999850),
+    );
+
+    await checkBalance(
+      ACTORS.alice,
+      DEFAULT_CHAIN_URL,
+      ALICE_BALANCE_AFTER_DIRECTDEFUND,
+    );
+
+    await checkBalance(
+      ACTORS.bob,
+      DEFAULT_CHAIN_URL,
+      BOB_BALANCE_AFTER_DIRECTDEFUND,
+      BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY,
+    );
+
+    await checkBalance(
+      ACTORS.charlie,
+      DEFAULT_CHAIN_URL,
+      CHARLIE_BALANCE_AFTER_DIRECTFUND,
+      CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY,
     );
   });
 
@@ -615,6 +693,26 @@ describe('test payment flow with an intermediary', () => {
       BigInt(0),
       BigInt(0),
     );
+
+    await checkBalance(
+      ACTORS.alice,
+      DEFAULT_CHAIN_URL,
+      ALICE_BALANCE_AFTER_DIRECTDEFUND,
+    );
+
+    await checkBalance(
+      ACTORS.bob,
+      DEFAULT_CHAIN_URL,
+      BOB_BALANCE_AFTER_DIRECTDEFUND,
+      BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY,
+    );
+
+    await checkBalance(
+      ACTORS.charlie,
+      DEFAULT_CHAIN_URL,
+      CHARLIE_BALANCE_AFTER_DIRECTFUND,
+      CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY,
+    );
   });
 
   it('should close the ledger channels', async () => {
@@ -631,15 +729,38 @@ describe('test payment flow with an intermediary', () => {
     );
 
     const closeLedgerChannelBobCharlie = await bobClient.closeLedgerChannel(ledgerChannelBobCharlie.channelId);
-    await aliceClient.objectiveCompleteChan(closeLedgerChannelBobCharlie).shift();
+    await bobClient.objectiveCompleteChan(closeLedgerChannelBobCharlie).shift();
 
     await checkLedgerChannel(
       bobClient,
       charlieClient,
       ledgerChannelBobCharlie.channelId,
       ChannelStatus.Complete,
-      BigInt(0),
-      BigInt(0),
+      BigInt(999850),
+      BigInt(1000150),
+    );
+
+    const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
+    expect(Number(aliceChainBalance)).to.be.lessThan(Number(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND));
+
+    await checkBalance(
+      ACTORS.alice,
+      DEFAULT_CHAIN_URL,
+      ALICE_BALANCE_AFTER_DIRECTDEFUND_WITHINTERMEDIARY,
+    );
+
+    await checkBalance(
+      ACTORS.bob,
+      DEFAULT_CHAIN_URL,
+      BOB_BALANCE_AFTER_DIRECTDEFUND_WITHINTERMEDIARY,
+      BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY,
+    );
+
+    await checkBalance(
+      ACTORS.charlie,
+      DEFAULT_CHAIN_URL,
+      CHARLIE_BALANCE_AFTER_DIRECTDEFUND_WITHINTERMEDIARY,
+      CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITHINTERMEDIARY,
     );
 
     await aliceClient.close();
