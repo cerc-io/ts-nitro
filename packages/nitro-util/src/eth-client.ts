@@ -1,15 +1,14 @@
 import assert from 'assert';
 import { ethers, providers, EventFilter } from 'ethers';
-import { Buffer } from 'buffer';
 
 export class EthClient {
-  provider: providers.JsonRpcProvider;
+  provider: providers.BaseProvider;
 
-  constructor(provider: providers.JsonRpcProvider) {
+  constructor(provider: providers.BaseProvider) {
     this.provider = provider;
   }
 
-  static async dial(chainUrl: string): Promise<EthClient> {
+  static dial(chainUrl: string): EthClient {
     // Connect to the Ethereum provider
     const provider = new ethers.providers.JsonRpcProvider(chainUrl);
     return new EthClient(provider);
@@ -43,12 +42,4 @@ export class EthClient {
 
     return listener;
   }
-}
-
-// connectToChain connects to the chain at the given url and returns a client and a transactor.
-export async function connectToChain(chainUrl: string, chainPK: Buffer): Promise<[EthClient, ethers.Signer]> {
-  const client = await EthClient.dial(chainUrl);
-  const txSigner = new ethers.Wallet(chainPK, client.provider);
-
-  return [client, txSigner];
 }

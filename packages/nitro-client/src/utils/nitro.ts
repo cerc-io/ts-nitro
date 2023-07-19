@@ -1,4 +1,5 @@
 import debug from 'debug';
+import { providers } from 'ethers';
 
 import { hex2Bytes } from '@cerc-io/nitro-util';
 // @ts-expect-error
@@ -11,8 +12,10 @@ import { MemStore } from '../client/engine/store/memstore';
 import { DurableStore } from '../client/engine/store/durablestore';
 import { Destination } from '../types/destination';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../client/query/types';
+import { EthChainService } from '../client/engine/chainservice/eth-chainservice';
 
 import { createOutcome, setupClient, subscribeVoucherLogs } from './helpers';
+import { ChainService } from '../client/engine/chainservice/chainservice';
 
 const log = debug('ts-nitro:util:nitro');
 
@@ -24,12 +27,16 @@ export class Nitro {
 
   msgService: P2PMessageService;
 
+  chainService: ChainService;
+
   constructor(
     client: Client,
     msgService: P2PMessageService,
+    chainService: ChainService,
   ) {
     this.client = client;
     this.msgService = msgService;
+    this.chainService = chainService;
   }
 
   static async setupClient(
@@ -40,27 +47,59 @@ export class Nitro {
     peer: Peer,
     location?: string,
   ): Promise<Nitro> {
-    let store: Store;
-    if (location) {
-      store = DurableStore.newDurableStore(hex2Bytes(pk), location);
-    } else {
-      store = new MemStore(hex2Bytes(pk));
-    }
-
+    const store = this.getStore(pk, location);
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
+
+    const chainService = await EthChainService.newEthChainService(
+      chainURL,
+      chainPk,
+      contractAddresses.nitroAdjudicatorAddress,
+      contractAddresses.consensusAppAddress,
+      contractAddresses.virtualPaymentAppAddress,
+    );
 
     const client = await setupClient(
       msgService,
       store,
-      {
-        chainPk,
-        chainURL,
-        contractAddresses,
-      },
+      chainService,
     );
 
     subscribeVoucherLogs(client);
-    return new Nitro(client, msgService);
+    return new Nitro(client, msgService, chainService);
+  }
+
+  static async setupClientWithProvider(
+    pk: string,
+    provider: providers.JsonRpcProvider,
+    contractAddresses: { [key: string]: string },
+    peer: Peer,
+    location?: string,
+  ): Promise<Nitro> {
+    const store = this.getStore(pk, location);
+    const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
+
+    const chainService = await EthChainService.newEthChainServiceWithProvider(
+      provider,
+      contractAddresses.nitroAdjudicatorAddress,
+      contractAddresses.consensusAppAddress,
+      contractAddresses.virtualPaymentAppAddress,
+    );
+
+    const client = await setupClient(
+      msgService,
+      store,
+      chainService,
+    );
+
+    subscribeVoucherLogs(client);
+    return new Nitro(client, msgService, chainService);
+  }
+
+  private static getStore(pk: string, location?: string): Store {
+    if (location) {
+      return DurableStore.newDurableStore(hex2Bytes(pk), location);
+    }
+    return new MemStore(hex2Bytes(pk));
   }
 
   static async clearClientStorage(): Promise<boolean> {
@@ -84,7 +123,7 @@ export class Nitro {
     return [true, `Peer with address ${address} is dialable`];
   }
 
-  async directFund(counterParty: string, amount: number): Promise<void> {
+  async directFund(counterParty: string, amount: number): Promise<string> {
     const outcome = createOutcome(
       ASSET,
       this.client.address,
@@ -100,6 +139,8 @@ export class Nitro {
 
     await this.client.objectiveCompleteChan(response.id).shift();
     log(`Ledger channel created with id ${response.channelId.string()}\n`);
+
+    return response.channelId.string();
   }
 
   async virtualFund(counterParty: string, amount: number): Promise<void> {
