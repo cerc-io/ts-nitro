@@ -7,8 +7,6 @@ import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 // @ts-expect-error
 import type { Libp2p } from '@cerc-io/libp2p';
 // @ts-expect-error
-import { PeerInitConfig } from '@cerc-io/peer';
-// @ts-expect-error
 import type { PrivateKey } from '@libp2p/interface-keys';
 // @ts-expect-error
 import type { Stream, Connection } from '@libp2p/interface-connection';

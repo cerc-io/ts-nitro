@@ -1,11 +1,11 @@
 import assert from 'assert';
-import { ethers } from 'ethers';
+import { ethers, providers } from 'ethers';
 import debug from 'debug';
 
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@cerc-io/ts-channel';
-import { connectToChain, go, hex2Bytes } from '@cerc-io/nitro-util';
+import { EthClient, go, hex2Bytes } from '@cerc-io/nitro-util';
 
 import {
   ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent,
@@ -20,6 +20,7 @@ import {
 import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 
 import { getChainHolding } from './eth-chain-helpers';
+import { connectToChain } from './utils/utils';
 
 const log = debug('ts-nitro:eth-chain-service');
 
@@ -44,7 +45,7 @@ interface EthChain {
   // Following Interfaces in Go have been implemented using EthClient.provider (ethers Provider)
   //  bind.ContractBackend (github.com/ethereum/go-ethereum/accounts/abi/bind)
   //  ethereum.TransactionReader (github.com/ethereum/go-ethereum)
-  provider: ethers.providers.JsonRpcProvider
+  provider: ethers.providers.BaseProvider
 
   chainID (): Promise<bigint>;
 }
@@ -119,6 +120,25 @@ export class EthChainService implements ChainService {
     return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination);
   }
 
+  static async newEthChainServiceWithProvider(
+    provider: providers.JsonRpcProvider,
+    naAddress: Address,
+    caAddress: Address,
+    vpaAddress: Address,
+    logDestination?: WritableStream,
+  ): Promise<EthChainService> {
+    if (vpaAddress === caAddress) {
+      throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
+    }
+
+    const ethClient = new EthClient(provider);
+    const txSigner = provider.getSigner();
+
+    const na = NitroAdjudicator__factory.connect(naAddress, txSigner);
+
+    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination);
+  }
+
   // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
   // and listens to events from an eventSource
   private static _newEthChainService(
@@ -160,6 +180,9 @@ export class EthChainService implements ChainService {
 
   // sendTransaction sends the transaction and blocks until it has been submitted.
   async sendTransaction(tx: ChainTransaction): Promise<void> {
+    assert(this.txSigner, 'txSigner not assigned in chainservice');
+    this.na = this.na.connect(this.txSigner);
+
     switch (tx.constructor) {
       case DepositTransaction: {
         const depositTx = tx as DepositTransaction;

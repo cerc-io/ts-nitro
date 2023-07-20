@@ -11,6 +11,8 @@ export { Destination } from './types/destination';
 export { Metrics, GetMetrics } from './client/engine/metrics';
 export { LedgerChannelInfo, PaymentChannelInfo } from './client/query/types';
 export { Voucher } from './payments/vouchers';
-export { Signature, recoverEthereumMessageSigner, getSignatureFromEthersSignature } from './crypto/signatures';
+export {
+  Signature, recoverEthereumMessageSigner, getSignatureFromEthersSignature, signEthereumMessage,
+} from './crypto/signatures';
 
 export * as utils from './utils';
