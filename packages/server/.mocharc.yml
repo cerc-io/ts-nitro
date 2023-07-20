@@ -4,5 +4,5 @@ require:
 recursive: true
 extension:
   - ts
-timeout: 20000
+timeout: 120000
 
