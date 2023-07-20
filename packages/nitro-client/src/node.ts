@@ -11,7 +11,9 @@ export { Destination } from './types/destination';
 export { Metrics, GetMetrics } from './client/engine/metrics';
 export { Voucher } from './payments/vouchers';
 export { signEthereumMessage } from './crypto/signatures';
-export { LedgerChannelInfo, PaymentChannelInfo, LedgerChannelBalance, ChannelStatus, PaymentChannelBalance } from './client/query/types';
+export {
+  LedgerChannelInfo, PaymentChannelInfo, LedgerChannelBalance, ChannelStatus, PaymentChannelBalance,
+} from './client/query/types';
 export { ObjectiveResponse } from './protocols/directfund/directfund';
 
 export * as utils from './utils';

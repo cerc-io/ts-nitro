@@ -14,7 +14,6 @@
   },
   "devDependencies": {
     "@npmcli/package-json": "^3.1.1",
-    "@statechannels/nitro-protocol": "^2.0.0-alpha.4",
     "@types/json-bigint": "^1.0.1",
     "@types/lodash": "^4.14.195",
     "@types/npmcli__package-json": "^2.0.0",
@@ -38,6 +37,7 @@
     "it-pipe": "^3.0.1",
     "json-bigint": "^1.0.0",
     "lodash": "^4.17.21",
-    "uint8arrays": "^4.0.3"
+    "uint8arrays": "^4.0.3",
+    "@statechannels/nitro-protocol": "^2.0.0-alpha.4"
   }
 }
