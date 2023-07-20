@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-expressions */
-/* eslint-disable @typescript-eslint/no-shadow */
-
 import assert from 'assert';
 import { expect } from 'chai';
 import 'mocha';
@@ -49,6 +46,9 @@ const BOB_BALANCE_AFTER_DIRECTDEFUND_WITH_INTERMEDIARY = '3000150';
 const CHARLIE_BALANCE_AFTER_DIRECTFUND = '0';
 const CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY = '10000000000000000000000';
 const CHARLIE_BALANCE_AFTER_DIRECTDEFUND_WITH_INTERMEDIARY = '1000150';
+const INITIAL_LEDGER_AMOUNT = 1_000_000;
+const INITIAL_VIRTUAL_CHANNEL_AMOUNT = 1_000_000;
+const ASSET = `0x${'00'.repeat(20)}`;
 
 async function createClient(actor: utils.Actor, contractAddresses: ContractAddresses): Promise<[Client, P2PMessageService, Metrics]> {
   const clientStore = new MemStore(hex2Bytes(actor.privateKey));
@@ -79,19 +79,17 @@ async function createClient(actor: utils.Actor, contractAddresses: ContractAddre
 
 async function setUpLedgerChannel(clientA: Client, clientB: Client): Promise<ObjectiveResponse> {
   const counterParty = clientB.address;
-  const amount = 1_000_000;
-  const asset = `0x${'00'.repeat(20)}`;
 
   const params: DirectFundParams = {
     counterParty,
     challengeDuration: 0,
     outcome: createOutcome(
-      asset,
+      ASSET,
       clientA.address,
       counterParty,
-      amount,
+      INITIAL_LEDGER_AMOUNT,
     ),
-    appDefinition: asset,
+    appDefinition: ASSET,
     appData: '0x00',
     nonce: Date.now(),
   };
@@ -106,22 +104,20 @@ async function setUpLedgerChannel(clientA: Client, clientB: Client): Promise<Obj
 }
 
 async function setUpVirtualChannel(clientA: Client, clientB: Client, intermediaries: string[]): Promise<ObjectiveResponse> {
-  const amount = 1_000_000;
   const counterParty = clientB.address;
-  const asset = `0x${'00'.repeat(20)}`;
 
   const params: VirtualFundParams = {
     intermediaries,
     counterParty,
     challengeDuration: 0,
     outcome: createOutcome(
-      asset,
+      ASSET,
       clientA.address,
       counterParty,
-      amount,
+      INITIAL_VIRTUAL_CHANNEL_AMOUNT,
     ),
     nonce: Date.now(),
-    appDefinition: asset,
+    appDefinition: ASSET,
   };
   const response = await clientA.createVirtualPaymentChannel(
     params.intermediaries,
@@ -142,14 +138,13 @@ async function checkLedgerChannel(
   clientBalance: bigint,
   hubBalance: bigint,
 ): Promise<void> {
-  const asset = `0x${'00'.repeat(20)}`;
   const ledgerChannelStatus = await client.getLedgerChannel(ledgerChannelId);
 
   const expectedLedgerChannelStatus = new LedgerChannelInfo({
     iD: ledgerChannelId,
     status,
     balance: new LedgerChannelBalance({
-      assetAddress: asset,
+      assetAddress: ASSET,
       hub: hub.address,
       client: client.address,
       hubBalance,
@@ -167,14 +162,13 @@ async function checkVirtualChannel(
   paidSoFar: bigint,
   remainingFunds: bigint,
 ): Promise<void> {
-  const asset = `0x${'00'.repeat(20)}`;
   const paymentChannelStatus = await payer.getPaymentChannel(paymentChannelId);
 
   const expectedPaymentChannelStatus = new PaymentChannelInfo({
     iD: paymentChannelId,
     status,
     balance: new PaymentChannelBalance({
-      assetAddress: asset,
+      assetAddress: ASSET,
       payee: payee.address,
       payer: payer.address,
       paidSoFar,
@@ -247,8 +241,8 @@ describe('test payment flows', () => {
         bobClient,
         ledgerChannel.channelId,
         ChannelStatus.Open,
-        BigInt(1000000),
-        BigInt(1000000),
+        BigInt(INITIAL_LEDGER_AMOUNT),
+        BigInt(INITIAL_LEDGER_AMOUNT),
       );
 
       await checkBalance(
@@ -296,7 +290,7 @@ describe('test payment flows', () => {
         virtualPaymentChannel.channelId,
         ChannelStatus.Open,
         BigInt(0),
-        BigInt(1000000),
+        BigInt(INITIAL_VIRTUAL_CHANNEL_AMOUNT),
       );
 
       await checkBalance(
@@ -451,8 +445,8 @@ describe('test payment flows', () => {
         bobClient,
         ledgerChannelAliceBob.channelId,
         ChannelStatus.Open,
-        BigInt(1000000),
-        BigInt(1000000),
+        BigInt(INITIAL_LEDGER_AMOUNT),
+        BigInt(INITIAL_LEDGER_AMOUNT),
       );
 
       ledgerChannelBobCharlie = await setUpLedgerChannel(bobClient, charlieClient);
@@ -461,8 +455,8 @@ describe('test payment flows', () => {
         charlieClient,
         ledgerChannelBobCharlie.channelId,
         ChannelStatus.Open,
-        BigInt(1000000),
-        BigInt(1000000),
+        BigInt(INITIAL_LEDGER_AMOUNT),
+        BigInt(INITIAL_LEDGER_AMOUNT),
       );
 
       const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
@@ -497,7 +491,7 @@ describe('test payment flows', () => {
         virtualPaymentChannelAliceCharlie.channelId,
         ChannelStatus.Open,
         BigInt(0),
-        BigInt(1000000),
+        BigInt(INITIAL_VIRTUAL_CHANNEL_AMOUNT),
       );
 
       await checkBalance(
