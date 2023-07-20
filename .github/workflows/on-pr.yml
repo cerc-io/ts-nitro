@@ -20,12 +20,13 @@ jobs:
         run: yarn
       - name: "Run Chain"
         run: yarn chain
-      - name: "Run Relay node"
+      - name: "Install watcher-ts"
         uses: actions/checkout@v3
         with:
           repository: cerc-io/watcher-ts
           ref: main
           path: ./watcher-ts
+      - name: "Run relay node"
         run: |
           cd ./watcher-ts
           yarn
