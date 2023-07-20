@@ -16,6 +16,7 @@ import { EthChainService } from '../client/engine/chainservice/eth-chainservice'
 
 import { createOutcome, setupClient, subscribeVoucherLogs } from './helpers';
 import { ChainService } from '../client/engine/chainservice/chainservice';
+import { Voucher } from '../payments/vouchers';
 
 const log = debug('ts-nitro:util:nitro');
 
@@ -163,9 +164,12 @@ export class Nitro {
     log(`Virtual payment channel created with id ${response.channelId.string()}\n`);
   }
 
-  async pay(virtualPaymentChannel: string, amount: number): Promise<void> {
+  async pay(virtualPaymentChannel: string, amount: number): Promise<Voucher> {
     const virtualPaymentChannelId = new Destination(virtualPaymentChannel);
     await this.client.pay(virtualPaymentChannelId, BigInt(amount));
+    const sentVoucher = await this.client.sentVouchers().shift();
+
+    return sentVoucher;
   }
 
   async virtualDefund(virtualPaymentChannel: string): Promise<void> {
