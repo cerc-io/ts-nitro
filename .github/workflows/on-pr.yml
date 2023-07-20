@@ -19,7 +19,7 @@ jobs:
       - name: "Install dependencies"
         run: yarn
       - name: "Run Chain"
-        run: yarn chain
+        run: nohup yarn chain > chain.out 2>&1 &
       - name: "Install watcher-ts"
         uses: actions/checkout@v3
         with:
@@ -35,7 +35,7 @@ jobs:
           yarn create-peer -f relay-id.json
           export RELAY_PEER_ID=$(jq -r '.id' relay-id.json)
           echo "RELAY_MULTIADDR=/ip4/127.0.0.1/tcp/9090/ws/p2p/$RELAY_PEER_ID" >> "$GITHUB_ENV"
-          yarn relay-node --peerIdFile relay-id.json
+          nohup yarn relay-node --peerIdFile relay-id.json > relay-node.out 2>&1 &
       - name: "Run integration test"
         run: |
           export RELAY_MULTIADDR=${{ env.RELAY_MULTIADDR }}
