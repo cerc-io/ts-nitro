@@ -236,7 +236,7 @@ export class Engine {
     await this.msg.close();
     await this.stop.close();
     await this._toApi.close();
-    return this.chain.close();
+    await this.chain.close();
   }
 
   // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly

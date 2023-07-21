@@ -262,7 +262,7 @@ export class Client {
 
     this.channelNotifier.close();
     await this.engine.close();
-    return this.store.close();
+    await this.store.close();
   }
 
   // ReceivedVouchers returns a chan that receives a voucher every time we receive a payment voucher

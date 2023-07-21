@@ -1,6 +1,6 @@
+import 'mocha';
 import assert from 'assert';
 import { expect } from 'chai';
-import 'mocha';
 import { providers } from 'ethers';
 
 import {
@@ -221,6 +221,11 @@ describe('test payment flows', () => {
     let ledgerChannel: ObjectiveResponse;
     let virtualPaymentChannel: ObjectiveResponse;
 
+    after('cleanup', async () => {
+      await aliceClient.close();
+      await bobClient.close();
+    });
+
     it('should instantiate clients', async () => {
       assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
@@ -284,6 +289,7 @@ describe('test payment flows', () => {
 
     it('should create a virtual channel', async () => {
       virtualPaymentChannel = await setUpVirtualChannel(aliceClient, bobClient, []);
+
       await checkVirtualChannel(
         aliceClient,
         bobClient,
@@ -411,9 +417,6 @@ describe('test payment flows', () => {
         BOB_BALANCE_AFTER_DIRECTDEFUND,
         BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
       );
-
-      await aliceClient.close();
-      await bobClient.close();
     });
   });
 
@@ -427,6 +430,12 @@ describe('test payment flows', () => {
     let ledgerChannelAliceBob: ObjectiveResponse;
     let ledgerChannelBobCharlie: ObjectiveResponse;
     let virtualPaymentChannelAliceCharlie: ObjectiveResponse;
+
+    after('cleanup', async () => {
+      await aliceClient.close();
+      await bobClient.close();
+      await charlieClient.close();
+    });
 
     it('should instantiate clients', async () => {
       assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
@@ -656,10 +665,6 @@ describe('test payment flows', () => {
         CHARLIE_BALANCE_AFTER_DIRECTDEFUND_WITH_INTERMEDIARY,
         CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
       );
-
-      await aliceClient.close();
-      await bobClient.close();
-      await charlieClient.close();
     });
   });
 });
