@@ -41,7 +41,3 @@ jobs:
           export RELAY_MULTIADDR=${{ env.RELAY_MULTIADDR }}
           cd packages/server
           yarn test:e2e
-
-
-
-

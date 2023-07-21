@@ -5,7 +5,7 @@ import { providers } from 'ethers';
 
 import {
   Client, MemStore, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
-  ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse,
+  ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse, EthChainService,
 } from '@cerc-io/nitro-client';
 import {
   hex2Bytes, DEFAULT_CHAIN_URL, getBalanceByKey, getBalanceByAddress, deployContracts,
@@ -62,14 +62,18 @@ async function createClient(actor: utils.Actor, contractAddresses: ContractAddre
   );
   const clientMetrics = new Metrics();
 
+  const chainService = await EthChainService.newEthChainService(
+    DEFAULT_CHAIN_URL,
+    ACTORS.alice.chainPrivateKey,
+    contractAddresses.nitroAdjudicatorAddress,
+    contractAddresses.consensusAppAddress,
+    contractAddresses.virtualPaymentAppAddress,
+  );
+
   const client = await setupClient(
     clientMsgService,
     clientStore,
-    {
-      chainPk: ACTORS.alice.chainPrivateKey,
-      chainURL: DEFAULT_CHAIN_URL,
-      contractAddresses,
-    },
+    chainService,
     clientMetrics,
   );
   expect(client.address).to.equal(actor.address);
