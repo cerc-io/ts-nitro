@@ -1,3 +1,5 @@
+/* eslint-disable no-await-in-loop */
+
 import assert from 'assert';
 import debug from 'debug';
 import { ethers } from 'ethers';
@@ -31,8 +33,8 @@ const PEER_EXCHANGE_PROTOCOL_ID = '/go-nitro/peerinfo/1.0.0';
 const DELIMITER = '\n';
 const BUFFER_SIZE = 1_000;
 const NUM_CONNECT_ATTEMPTS = 20;
-const RETRY_SLEEP_DURATION = 5 * 1000; // milliseconds
-const ERR_CONNECTION_CLOSED = 'the connection is being closed';
+const RETRY_SLEEP_DURATION = 5 * 1000; // 5 seconds
+const ERR_CONNECTION_BEING_CLOSED = 'the connection is being closed';
 const ERR_PROTOCOL_FAIL = 'protocol selection failed';
 const ERR_PEER_NOT_FOUND = 'peer info not found';
 const ERR_PEER_DIAL_FAILED = 'peer dial failed';
@@ -196,10 +198,10 @@ export class P2PMessageService implements MessageService {
   }
 
   private async exchangePeerInfo(peerId: PeerId) {
-    /* eslint-disable no-await-in-loop */
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
         const stream = await this.p2pHost.dialProtocol(peerId, PEER_EXCHANGE_PROTOCOL_ID);
+
         await this.sendPeerInfo(stream);
         stream.close();
 
@@ -207,8 +209,13 @@ export class P2PMessageService implements MessageService {
         this.sentInfoToPeer.push(peerId);
         return;
       } catch (err) {
-        this.logger(`Peer info could not be exchanged ${err}`);
-        // eslint-disable-next-line no-await-in-loop
+        const dialError = (err as Error);
+        if (dialError.message.includes(ERR_CONNECTION_BEING_CLOSED) || dialError.message.includes(ERR_PROTOCOL_FAIL)) {
+          log(dialError.message);
+          return;
+        }
+
+        this.logger(`Attempt ${i} - Could not exchange peer info with ${peerId.toString()}: ${dialError}`);
         await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
       }
     }
@@ -352,7 +359,6 @@ export class P2PMessageService implements MessageService {
     const { pipe } = await import('it-pipe');
     const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
 
-    /* eslint-disable no-await-in-loop */
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
         const s = await this.p2pHost.dialProtocol(peerInfo.id, PROTOCOL_ID);
@@ -366,8 +372,7 @@ export class P2PMessageService implements MessageService {
 
         return;
       } catch (err) {
-        this.logger(`Attempt ${i} - Could not open stream to ${msg.to}`);
-        // eslint-disable-next-line no-await-in-loop
+        this.logger(`Attempt ${i} - Could not open stream to ${msg.to}: ${err}`);
         await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
       }
     }
@@ -376,11 +381,6 @@ export class P2PMessageService implements MessageService {
   // checkError panics if the message service is running and there is an error, otherwise it just returns
   // eslint-disable-next-line n/handle-callback-err
   private checkError(err: Error) {
-    if (err.message.includes(ERR_CONNECTION_CLOSED) || err.message.includes(ERR_PROTOCOL_FAIL)) {
-      log('uncaughtException', err.message);
-      return;
-    }
-
     throw err;
   }
 
