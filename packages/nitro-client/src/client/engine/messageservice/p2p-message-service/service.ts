@@ -177,8 +177,7 @@ export class P2PMessageService implements MessageService {
     }
 
     // Returns existing connection
-    const connection = await this.p2pHost.dial(data.peerId);
-    await this.exchangePeerInfo(connection);
+    await this.exchangePeerInfo(data.peerId);
   }
 
   // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
@@ -193,20 +192,25 @@ export class P2PMessageService implements MessageService {
       return;
     }
 
-    await this.exchangePeerInfo(data);
+    await this.exchangePeerInfo(data.remotePeer);
   }
 
-  private async exchangePeerInfo(connection: Connection) {
-    try {
-      const stream = await connection.newStream(PEER_EXCHANGE_PROTOCOL_ID);
+  private async exchangePeerInfo(peerId: PeerId) {
+    /* eslint-disable no-await-in-loop */
+    for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
+      try {
+        const stream = await this.p2pHost.dialProtocol(peerId, PEER_EXCHANGE_PROTOCOL_ID);
+        await this.sendPeerInfo(stream);
+        stream.close();
 
-      await this.sendPeerInfo(stream);
-      stream.close();
-
-      // Use a non-blocking channel send in case no one is listening
-      this.sentInfoToPeer.push(connection.remotePeer);
-    } catch (err) {
-      this.checkError(err as Error);
+        // Use a non-blocking channel send in case no one is listening
+        this.sentInfoToPeer.push(peerId);
+        return;
+      } catch (err) {
+        this.logger(`Peer info could not be exchanged ${err}`);
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
+      }
     }
   }
 
