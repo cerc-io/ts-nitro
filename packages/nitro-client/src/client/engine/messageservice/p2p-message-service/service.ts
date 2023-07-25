@@ -33,7 +33,7 @@ const PEER_EXCHANGE_PROTOCOL_ID = '/go-nitro/peerinfo/1.0.0';
 const DELIMITER = '\n';
 const BUFFER_SIZE = 1_000;
 const NUM_CONNECT_ATTEMPTS = 20;
-const RETRY_SLEEP_DURATION = 5 * 1000; // 5 seconds
+const RETRY_SLEEP_DURATION = 2.5 * 1000; // 2.5 seconds
 const ERR_CONNECTION_BEING_CLOSED = 'the connection is being closed';
 const ERR_PROTOCOL_FAIL = 'protocol selection failed';
 const ERR_PEER_NOT_FOUND = 'peer info not found';
@@ -210,6 +210,10 @@ export class P2PMessageService implements MessageService {
         return;
       } catch (err) {
         const dialError = (err as Error);
+
+        // Return if the connection is in closing state OR
+        // The peer doesn't support the peer info protocol
+        // (expected if the peer is not setup with a nitro client yet)
         if (dialError.message.includes(ERR_CONNECTION_BEING_CLOSED) || dialError.message.includes(ERR_PROTOCOL_FAIL)) {
           log(dialError.message);
           return;
