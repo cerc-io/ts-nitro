@@ -397,6 +397,7 @@ export class P2PMessageService implements MessageService {
   async close(): Promise<void> {
     assert(this.p2pHost);
 
+    await this.peer?.close();
     await this.p2pHost.unhandle(PROTOCOL_ID);
     await this.p2pHost.stop();
   }

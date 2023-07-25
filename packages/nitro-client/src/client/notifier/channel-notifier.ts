@@ -56,4 +56,16 @@ export class ChannelNotifier {
     const [allLi] = this.paymentListeners!.loadOrStore(ALL_NOTIFICATIONS, PaymentChannelListeners.newPaymentChannelListeners());
     allLi.notify(info);
   }
+
+  close(): void {
+    this.ledgerListeners!.range((k: string, v: LedgerChannelListeners): boolean => {
+      v.close();
+      return true;
+    });
+
+    this.paymentListeners!.range((k: string, v: PaymentChannelListeners): boolean => {
+      v.close();
+      return true;
+    });
+  }
 }

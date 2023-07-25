@@ -39,5 +39,4 @@ export const METRICS_MESSAGE_KEYS_VALUES = {
   msg_proposal_count: 0,
   msg_payment_count: 0,
   msg_payload_count: 1,
-  msg_size: 1414,
 };

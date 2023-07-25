@@ -1,8 +1,8 @@
 import yargs from 'yargs';
 import debug from 'debug';
-import { Wallet, providers } from 'ethers';
 
 import { DEFAULT_CHAIN_URL } from '../src';
+import { getBalanceByAddress, getAddressByKey } from '../src/eth-client';
 
 const log = debug('ts-nitro:util');
 
@@ -29,20 +29,16 @@ const getArgv = () => yargs.parserConfiguration({
 
 async function main() {
   const argv = getArgv();
-
-  const provider = new providers.JsonRpcProvider(argv.chainurl);
   let address: string;
 
   if (argv.address) {
     address = argv.address;
   } else if (argv.key) {
-    const signer = new Wallet(argv.key, provider);
-    address = await signer.getAddress();
+    address = await getAddressByKey(argv.key, DEFAULT_CHAIN_URL);
   } else {
     throw new Error('Provide either address or private key of an account');
   }
-
-  const balance = await provider.getBalance(address);
+  const balance = await getBalanceByAddress(address, DEFAULT_CHAIN_URL);
   log(`Balance of account ${address} is ${balance.toString()}`);
 }
 

@@ -1,0 +1,41 @@
+name: Integration test
+
+on: [pull_request]
+
+jobs:
+  integration-test:
+    name: "Run integration tests"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      - name: "Use Node.js ${{ matrix.node-version }}"
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: "Install dependencies and build packages"
+        run: yarn && yarn build:node
+      - name: "Run Chain"
+        run: nohup yarn chain > chain.out 2>&1 &
+      - name: "Install watcher-ts"
+        uses: actions/checkout@v3
+        with:
+          repository: cerc-io/watcher-ts
+          ref: main
+          path: ./watcher-ts
+      - name: "Run relay node"
+        run: |
+          cd ./watcher-ts/packages/peer
+          yarn && yarn build
+          yarn create-peer -f relay-id.json
+          export RELAY_PEER_ID=$(jq -r '.id' relay-id.json)
+          echo "RELAY_MULTIADDR=/ip4/127.0.0.1/tcp/9090/ws/p2p/$RELAY_PEER_ID" >> "$GITHUB_ENV"
+          nohup yarn relay-node --peerIdFile relay-id.json > relay-node.out 2>&1 &
+      - name: "Run integration test"
+        run: |
+          export RELAY_MULTIADDR=${{ env.RELAY_MULTIADDR }}
+          cd packages/server
+          yarn test:e2e

@@ -227,8 +227,17 @@ export class Engine {
     return this._toApi.readOnly();
   }
 
-  // TODO: Implement (if required)
-  close(): void {}
+  async close(): Promise<void> {
+    assert(this.msg);
+    assert(this.stop);
+    assert(this._toApi);
+    assert(this.chain);
+
+    await this.msg.close();
+    await this.stop.close();
+    await this._toApi.close();
+    await this.chain.close();
+  }
 
   // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
   // The loop exits when a struct is received on the stop channel. Engine.Close() sends that signal.
