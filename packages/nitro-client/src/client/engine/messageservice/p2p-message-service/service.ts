@@ -1,3 +1,5 @@
+/* eslint-disable no-await-in-loop */
+
 import assert from 'assert';
 import debug from 'debug';
 import { ethers } from 'ethers';
@@ -31,8 +33,8 @@ const PEER_EXCHANGE_PROTOCOL_ID = '/go-nitro/peerinfo/1.0.0';
 const DELIMITER = '\n';
 const BUFFER_SIZE = 1_000;
 const NUM_CONNECT_ATTEMPTS = 20;
-const RETRY_SLEEP_DURATION = 5 * 1000; // milliseconds
-const ERR_CONNECTION_CLOSED = 'the connection is being closed';
+const RETRY_SLEEP_DURATION = 2.5 * 1000; // 2.5 seconds
+const ERR_CONNECTION_BEING_CLOSED = 'the connection is being closed';
 const ERR_PROTOCOL_FAIL = 'protocol selection failed';
 const ERR_PEER_NOT_FOUND = 'peer info not found';
 const ERR_PEER_DIAL_FAILED = 'peer dial failed';
@@ -177,8 +179,7 @@ export class P2PMessageService implements MessageService {
     }
 
     // Returns existing connection
-    const connection = await this.p2pHost.dial(data.peerId);
-    await this.exchangePeerInfo(connection);
+    await this.exchangePeerInfo(data.peerId);
   }
 
   // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
@@ -193,20 +194,34 @@ export class P2PMessageService implements MessageService {
       return;
     }
 
-    await this.exchangePeerInfo(data);
+    await this.exchangePeerInfo(data.remotePeer);
   }
 
-  private async exchangePeerInfo(connection: Connection) {
-    try {
-      const stream = await connection.newStream(PEER_EXCHANGE_PROTOCOL_ID);
+  private async exchangePeerInfo(peerId: PeerId) {
+    for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
+      try {
+        const stream = await this.p2pHost.dialProtocol(peerId, PEER_EXCHANGE_PROTOCOL_ID);
 
-      await this.sendPeerInfo(stream);
-      stream.close();
+        await this.sendPeerInfo(stream);
+        stream.close();
 
-      // Use a non-blocking channel send in case no one is listening
-      this.sentInfoToPeer.push(connection.remotePeer);
-    } catch (err) {
-      this.checkError(err as Error);
+        // Use a non-blocking channel send in case no one is listening
+        this.sentInfoToPeer.push(peerId);
+        return;
+      } catch (err) {
+        const dialError = (err as Error);
+
+        // Return if the connection is in closing state OR
+        // The peer doesn't support the peer info protocol
+        // (expected if the peer is not setup with a nitro client yet)
+        if (dialError.message.includes(ERR_CONNECTION_BEING_CLOSED) || dialError.message.includes(ERR_PROTOCOL_FAIL)) {
+          log(dialError.message);
+          return;
+        }
+
+        this.logger(`Attempt ${i} - Could not exchange peer info with ${peerId.toString()}: ${dialError}`);
+        await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
+      }
     }
   }
 
@@ -348,7 +363,6 @@ export class P2PMessageService implements MessageService {
     const { pipe } = await import('it-pipe');
     const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
 
-    /* eslint-disable no-await-in-loop */
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
         const s = await this.p2pHost.dialProtocol(peerInfo.id, PROTOCOL_ID);
@@ -362,8 +376,7 @@ export class P2PMessageService implements MessageService {
 
         return;
       } catch (err) {
-        this.logger(`Attempt ${i} - Could not open stream to ${msg.to}`);
-        // eslint-disable-next-line no-await-in-loop
+        this.logger(`Attempt ${i} - Could not open stream to ${msg.to}: ${err}`);
         await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
       }
     }
@@ -372,11 +385,6 @@ export class P2PMessageService implements MessageService {
   // checkError panics if the message service is running and there is an error, otherwise it just returns
   // eslint-disable-next-line n/handle-callback-err
   private checkError(err: Error) {
-    if (err.message.includes(ERR_CONNECTION_CLOSED) || err.message.includes(ERR_PROTOCOL_FAIL)) {
-      log('uncaughtException', err.message);
-      return;
-    }
-
     throw err;
   }
 
