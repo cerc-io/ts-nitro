@@ -1,7 +1,7 @@
 import debug from 'debug';
 import { ethers } from 'ethers';
 
-import { JSONbigNative, bytes2Hex } from '@cerc-io/nitro-util';
+import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
 
 import { P2PMessageService } from '../client/engine/messageservice/p2p-message-service/service';
 import { Client } from '../client/client';
@@ -11,7 +11,7 @@ import { Metrics } from '../client/engine/metrics';
 import { SingleAssetExit, Exit } from '../channel/state/outcome/exit';
 import { Allocation, AllocationType, Allocations } from '../channel/state/outcome/allocation';
 import { Destination } from '../types/destination';
-import { Signature } from '../crypto/signatures';
+import { Signature, getSignatureFromEthersSignature, recoverEthereumMessageSigner } from '../crypto/signatures';
 import { ChainService } from '../client/engine/chainservice/chainservice';
 
 const log = debug('ts-nitro:util:helpers');
@@ -118,3 +118,10 @@ export function getJoinedSignature(sig: Signature): string {
 
   return ethers.utils.joinSignature(ethersSignature);
 }
+
+export const getSignerAddress = (hash: string, sig: string): string => {
+  const splitSig = ethers.utils.splitSignature(sig);
+  const signature: Signature = getSignatureFromEthersSignature(splitSig);
+
+  return recoverEthereumMessageSigner(hex2Bytes(hash), signature);
+};
