@@ -1,7 +1,7 @@
 import 'mocha';
 import assert from 'assert';
 import { expect } from 'chai';
-import { providers } from 'ethers';
+import { ethers, providers } from 'ethers';
 
 import {
   Client, MemStore, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
@@ -51,7 +51,8 @@ const INITIAL_VIRTUAL_CHANNEL_AMOUNT = 1_000_000;
 const ASSET = `0x${'00'.repeat(20)}`;
 
 async function createClient(actor: utils.Actor, contractAddresses: ContractAddresses): Promise<[Client, P2PMessageService, Metrics]> {
-  const clientStore = new MemStore(hex2Bytes(actor.privateKey));
+  const signer = new ethers.Wallet(actor.privateKey);
+  const clientStore = await MemStore.newMemStore(signer);
 
   const clientPeerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
   const clientPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR!, {}, clientPeerIdObj);
