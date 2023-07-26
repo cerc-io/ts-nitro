@@ -37,8 +37,7 @@ const computeEthereumSignedMessageDigest = (message: Buffer): Buffer => {
 // "\x19Ethereum Signed Message:\n" + len(message).
 // See https://github.com/ethereum/go-ethereum/pull/2940 and EIPs 191, 721.
 export const signEthereumMessage = async (message: Buffer, signer: NitroSigner): Promise<Signature> => {
-  const concatenatedSignature = await signer.signMessage(message);
-  const sig = ethers.utils.splitSignature(concatenatedSignature);
+  const sig = await signer.signMessage(message.toString());
 
   /* eslint-disable @typescript-eslint/no-use-before-define */
   return getSignatureFromEthersSignature(sig);

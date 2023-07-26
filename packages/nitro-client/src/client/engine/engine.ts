@@ -842,15 +842,7 @@ export class Engine {
       assert(this.store);
       const signer = this.store.getChannelSigner();
 
-      let crankedObjective: Objective;
-      let sideEffects: SideEffects;
-      let waitingFor: WaitingFor;
-
-      try {
-        [crankedObjective, sideEffects, waitingFor] = await objective.crank(signer);
-      } catch (err) {
-        return outgoing;
-      }
+      const [crankedObjective, sideEffects, waitingFor] = await objective.crank(signer);
 
       await this.store.setObjective(crankedObjective);
 

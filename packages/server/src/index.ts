@@ -3,7 +3,6 @@ import debug from 'debug';
 import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
-import { ethers } from 'ethers';
 import 'dotenv/config';
 
 import {
@@ -133,7 +132,7 @@ const getArgv = () => yargs.parserConfiguration({
 const main = async () => {
   const argv = getArgv();
   assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
-  const signer = new ethers.Wallet(argv.pk);
+  const signer = new utils.KeySigner(argv.pk);
 
   let store: Store;
   if (argv.store) {

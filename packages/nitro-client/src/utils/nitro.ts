@@ -3,6 +3,7 @@ import { Signer, Wallet, providers } from 'ethers';
 
 // @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
+import { NitroSigner } from '@cerc-io/nitro-util';
 
 import { Client } from '../client/client';
 import { P2PMessageService } from '../client/engine/messageservice/p2p-message-service/service';
@@ -16,7 +17,7 @@ import { EthChainService } from '../client/engine/chainservice/eth-chainservice'
 import { createOutcome, setupClient, subscribeVoucherLogs } from './helpers';
 import { ChainService } from '../client/engine/chainservice/chainservice';
 import { Voucher } from '../payments/vouchers';
-import { SnapSigner } from './snap-signer';
+import { KeySigner } from './key-signer';
 
 const log = debug('ts-nitro:util:nitro');
 
@@ -48,8 +49,8 @@ export class Nitro {
     peer: Peer,
     location?: string,
   ): Promise<Nitro> {
-    const wallet = new Wallet(pk);
-    const store = await this.getStore(wallet, location);
+    const keySigner = new KeySigner(pk);
+    const store = await this.getStore(keySigner, location);
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
     const chainService = await EthChainService.newEthChainService(
@@ -77,9 +78,9 @@ export class Nitro {
     peer: Peer,
     location?: string,
   ): Promise<Nitro> {
-    // TODO: Use provider (with access to snap) in SnapSigner
-    const snapSigner = new SnapSigner(pk);
-    const store = await this.getStore(snapSigner, location);
+    // TODO: Create SnapSigner and use provider (with access to snap)
+    const keySigner = new KeySigner(pk);
+    const store = await this.getStore(keySigner, location);
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
     const chainService = await EthChainService.newEthChainServiceWithProvider(
@@ -99,7 +100,7 @@ export class Nitro {
     return new Nitro(client, msgService, chainService);
   }
 
-  private static getStore(signer: Signer | SnapSigner, location?: string): Promise<Store> {
+  private static getStore(signer: NitroSigner, location?: string): Promise<Store> {
     if (location) {
       return DurableStore.newDurableStore(signer, location);
     }

@@ -8,5 +8,5 @@ export type Uint64 = bigint;
 
 export interface NitroSigner {
   getAddress(): Promise<string>;
-  signMessage(message: string | ethers.utils.Bytes): Promise<string>;
+  signMessage(message: string): Promise<ethers.Signature>;
 }
