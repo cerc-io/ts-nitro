@@ -1,5 +1,7 @@
 import { Buffer } from 'buffer';
 
+import { NitroSigner } from '@cerc-io/nitro-util';
+
 import { Objective } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
@@ -14,7 +16,7 @@ export const ErrNoSuchChannel = new Error('store: failed to find required channe
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
 export interface Store extends ConsensusChannelStore, VoucherStore {
   // Get a pointer to a secret key for signing channel updates
-  getChannelSecretKey (): Buffer
+  getChannelSigner (): NitroSigner
 
   // Get the (Ethereum) address associated with the ChannelSecretKey
   getAddress (): Address

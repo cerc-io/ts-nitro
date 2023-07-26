@@ -1,7 +1,6 @@
 import debug from 'debug';
-import { providers } from 'ethers';
+import { Signer, Wallet, providers } from 'ethers';
 
-import { hex2Bytes } from '@cerc-io/nitro-util';
 // @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
 
@@ -17,6 +16,7 @@ import { EthChainService } from '../client/engine/chainservice/eth-chainservice'
 import { createOutcome, setupClient, subscribeVoucherLogs } from './helpers';
 import { ChainService } from '../client/engine/chainservice/chainservice';
 import { Voucher } from '../payments/vouchers';
+import { SnapSigner } from './snap-signer';
 
 const log = debug('ts-nitro:util:nitro');
 
@@ -48,7 +48,8 @@ export class Nitro {
     peer: Peer,
     location?: string,
   ): Promise<Nitro> {
-    const store = this.getStore(pk, location);
+    const wallet = new Wallet(pk);
+    const store = await this.getStore(wallet, location);
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
     const chainService = await EthChainService.newEthChainService(
@@ -76,7 +77,9 @@ export class Nitro {
     peer: Peer,
     location?: string,
   ): Promise<Nitro> {
-    const store = this.getStore(pk, location);
+    // TODO: Use provider (with access to snap) in SnapSigner
+    const snapSigner = new SnapSigner(pk);
+    const store = await this.getStore(snapSigner, location);
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
     const chainService = await EthChainService.newEthChainServiceWithProvider(
@@ -96,11 +99,12 @@ export class Nitro {
     return new Nitro(client, msgService, chainService);
   }
 
-  private static getStore(pk: string, location?: string): Store {
+  private static getStore(signer: Signer | SnapSigner, location?: string): Promise<Store> {
     if (location) {
-      return DurableStore.newDurableStore(hex2Bytes(pk), location);
+      return DurableStore.newDurableStore(signer, location);
     }
-    return new MemStore(hex2Bytes(pk));
+
+    return MemStore.newMemStore(signer);
   }
 
   static async clearClientStorage(): Promise<boolean> {
