@@ -343,11 +343,22 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
     export ERIN_ADDRESS=0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01
     ```
 
+* Create a JSON file (`additional-peers.json`) with the following contents (go-nitro client Erin's peer info) for further usage:
+
+  ```json
+  [
+    {
+      "address": "0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01",
+      "multiaddr": "/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmF7aWvcJoAWWE5LqRoxnZJUBbeKmtWrb2EN7VZgH9hXVH"
+    }
+  ]
+  ```
+
 * Run client for Alice (`0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE`) and pass in Erin's address as a counterparty to create the ledger channel with:
 
   ```bash
   # In packages/server
-  yarn cli --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --direct-fund --counterparty $ERIN_ADDRESS --amount 1000000 --cp-multiaddr '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmF7aWvcJoAWWE5LqRoxnZJUBbeKmtWrb2EN7VZgH9hXVH'
+  yarn cli --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --direct-fund --counterparty $ERIN_ADDRESS --amount 1000000 --additional-peers ./additional-peers.json
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -367,7 +378,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Run command to get ledger channel information
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-ledger-channel --ledger-channel $LEDGER_CHANNEL_ID --counterparty $ERIN_ADDRESS --amount 1000000 --cp-multiaddr '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmF7aWvcJoAWWE5LqRoxnZJUBbeKmtWrb2EN7VZgH9hXVH'
+  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-ledger-channel --ledger-channel $LEDGER_CHANNEL_ID --counterparty $ERIN_ADDRESS --amount 1000000 --additional-peers ./additional-peers.json
 
   # Expected output:
   # ts-nitro:server Ledger channel 0xb18b4a179496b698d1adef6c6a57a8debf75c1000ed69154615a5a4904036e4d status:
@@ -387,7 +398,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Run client for Alice again to create virtual payment channel:
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-fund --counterparty $ERIN_ADDRESS --amount 1000 --cp-multiaddr '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmF7aWvcJoAWWE5LqRoxnZJUBbeKmtWrb2EN7VZgH9hXVH'
+  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-fund --counterparty $ERIN_ADDRESS --amount 1000 --additional-peers ./additional-peers.json
 
   # Final Expected output:
   # ts-nitro:engine Objective VirtualFund-0x033d8dcf8a34333cf7807082c03cb940241a3a115a7fa44e47de2c9ec7e5e992 is complete & returned to API +1ms
@@ -404,7 +415,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Run command to get payment channel information
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID  --counterparty $ERIN_ADDRESS --cp-multiaddr '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmF7aWvcJoAWWE5LqRoxnZJUBbeKmtWrb2EN7VZgH9hXVH'
+  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID  --counterparty $ERIN_ADDRESS --additional-peers ./additional-peers.json
 
   # Expected output:
   # ts-nitro:server Virtual payment channel 0x033d8dcf8a34333cf7807082c03cb940241a3a115a7fa44e47de2c9ec7e5e992 status:
@@ -424,7 +435,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Run client for Alice to make payment:
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --pay --amount 50 --payment-channel $PAYMENT_CHANNEL_ID --wait  --counterparty $ERIN_ADDRESS --cp-multiaddr '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmF7aWvcJoAWWE5LqRoxnZJUBbeKmtWrb2EN7VZgH9hXVH'
+  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --pay --amount 50 --payment-channel $PAYMENT_CHANNEL_ID --wait  --counterparty $ERIN_ADDRESS --additional-peers ./additional-peers.json
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -437,13 +448,13 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Check status of payment channel after making payments
 
     ```bash
-    yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID  --counterparty $ERIN_ADDRESS --cp-multiaddr '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmF7aWvcJoAWWE5LqRoxnZJUBbeKmtWrb2EN7VZgH9hXVH'
+    yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID  --counterparty $ERIN_ADDRESS --additional-peers ./additional-peers.json
     ```
 
 * Close virtual payment channel using client Alice
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-defund --payment-channel $PAYMENT_CHANNEL_ID  --counterparty $ERIN_ADDRESS --cp-multiaddr '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmF7aWvcJoAWWE5LqRoxnZJUBbeKmtWrb2EN7VZgH9hXVH'
+  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-defund --payment-channel $PAYMENT_CHANNEL_ID  --counterparty $ERIN_ADDRESS --additional-peers ./additional-peers.json
 
   # Final Expected output:
   # ts-nitro:engine Objective VirtualDefund-0x033d8dcf8a34333cf7807082c03cb940241a3a115a7fa44e47de2c9ec7e5e992 is complete & returned to API +1ms

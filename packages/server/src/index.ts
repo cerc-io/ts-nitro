@@ -133,6 +133,7 @@ const main = async () => {
   const argv = getArgv();
   assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
   const signer = new utils.KeySigner(argv.pk);
+  await signer.init();
 
   let store: Store;
   if (argv.store) {
