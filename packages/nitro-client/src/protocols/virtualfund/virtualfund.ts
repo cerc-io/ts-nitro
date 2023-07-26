@@ -6,7 +6,7 @@ import { Buffer } from 'buffer';
 import Channel from '@cerc-io/ts-channel';
 import type { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
-  FieldDescription, JSONbigNative, Uint, Uint64, fromJSON, toJSON,
+  FieldDescription, JSONbigNative, NitroSigner, Uint, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
@@ -658,7 +658,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
+  async crank(signer: NitroSigner): Promise<[Objective, SideEffects, WaitingFor]> {
     const updated = this.clone();
 
     const sideEffects = new SideEffects({});
@@ -670,7 +670,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     // Prefunding
 
     if (!updated.v!.preFundSignedByMe()) {
-      const ss = updated.v!.signAndAddPrefund(secretKey);
+      const ss = await updated.v!.signAndAddPrefund(signer);
       const messages = Message.createObjectivePayloadMessage(this.id(), ss, SignedStatePayload, ...this.otherParticipants());
       sideEffects.messagesToSend.push(...messages);
     }
@@ -684,7 +684,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     if (!updated.isAlice() && !updated.toMyLeft!.isFundingTheTarget()) {
       let ledgerSideEffects: SideEffects;
       try {
-        ledgerSideEffects = updated.updateLedgerWithGuarantee(updated.toMyLeft!, secretKey);
+        ledgerSideEffects = await updated.updateLedgerWithGuarantee(updated.toMyLeft!, signer);
       } catch (err) {
         throw new Error(`error updating ledger funding: ${err}`);
       }
@@ -694,7 +694,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     if (!updated.isBob() && !updated.toMyRight!.isFundingTheTarget()) {
       let ledgerSideEffects: SideEffects;
       try {
-        ledgerSideEffects = updated.updateLedgerWithGuarantee(updated.toMyRight!, secretKey);
+        ledgerSideEffects = await updated.updateLedgerWithGuarantee(updated.toMyRight!, signer);
       } catch (err) {
         throw new Error(`error updating ledger funding: ${err}`);
       }
@@ -707,7 +707,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     // Postfunding
     if (!updated.v!.postFundSignedByMe()) {
-      const ss = updated.v!.signAndAddPostfund(secretKey);
+      const ss = await updated.v!.signAndAddPostfund(signer);
       const messages = Message.createObjectivePayloadMessage(this.id(), ss, SignedStatePayload, ...this.otherParticipants());
       sideEffects.messagesToSend.push(...messages);
     }
@@ -796,7 +796,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // proposeLedgerUpdate will propose a ledger update to the channel by crafting a new state
-  private proposeLedgerUpdate(connection: Connection, sk: Buffer): SideEffects {
+  private async proposeLedgerUpdate(connection: Connection, signer: NitroSigner): Promise<SideEffects> {
     const ledger = connection.channel!;
 
     if (!ledger.isLeader()) {
@@ -805,7 +805,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
     const sideEffects = new SideEffects({});
 
-    ledger.propose(connection.expectedProposal(), sk);
+    await ledger.propose(connection.expectedProposal(), signer);
 
     const receipient = ledger.follower();
 
@@ -819,11 +819,11 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // acceptLedgerUpdate checks for a ledger state proposal and accepts that proposal if it satisfies the expected guarantee.
-  private acceptLedgerUpdate(c: Connection, sk: Buffer): SideEffects {
+  private async acceptLedgerUpdate(c: Connection, signer: NitroSigner): Promise<SideEffects> {
     const ledger = c.channel!;
     let sp: SignedProposal;
     try {
-      sp = ledger.signNextProposal(c.expectedProposal(), sk);
+      sp = await ledger.signNextProposal(c.expectedProposal(), signer);
     } catch (err) {
       throw new Error(`no proposed state found for ledger channel ${err}`);
     }
@@ -843,7 +843,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
   }
 
   // updateLedgerWithGuarantee updates the ledger channel funding to include the guarantee.
-  private updateLedgerWithGuarantee(ledgerConnection: Connection, sk: Buffer): SideEffects {
+  private async updateLedgerWithGuarantee(ledgerConnection: Connection, signer: NitroSigner): Promise<SideEffects> {
     const ledger = ledgerConnection.channel!;
 
     let sideEffects: SideEffects = new SideEffects({});
@@ -856,7 +856,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       }
       let se: SideEffects;
       try {
-        se = this.proposeLedgerUpdate(ledgerConnection, sk);
+        se = await this.proposeLedgerUpdate(ledgerConnection, signer);
       } catch (err) {
         throw new Error(`error proposing ledger update: ${err}`);
       }
@@ -867,7 +867,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       if (proposedNext) {
         let se: SideEffects;
         try {
-          se = this.acceptLedgerUpdate(ledgerConnection, sk);
+          se = await this.acceptLedgerUpdate(ledgerConnection, signer);
         } catch (err) {
           throw new Error(`error proposing ledger update: ${err}`);
         }

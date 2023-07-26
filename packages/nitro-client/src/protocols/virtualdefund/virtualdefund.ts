@@ -6,6 +6,7 @@ import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
   FieldDescription,
   JSONbigNative,
+  NitroSigner,
   Uint,
   Uint64,
   fromJSON,
@@ -519,7 +520,7 @@ export class Objective implements ObjectiveInterface {
 
   // Crank inspects the extended state and declares a list of Effects to be executed.
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
+  async crank(signer: NitroSigner): Promise<[Objective, SideEffects, WaitingFor]> {
     const updated = this.clone();
     const sideEffects = new SideEffects({});
 
@@ -549,7 +550,7 @@ export class Objective implements ObjectiveInterface {
       // Sign and store:
       let ss: SignedState;
       try {
-        ss = updated.v!.signAndAddState(s, secretKey);
+        ss = await updated.v!.signAndAddState(s, signer);
       } catch (err) {
         throw new Error(`could not sign final state: ${err}`);
       }
@@ -570,7 +571,7 @@ export class Objective implements ObjectiveInterface {
     if (!updated.isAlice() && !updated.leftHasDefunded()) {
       let ledggerSideEffects: SideEffects;
       try {
-        ledggerSideEffects = updated.updateLedgerToRemoveGuarantee(updated.toMyLeft!, secretKey);
+        ledggerSideEffects = await updated.updateLedgerToRemoveGuarantee(updated.toMyLeft!, signer);
       } catch (err) {
         throw new Error(`error updating ledger funding: ${err}`);
       }
@@ -580,7 +581,7 @@ export class Objective implements ObjectiveInterface {
     if (!updated.isBob() && !updated.rightHasDefunded()) {
       let ledgerSideEffects: SideEffects;
       try {
-        ledgerSideEffects = updated.updateLedgerToRemoveGuarantee(updated.toMyRight!, secretKey);
+        ledgerSideEffects = await updated.updateLedgerToRemoveGuarantee(updated.toMyRight!, signer);
       } catch (err) {
         throw new Error(`error updating ledger funding: ${err}`);
       }
@@ -617,7 +618,7 @@ export class Objective implements ObjectiveInterface {
   }
 
   // updateLedgerToRemoveGuarantee updates the ledger channel to remove the guarantee that funds V.
-  private updateLedgerToRemoveGuarantee(ledger: ConsensusChannel, sk: Buffer): SideEffects {
+  private async updateLedgerToRemoveGuarantee(ledger: ConsensusChannel, signer: NitroSigner): Promise<SideEffects> {
     const sideEffects: SideEffects = new SideEffects({});
 
     const proposed = ledger.hasRemovalBeenProposed(this.vId());
@@ -628,7 +629,7 @@ export class Objective implements ObjectiveInterface {
       }
 
       try {
-        ledger.propose(this.ledgerProposal(ledger), sk);
+        await ledger.propose(this.ledgerProposal(ledger), signer);
       } catch (err) {
         throw new Error(`error proposing ledger update: ${err}`);
       }
@@ -646,7 +647,7 @@ export class Objective implements ObjectiveInterface {
       if (proposedNext) {
         let sp: SignedProposal;
         try {
-          sp = ledger.signNextProposal(this.ledgerProposal(ledger), sk);
+          sp = await ledger.signNextProposal(this.ledgerProposal(ledger), signer);
         } catch (err) {
           throw new Error(`could not sign proposal: ${err}`);
         }

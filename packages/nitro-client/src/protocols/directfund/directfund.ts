@@ -6,7 +6,7 @@ import _ from 'lodash';
 import Channel from '@cerc-io/ts-channel';
 import type { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
-  FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON,
+  FieldDescription, JSONbigNative, NitroSigner, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Exit } from '../../channel/state/outcome/exit';
@@ -400,7 +400,7 @@ export class Objective implements ObjectiveInterface {
    * (computed from the extended state) rather than being independent of the extended state;
    * and where there is only one type of event ("the crank") with no data on it at all.
    */
-  crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
+  async crank(signer: NitroSigner): Promise<[Objective, SideEffects, WaitingFor]> {
     const updated = this.clone();
     const sideEffects = new SideEffects({});
 
@@ -414,7 +414,7 @@ export class Objective implements ObjectiveInterface {
     if (!updated.c.preFundSignedByMe()) {
       let ss: SignedState;
       try {
-        ss = updated.c.signAndAddPrefund(secretKey);
+        ss = await updated.c.signAndAddPrefund(signer);
       } catch (err) {
         throw new Error(`could not sign prefund ${err}`);
       }
@@ -456,7 +456,7 @@ export class Objective implements ObjectiveInterface {
     if (!updated.c.postFundSignedByMe()) {
       let ss: SignedState;
       try {
-        ss = updated.c.signAndAddPostfund(secretKey);
+        ss = await updated.c.signAndAddPostfund(signer);
       } catch (err) {
         throw new Error(`could not sign postfund ${err}`);
       }

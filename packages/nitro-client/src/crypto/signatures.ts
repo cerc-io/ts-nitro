@@ -2,8 +2,9 @@ import { ethers } from 'ethers';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 
-import { FieldDescription, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
-import { signData as utilSignData } from '@statechannels/nitro-protocol/dist/src/signatures';
+import {
+  FieldDescription, NitroSigner, bytes2Hex, hex2Bytes,
+} from '@cerc-io/nitro-util';
 
 // Signature is an ECDSA signature
 export type Signature = {
@@ -35,8 +36,9 @@ const computeEthereumSignedMessageDigest = (message: Buffer): Buffer => {
 // of the hash using the provided secret key. The known message added to the input before hashing is
 // "\x19Ethereum Signed Message:\n" + len(message).
 // See https://github.com/ethereum/go-ethereum/pull/2940 and EIPs 191, 721.
-export const signEthereumMessage = (message: Buffer, secretKey: Buffer): Signature => {
-  const sig = utilSignData(message.toString(), `0x${bytes2Hex(secretKey)}`);
+export const signEthereumMessage = async (message: Buffer, signer: NitroSigner): Promise<Signature> => {
+  const concatenatedSignature = await signer.signMessage(message);
+  const sig = ethers.utils.splitSignature(concatenatedSignature);
 
   /* eslint-disable @typescript-eslint/no-use-before-define */
   return getSignatureFromEthersSignature(sig);

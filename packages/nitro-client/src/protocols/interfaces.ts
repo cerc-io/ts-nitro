@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer';
 
+import { NitroSigner } from '@cerc-io/nitro-util';
 import { Message, ObjectiveId, ObjectivePayload } from './messages';
 import { Proposal, SignedProposal } from '../channel/consensus-channel/consensus-channel';
 import { Address } from '../types/types';
@@ -119,7 +120,7 @@ export interface Objective extends Storable {
   update (payload: ObjectivePayload): Objective
 
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  crank (secretKey: Buffer): [Objective, SideEffects, WaitingFor]
+  crank (signer: NitroSigner): Promise<[Objective, SideEffects, WaitingFor]>
 
   // Related returns a slice of related objects that need to be stored along with the objective
   related (): Storable[]

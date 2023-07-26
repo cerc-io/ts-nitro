@@ -3,7 +3,7 @@ import _ from 'lodash';
 import { Buffer } from 'buffer';
 
 import {
-  fromJSON, toJSON, FieldDescription, Uint, Uint64,
+  fromJSON, toJSON, FieldDescription, Uint, Uint64, NitroSigner,
 } from '@cerc-io/nitro-util';
 
 import { Signature } from '../crypto/signatures';
@@ -295,20 +295,20 @@ export class Channel extends FixedPart {
   }
 
   // SignAndAddPrefund signs and adds the prefund state for the channel, returning a state.SignedState suitable for sending to peers.
-  signAndAddPrefund(sk: Buffer): SignedState {
-    return this.signAndAddState(this.preFundState(), sk);
+  async signAndAddPrefund(signer: NitroSigner): Promise<SignedState> {
+    return this.signAndAddState(this.preFundState(), signer);
   }
 
   // SignAndAddPrefund signs and adds the postfund state for the channel, returning a state.SignedState suitable for sending to peers.
-  signAndAddPostfund(sk: Buffer): SignedState {
-    return this.signAndAddState(this.postFundState(), sk);
+  async signAndAddPostfund(signer: NitroSigner): Promise<SignedState> {
+    return this.signAndAddState(this.postFundState(), signer);
   }
 
   // SignAndAddState signs and adds the state to the channel, returning a state.SignedState suitable for sending to peers.
-  signAndAddState(s: State, sk: Buffer): SignedState {
+  async signAndAddState(s: State, signer: NitroSigner): Promise<SignedState> {
     let sig: Signature;
     try {
-      sig = s.sign(sk);
+      sig = await s.sign(signer);
     } catch (err) {
       throw new Error(`Could not sign prefund ${err}`);
     }
