@@ -100,7 +100,9 @@ export class Nitro {
     return new Nitro(client, msgService, chainService);
   }
 
-  private static getStore(signer: NitroSigner, location?: string): Promise<Store> {
+  private static async getStore(signer: NitroSigner, location?: string): Promise<Store> {
+    await signer.init();
+
     if (location) {
       return DurableStore.newDurableStore(signer, location);
     }

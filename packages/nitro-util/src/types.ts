@@ -7,6 +7,7 @@ export type Uint = bigint;
 export type Uint64 = bigint;
 
 export interface NitroSigner {
+  init(): Promise<boolean>
   getAddress(): Promise<string>;
   signMessage(message: string): Promise<ethers.Signature>;
 }
