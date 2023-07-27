@@ -1188,10 +1188,10 @@
     wherearewe "^2.0.0"
     xsalsa20 "^1.1.0"
 
-"@cerc-io/peer@^0.2.46":
-  version "0.2.46"
-  resolved "https://git.vdb.to/api/packages/cerc-io/npm/%40cerc-io%2Fpeer/-/0.2.46/peer-0.2.46.tgz#b317b35f1e302d8edc660adafbb3d59fcacc2d2a"
-  integrity sha512-cd1/b+NlBNYE7H1Cec+Re6RIa1kV0PXt8Ac5oU+uOFHVkKyWqV0MwwdsswkQ4cfkdJ0dgvHmZca7Zqbeu680uA==
+"@cerc-io/peer@^0.2.49":
+  version "0.2.49"
+  resolved "https://git.vdb.to/api/packages/cerc-io/npm/%40cerc-io%2Fpeer/-/0.2.49/peer-0.2.49.tgz#14868f3b40e1ba820c2a3cf9827a7338efc8fec4"
+  integrity sha512-fe+Iz+ClM6mU8TxxgLRR5XXOZrvskykFPjTtNddU/L9ErZ5PFCVYP5to1HwYSD/l0/shHOuPYU24KPweMffzug==
   dependencies:
     "@cerc-io/libp2p" "0.42.2-laconic-0.1.3"
     "@cerc-io/prometheus-metrics" "1.1.4"
