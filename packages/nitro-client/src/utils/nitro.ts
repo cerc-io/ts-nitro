@@ -1,5 +1,5 @@
 import debug from 'debug';
-import { Signer, Wallet, providers } from 'ethers';
+import { providers } from 'ethers';
 
 // @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
@@ -17,7 +17,8 @@ import { EthChainService } from '../client/engine/chainservice/eth-chainservice'
 import { createOutcome, setupClient, subscribeVoucherLogs } from './helpers';
 import { ChainService } from '../client/engine/chainservice/chainservice';
 import { Voucher } from '../payments/vouchers';
-import { KeySigner } from './key-signer';
+import { KeySigner } from './signers/key-signer';
+import { SnapSigner } from './signers/snap-signer';
 
 const log = debug('ts-nitro:util:nitro');
 
@@ -72,14 +73,13 @@ export class Nitro {
   }
 
   static async setupClientWithProvider(
-    pk: string,
-    provider: providers.JsonRpcProvider,
+    provider: providers.Web3Provider,
+    snapOrigin: string,
     contractAddresses: { [key: string]: string },
     peer: Peer,
     location?: string,
   ): Promise<Nitro> {
-    // TODO: Create SnapSigner and use provider (with access to snap)
-    const keySigner = new KeySigner(pk);
+    const keySigner = new SnapSigner(provider, snapOrigin);
     const store = await this.getStore(keySigner, location);
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 

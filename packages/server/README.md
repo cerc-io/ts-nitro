@@ -477,7 +477,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Close the ledger channel using client Alice
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --direct-defund --ledger-channel $LEDGER_CHANNEL_ID --get-ledger-channel --counterparty $ERIN_ADDRESS --cp-multiaddr '/ip4/127.0.0.1/tcp/5006/ws/p2p/16Uiu2HAmF7aWvcJoAWWE5LqRoxnZJUBbeKmtWrb2EN7VZgH9hXVH'
+  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --direct-defund --ledger-channel $LEDGER_CHANNEL_ID --get-ledger-channel --counterparty $ERIN_ADDRESS --additional-peers ./additional-peers.json
 
   # Final Expected output:
   # ts-nitro:engine Objective DirectDefunding-0xb18b4a179496b698d1adef6c6a57a8debf75c1000ed69154615a5a4904036e4d is complete & returned to API +1ms
