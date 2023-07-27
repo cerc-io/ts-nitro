@@ -32,14 +32,18 @@ export class Nitro {
 
   chainService: ChainService;
 
+  nitroSigner: NitroSigner;
+
   constructor(
     client: Client,
     msgService: P2PMessageService,
     chainService: ChainService,
+    nitroSigner: NitroSigner,
   ) {
     this.client = client;
     this.msgService = msgService;
     this.chainService = chainService;
+    this.nitroSigner = nitroSigner;
   }
 
   static async setupClient(
@@ -69,7 +73,7 @@ export class Nitro {
     );
 
     subscribeVoucherLogs(client);
-    return new Nitro(client, msgService, chainService);
+    return new Nitro(client, msgService, chainService, keySigner);
   }
 
   static async setupClientWithProvider(
@@ -79,8 +83,8 @@ export class Nitro {
     peer: Peer,
     location?: string,
   ): Promise<Nitro> {
-    const keySigner = new SnapSigner(provider, snapOrigin);
-    const store = await this.getStore(keySigner, location);
+    const snapSigner = new SnapSigner(provider, snapOrigin);
+    const store = await this.getStore(snapSigner, location);
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
     const chainService = await EthChainService.newEthChainServiceWithProvider(
@@ -97,7 +101,7 @@ export class Nitro {
     );
 
     subscribeVoucherLogs(client);
-    return new Nitro(client, msgService, chainService);
+    return new Nitro(client, msgService, chainService, snapSigner);
   }
 
   private static async getStore(signer: NitroSigner, location?: string): Promise<Store> {
