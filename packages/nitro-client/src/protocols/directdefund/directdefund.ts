@@ -6,7 +6,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
-  FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON,
+  FieldDescription, JSONbigNative, NitroSigner, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
@@ -302,7 +302,7 @@ export class Objective implements ObjectiveInterface {
   }
 
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
-  crank(secretKey: Buffer): [Objective, SideEffects, WaitingFor] {
+  async crank(signer: NitroSigner): Promise<[Objective, SideEffects, WaitingFor]> {
     const updated = this.clone();
 
     const sideEffects = new SideEffects({});
@@ -328,7 +328,7 @@ export class Objective implements ObjectiveInterface {
 
       let ss: SignedState;
       try {
-        ss = updated.c!.signAndAddState(stateToSign, secretKey);
+        ss = await updated.c!.signAndAddState(stateToSign, signer);
       } catch (err) {
         throw new Error(`could not sign final state ${err}`);
       }

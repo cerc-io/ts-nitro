@@ -4,7 +4,7 @@ import { Buffer } from 'buffer';
 import { Level } from 'level';
 import type { AbstractSublevel, AbstractSublevelOptions } from 'abstract-level';
 
-import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
+import { JSONbigNative, NitroSigner } from '@cerc-io/nitro-util';
 
 import { ErrNoSuchChannel, ErrNoSuchObjective, Store } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
@@ -13,7 +13,6 @@ import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-c
 import { VoucherInfo } from '../../../payments/vouchers';
 import { ObjectiveId } from '../../../protocols/messages';
 import { Address } from '../../../types/types';
-import { getAddressFromSecretKeyBytes } from '../../../crypto/keys';
 import { Destination } from '../../../types/destination';
 import { contains, decodeObjective } from './memstore';
 import { VirtualChannel } from '../../../channel/virtual';
@@ -33,8 +32,8 @@ export class DurableStore implements Store {
 
   private vouchers?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
 
-  // the signing key of the store's engine
-  private key: string = '';
+  // the signer for the store's engine
+  private signer?: NitroSigner;
 
   // the (Ethereum) address associated to the signing key
   private address: string = '';
@@ -47,10 +46,10 @@ export class DurableStore implements Store {
   // NewDurableStore creates a new DurableStore that uses the given location to store its data
   // In NodeJS, location must be a directory path where LevelDB will store its files
   // In browsers, location is the name of the IDBDatabase to be opened.
-  static newDurableStore(key: Buffer, location: string): Store {
+  static async newDurableStore(signer: NitroSigner, location: string): Promise<Store> {
     const ps = new DurableStore();
-    ps.key = bytes2Hex(key);
-    ps.address = getAddressFromSecretKeyBytes(key);
+    ps.signer = signer;
+    ps.address = await signer.getAddress();
     ps.location = location;
 
     ps.db = new Level<string, Buffer>(location, { valueEncoding: 'buffer' });
@@ -87,9 +86,8 @@ export class DurableStore implements Store {
     return this.address;
   }
 
-  getChannelSecretKey(): Buffer {
-    const val = hex2Bytes(this.key);
-    return val;
+  getChannelSigner(): NitroSigner {
+    return this.signer!;
   }
 
   async getObjectiveById(id: ObjectiveId): Promise<Objective> {

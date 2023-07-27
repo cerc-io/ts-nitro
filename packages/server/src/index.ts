@@ -132,12 +132,14 @@ const getArgv = () => yargs.parserConfiguration({
 const main = async () => {
   const argv = getArgv();
   assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
+  const signer = new utils.KeySigner(argv.pk);
+  await signer.init();
 
   let store: Store;
   if (argv.store) {
-    store = DurableStore.newDurableStore(hex2Bytes(argv.pk), path.resolve(argv.store));
+    store = await DurableStore.newDurableStore(signer, path.resolve(argv.store));
   } else {
-    store = new MemStore(hex2Bytes(argv.pk));
+    store = await MemStore.newMemStore(signer);
   }
 
   const peerIdObj = await createPeerIdFromKey(hex2Bytes(argv.pk));

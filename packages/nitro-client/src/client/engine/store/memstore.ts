@@ -3,6 +3,7 @@ import _ from 'lodash';
 import { Buffer } from 'buffer';
 
 import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
+import type { NitroSigner } from '@cerc-io/nitro-util';
 
 import { ErrNoSuchChannel, ErrNoSuchObjective, Store } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
@@ -21,31 +22,34 @@ import { isVirtualFundObjective, Objective as VirtualFundObjective } from '../..
 import { isVirtualDefundObjective, Objective as VirtualDefundObjective } from '../../../protocols/virtualdefund/virtualdefund';
 
 export class MemStore implements Store {
-  objectives: SafeSyncMap<Buffer>;
+  objectives?: SafeSyncMap<Buffer>;
 
-  channels: SafeSyncMap<Buffer>;
+  channels?: SafeSyncMap<Buffer>;
 
-  consensusChannels: SafeSyncMap<Buffer>;
+  consensusChannels?: SafeSyncMap<Buffer>;
 
-  channelToObjective: SafeSyncMap<ObjectiveId>;
+  channelToObjective?: SafeSyncMap<ObjectiveId>;
 
-  vouchers: SafeSyncMap<Buffer>;
+  vouchers?: SafeSyncMap<Buffer>;
 
-  // the signing key of the store's engine
-  key: string;
+  // the signer for the store's engine
+  signer?: NitroSigner;
 
   // the (Ethereum) address associated to the signing key
-  address: string;
+  address: string = '';
 
-  constructor(key: Buffer) {
-    this.key = bytes2Hex(key);
-    this.address = getAddressFromSecretKeyBytes(key);
+  static async newMemStore(signer: NitroSigner): Promise<MemStore> {
+    const ms = new MemStore();
+    ms.signer = signer;
+    ms.address = await signer.getAddress();
 
-    this.objectives = new SafeSyncMap();
-    this.channels = new SafeSyncMap();
-    this.consensusChannels = new SafeSyncMap();
-    this.channelToObjective = new SafeSyncMap();
-    this.vouchers = new SafeSyncMap();
+    ms.objectives = new SafeSyncMap();
+    ms.channels = new SafeSyncMap();
+    ms.consensusChannels = new SafeSyncMap();
+    ms.channelToObjective = new SafeSyncMap();
+    ms.vouchers = new SafeSyncMap();
+
+    return ms;
   }
 
   // Since this is a memory store, there is nothing to close
@@ -55,14 +59,13 @@ export class MemStore implements Store {
     return this.address;
   }
 
-  getChannelSecretKey(): Buffer {
-    const val = hex2Bytes(this.key);
-    return val;
+  getChannelSigner(): NitroSigner {
+    return this.signer!;
   }
 
   getObjectiveById(id: ObjectiveId): Objective {
     // todo: locking
-    const [objJSON, ok] = this.objectives.load(id);
+    const [objJSON, ok] = this.objectives!.load(id);
 
     // return immediately if no such objective exists
     if (!ok) {
@@ -100,7 +103,7 @@ export class MemStore implements Store {
       throw new Error(`error setting objective ${obj.id()}: ${err}`);
     }
 
-    this.objectives.store(obj.id(), objJSON);
+    this.objectives!.store(obj.id(), objJSON);
 
     for (const rel of obj.related()) {
       switch (rel.constructor) {
@@ -143,11 +146,11 @@ export class MemStore implements Store {
     }
 
     // Objective ownership can only be transferred if the channel is not owned by another objective
-    const [prevOwner, isOwned] = this.channelToObjective.load(obj.ownsChannel().string());
+    const [prevOwner, isOwned] = this.channelToObjective!.load(obj.ownsChannel().string());
 
     if (obj.getStatus() === ObjectiveStatus.Approved) {
       if (!prevOwner) {
-        this.channelToObjective.store(obj.ownsChannel().string(), obj.id());
+        this.channelToObjective!.store(obj.ownsChannel().string(), obj.id());
       }
       if (isOwned && prevOwner !== obj.id()) {
         throw new Error(`cannot transfer ownership of channel from objective ${prevOwner} to ${obj.id()}`);
@@ -158,12 +161,12 @@ export class MemStore implements Store {
   public setChannel(ch: Channel): void {
     const chJSON = Buffer.from(JSONbigNative.stringify(ch), 'utf-8');
 
-    this.channels.store(ch.id.string(), chJSON);
+    this.channels!.store(ch.id.string(), chJSON);
   }
 
   // destroyChannel deletes the channel with id id.
   destroyChannel(id: Destination): void {
-    this.channels.delete(id.string());
+    this.channels!.delete(id.string());
   }
 
   // SetConsensusChannel sets the channel in the store.
@@ -174,12 +177,12 @@ export class MemStore implements Store {
 
     const chJSON = Buffer.from(JSONbigNative.stringify(ch), 'utf-8');
 
-    this.consensusChannels.store(ch.id.string(), chJSON);
+    this.consensusChannels!.store(ch.id.string(), chJSON);
   }
 
   // DestroyChannel deletes the channel with id id.
   destroyConsensusChannel(id: Destination): void {
-    this.consensusChannels.delete(id.string());
+    this.consensusChannels!.delete(id.string());
   }
 
   getChannelById(id: Destination): [Channel, boolean] {
@@ -193,7 +196,7 @@ export class MemStore implements Store {
   }
 
   private _getChannelById(id: Destination): Channel {
-    const [chJSON, ok] = this.channels.load(id.string());
+    const [chJSON, ok] = this.channels!.load(id.string());
 
     if (!ok) {
       throw ErrNoSuchChannel;
@@ -214,7 +217,7 @@ export class MemStore implements Store {
 
     let err: Error;
 
-    this.channels.range((key: string, chJSON: Buffer): boolean => {
+    this.channels!.range((key: string, chJSON: Buffer): boolean => {
       let ch: Channel;
       try {
         ch = Channel.fromJSON(chJSON.toString());
@@ -248,7 +251,7 @@ export class MemStore implements Store {
     const toReturn: Channel[] = [];
     let err: Error;
 
-    this.channels.range((key: string, chJSON: Buffer): boolean => {
+    this.channels!.range((key: string, chJSON: Buffer): boolean => {
       let ch: Channel;
 
       try {
@@ -274,7 +277,7 @@ export class MemStore implements Store {
   getChannelsByParticipant(participant: Address): Channel[] {
     const toReturn: Channel[] = [];
 
-    this.channels.range((key: string, chJSON: Buffer) => {
+    this.channels!.range((key: string, chJSON: Buffer) => {
       let ch: Channel;
       try {
         ch = Channel.fromJSON(chJSON.toString());
@@ -296,7 +299,7 @@ export class MemStore implements Store {
 
   // GetConsensusChannelById returns a ConsensusChannel with the given channel id
   getConsensusChannelById(id: Destination): ConsensusChannel {
-    const [chJSON, ok] = this.consensusChannels.load(id.string());
+    const [chJSON, ok] = this.consensusChannels!.load(id.string());
 
     if (!ok) {
       throw ErrNoSuchChannel;
@@ -319,7 +322,7 @@ export class MemStore implements Store {
     let channel: ConsensusChannel | undefined;
     let ok = false;
 
-    this.consensusChannels.range((key: string, chJSON: Buffer): boolean => {
+    this.consensusChannels!.range((key: string, chJSON: Buffer): boolean => {
       let ch = new ConsensusChannel({});
       try {
         ch = ConsensusChannel.fromJSON(chJSON.toString());
@@ -346,7 +349,7 @@ export class MemStore implements Store {
     const toReturn: ConsensusChannel[] = [];
     let err: Error;
 
-    this.consensusChannels.range((key: string, chJSON: Buffer): boolean => {
+    this.consensusChannels!.range((key: string, chJSON: Buffer): boolean => {
       let ch: ConsensusChannel;
 
       try {
@@ -368,7 +371,7 @@ export class MemStore implements Store {
 
   getObjectiveByChannelId(channelId: Destination): [Objective | undefined, boolean] {
     // todo: locking
-    const [id, found] = this.channelToObjective.load(channelId.string());
+    const [id, found] = this.channelToObjective!.load(channelId.string());
     if (!found) {
       return [undefined, false];
     }
@@ -511,17 +514,17 @@ export class MemStore implements Store {
   }
 
   releaseChannelFromOwnership(channelId: Destination): void {
-    this.channelToObjective.delete(channelId.string());
+    this.channelToObjective!.delete(channelId.string());
   }
 
   setVoucherInfo(channelId: Destination, v: VoucherInfo): void {
     const jsonData = Buffer.from(JSONbigNative.stringify(v));
 
-    this.vouchers.store(channelId.string(), jsonData);
+    this.vouchers!.store(channelId.string(), jsonData);
   }
 
   getVoucherInfo(channelId: Destination): [VoucherInfo | undefined, boolean] {
-    const [data, ok] = this.vouchers.load(channelId.string());
+    const [data, ok] = this.vouchers!.load(channelId.string());
     if (!ok) {
       return [undefined, false];
     }
@@ -537,7 +540,7 @@ export class MemStore implements Store {
   }
 
   removeVoucherInfo(channelId: Destination): void {
-    this.vouchers.delete(channelId.string());
+    this.vouchers!.delete(channelId.string());
   }
 }
 

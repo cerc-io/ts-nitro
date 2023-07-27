@@ -736,7 +736,7 @@ export class Engine {
     const cId = request.channelId;
     let voucher: Voucher;
     try {
-      voucher = await this.vm!.pay(cId, request.amount, this.store!.getChannelSecretKey());
+      voucher = await this.vm!.pay(cId, request.amount, this.store!.getChannelSigner());
     } catch (err) {
       throw new Error(`handleAPIEvent: Error making payment: ${err}`);
     }
@@ -840,17 +840,9 @@ export class Engine {
       const outgoing = new EngineEvent();
 
       assert(this.store);
-      const secretKey = this.store.getChannelSecretKey();
+      const signer = this.store.getChannelSigner();
 
-      let crankedObjective: Objective;
-      let sideEffects: SideEffects;
-      let waitingFor: WaitingFor;
-
-      try {
-        [crankedObjective, sideEffects, waitingFor] = objective.crank(secretKey);
-      } catch (err) {
-        return outgoing;
-      }
+      const [crankedObjective, sideEffects, waitingFor] = await objective.crank(signer);
 
       await this.store.setObjective(crankedObjective);
 

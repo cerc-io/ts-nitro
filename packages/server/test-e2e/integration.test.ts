@@ -51,7 +51,9 @@ const INITIAL_VIRTUAL_CHANNEL_AMOUNT = 1_000_000;
 const ASSET = `0x${'00'.repeat(20)}`;
 
 async function createClient(actor: utils.Actor, contractAddresses: ContractAddresses): Promise<[Client, P2PMessageService, Metrics]> {
-  const clientStore = new MemStore(hex2Bytes(actor.privateKey));
+  const signer = new utils.KeySigner(actor.privateKey);
+  await signer.init();
+  const clientStore = await MemStore.newMemStore(signer);
 
   const clientPeerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
   const clientPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR!, {}, clientPeerIdObj);
@@ -321,6 +323,7 @@ describe('test payment flows', () => {
     it('should conduct multiple payments', async () => {
       // First payment: Pay 50 from Alice to Bob
       await aliceClient.pay(virtualPaymentChannel.channelId, BigInt(50));
+      await aliceClient.sentVouchers().shift();
       await checkVirtualChannel(
         aliceClient,
         bobClient,
@@ -332,6 +335,7 @@ describe('test payment flows', () => {
 
       // Second payment: Pay 100 from Alice to Bob
       await aliceClient.pay(virtualPaymentChannel.channelId, BigInt(100));
+      await aliceClient.sentVouchers().shift();
       await checkVirtualChannel(
         aliceClient,
         bobClient,
@@ -530,6 +534,7 @@ describe('test payment flows', () => {
 
     it('should conduct multiple payments', async () => {
       await aliceClient.pay(virtualPaymentChannelAliceCharlie.channelId, BigInt(50));
+      await aliceClient.sentVouchers().shift();
       await checkVirtualChannel(
         aliceClient,
         charlieClient,
@@ -540,6 +545,7 @@ describe('test payment flows', () => {
       );
 
       await aliceClient.pay(virtualPaymentChannelAliceCharlie.channelId, BigInt(100));
+      await aliceClient.sentVouchers().shift();
       await checkVirtualChannel(
         aliceClient,
         charlieClient,

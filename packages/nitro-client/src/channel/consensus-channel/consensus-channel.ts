@@ -6,7 +6,7 @@ import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
 
 import {
-  FieldDescription, Uint, Uint64, fromJSON, toJSON, zeroValueSignature,
+  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
 import { Bytes32 } from '@statechannels/nitro-protocol';
 
@@ -1146,14 +1146,15 @@ export class ConsensusChannel {
 
   // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
   // values. It signs the resulting state using sk.
-  private sign(vars: Vars, sk: Buffer): Signature {
-    const signer = getAddressFromSecretKeyBytes(sk);
-    if (this.fp.participants![Number(this.myIndex)] !== signer) {
+  private async sign(vars: Vars, signer: NitroSigner): Promise<Signature> {
+    const signerAddress = await signer.getAddress();
+
+    if (this.fp.participants![Number(this.myIndex)] !== signerAddress) {
       throw new Error(`attempting to sign from wrong address: ${signer}`);
     }
 
     const state = vars.asState(this.fp);
-    return state.sign(sk);
+    return state.sign(signer);
   }
 
   // recoverSigner returns the signer of the vars using the given signature.
@@ -1306,7 +1307,7 @@ export class ConsensusChannel {
   // Propose is called by the Leader and receives a proposal to add or remove a guarantee,
   // and generates and stores a SignedProposal in the queue, returning the
   // resulting SignedProposal
-  propose(proposal: Proposal, sk: Buffer): SignedProposal {
+  async propose(proposal: Proposal, signer: NitroSigner): Promise<SignedProposal> {
     if (this.myIndex !== Leader) {
       throw ErrNotLeader;
     }
@@ -1330,7 +1331,7 @@ export class ConsensusChannel {
 
     let signature: Signature;
     try {
-      signature = this.sign(vars, sk);
+      signature = await this.sign(vars, signer);
     } catch (err) {
       throw new Error(`unable to sign state update: ${err}`);
     }
@@ -1401,7 +1402,7 @@ export class ConsensusChannel {
   // SignNextProposal is called by the follower and inspects whether the
   // expected proposal matches the first proposal in the queue. If so,
   // the proposal is removed from the queue and integrated into the channel state.
-  signNextProposal(expectedProposal: Proposal, sk: Buffer): SignedProposal {
+  async signNextProposal(expectedProposal: Proposal, signer: NitroSigner): Promise<SignedProposal> {
     if (this.myIndex !== Follower) {
       throw ErrNotFollower;
     }
@@ -1425,7 +1426,7 @@ export class ConsensusChannel {
 
     let signature: Signature;
     try {
-      signature = this.sign(vars, sk);
+      signature = await this.sign(vars, signer);
     } catch (err) {
       throw new Error(`unable to sign state update: ${err}`);
     }

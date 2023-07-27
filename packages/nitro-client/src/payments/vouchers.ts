@@ -14,7 +14,7 @@ import { Buffer } from 'buffer';
 
 import { Bytes32, Voucher as NitroVoucher } from '@statechannels/nitro-protocol';
 import {
-  FieldDescription, fromJSON, hex2Bytes, toJSON, zeroValueSignature,
+  FieldDescription, NitroSigner, fromJSON, hex2Bytes, toJSON, zeroValueSignature,
 } from '@cerc-io/nitro-util';
 
 import { Signature } from '../channel/state/state';
@@ -76,9 +76,9 @@ export class Voucher {
     return ethers.utils.keccak256(encoded);
   }
 
-  sign(pk: Buffer): void {
+  async sign(signer: NitroSigner): Promise<void> {
     const hash = this.hash();
-    const sig = nc.signEthereumMessage(Buffer.from(hash), pk);
+    const sig = await nc.signEthereumMessage(Buffer.from(hash), signer);
 
     this.signature = sig;
   }

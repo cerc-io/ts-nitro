@@ -9,7 +9,7 @@ import {
   hashState as utilHashState,
 } from '@statechannels/nitro-protocol';
 import {
-  FieldDescription, Uint64, bytes2Hex, fromJSON, hex2Bytes, toJSON,
+  FieldDescription, NitroSigner, Uint64, bytes2Hex, fromJSON, hex2Bytes, toJSON,
 } from '@cerc-io/nitro-util';
 
 import * as nc from '../../crypto/signatures';
@@ -200,9 +200,9 @@ export class State {
   // Sign generates an ECDSA signature on the state using the supplied private key
   // The state hash is prepended with \x19Ethereum Signed Message:\n32 and then rehashed
   // to create a digest to sign
-  sign(secretKey: Buffer): Signature {
+  async sign(signer: NitroSigner): Promise<Signature> {
     const hash = this.hash();
-    return nc.signEthereumMessage(Buffer.from(hash), secretKey);
+    return nc.signEthereumMessage(Buffer.from(hash), signer);
   }
 
   // RecoverSigner computes the Ethereum address which generated Signature sig on State state

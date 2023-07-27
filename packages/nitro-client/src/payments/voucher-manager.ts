@@ -1,6 +1,7 @@
 import assert from 'assert';
-import { Buffer } from 'buffer';
 import _ from 'lodash';
+
+import { NitroSigner } from '@cerc-io/nitro-util';
 
 import { Destination } from '../types/destination';
 import { Address } from '../types/types';
@@ -59,7 +60,7 @@ export class VoucherManager {
 
   // Pay will deduct amount from balance and add it to paid, returning a signed voucher for the
   // total amount paid.
-  async pay(channelId: Destination, amount: bigint | undefined, pk: Buffer): Promise<Voucher> {
+  async pay(channelId: Destination, amount: bigint | undefined, signer: NitroSigner): Promise<Voucher> {
     const [vInfo, ok] = await this.store.getVoucherInfo(channelId);
 
     if (!ok) {
@@ -82,7 +83,7 @@ export class VoucherManager {
     // Use cloneDeep and Go structs are assigned by value
     vInfo.largestVoucher = _.cloneDeep(voucher);
 
-    voucher.sign(pk);
+    await voucher.sign(signer);
 
     this.store.setVoucherInfo(channelId, vInfo);
 
