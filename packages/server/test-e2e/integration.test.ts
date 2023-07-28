@@ -4,8 +4,8 @@ import { expect } from 'chai';
 import { providers } from 'ethers';
 
 import {
-  Client, MemStore, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
-  ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse, EthChainService,
+  Client, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
+  ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse,
 } from '@cerc-io/nitro-client';
 import {
   hex2Bytes, DEFAULT_CHAIN_URL, getBalanceByKey, getBalanceByAddress, deployContracts,
@@ -27,7 +27,6 @@ import {
 } from './utils';
 
 const {
-  setupClient,
   createOutcome,
   ACTORS,
   createPeerIdFromKey,
@@ -51,36 +50,23 @@ const INITIAL_VIRTUAL_CHANNEL_AMOUNT = 1_000_000;
 const ASSET = `0x${'00'.repeat(20)}`;
 
 async function createClient(actor: utils.Actor, contractAddresses: ContractAddresses): Promise<[Client, P2PMessageService, Metrics]> {
-  const signer = new utils.KeySigner(actor.privateKey);
-  await signer.init();
-  const clientStore = await MemStore.newMemStore(signer);
-
   const clientPeerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
   const clientPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR!, {}, clientPeerIdObj);
-
-  const clientMsgService = await P2PMessageService.newMessageService(
-    clientStore.getAddress(),
-    clientPeer,
-  );
   const clientMetrics = new Metrics();
 
-  const chainService = await EthChainService.newEthChainService(
+  const nitro = await utils.Nitro.setupClient(
+    actor.privateKey,
     DEFAULT_CHAIN_URL,
-    ACTORS.alice.chainPrivateKey,
-    contractAddresses.nitroAdjudicatorAddress,
-    contractAddresses.consensusAppAddress,
-    contractAddresses.virtualPaymentAppAddress,
-  );
-
-  const client = await setupClient(
-    clientMsgService,
-    clientStore,
-    chainService,
+    actor.chainPrivateKey,
+    contractAddresses,
+    clientPeer,
+    undefined,
     clientMetrics,
   );
-  expect(client.address).to.equal(actor.address);
 
-  return [client, clientMsgService, clientMetrics];
+  expect(nitro.client.address).to.equal(actor.address);
+
+  return [nitro.client, nitro.msgService, clientMetrics];
 }
 
 async function setUpLedgerChannel(clientA: Client, clientB: Client): Promise<ObjectiveResponse> {

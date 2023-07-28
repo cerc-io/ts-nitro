@@ -19,6 +19,7 @@ import { ChainService } from '../client/engine/chainservice/chainservice';
 import { Voucher } from '../payments/vouchers';
 import { KeySigner } from './signers/key-signer';
 import { SnapSigner } from './signers/snap-signer';
+import { MetricsApi } from '../client/engine/metrics';
 
 const log = debug('ts-nitro:util:nitro');
 
@@ -53,6 +54,7 @@ export class Nitro {
     contractAddresses: { [key: string]: string },
     peer: Peer,
     location?: string,
+    metricsApi?: MetricsApi,
   ): Promise<Nitro> {
     const keySigner = new KeySigner(pk);
     const store = await this.getStore(keySigner, location);
@@ -70,6 +72,7 @@ export class Nitro {
       msgService,
       store,
       chainService,
+      metricsApi,
     );
 
     subscribeVoucherLogs(client);
@@ -82,6 +85,7 @@ export class Nitro {
     contractAddresses: { [key: string]: string },
     peer: Peer,
     location?: string,
+    metricsApi?: MetricsApi,
   ): Promise<Nitro> {
     const snapSigner = new SnapSigner(provider, snapOrigin);
     const store = await this.getStore(snapSigner, location);
@@ -98,6 +102,7 @@ export class Nitro {
       msgService,
       store,
       chainService,
+      metricsApi,
     );
 
     subscribeVoucherLogs(client);
