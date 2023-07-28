@@ -628,7 +628,7 @@ export class Engine {
               this.store.getConsensusChannel.bind(this.store),
             );
           } catch (err) {
-            throw new Error(`handleAPIEvent: Could not create objective for ${or}: ${err}`);
+            throw new Error(`handleAPIEvent: Could not create virtualfund objective for ${or}: ${err}`);
           }
           this.metrics!.recordObjectiveStarted(vfo.id());
 
@@ -655,7 +655,7 @@ export class Engine {
 
               minAmount = paid;
             } catch (err) {
-              throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(request)}: ${err}`);
+              throw new Error(`handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}: ${err}`);
             }
           }
 
@@ -672,7 +672,7 @@ export class Engine {
             this.metrics!.recordObjectiveStarted(vdfo.id());
             return await this.attemptProgress(vdfo);
           } catch (err) {
-            throw new Error(`handleAPIEvent: Could not create objective for ${request}: ${err}`);
+            throw new Error(`handleAPIEvent: Could not create virtualdefund objective for ${request}: ${err}`);
           }
         }
 
@@ -690,7 +690,7 @@ export class Engine {
             this.metrics!.recordObjectiveStarted(dfo.id());
             return await this.attemptProgress(dfo);
           } catch (err) {
-            throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(or)}: ${err}`);
+            throw new Error(`handleAPIEvent: Could not create directfund objective for ${JSONbigNative.stringify(or)}: ${err}`);
           }
 
         case or instanceof DirectDefundObjectiveRequest: {
@@ -703,7 +703,7 @@ export class Engine {
               this.store.getConsensusChannelById.bind(this.store),
             );
           } catch (err) {
-            throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(request)}: ${err}`);
+            throw new Error(`handleAPIEvent: Could not create directdefund objective for ${JSONbigNative.stringify(request)}: ${err}`);
           }
           this.metrics!.recordObjectiveStarted(ddfo.id());
           // If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
