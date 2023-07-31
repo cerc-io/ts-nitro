@@ -707,7 +707,12 @@ export class Engine {
           }
           this.metrics!.recordObjectiveStarted(ddfo.id());
           // If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-          await this.store.destroyConsensusChannel(request.channelId);
+          try {
+            await this.store.destroyConsensusChannel(request.channelId);
+          } catch (err) {
+            throw new Error(`handleAPIEvent: Could not destroy consensus channel for ${request}: ${err}`);
+          }
+
           return await this.attemptProgress(ddfo);
         }
 

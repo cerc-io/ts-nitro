@@ -415,7 +415,8 @@ export class Objective implements ObjectiveInterface {
 
   // finalState returns the final state for the virtual channel
   private generateFinalState(): State {
-    const vp = new VariablePart({ outcome: new Exit([this.generateFinalOutcome()]), turnNum: FinalTurnNum, isFinal: true });
+    const exit = this.generateFinalOutcome();
+    const vp = new VariablePart({ outcome: new Exit([exit]), turnNum: FinalTurnNum, isFinal: true });
     return stateFromFixedAndVariablePart(this.v!, vp);
   }
 
@@ -542,7 +543,11 @@ export class Objective implements ObjectiveInterface {
       let s: State;
 
       if (updated.isAlice()) {
-        s = updated.generateFinalState();
+        try {
+          s = updated.generateFinalState();
+        } catch (err) {
+          throw new Error(`could not generate final state: ${err}`);
+        }
       } else {
         s = updated.finalState();
       }
@@ -753,7 +758,14 @@ export class Objective implements ObjectiveInterface {
 
     const updated = this.clone();
 
-    if (_.isEqual(sp.proposal.target(), this.vId())) {
+    let target: Destination;
+    try {
+      target = sp.proposal.target();
+    } catch (err) {
+      throw new Error(`could not get target from signed proposal: ${err}`);
+    }
+
+    if (_.isEqual(target, this.vId())) {
       let err: Error | undefined;
 
       switch (true) {

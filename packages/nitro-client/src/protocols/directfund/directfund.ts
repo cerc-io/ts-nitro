@@ -73,7 +73,12 @@ const channelsExistWithCounterparty = async (
   getChannels: GetChannelsByParticipantFunction,
   getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
 ): Promise<boolean> => {
-  const channels = await getChannels(counterparty);
+  let channels: channel.Channel[];
+  try {
+    channels = await getChannels(counterparty);
+  } catch (err) {
+    return false;
+  }
 
   for (const c of channels) {
     if ((c.participants ?? []).length === 2) {
@@ -182,7 +187,13 @@ export class Objective implements ObjectiveInterface {
       throw new Error(`could not create new objective: ${err}`);
     }
 
-    if (await channelsExistWithCounterparty(request.counterParty, getChannels, getTwoPartyConsensusLedger)) {
+    let channelExists: boolean;
+    try {
+      channelExists = await channelsExistWithCounterparty(request.counterParty, getChannels, getTwoPartyConsensusLedger);
+    } catch (err) {
+      throw new Error(`counterparty check failed: ${err}`);
+    }
+    if (channelExists) {
       throw new Error(`A channel already exists with counterparty ${request.counterParty}`);
     }
 

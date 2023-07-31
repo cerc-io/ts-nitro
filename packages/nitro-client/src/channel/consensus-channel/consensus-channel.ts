@@ -1140,10 +1140,6 @@ export class ConsensusChannel {
     return this.current.outcome.fundingTargets();
   }
 
-  accept(p: SignedProposal): void {
-    throw new Error('UNIMPLEMENTED');
-  }
-
   // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
   // values. It signs the resulting state using sk.
   private async sign(vars: Vars, signer: NitroSigner): Promise<Signature> {
@@ -1337,12 +1333,18 @@ export class ConsensusChannel {
     }
 
     const signed = new SignedProposal({ proposal, signature, turnNum: vars.turnNum });
-    this.appendToProposalQueue(signed);
+
+    try {
+      this.appendToProposalQueue(signed);
+    } catch (err) {
+      throw new Error(`could not append to proposal queue: ${err}`);
+    }
+
     return signed;
   }
 
   // appendToProposalQueue safely appends the given SignedProposal to the proposal queue of the receiver.
-  // It will panic if the turn number of the signedproposal is not consecutive with the existing queue.
+  // It will return an error if the turn number of the signedproposal is not consecutive with the existing queue.
   private appendToProposalQueue(signed: SignedProposal) {
     if (
       this._proposalQueue
