@@ -5,22 +5,15 @@ import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
 
-import {
-  utils,
-  Destination, DurableStore, MemStore, P2PMessageService, Store, EthChainService,
-} from '@cerc-io/nitro-client';
+import { utils } from '@cerc-io/nitro-client';
 import { JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
 
 import { waitForPeerInfoExchange } from './utils/index';
-import { DirectFundParams, VirtualFundParams } from './types';
 import contractAddresses from './nitro-addresses.json';
 
 const log = debug('ts-nitro:server');
 
 const {
-  setupClient,
-  createOutcome,
-  subscribeVoucherLogs,
   createPeerIdFromKey,
   createPeerAndInit,
 } = utils;
@@ -132,32 +125,16 @@ const getArgv = () => yargs.parserConfiguration({
 const main = async () => {
   const argv = getArgv();
   assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
-  const signer = new utils.KeySigner(argv.pk);
-  await signer.init();
-
-  let store: Store;
-  if (argv.store) {
-    store = await DurableStore.newDurableStore(signer, path.resolve(argv.store));
-  } else {
-    store = await MemStore.newMemStore(signer);
-  }
-
   const peerIdObj = await createPeerIdFromKey(hex2Bytes(argv.pk));
   const peer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, peerIdObj);
-  const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
-  const chainService = await EthChainService.newEthChainService(
+  const nitro = await utils.Nitro.setupClient(
+    argv.pk,
     argv.chainurl,
     argv.chainpk,
-    contractAddresses.nitroAdjudicatorAddress,
-    contractAddresses.consensusAppAddress,
-    contractAddresses.virtualPaymentAppAddress,
-  );
-
-  const client = await setupClient(
-    msgService,
-    store,
-    chainService,
+    contractAddresses,
+    peer,
+    argv.store && path.resolve(argv.store),
   );
 
   log('Started P2PMessageService');
@@ -172,7 +149,7 @@ const main = async () => {
 
     for await (const [, peerToAdd] of Array.from(peersToAdd).entries()) {
       log('Adding client', peerToAdd.address);
-      await msgService.addPeerByMultiaddr(peerToAdd.address, peerToAdd.multiaddr);
+      await nitro.addPeerByMultiaddr(peerToAdd.address, peerToAdd.multiaddr);
       peersToConnect.push(peerToAdd.address);
     }
   }
@@ -182,11 +159,11 @@ const main = async () => {
   if (intermediariesCount > 0) {
     log(`Waiting for ${intermediariesCount} intermediaries to be discovered`);
   }
-  await waitForPeerInfoExchange(intermediariesCount - peersToAdd.length + 1, [msgService]);
+  await waitForPeerInfoExchange(intermediariesCount - peersToAdd.length + 1, [nitro.msgService]);
 
   // Check that all required peers are dialable
   for await (const peerToConnect of peersToConnect) {
-    const [dialable, errString] = await msgService.isPeerDialable(peerToConnect);
+    const [dialable, errString] = await nitro.isPeerDialable(peerToConnect);
     if (!dialable) {
       throw new Error(`Not able to dial peer with address ${peerToConnect}: ${errString}`);
     }
@@ -195,114 +172,69 @@ const main = async () => {
   let ledgerChannelIdString = argv.ledgerChannel;
   let paymentChannelIdString = argv.paymentChannel;
   const counterParty = argv.counterparty;
-  const asset = `0x${'00'.repeat(20)}`;
 
   if (argv.directFund) {
     assert(counterParty, 'Specify counterparty address');
-    const directFundparams: DirectFundParams = {
+
+    ledgerChannelIdString = await nitro.directFund(
       counterParty,
-      challengeDuration: 0,
-      outcome: createOutcome(
-        asset,
-        client.address,
-        counterParty,
-        argv.amount ?? 1_000_000,
-      ),
-      appDefinition: asset,
-      appData: '0x00',
-      nonce: Date.now(),
-    };
-
-    const ledgerChannelResponse = await client.createLedgerChannel(
-      directFundparams.counterParty,
-      directFundparams.challengeDuration,
-      directFundparams.outcome,
+      argv.amount ?? 1_000_000,
     );
-
-    await client.objectiveCompleteChan(ledgerChannelResponse.id).shift();
-    log(`Ledger channel created with id ${ledgerChannelResponse.channelId.string()}`);
-    ledgerChannelIdString = ledgerChannelResponse.channelId.string();
   }
 
   if (argv.virtualFund) {
     assert(counterParty, 'Specify counterparty address');
-    const virtualFundparams: VirtualFundParams = {
+
+    paymentChannelIdString = await nitro.virtualFund(
       counterParty,
-      intermediaries: argv.intermediaries,
-      challengeDuration: 0,
-      outcome: createOutcome(
-        asset,
-        client.address,
-        counterParty,
-        argv.amount ?? 1_000,
-      ),
-      appDefinition: asset,
-      nonce: Date.now(),
-    };
-
-    const virtualPaymentChannelResponse = await client.createVirtualPaymentChannel(
-      virtualFundparams.intermediaries,
-      virtualFundparams.counterParty,
-      virtualFundparams.challengeDuration,
-      virtualFundparams.outcome,
+      argv.amount ?? 1_000,
     );
-
-    await client.objectiveCompleteChan(virtualPaymentChannelResponse.id).shift();
-    log(`Virtual payment channel created with id ${virtualPaymentChannelResponse.channelId.string()}`);
-    paymentChannelIdString = virtualPaymentChannelResponse.channelId.string();
   }
 
   if (argv.pay) {
     assert(paymentChannelIdString, 'Provide payment-channel id for payment');
-    const virtualPaymentChannelId = new Destination(paymentChannelIdString);
-    await client.pay(virtualPaymentChannelId, BigInt(argv.amount ?? 0));
+    const sentVoucher = await nitro.pay(paymentChannelIdString, argv.amount ?? 0);
 
-    const sentVoucher = await client.sentVouchers().shift();
     log(`Voucher sent for amount ${sentVoucher.amount}`);
     log(`Hash: ${sentVoucher.hash()} Sig: ${utils.getJoinedSignature(sentVoucher.signature)}`);
   }
 
   if (argv.virtualDefund) {
     assert(paymentChannelIdString, 'Provide payment-channel id to close channel');
-    const virtualPaymentChannelId = new Destination(paymentChannelIdString);
-    const closeVirtualChannelObjectiveId = await client.closeVirtualChannel(virtualPaymentChannelId);
-    await client.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
-    log(`Virtual payment channel with id ${virtualPaymentChannelId.string()} closed`);
+    await nitro.virtualDefund(paymentChannelIdString);
+
+    log(`Virtual payment channel with id ${paymentChannelIdString} closed`);
   }
 
   if (argv.directDefund) {
     assert(ledgerChannelIdString, 'Provide ledger-channel id to close channel');
-    const ledgerChannelId: Destination = new Destination(ledgerChannelIdString);
-    const closeLedgerChannelObjectiveId = await client.closeLedgerChannel(ledgerChannelId);
+    await nitro.directDefund(ledgerChannelIdString);
 
-    await client.objectiveCompleteChan(closeLedgerChannelObjectiveId).shift();
-    log(`Ledger channel with id ${ledgerChannelId.string()} closed`);
+    log(`Ledger channel with id ${ledgerChannelIdString} closed`);
   }
 
   if (argv.getPaymentChannel) {
     assert(paymentChannelIdString, 'Provide payment-channel id for get-payment-channel');
-    const paymentChannelId = new Destination(paymentChannelIdString);
-    const paymentChannelStatus = await client.getPaymentChannel(paymentChannelId);
+    const paymentChannelStatus = await nitro.getPaymentChannel(paymentChannelIdString);
 
     log(
-      `Virtual payment channel ${paymentChannelId.string()} status:\n`,
+      `Virtual payment channel ${paymentChannelIdString} status:\n`,
       JSONbigNative.stringify(paymentChannelStatus, null, 2),
     );
   }
 
   if (argv.getLedgerChannel) {
     assert(ledgerChannelIdString, 'Provide ledger-channel id for get-ledger-channel');
-    const ledgerChannelId = new Destination(ledgerChannelIdString);
-    const ledgerChannelStatus = await client.getLedgerChannel(ledgerChannelId);
+    const ledgerChannelStatus = await nitro.getLedgerChannel(ledgerChannelIdString);
 
     log(
-      `Ledger channel ${ledgerChannelId.string()} status:\n`,
+      `Ledger channel ${ledgerChannelIdString} status:\n`,
       JSONbigNative.stringify(ledgerChannelStatus, null, 2),
     );
   }
 
   if (argv.getAllLedgerChannels) {
-    const allLedgerChannels = await client.getAllLedgerChannels();
+    const allLedgerChannels = await nitro.getAllLedgerChannels();
     log(
       'All ledger channel:\n',
       JSONbigNative.stringify(allLedgerChannels, null, 2),
@@ -311,24 +243,19 @@ const main = async () => {
 
   if (argv.getPaymentChannelsByLedger) {
     assert(ledgerChannelIdString, 'Provide ledger-channel id to get all active payment channels');
-    const ledgerChannelId = new Destination(ledgerChannelIdString);
-    const paymentChannelsByLedger = await client.getPaymentChannelsByLedger(ledgerChannelId);
+    const paymentChannelsByLedger = await nitro.getPaymentChannelsByLedger(ledgerChannelIdString);
+
     log(
-      `All active payment channels on ledger channel ${ledgerChannelId.string()}:\n`,
+      `All active payment channels on ledger channel ${ledgerChannelIdString}:\n`,
       JSONbigNative.stringify(paymentChannelsByLedger, null, 2),
     );
   }
-
-  // Call async method to log message on receiving vouchers
-  subscribeVoucherLogs(client);
 
   if (!argv.wait) {
     // Workaround for error on closing payment channel
     await new Promise<void>((resolve) => { setTimeout(() => resolve(), 1000); });
 
-    await store.close();
-    await msgService.close();
-    await client.close();
+    await nitro.close();
 
     process.exit(0);
   }

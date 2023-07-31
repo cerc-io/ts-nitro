@@ -35,16 +35,20 @@ export class Nitro {
 
   nitroSigner: NitroSigner;
 
+  store: Store;
+
   constructor(
     client: Client,
     msgService: P2PMessageService,
     chainService: ChainService,
     nitroSigner: NitroSigner,
+    store: Store,
   ) {
     this.client = client;
     this.msgService = msgService;
     this.chainService = chainService;
     this.nitroSigner = nitroSigner;
+    this.store = store;
   }
 
   static async setupClient(
@@ -76,7 +80,7 @@ export class Nitro {
     );
 
     subscribeVoucherLogs(client);
-    return new Nitro(client, msgService, chainService, keySigner);
+    return new Nitro(client, msgService, chainService, keySigner, store);
   }
 
   static async setupClientWithProvider(
@@ -106,7 +110,7 @@ export class Nitro {
     );
 
     subscribeVoucherLogs(client);
-    return new Nitro(client, msgService, chainService, snapSigner);
+    return new Nitro(client, msgService, chainService, snapSigner, store);
   }
 
   private static async getStore(signer: NitroSigner, location?: string): Promise<Store> {
@@ -160,7 +164,7 @@ export class Nitro {
     return response.channelId.string();
   }
 
-  async virtualFund(counterParty: string, amount: number): Promise<void> {
+  async virtualFund(counterParty: string, amount: number): Promise<string> {
     const intermediaries: string[] = [];
     const outcome = createOutcome(
       ASSET,
@@ -178,6 +182,7 @@ export class Nitro {
 
     await this.client.objectiveCompleteChan(response.id).shift();
     log(`Virtual payment channel created with id ${response.channelId.string()}\n`);
+    return response.channelId.string();
   }
 
   async pay(virtualPaymentChannel: string, amount: number): Promise<Voucher> {
@@ -221,5 +226,11 @@ export class Nitro {
   async getPaymentChannelsByLedger(ledgerChannel: string): Promise<PaymentChannelInfo[]> {
     const ledgerChannelId = new Destination(ledgerChannel);
     return this.client.getPaymentChannelsByLedger(ledgerChannelId);
+  }
+
+  async close() {
+    await this.store.close();
+    await this.msgService.close();
+    await this.client.close();
   }
 }
