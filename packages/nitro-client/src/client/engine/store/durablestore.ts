@@ -1,4 +1,4 @@
-import assert from 'assert';
+/* eslint-disable no-useless-catch */
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 import { Level } from 'level';
@@ -71,8 +71,7 @@ export class DurableStore implements Store {
     try {
       subDb = this.db!.sublevel<string, V>(name, options);
     } catch (err) {
-      this.checkError(err as Error);
-      assert(subDb);
+      throw err;
     }
 
     return subDb;
@@ -186,7 +185,7 @@ export class DurableStore implements Store {
         try {
           await this.channelToObjective!.put(obj.ownsChannel().string(), obj.id());
         } catch (err) {
-          this.checkError(err as Error);
+          throw new Error(`cannot transfer ownership of channel: ${err}`);
         }
       }
 
@@ -208,7 +207,7 @@ export class DurableStore implements Store {
     try {
       await this.channels!.del(id.string());
     } catch (err) {
-      this.checkError(err as Error);
+      throw err;
     }
   }
 
@@ -227,7 +226,7 @@ export class DurableStore implements Store {
     try {
       await this.consensusChannels!.del(id.string());
     } catch (err) {
-      this.checkError(err as Error);
+      throw err;
     }
   }
 
@@ -570,14 +569,6 @@ export class DurableStore implements Store {
     try {
       await this.channelToObjective!.del(channelId.string());
     } catch (err) {
-      this.checkError(err as Error);
-    }
-  }
-
-  // checkError is a helper function that panics if an error is not nil
-  // TODO: Longer term we should return errors instead of panicking
-  private checkError(err: Error) {
-    if (err) {
       throw err;
     }
   }
