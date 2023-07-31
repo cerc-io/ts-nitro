@@ -6,7 +6,7 @@ import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
 
 import {
-  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, zeroValueSignature,
+  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, zeroValueSignature, JSONbigNative,
 } from '@cerc-io/nitro-util';
 import { Bytes32 } from '@statechannels/nitro-protocol';
 
@@ -788,7 +788,7 @@ export class Proposal {
       case 'RemoveProposal':
         return this.toRemove.target;
       default:
-        throw new Error('invalid proposal type');
+        throw new Error(`invalid proposal type ${this.constructor.name}`);
     }
   }
 

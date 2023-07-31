@@ -758,14 +758,7 @@ export class Objective implements ObjectiveInterface {
 
     const updated = this.clone();
 
-    let target: Destination;
-    try {
-      target = sp.proposal.target();
-    } catch (err) {
-      throw new Error(`could not get target from signed proposal: ${err}`);
-    }
-
-    if (_.isEqual(target, this.vId())) {
+    if (_.isEqual(sp.proposal.target(), this.vId())) {
       let err: Error | undefined;
 
       switch (true) {

@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-catch */
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 import { Level } from 'level';
@@ -67,13 +66,7 @@ export class DurableStore implements Store {
     name: string,
     options: AbstractSublevelOptions<string, V> = {},
   ): AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, V> {
-    let subDb;
-    try {
-      subDb = this.db!.sublevel<string, V>(name, options);
-    } catch (err) {
-      throw err;
-    }
-
+    const subDb = this.db!.sublevel<string, V>(name, options);
     return subDb;
   }
 
@@ -204,11 +197,7 @@ export class DurableStore implements Store {
 
   // destroyChannel deletes the channel with id id.
   async destroyChannel(id: Destination): Promise<void> {
-    try {
-      await this.channels!.del(id.string());
-    } catch (err) {
-      throw err;
-    }
+    await this.channels!.del(id.string());
   }
 
   // SetConsensusChannel sets the channel in the store.
@@ -223,11 +212,7 @@ export class DurableStore implements Store {
 
   // DestroyChannel deletes the channel with id id.
   async destroyConsensusChannel(id: Destination): Promise<void> {
-    try {
-      await this.consensusChannels!.del(id.string());
-    } catch (err) {
-      throw err;
-    }
+    await this.consensusChannels!.del(id.string());
   }
 
   // GetChannelById retrieves the channel with the supplied id, if it exists.
@@ -566,11 +551,7 @@ export class DurableStore implements Store {
   }
 
   async releaseChannelFromOwnership(channelId: Destination): Promise<void> {
-    try {
-      await this.channelToObjective!.del(channelId.string());
-    } catch (err) {
-      throw err;
-    }
+    await this.channelToObjective!.del(channelId.string());
   }
 
   setVoucherInfo(channelId: Destination, v: VoucherInfo): void {

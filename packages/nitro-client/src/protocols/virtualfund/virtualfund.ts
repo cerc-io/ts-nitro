@@ -602,8 +602,8 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     if (!this.isBob()) {
       toMyRightId = this.toMyRight!.channel!.id; // Avoid this if it is nil
     }
-    const target = sp.proposal.target();
-    if (_.isEqual(target, this.v!.id)) {
+
+    if (_.isEqual(sp.proposal.target(), this.v!.id)) {
       let err: Error | undefined;
       switch (true) {
         case _.isEqual(sp.proposal.ledgerID, new Destination()):
