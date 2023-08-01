@@ -73,12 +73,7 @@ const channelsExistWithCounterparty = async (
   getChannels: GetChannelsByParticipantFunction,
   getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
 ): Promise<boolean> => {
-  let channels: channel.Channel[];
-  try {
-    channels = await getChannels(counterparty);
-  } catch (err) {
-    return false;
-  }
+  const channels = await getChannels(counterparty);
 
   for (const c of channels) {
     if ((c.participants ?? []).length === 2) {

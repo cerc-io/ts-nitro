@@ -951,15 +951,26 @@ export class Engine {
 
       if (crankedObjective instanceof DirectFundObjective) {
         const dfo = crankedObjective as DirectFundObjective;
-        const c: ConsensusChannel = dfo.createConsensusChannel();
-        try {
-          assert(this.store);
-          await this.store.setConsensusChannel(c);
+        let c: ConsensusChannel;
+        assert(this.store);
 
+        try {
+          c = dfo.createConsensusChannel();
+        } catch (err) {
+          throw new Error(`could not create consensus channel for objective ${crankedObjective.id()}: ${err}`);
+        }
+
+        try {
+          await this.store.setConsensusChannel(c);
+        } catch (err) {
+          throw new Error(`could not store consensus channel for objective ${crankedObjective.id()}: ${err}`);
+        }
+
+        try {
           // Destroy the channel since the consensus channel takes over governance:
           await this.store.destroyChannel(c.id);
         } catch (err) {
-          throw new Error(`Could not create, store, or destroy consensus channel for objective ${crankedObjective.id()}: ${err}`);
+          throw new Error(`Could not destroy consensus channel for objective ${crankedObjective.id()}: ${err}`);
         }
       }
     } finally {

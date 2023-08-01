@@ -402,7 +402,7 @@ export class Objective implements ObjectiveInterface {
 
   private generateFinalOutcome(): SingleAssetExit {
     if (Number(this.myRole) !== 0) {
-      throw new Error('Only Alice should call generateFinalOutcome');
+      throw new Error('only Alice should call generateFinalOutcome');
     }
 
     // Since Alice is responsible for issuing vouchers she always has the largest payment amount

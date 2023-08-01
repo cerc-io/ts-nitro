@@ -1351,7 +1351,7 @@ export class ConsensusChannel {
       && this._proposalQueue.length > 0
       && this._proposalQueue[this._proposalQueue.length - 1].turnNum + BigInt(1) !== signed.turnNum
     ) {
-      throw new Error('Appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum');
+      throw new Error('appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum');
     }
     (this._proposalQueue ?? []).push(signed);
   }
