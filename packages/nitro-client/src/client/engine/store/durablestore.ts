@@ -385,7 +385,7 @@ export class DurableStore implements Store {
         if (participants![0] === counterparty || participants![1] === counterparty) {
           channel = ch;
           ok = true;
-          break; // we have found the target channel: break the forEach loop
+          break; // we have found the target channel: break the for loop
         }
       }
 

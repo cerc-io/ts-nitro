@@ -2,18 +2,17 @@ import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 
-import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
+import { JSONbigNative, decodeMap, encodeMap } from '@cerc-io/nitro-util';
 import type { NitroSigner } from '@cerc-io/nitro-util';
 
 import { ErrNoSuchChannel, ErrNoSuchObjective, Store } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
-import { VoucherInfo } from '../../../payments/vouchers';
+import { Payments, VoucherInfo, paymentsJsonEncoding } from '../../../payments/vouchers';
 import { SafeSyncMap } from '../../../internal/safesync/safesync';
 import { ObjectiveId } from '../../../protocols/messages';
 import { Address } from '../../../types/types';
-import { getAddressFromSecretKeyBytes } from '../../../crypto/keys';
 import { VirtualChannel } from '../../../channel/virtual';
 import { Destination } from '../../../types/destination';
 import { isDirectFundObjective, Objective as DirectFundObjective } from '../../../protocols/directfund/directfund';
@@ -38,6 +37,8 @@ export class MemStore implements Store {
   // the (Ethereum) address associated to the signing key
   address: string = '';
 
+  private payments?: SafeSyncMap<Buffer>;
+
   static async newMemStore(signer: NitroSigner): Promise<MemStore> {
     const ms = new MemStore();
     ms.signer = signer;
@@ -48,6 +49,7 @@ export class MemStore implements Store {
     ms.consensusChannels = new SafeSyncMap();
     ms.channelToObjective = new SafeSyncMap();
     ms.vouchers = new SafeSyncMap();
+    ms.payments = new SafeSyncMap();
 
     return ms;
   }
@@ -541,6 +543,29 @@ export class MemStore implements Store {
 
   removeVoucherInfo(channelId: Destination): void {
     this.vouchers!.delete(channelId.string());
+  }
+
+  setPayments(channelId: Destination, p: Payments): void {
+    const jsonData = Buffer.from(encodeMap(paymentsJsonEncoding.value, p));
+
+    this.payments!.store(channelId.string(), jsonData);
+  }
+
+  getPayments(channelId: Destination): Payments | undefined {
+    const [data, ok] = this.payments!.load(channelId.string());
+    if (!ok) {
+      return undefined;
+    }
+
+    assert(data);
+    try {
+      const jsonValue = JSONbigNative.parse(data.toString());
+      const payments = decodeMap(paymentsJsonEncoding.key!, paymentsJsonEncoding.value, jsonValue);
+
+      return payments;
+    } catch (error) {
+      return undefined;
+    }
   }
 }
 

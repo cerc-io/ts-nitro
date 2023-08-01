@@ -142,3 +142,6 @@ export class VoucherInfo {
     return BigInt(this.startingBalance!) - BigInt(this.paid()!);
   }
 }
+
+export type Payments = Map<string, bigint>;
+export const paymentsJsonEncoding: FieldDescription = { type: 'map', key: { type: 'string' }, value: { type: 'bigint' } };

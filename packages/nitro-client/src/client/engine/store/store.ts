@@ -53,7 +53,6 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 }
 
 export interface ConsensusChannelStore {
-
   getAllConsensusChannels (): ConsensusChannel[] | Promise<ConsensusChannel[]>
 
   getConsensusChannel (counterparty: Address): [ConsensusChannel | undefined, boolean] | Promise<[ConsensusChannel | undefined, boolean]>
@@ -63,4 +62,7 @@ export interface ConsensusChannelStore {
   setConsensusChannel (ch: ConsensusChannel): void | Promise<void>
 
   destroyConsensusChannel (id: Destination): void | Promise<void>
+
+  // TODO:
+  // getAllConsensusChannelsByCounterparty(counterparty: Address)
 }

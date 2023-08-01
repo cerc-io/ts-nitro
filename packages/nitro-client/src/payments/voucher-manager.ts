@@ -5,7 +5,7 @@ import { NitroSigner } from '@cerc-io/nitro-util';
 
 import { Destination } from '../types/destination';
 import { Address } from '../types/types';
-import { Voucher, VoucherInfo } from './vouchers';
+import { Payments, Voucher, VoucherInfo } from './vouchers';
 
 // VoucherStore is an interface for storing voucher information that the voucher manager expects.
 // To avoid import cycles, this interface is defined in the payments package, but implemented in the store package.
@@ -15,6 +15,10 @@ export interface VoucherStore {
   getVoucherInfo (channelId: Destination): [VoucherInfo | undefined, boolean] | Promise<[VoucherInfo | undefined, boolean]>
 
   removeVoucherInfo (channelId: Destination): void
+
+  setPayments (channelId: Destination, p: Payments): void | Promise<void>
+
+  getPayments (channelId: Destination): (Payments | undefined) | Promise<Payments | undefined>
 }
 
 // VoucherInfo stores the status of payments for a given payment channel.
@@ -118,6 +122,12 @@ export class VoucherManager {
       throw new Error(`wrong signer: ${signer}, ${vInfo.channelPayer}`);
     }
 
+    try {
+      await this.addPaymentForVoucher(voucher, receivedSoFar!);
+    } catch (err) {
+      throw new Error(`error while adding payment for voucher on channelId ${voucher.channelId.string()}: ${err}`);
+    }
+
     vInfo.largestVoucher = voucher;
 
     this.store.setVoucherInfo(voucher.channelId, vInfo);
@@ -151,5 +161,24 @@ export class VoucherManager {
 
     const remaining = BigInt(v.startingBalance!) - BigInt(v.largestVoucher.amount!);
     return remaining;
+  }
+
+  // TODO:
+  // async payments(chanId: Destination)
+
+  // Custom method to calculate the amount sent in this voucher and setting in the store
+  // with voucher hash against the channelId
+  private async addPaymentForVoucher(voucher: Voucher, receivedSoFar: bigint): Promise<void> {
+    const paymentAmount = BigInt(voucher.amount!) - BigInt(receivedSoFar);
+    const voucherHash = voucher.hash();
+
+    let channelPayments = await this.store.getPayments(voucher.channelId);
+    if (!channelPayments) {
+      channelPayments = new Map<string, bigint>();
+    }
+
+    channelPayments.set(voucherHash, paymentAmount);
+
+    await this.store.setPayments(voucher.channelId, channelPayments);
   }
 }

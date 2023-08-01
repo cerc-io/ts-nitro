@@ -114,6 +114,8 @@ export const getPaymentChannelInfo = async (id: Destination, store: Store, vm: V
   if (channelFound) {
     const [paid, remaining] = await getVoucherBalance(id, vm);
 
+    // TODO: Get the payments for the channel id and pass below
+
     return constructPaymentInfo(c, paid, remaining);
   }
 
