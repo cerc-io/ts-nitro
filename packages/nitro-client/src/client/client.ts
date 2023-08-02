@@ -109,7 +109,7 @@ export class Client {
 
     // Start the event handler in a go routine
     // It will listen for events from the engine and dispatch events to client channels
-    go(c.handleEngineEvents.bind(c, ctx));
+    go(c.handleEngineEvents.bind(c), ctx);
 
     return c;
   }
@@ -208,6 +208,7 @@ export class Client {
     ctx.signal.onabort = () => { ctxDone.close(); };
     /* eslint-disable no-await-in-loop */
     /* eslint-disable default-case */
+
     while (true) {
       switch (await Channel.select([
         ctxDone.shift(),
