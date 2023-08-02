@@ -1,6 +1,7 @@
 import { Signature, ethers } from 'ethers';
 
-import { NitroSigner } from '@cerc-io/nitro-util';
+import { NitroSigner, JSONbigNative } from '@cerc-io/nitro-util';
+import { RateInfo, RateType } from '../types';
 
 export class SnapSigner implements NitroSigner {
   private provider: ethers.providers.ExternalProvider;
@@ -51,5 +52,40 @@ export class SnapSigner implements NitroSigner {
     });
 
     return signature as Signature;
+  }
+
+  async updateRates(endpoint: string, rates: RateInfo[]): Promise<void> {
+    await (this.provider.request as any)({
+      method: 'wallet_invokeSnap',
+      params: {
+        snapId: this.snapOrigin,
+        request: {
+          method: 'updateRates',
+          params: {
+            endpoint,
+            rates: JSONbigNative.stringify(rates),
+          },
+        },
+      },
+    });
+  }
+
+  async requestPermission(endpoint: string, rateType: RateType, name: string): Promise<boolean> {
+    const result = await (this.provider.request as any)({
+      method: 'wallet_invokeSnap',
+      params: {
+        snapId: this.snapOrigin,
+        request: {
+          method: 'requestPermission',
+          params: {
+            endpoint,
+            name,
+            rateType,
+          },
+        },
+      },
+    });
+
+    return Boolean(result);
   }
 }
