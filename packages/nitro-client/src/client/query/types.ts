@@ -5,6 +5,7 @@ import { FieldDescription, toJSON } from '@cerc-io/nitro-util';
 
 import { Address } from '../../types/types';
 import { Destination } from '../../types/destination';
+import { Payments, paymentsJsonEncoding } from '../../payments/vouchers';
 
 export enum ChannelStatus {
   Proposed = 'Proposed',
@@ -65,10 +66,13 @@ export class PaymentChannelInfo {
 
   balance: PaymentChannelBalance = new PaymentChannelBalance({});
 
+  payments?: Payments;
+
   static jsonEncodingMap: Record<string, FieldDescription> = {
     iD: { type: 'class', value: Destination },
     status: { type: 'string' },
     balance: { type: 'class', value: PaymentChannelBalance },
+    payments: paymentsJsonEncoding,
   };
 
   toJSON(): any {
@@ -79,6 +83,7 @@ export class PaymentChannelInfo {
     iD?: Destination;
     status?: ChannelStatus;
     balance?: PaymentChannelBalance;
+    payments?: Payments;
   }) {
     Object.assign(this, params);
   }

@@ -311,6 +311,4 @@ export class Client {
   sentVouchers(): ReadChannel<Voucher> {
     return this.engine.sentVouchers;
   }
-
-  // TODO: Add a method to get all the payment channels for a counterparty
 }

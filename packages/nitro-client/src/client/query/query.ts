@@ -9,6 +9,7 @@ import {
 } from './types';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';
 import { Store, ErrNoSuchChannel } from '../engine/store/store';
+import { Payments } from '../../payments/vouchers';
 
 const getStatusFromChannel = (c: Channel): ChannelStatus => {
   if (c.finalSignedByMe()) {
@@ -82,7 +83,7 @@ export const getVoucherBalance = async (id: Destination, vm: VoucherManager): Pr
   return [paid, remaining];
 };
 
-export const constructPaymentInfo = (c: Channel, paid?: bigint, remaining?: bigint): PaymentChannelInfo => {
+export const constructPaymentInfo = (c: Channel, paid?: bigint, remaining?: bigint, payments?: Payments): PaymentChannelInfo => {
   let status = getStatusFromChannel(c);
 
   // ADR 0009 allows for intermediaries to exit the protocol before receiving all signed post funds
@@ -103,6 +104,7 @@ export const constructPaymentInfo = (c: Channel, paid?: bigint, remaining?: bigi
     iD: c.id,
     status,
     balance,
+    payments,
   });
 };
 
@@ -113,10 +115,9 @@ export const getPaymentChannelInfo = async (id: Destination, store: Store, vm: V
 
   if (channelFound) {
     const [paid, remaining] = await getVoucherBalance(id, vm);
+    const payments = await vm.payments(id);
 
-    // TODO: Get the payments for the channel id and pass below
-
-    return constructPaymentInfo(c, paid, remaining);
+    return constructPaymentInfo(c, paid, remaining, payments);
   }
 
   throw new Error(`Could not find channel with id ${id}`);
@@ -188,7 +189,9 @@ export const getPaymentChannelsByLedger = async (ledgerId: Destination, s: Store
 
   for await (const p of paymentChannels) {
     const [paid, remaining] = await getVoucherBalance(p.id, vm);
-    const info = constructPaymentInfo(p, paid, remaining);
+    const payments = await s.getPayments(p.id);
+
+    const info = constructPaymentInfo(p, paid, remaining, payments);
     toReturn.push(info);
   }
 

@@ -62,7 +62,4 @@ export interface ConsensusChannelStore {
   setConsensusChannel (ch: ConsensusChannel): void | Promise<void>
 
   destroyConsensusChannel (id: Destination): void | Promise<void>
-
-  // TODO:
-  // getAllConsensusChannelsByCounterparty(counterparty: Address)
 }

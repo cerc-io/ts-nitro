@@ -163,8 +163,10 @@ export class VoucherManager {
     return remaining;
   }
 
-  // TODO:
-  // async payments(chanId: Destination)
+  // Custom method to get payments made on a particular channel
+  async payments(chanId: Destination): Promise<Payments | undefined> {
+    return this.store.getPayments(chanId);
+  }
 
   // Custom method to calculate the amount sent in this voucher and setting in the store
   // with voucher hash against the channelId
@@ -172,7 +174,7 @@ export class VoucherManager {
     const paymentAmount = BigInt(voucher.amount!) - BigInt(receivedSoFar);
     const voucherHash = voucher.hash();
 
-    let channelPayments = await this.store.getPayments(voucher.channelId);
+    let channelPayments = await this.payments(voucher.channelId);
     if (!channelPayments) {
       channelPayments = new Map<string, bigint>();
     }
