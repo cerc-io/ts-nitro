@@ -31,13 +31,13 @@ export class MemStore implements Store {
 
   vouchers?: SafeSyncMap<Buffer>;
 
+  private payments?: SafeSyncMap<Buffer>;
+
   // the signer for the store's engine
   signer?: NitroSigner;
 
   // the (Ethereum) address associated to the signing key
   address: string = '';
-
-  private payments?: SafeSyncMap<Buffer>;
 
   static async newMemStore(signer: NitroSigner): Promise<MemStore> {
     const ms = new MemStore();
@@ -563,7 +563,7 @@ export class MemStore implements Store {
       const payments = decodeMap(paymentsJsonEncoding.key!, paymentsJsonEncoding.value, jsonValue);
 
       return payments;
-    } catch (error) {
+    } catch (err) {
       return undefined;
     }
   }

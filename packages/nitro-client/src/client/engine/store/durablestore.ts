@@ -4,13 +4,15 @@ import { Buffer } from 'buffer';
 import { Level } from 'level';
 import type { AbstractSublevel, AbstractSublevelOptions } from 'abstract-level';
 
-import { JSONbigNative, NitroSigner } from '@cerc-io/nitro-util';
+import {
+  JSONbigNative, NitroSigner, decodeMap, encodeMap,
+} from '@cerc-io/nitro-util';
 
 import { ErrNoSuchChannel, ErrNoSuchObjective, Store } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
-import { VoucherInfo } from '../../../payments/vouchers';
+import { Payments, VoucherInfo, paymentsJsonEncoding } from '../../../payments/vouchers';
 import { ObjectiveId } from '../../../protocols/messages';
 import { Address } from '../../../types/types';
 import { Destination } from '../../../types/destination';
@@ -31,6 +33,8 @@ export class DurableStore implements Store {
   private channelToObjective?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, string>;
 
   private vouchers?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
+
+  private payments?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
 
   // the signer for the store's engine
   private signer?: NitroSigner;
@@ -59,6 +63,7 @@ export class DurableStore implements Store {
     ps.consensusChannels = ps.openDB<Buffer>('consensus_channels', { valueEncoding: 'buffer' });
     ps.channelToObjective = ps.openDB('channel_to_objective');
     ps.vouchers = ps.openDB<Buffer>('vouchers', { valueEncoding: 'buffer' });
+    ps.payments = ps.openDB<Buffer>('payments', { valueEncoding: 'buffer' });
 
     return ps;
   }
@@ -602,6 +607,7 @@ export class DurableStore implements Store {
         err = jsonErr;
       }
     } catch (dbErr) {
+      // Fix ??
       err = null;
     }
 
@@ -614,5 +620,28 @@ export class DurableStore implements Store {
 
   async removeVoucherInfo(channelId: Destination): Promise<void> {
     return this.vouchers!.del(channelId.string());
+  }
+
+  setPayments(channelId: Destination, p: Payments): void {
+    const jsonData = Buffer.from(encodeMap(paymentsJsonEncoding.value, p));
+
+    this.payments!.put(channelId.string(), jsonData);
+  }
+
+  getPayments(channelId: Destination): Payments | undefined {
+    try {
+      const data = this.payments!.get(channelId.string());
+
+      try {
+        const jsonValue = JSONbigNative.parse(data.toString());
+        const payments = decodeMap(paymentsJsonEncoding.key!, paymentsJsonEncoding.value, jsonValue);
+
+        return payments;
+      } catch (err) {
+        return undefined;
+      }
+    } catch (err) {
+      return undefined;
+    }
   }
 }
