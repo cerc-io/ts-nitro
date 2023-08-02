@@ -1,11 +1,11 @@
 import 'mocha';
 import assert from 'assert';
 import { expect } from 'chai';
-import { providers } from 'ethers';
+import { BigNumber, providers } from 'ethers';
 
 import {
-  Client, MemStore, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
-  ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse, EthChainService,
+  Client, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
+  ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse,
 } from '@cerc-io/nitro-client';
 import {
   hex2Bytes, DEFAULT_CHAIN_URL, getBalanceByKey, getBalanceByAddress, deployContracts,
@@ -27,7 +27,6 @@ import {
 } from './utils';
 
 const {
-  setupClient,
   createOutcome,
   ACTORS,
   createPeerIdFromKey,
@@ -35,52 +34,35 @@ const {
 } = utils;
 
 const ALICE_BALANCE_AFTER_DIRECTFUND = '0';
-const ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND = '9999990364419449297570';
 const ALICE_BALANCE_AFTER_DIRECTDEFUND = '999850';
 const ALICE_BALANCE_AFTER_DIRECTDEFUND_WITH_INTERMEDIARY = '1999700';
 const BOB_BALANCE_AFTER_DIRECTFUND = '0';
-const BOB_CHAIN_BALANCE_AFTER_DIRECTFUND = '10000000000000000000000';
-const BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY = '10000000000000000000000';
 const BOB_BALANCE_AFTER_DIRECTDEFUND = '1000150';
 const BOB_BALANCE_AFTER_DIRECTDEFUND_WITH_INTERMEDIARY = '3000150';
 const CHARLIE_BALANCE_AFTER_DIRECTFUND = '0';
-const CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY = '10000000000000000000000';
 const CHARLIE_BALANCE_AFTER_DIRECTDEFUND_WITH_INTERMEDIARY = '1000150';
 const INITIAL_LEDGER_AMOUNT = 1_000_000;
 const INITIAL_VIRTUAL_CHANNEL_AMOUNT = 1_000_000;
 const ASSET = `0x${'00'.repeat(20)}`;
 
 async function createClient(actor: utils.Actor, contractAddresses: ContractAddresses): Promise<[Client, P2PMessageService, Metrics]> {
-  const signer = new utils.KeySigner(actor.privateKey);
-  await signer.init();
-  const clientStore = await MemStore.newMemStore(signer);
-
   const clientPeerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
   const clientPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR!, {}, clientPeerIdObj);
-
-  const clientMsgService = await P2PMessageService.newMessageService(
-    clientStore.getAddress(),
-    clientPeer,
-  );
   const clientMetrics = new Metrics();
 
-  const chainService = await EthChainService.newEthChainService(
+  const nitro = await utils.Nitro.setupClient(
+    actor.privateKey,
     DEFAULT_CHAIN_URL,
-    ACTORS.alice.chainPrivateKey,
-    contractAddresses.nitroAdjudicatorAddress,
-    contractAddresses.consensusAppAddress,
-    contractAddresses.virtualPaymentAppAddress,
-  );
-
-  const client = await setupClient(
-    clientMsgService,
-    clientStore,
-    chainService,
+    actor.chainPrivateKey,
+    contractAddresses,
+    clientPeer,
+    undefined,
     clientMetrics,
   );
-  expect(client.address).to.equal(actor.address);
 
-  return [client, clientMsgService, clientMetrics];
+  expect(nitro.client.address).to.equal(actor.address);
+
+  return [nitro.client, nitro.msgService, clientMetrics];
 }
 
 async function setUpLedgerChannel(clientA: Client, clientB: Client): Promise<ObjectiveResponse> {
@@ -188,19 +170,33 @@ async function checkBalance(
   client: utils.Actor,
   chainURL: string,
   clientBalance: string,
-  clientChainBalance?: string,
+  clientChainBalance?: BigNumber,
 ): Promise<void> {
   const balance = await getBalanceByAddress(client.address, chainURL);
   expect(balance.toString()).to.be.equal(clientBalance);
 
   if (clientChainBalance) {
     const chainBalance = await getBalanceByKey(client.chainPrivateKey, chainURL);
-    expect(chainBalance.toString()).to.be.equal(clientChainBalance);
+    expect(chainBalance.toString()).to.be.equal(clientChainBalance.toString());
   }
+}
+
+async function checkAndUpdateChainBalance(
+  client: utils.Actor,
+  chainURL: string,
+  prevChainBalance: BigNumber,
+): Promise<BigNumber> {
+  const chainBalance = await getBalanceByKey(client.chainPrivateKey, chainURL);
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  expect(chainBalance.lt(prevChainBalance)).to.be.true;
+  return chainBalance;
 }
 
 describe('test payment flows', () => {
   let contractAddresses: ContractAddresses;
+  let aliceChainBalance: BigNumber;
+  let bobChainBalance: BigNumber;
+  let charlieChainBalance: BigNumber;
 
   before(async () => {
     const provider = new providers.JsonRpcProvider(DEFAULT_CHAIN_URL);
@@ -215,6 +211,10 @@ describe('test payment flows', () => {
       virtualPaymentAppAddress,
       consensusAppAddress,
     };
+
+    aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
+    bobChainBalance = await getBalanceByKey(ACTORS.bob.chainPrivateKey, DEFAULT_CHAIN_URL);
+    charlieChainBalance = await getBalanceByKey(ACTORS.charlie.chainPrivateKey, DEFAULT_CHAIN_URL);
   });
 
   describe('test payment flow without an intermediary', () => {
@@ -260,15 +260,16 @@ describe('test payment flows', () => {
         ACTORS.alice,
         DEFAULT_CHAIN_URL,
         ALICE_BALANCE_AFTER_DIRECTFUND,
-        ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND,
       );
 
       await checkBalance(
         ACTORS.bob,
         DEFAULT_CHAIN_URL,
         BOB_BALANCE_AFTER_DIRECTFUND,
-        BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
       );
+
+      aliceChainBalance = await checkAndUpdateChainBalance(ACTORS.alice, DEFAULT_CHAIN_URL, aliceChainBalance);
+      bobChainBalance = await checkAndUpdateChainBalance(ACTORS.bob, DEFAULT_CHAIN_URL, bobChainBalance);
 
       expect(aliceMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.alice.address, ACTORS.bob.address));
       expect(bobMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.bob.address, ACTORS.alice.address));
@@ -309,14 +310,14 @@ describe('test payment flows', () => {
         ACTORS.alice,
         DEFAULT_CHAIN_URL,
         ALICE_BALANCE_AFTER_DIRECTFUND,
-        ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND,
+        aliceChainBalance,
       );
 
       await checkBalance(
         ACTORS.bob,
         DEFAULT_CHAIN_URL,
         BOB_BALANCE_AFTER_DIRECTFUND,
-        BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
+        bobChainBalance,
       );
     });
 
@@ -349,14 +350,14 @@ describe('test payment flows', () => {
         ACTORS.alice,
         DEFAULT_CHAIN_URL,
         ALICE_BALANCE_AFTER_DIRECTFUND,
-        ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND,
+        aliceChainBalance,
       );
 
       await checkBalance(
         ACTORS.bob,
         DEFAULT_CHAIN_URL,
         BOB_BALANCE_AFTER_DIRECTFUND,
-        BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
+        bobChainBalance,
       );
     });
 
@@ -386,14 +387,14 @@ describe('test payment flows', () => {
         ACTORS.alice,
         DEFAULT_CHAIN_URL,
         ALICE_BALANCE_AFTER_DIRECTFUND,
-        ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND,
+        aliceChainBalance,
       );
 
       await checkBalance(
         ACTORS.bob,
         DEFAULT_CHAIN_URL,
         BOB_BALANCE_AFTER_DIRECTFUND,
-        BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
+        bobChainBalance,
       );
     });
 
@@ -410,9 +411,6 @@ describe('test payment flows', () => {
         BigInt(1000150),
       );
 
-      const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
-      expect(Number(aliceChainBalance)).to.be.lessThan(Number(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND));
-
       await checkBalance(
         ACTORS.alice,
         DEFAULT_CHAIN_URL,
@@ -423,8 +421,10 @@ describe('test payment flows', () => {
         ACTORS.bob,
         DEFAULT_CHAIN_URL,
         BOB_BALANCE_AFTER_DIRECTDEFUND,
-        BOB_CHAIN_BALANCE_AFTER_DIRECTFUND,
+        bobChainBalance,
       );
+
+      aliceChainBalance = await checkAndUpdateChainBalance(ACTORS.alice, DEFAULT_CHAIN_URL, aliceChainBalance);
     });
   });
 
@@ -476,9 +476,6 @@ describe('test payment flows', () => {
         BigInt(INITIAL_LEDGER_AMOUNT),
       );
 
-      const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
-      expect(Number(aliceChainBalance)).to.be.lessThan(Number(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND));
-
       await checkBalance(
         ACTORS.alice,
         DEFAULT_CHAIN_URL,
@@ -489,15 +486,17 @@ describe('test payment flows', () => {
         ACTORS.bob,
         DEFAULT_CHAIN_URL,
         BOB_BALANCE_AFTER_DIRECTDEFUND,
-        BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
       );
 
       await checkBalance(
         ACTORS.charlie,
         DEFAULT_CHAIN_URL,
         CHARLIE_BALANCE_AFTER_DIRECTFUND,
-        CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
       );
+
+      aliceChainBalance = await checkAndUpdateChainBalance(ACTORS.alice, DEFAULT_CHAIN_URL, aliceChainBalance);
+      bobChainBalance = await checkAndUpdateChainBalance(ACTORS.bob, DEFAULT_CHAIN_URL, bobChainBalance);
+      charlieChainBalance = await checkAndUpdateChainBalance(ACTORS.charlie, DEFAULT_CHAIN_URL, charlieChainBalance);
     });
 
     it('should create virtual channels', async () => {
@@ -515,20 +514,21 @@ describe('test payment flows', () => {
         ACTORS.alice,
         DEFAULT_CHAIN_URL,
         ALICE_BALANCE_AFTER_DIRECTDEFUND,
+        aliceChainBalance,
       );
 
       await checkBalance(
         ACTORS.bob,
         DEFAULT_CHAIN_URL,
         BOB_BALANCE_AFTER_DIRECTDEFUND,
-        BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
+        bobChainBalance,
       );
 
       await checkBalance(
         ACTORS.charlie,
         DEFAULT_CHAIN_URL,
         CHARLIE_BALANCE_AFTER_DIRECTFUND,
-        CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
+        charlieChainBalance,
       );
     });
 
@@ -559,20 +559,21 @@ describe('test payment flows', () => {
         ACTORS.alice,
         DEFAULT_CHAIN_URL,
         ALICE_BALANCE_AFTER_DIRECTDEFUND,
+        aliceChainBalance,
       );
 
       await checkBalance(
         ACTORS.bob,
         DEFAULT_CHAIN_URL,
         BOB_BALANCE_AFTER_DIRECTDEFUND,
-        BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
+        bobChainBalance,
       );
 
       await checkBalance(
         ACTORS.charlie,
         DEFAULT_CHAIN_URL,
         CHARLIE_BALANCE_AFTER_DIRECTFUND,
-        CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
+        charlieChainBalance,
       );
     });
 
@@ -611,20 +612,21 @@ describe('test payment flows', () => {
         ACTORS.alice,
         DEFAULT_CHAIN_URL,
         ALICE_BALANCE_AFTER_DIRECTDEFUND,
+        aliceChainBalance,
       );
 
       await checkBalance(
         ACTORS.bob,
         DEFAULT_CHAIN_URL,
         BOB_BALANCE_AFTER_DIRECTDEFUND,
-        BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
+        bobChainBalance,
       );
 
       await checkBalance(
         ACTORS.charlie,
         DEFAULT_CHAIN_URL,
         CHARLIE_BALANCE_AFTER_DIRECTFUND,
-        CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
+        charlieChainBalance,
       );
     });
 
@@ -653,9 +655,6 @@ describe('test payment flows', () => {
         BigInt(1000150),
       );
 
-      const aliceChainBalance = await getBalanceByKey(ACTORS.alice.chainPrivateKey, DEFAULT_CHAIN_URL);
-      expect(Number(aliceChainBalance)).to.be.lessThan(Number(ALICE_CHAIN_BALANCE_AFTER_DIRECTFUND));
-
       await checkBalance(
         ACTORS.alice,
         DEFAULT_CHAIN_URL,
@@ -666,15 +665,17 @@ describe('test payment flows', () => {
         ACTORS.bob,
         DEFAULT_CHAIN_URL,
         BOB_BALANCE_AFTER_DIRECTDEFUND_WITH_INTERMEDIARY,
-        BOB_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
       );
 
       await checkBalance(
         ACTORS.charlie,
         DEFAULT_CHAIN_URL,
         CHARLIE_BALANCE_AFTER_DIRECTDEFUND_WITH_INTERMEDIARY,
-        CHARLIE_CHAIN_BALANCE_AFTER_DIRECTFUND_WITH_INTERMEDIARY,
+        charlieChainBalance,
       );
+
+      aliceChainBalance = await checkAndUpdateChainBalance(ACTORS.alice, DEFAULT_CHAIN_URL, aliceChainBalance);
+      bobChainBalance = await checkAndUpdateChainBalance(ACTORS.bob, DEFAULT_CHAIN_URL, bobChainBalance);
     });
   });
 });

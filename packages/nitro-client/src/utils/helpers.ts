@@ -7,7 +7,7 @@ import { P2PMessageService } from '../client/engine/messageservice/p2p-message-s
 import { Client } from '../client/client';
 import { Store } from '../client/engine/store/store';
 import { PermissivePolicy } from '../client/engine/policy-maker';
-import { Metrics } from '../client/engine/metrics';
+import { MetricsApi } from '../client/engine/metrics';
 import { SingleAssetExit, Exit } from '../channel/state/outcome/exit';
 import { Allocation, AllocationType, Allocations } from '../channel/state/outcome/allocation';
 import { Destination } from '../types/destination';
@@ -27,7 +27,7 @@ export async function setupClient(
   messageService: P2PMessageService,
   store: Store,
   chainService: ChainService,
-  metricsApi?: Metrics,
+  metricsApi?: MetricsApi,
 ): Promise<Client> {
   const client = await Client.new(
     messageService,

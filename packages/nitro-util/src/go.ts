@@ -9,5 +9,6 @@ export const go = async (func: (...args: any[]) => void | Promise<void>, ...para
     await func(...params);
   } catch (err) {
     log(err);
+    throw err;
   }
 };
