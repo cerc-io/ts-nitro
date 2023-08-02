@@ -8,7 +8,7 @@ import 'dotenv/config';
 import { utils } from '@cerc-io/nitro-client';
 import { JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
 
-import { waitForPeerInfoExchange } from './utils/index';
+import { waitForMultiplePeers } from './utils/index';
 import contractAddresses from './nitro-addresses.json';
 
 const log = debug('ts-nitro:server');
@@ -159,7 +159,7 @@ const main = async () => {
   if (intermediariesCount > 0) {
     log(`Waiting for ${intermediariesCount} intermediaries to be discovered`);
   }
-  await waitForPeerInfoExchange(intermediariesCount - peersToAdd.length + 1, [nitro.msgService]);
+  await waitForMultiplePeers(intermediariesCount - peersToAdd.length + 1, [nitro.msgService]);
 
   // Check that all required peers are dialable
   for await (const peerToConnect of peersToConnect) {
