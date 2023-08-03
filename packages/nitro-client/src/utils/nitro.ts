@@ -3,7 +3,7 @@ import { providers } from 'ethers';
 
 // @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
-import { NitroSigner } from '@cerc-io/nitro-util';
+import { NitroSigner, DEFAULT_ASSET } from '@cerc-io/nitro-util';
 
 import { Client } from '../client/client';
 import { P2PMessageService } from '../client/engine/messageservice/p2p-message-service/service';
@@ -24,7 +24,6 @@ import { MetricsApi } from '../client/engine/metrics';
 const log = debug('ts-nitro:util:nitro');
 
 const CHALLENGE_DURATION = 0;
-const ASSET = `0x${'00'.repeat(20)}`;
 
 export class Nitro {
   client: Client;
@@ -37,18 +36,22 @@ export class Nitro {
 
   store: Store;
 
+  asset: string;
+
   constructor(
     client: Client,
     msgService: P2PMessageService,
     chainService: ChainService,
     nitroSigner: NitroSigner,
     store: Store,
+    asset?: string,
   ) {
     this.client = client;
     this.msgService = msgService;
     this.chainService = chainService;
     this.nitroSigner = nitroSigner;
     this.store = store;
+    this.asset = asset ?? DEFAULT_ASSET;
   }
 
   static async setupClient(
@@ -59,6 +62,7 @@ export class Nitro {
     peer: Peer,
     location?: string,
     metricsApi?: MetricsApi,
+    asset?: string,
   ): Promise<Nitro> {
     const keySigner = new KeySigner(pk);
     const store = await this.getStore(keySigner, location);
@@ -80,7 +84,7 @@ export class Nitro {
     );
 
     subscribeVoucherLogs(client);
-    return new Nitro(client, msgService, chainService, keySigner, store);
+    return new Nitro(client, msgService, chainService, keySigner, store, asset);
   }
 
   static async setupClientWithProvider(
@@ -90,6 +94,7 @@ export class Nitro {
     peer: Peer,
     location?: string,
     metricsApi?: MetricsApi,
+    asset?: string,
   ): Promise<Nitro> {
     const snapSigner = new SnapSigner(provider, snapOrigin);
     const store = await this.getStore(snapSigner, location);
@@ -110,7 +115,7 @@ export class Nitro {
     );
 
     subscribeVoucherLogs(client);
-    return new Nitro(client, msgService, chainService, snapSigner, store);
+    return new Nitro(client, msgService, chainService, snapSigner, store, asset);
   }
 
   private static async getStore(signer: NitroSigner, location?: string): Promise<Store> {
@@ -146,7 +151,7 @@ export class Nitro {
 
   async directFund(counterParty: string, amount: number): Promise<string> {
     const outcome = createOutcome(
-      ASSET,
+      this.asset,
       this.client.address,
       counterParty,
       amount,
@@ -167,7 +172,7 @@ export class Nitro {
   async virtualFund(counterParty: string, amount: number): Promise<string> {
     const intermediaries: string[] = [];
     const outcome = createOutcome(
-      ASSET,
+      this.asset,
       this.client.address,
       counterParty,
       amount,
