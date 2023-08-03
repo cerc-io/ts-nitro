@@ -82,4 +82,3 @@ export async function getTokenBalanceByAddress(token: string, address: string, c
 
   return tokenFactory.balanceOf(address);
 }
-
