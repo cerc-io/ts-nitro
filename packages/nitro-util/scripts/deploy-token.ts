@@ -4,7 +4,7 @@ import { providers } from 'ethers';
 
 import { DEFAULT_CHAIN_URL } from '../src';
 import { deployToken } from '../src/deploy-contracts';
-import tokenArtifact from '../artifacts/contracts/Token.sol/Token.json';
+import tokenArtifact from '../artifacts/test/contracts/Token.sol/Token.json';
 
 const log = debug('ts-nitro:util');
 
