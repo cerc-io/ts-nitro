@@ -1,6 +1,7 @@
 import assert from 'assert';
 import { ethers, providers } from 'ethers';
 import debug from 'debug';
+import { WaitGroup } from '@jpwilliams/waitgroup';
 
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import type { Log } from '@ethersproject/abstract-provider';
@@ -71,6 +72,8 @@ export class EthChainService implements ChainService {
 
   private cancel: (reason ?: any) => void;
 
+  private wg?: WaitGroup;
+
   constructor(
     chain: EthChain,
     na: NitroAdjudicator,
@@ -82,6 +85,7 @@ export class EthChainService implements ChainService {
     logger: debug.Debugger,
     ctx: AbortController,
     cancel: () => void,
+    wg: WaitGroup,
   ) {
     this.chain = chain;
     this.na = na;
@@ -93,6 +97,7 @@ export class EthChainService implements ChainService {
     this.logger = logger;
     this.ctx = ctx;
     this.cancel = cancel;
+    this.wg = wg;
   }
 
   // newEthChainService is a convenient wrapper around _newEthChainService, which provides a simpler API
@@ -162,24 +167,49 @@ export class EthChainService implements ChainService {
       log,
       ctx,
       cancelCtx,
+      new WaitGroup(),
     );
 
-    const errorChan = ecs.subscribeForLogs();
+    const subscribe = ecs.subscribeForLogs.bind(ecs);
+    const errorChan = subscribe();
 
     // TODO: Return error from chain service instead of panicking
-    go(async () => {
-      // eslint-disable-next-line no-unreachable-loop
-      while (true) {
-        // eslint-disable-next-line no-await-in-loop
-        const err = await errorChan.shift();
-        // Print to STDOUT in case we're using a noop logger
-        ecs.logger(err);
-        // Manually panic in case we're using a logger that doesn't call exit(1)
-        throw err;
-      }
-    });
+    ecs.wg!.add(1);
+    const listenError = ecs.listenForErrors.bind(ecs);
+    go(listenError, ctx, errorChan);
 
     return ecs;
+  }
+
+  // listenForErrors listens for errors on the error channel and attempts to handle them if they occur.
+  // TODO: Currently "handle" is panicking
+  private async listenForErrors(ctx: AbortController, errChan: ReadChannel<Error>): Promise<void> {
+    // Channel to implement ctx.Done()
+    const ctxDone = Channel();
+    this.ctx.signal.addEventListener('abort', (event) => {
+      ctxDone.close();
+    });
+
+    /* eslint-disable no-await-in-loop */
+    /* eslint-disable default-case */
+    while (true) {
+      switch (await Channel.select([
+        ctxDone.shift(),
+        errChan.shift(),
+      ])) {
+        case ctxDone: {
+          this.wg!.done();
+          return;
+        }
+        case errChan: {
+          const err = errChan.value();
+          // Print to STDOUT in case we're using a noop logger
+          this.logger(err);
+          // Manually panic in case we're using a logger that doesn't call exit(1)
+          throw err;
+        }
+      }
+    }
   }
 
   // defaultTxOpts returns transaction options suitable for most transaction submissions
@@ -324,6 +354,75 @@ export class EthChainService implements ChainService {
     }
   }
 
+  private async listenForLogs(
+    subUnsubscribe: () => void,
+    subErr: ReadWriteChannel<Error>,
+    errorChan: ReadWriteChannel<Error>,
+    logs: ReadWriteChannel<Log>,
+    query: ethers.providers.EventType,
+    listener: (eventLog: Log) => void,
+  ) {
+    // Channel to implement ctx.Done()
+    const ctxDone = Channel();
+    this.ctx.signal.addEventListener('abort', (event) => {
+      ctxDone.close();
+    });
+
+    /* eslint-disable no-restricted-syntax */
+    /* eslint-disable no-labels */
+    out:
+    while (true) {
+      /* eslint-disable no-await-in-loop */
+      /* eslint-disable default-case */
+      switch (await Channel.select([
+        ctxDone.shift(),
+        subErr.shift(),
+        logs.shift(),
+      ])) {
+        case ctxDone: {
+          subUnsubscribe();
+          this.wg!.done();
+          return;
+        }
+
+        case subErr: {
+          const err = subErr.value();
+          if (err) {
+            await errorChan.push(new Error(`received error from the subscription channel: ${err}`));
+            break out;
+          }
+
+          // If the error is nil then the subscription was closed and we need to re-subscribe.
+          // This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
+          try {
+            this.chain.provider.on(query, listener);
+          } catch (sErr) {
+            await errorChan.push(new Error(`subscribeFilterLogs failed on resubscribe: ${sErr}`));
+            break out;
+          }
+          this.logger('resubscribed to filtered logs');
+          break;
+        }
+
+        // // TODO: Check if recreating subscription after interval is required
+        // case <-time.After(RESUB_INTERVAL):
+        //   // Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
+        //   // We unsub here and recreate the subscription in the next iteration of the select.
+        //   sub.Unsubscribe()
+
+        case logs: {
+          try {
+            await this.dispatchChainEvents([logs.value()]);
+          } catch (err) {
+            await errorChan.push(new Error(`error in dispatchChainEvents: ${err}`));
+            break out;
+          }
+          break;
+        }
+      }
+    }
+  }
+
   // subscribeForLogs subscribes for logs and pushes them to the out channel.
   // It relies on notifications being supported by the chain node.
   private subscribeForLogs(): ReadChannel<Error> {
@@ -340,6 +439,7 @@ export class EthChainService implements ChainService {
     }
 
     const errorChan = Channel<Error>();
+
     // Channel to implement sub.Err()
     const subErr = Channel<Error>();
     const subErrListener = (err: Error) => subErr.push(err);
@@ -354,64 +454,10 @@ export class EthChainService implements ChainService {
       subErr.close();
     };
 
-    // Channel to implement ctx.Done()
-    const ctxDone = Channel();
-    this.ctx.signal.onabort = () => { ctxDone.close(); };
-
+    this.wg!.add(1);
     // Must be in a goroutine to not block chain service constructor
-    go(async () => {
-      /* eslint-disable no-restricted-syntax */
-      /* eslint-disable no-labels */
-      out:
-      while (true) {
-        /* eslint-disable no-await-in-loop */
-        /* eslint-disable default-case */
-        switch (await Channel.select([
-          ctxDone.shift(),
-          subErr.shift(),
-          logs.shift(),
-        ])) {
-          case ctxDone:
-            subUnsubscribe();
-            return;
-
-          case subErr: {
-            const err = subErr.value();
-            if (err) {
-              await errorChan.push(new Error(`received error from the subscription channel: ${err}`));
-              break out;
-            }
-
-            // If the error is nil then the subscription was closed and we need to re-subscribe.
-            // This is a workaround for https://github.com/ethereum/go-ethereum/issues/23845
-            try {
-              this.chain.provider.on(query, listener);
-            } catch (sErr) {
-              await errorChan.push(new Error(`subscribeFilterLogs failed on resubscribe: ${sErr}`));
-              break out;
-            }
-            this.logger('resubscribed to filtered logs');
-            break;
-          }
-
-          // // TODO: Check if recreating subscription after interval is required
-          // case <-time.After(RESUB_INTERVAL):
-          //   // Due to https://github.com/ethereum/go-ethereum/issues/23845 we can't rely on a long running subscription.
-          //   // We unsub here and recreate the subscription in the next iteration of the select.
-          //   sub.Unsubscribe()
-
-          case logs: {
-            try {
-              await this.dispatchChainEvents([logs.value()]);
-            } catch (err) {
-              await errorChan.push(new Error(`error in dispatchChainEvents: ${err}`));
-              break out;
-            }
-            break;
-          }
-        }
-      }
-    });
+    const listenLog = this.listenForLogs.bind(this);
+    go(listenLog, subUnsubscribe, subErr, errorChan, logs, query, listener);
 
     return errorChan;
   }
@@ -433,7 +479,8 @@ export class EthChainService implements ChainService {
     return this.chain.chainID();
   }
 
-  close(): void {
+  async close(): Promise<void> {
     this.cancel();
+    await this.wg!.wait();
   }
 }
