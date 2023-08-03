@@ -51,7 +51,7 @@ export class Nitro {
     this.chainService = chainService;
     this.nitroSigner = nitroSigner;
     this.store = store;
-    this.asset = asset ?? DEFAULT_ASSET;
+    this.asset = (asset === undefined || asset === '') ? DEFAULT_ASSET : asset;
   }
 
   static async setupClient(

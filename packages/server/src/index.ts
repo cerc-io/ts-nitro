@@ -6,7 +6,9 @@ import path from 'path';
 import 'dotenv/config';
 
 import { utils } from '@cerc-io/nitro-client';
-import { JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL, DEFAULT_ASSET } from '@cerc-io/nitro-util';
+import {
+  JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL, DEFAULT_ASSET,
+} from '@cerc-io/nitro-util';
 
 import { waitForPeerInfoExchange } from './utils/index';
 import contractAddresses from './nitro-addresses.json';
@@ -126,7 +128,8 @@ const main = async () => {
   const argv = getArgv();
   assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
-  const asset = process.env.ASSET_ADDRESS ?? DEFAULT_ASSET;
+  const envAsset = process.env.ASSET_ADDRESS;
+  const asset = (envAsset === undefined || envAsset === '') ? DEFAULT_ASSET : envAsset;
 
   const peerIdObj = await createPeerIdFromKey(hex2Bytes(argv.pk));
   const peer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, peerIdObj);
@@ -139,7 +142,7 @@ const main = async () => {
     peer,
     argv.store && path.resolve(argv.store),
     undefined,
-    asset
+    asset,
   );
 
   log('Started P2PMessageService');
