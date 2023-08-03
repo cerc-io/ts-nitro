@@ -4,6 +4,8 @@ import {
 } from 'ethers';
 import { Buffer } from 'buffer';
 
+import { Token__factory } from './contract-bindings/factories/Token__factory';
+
 export class EthClient {
   provider: providers.BaseProvider;
 
@@ -54,6 +56,7 @@ export async function connectToChain(chainUrl: string, chainPK: Buffer): Promise
 
   return [client, txSigner];
 }
+
 export async function getAddressByKey(chainPrivateKey: string, chainURL: string): Promise<string> {
   const provider = new providers.JsonRpcProvider(chainURL);
   const signer = new Wallet(chainPrivateKey, provider);
@@ -71,4 +74,11 @@ export async function getBalanceByKey(chainPrivateKey: string, chainURL: string)
   const address = await getAddressByKey(chainPrivateKey, chainURL);
 
   return getBalanceByAddress(address, chainURL);
+}
+
+export async function getTokenBalanceByAddress(token: string, address: string, chainURL: string): Promise<BigNumber> {
+  const provider = new providers.JsonRpcProvider(chainURL);
+  const tokenFactory = Token__factory.connect(token, provider.getSigner());
+
+  return tokenFactory.balanceOf(address);
 }

@@ -7,10 +7,13 @@
     "lint": "eslint .",
     "build": "yarn clean && tsc && if [ \"$TARGET\" = \"browser\" ]; then yarn build:fix-modules; fi",
     "clean": "rm -rf ./dist",
-    "test:deploy-contracts": "yarn ts-node scripts/deploy-contracts.ts",
+    "test:deploy-contracts": "DEBUG=ts-nitro:* yarn ts-node scripts/deploy-contracts.ts",
     "test:copy-addresses": "cp ./nitro-addresses.json ../server/src/ && cp ./nitro-addresses.json ../example-web-app/src/",
     "build:fix-modules": "yarn ts-node scripts/fix-modules.ts",
-    "balance": "DEBUG=ts-nitro:* yarn ts-node scripts/balance.ts"
+    "balance": "DEBUG=ts-nitro:* yarn ts-node scripts/balance.ts",
+    "test:build:contracts": "hardhat compile",
+    "test:deploy-token": "DEBUG=ts-nitro:* yarn ts-node scripts/deploy-token.ts",
+    "test:transfer-tokens": "DEBUG=ts-nitro:* yarn ts-node scripts/transfer-tokens.ts"
   },
   "devDependencies": {
     "@npmcli/package-json": "^3.1.1",
@@ -27,6 +30,7 @@
     "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-n": "^15.0.0",
     "eslint-plugin-promise": "^6.0.0",
+    "hardhat": "^2.14.0",
     "typescript": "^5.0.4",
     "yargs": "^17.7.2"
   },

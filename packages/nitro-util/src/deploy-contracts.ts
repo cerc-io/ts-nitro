@@ -25,3 +25,15 @@ export async function deployContracts(signer: providers.JsonRpcSigner): Promise<
 
   return [nitroAdjudicator.address, virtualPaymentApp.address, consensusApp.address];
 }
+
+export async function deployToken(signer: providers.JsonRpcSigner, artifact: any): Promise<string> {
+  const tokenFactory = new ContractFactory(
+    artifact.abi,
+    artifact.bytecode,
+  ).connect(signer);
+
+  const owner = await signer.getAddress();
+  const token = await tokenFactory.deploy(owner);
+
+  return token.address;
+}

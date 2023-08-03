@@ -40,7 +40,9 @@ window.setupClient = async (name: string): Promise<utils.Nitro> => {
     actor.chainPrivateKey,
     contractAddresses,
     peer,
-    `${name}-db`
+    `${name}-db`,
+    undefined,
+    process.env.REACT_APP_ASSET_ADDRESS
   );
 };
 

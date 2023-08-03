@@ -2,7 +2,7 @@ import yargs from 'yargs';
 import debug from 'debug';
 
 import { DEFAULT_CHAIN_URL } from '../src';
-import { getBalanceByAddress, getAddressByKey } from '../src/eth-client';
+import { getBalanceByAddress, getAddressByKey, getTokenBalanceByAddress } from '../src/eth-client';
 
 const log = debug('ts-nitro:util');
 
@@ -25,6 +25,11 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'Private key of account to check',
   },
+  token: {
+    alias: 't',
+    type: 'string',
+    describe: 'Token address',
+  },
 }).argv;
 
 async function main() {
@@ -38,8 +43,14 @@ async function main() {
   } else {
     throw new Error('Provide either address or private key of an account');
   }
-  const balance = await getBalanceByAddress(address, DEFAULT_CHAIN_URL);
-  log(`Balance of account ${address} is ${balance.toString()}`);
+
+  if (argv.token) {
+    const balance = await getTokenBalanceByAddress(argv.token, address, DEFAULT_CHAIN_URL);
+    log(`Token balance of account ${address} is ${balance.toString()}`);
+  } else {
+    const balance = await getBalanceByAddress(address, DEFAULT_CHAIN_URL);
+    log(`ETH balance of account ${address} is ${balance.toString()}`);
+  }
 }
 
 main()
