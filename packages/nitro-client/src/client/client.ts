@@ -1,6 +1,7 @@
 import debug from 'debug';
 import assert from 'assert';
 import { ethers } from 'ethers';
+import { WaitGroup } from '@jpwilliams/waitgroup';
 
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import Channel from '@cerc-io/ts-channel';
@@ -69,6 +70,8 @@ export class Client {
 
   private cancelEventHandler?: (reason ?: any) => void;
 
+  private wg?: WaitGroup;
+
   static async new(
     messageService: MessageService,
     chainservice: ChainService,
@@ -103,6 +106,9 @@ export class Client {
     c.channelNotifier = ChannelNotifier.newChannelNotifier(store, c.vm);
     // Start the engine in a go routine
     go(c.engine.run.bind(c.engine));
+
+    c.wg = new WaitGroup();
+    c.wg.add(1);
 
     const ctx = new AbortController();
     c.cancelEventHandler = ctx.abort.bind(ctx);
@@ -215,6 +221,7 @@ export class Client {
         this.engine.toApi.shift(),
       ])) {
         case ctxDone: {
+          this.wg!.done();
           return;
         }
 
@@ -270,6 +277,13 @@ export class Client {
     return d;
   }
 
+  // stopEventHandler stops the event handler goroutine and waits for it to quit successfully.
+  async stopEventHandler(): Promise<void> {
+    assert(this.cancelEventHandler);
+    this.cancelEventHandler();
+    await this.wg!.wait();
+  }
+
   // Close stops the client from responding to any input.
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async close(): Promise<void> {
@@ -277,10 +291,8 @@ export class Client {
     assert(this.engine);
     assert(this.store);
     assert(this.completedObjectivesForRPC);
-    assert(this.cancelEventHandler);
 
-    this.cancelEventHandler();
-
+    await this.stopEventHandler();
     this.channelNotifier.close();
     await this.engine.close();
 

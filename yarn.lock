@@ -2087,6 +2087,11 @@
     "@types/yargs" "^17.0.8"
     chalk "^4.0.0"
 
+"@jpwilliams/waitgroup@^2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@jpwilliams/waitgroup/-/waitgroup-2.1.0.tgz#82560f7cba25e2e295b2882126dea3ad3cf7af82"
+  integrity sha512-a+yeDd0LUJ5Z7oztrS6yZa6VjOGfywXK7mTlaHVE+eyoGT4YL25vMCyj8TRBArc1APoNXiR6eYhoTHnkS8Oucg==
+
 "@jridgewell/gen-mapping@^0.3.0", "@jridgewell/gen-mapping@^0.3.2":
   version "0.3.3"
   resolved "https://registry.npmjs.org/@jridgewell/gen-mapping/-/gen-mapping-0.3.3.tgz"
