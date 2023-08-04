@@ -537,22 +537,25 @@ export class Engine {
           return [new EngineEvent(), new Error(`could not fetch channel for voucher ${voucher}`)];
         }
 
-        let paid: bigint | undefined;
-        let remaining: bigint | undefined;
-        try {
-          [paid, remaining] = await getVoucherBalance(c.id, this.vm);
-        } catch (err) {
-          return [new EngineEvent(), err as Error];
-        }
+        // Vouchers only count as payment channel updates if the channel is open.
+        if (!c.finalCompleted()) {
+          let paid: bigint | undefined;
+          let remaining: bigint | undefined;
+          try {
+            [paid, remaining] = await getVoucherBalance(c.id, this.vm);
+          } catch (err) {
+            return [new EngineEvent(), err as Error];
+          }
 
-        let info: PaymentChannelInfo;
-        try {
-          info = constructPaymentInfo(c, paid, remaining);
-        } catch (err) {
-          return [new EngineEvent(), err as Error];
-        }
+          let info: PaymentChannelInfo;
+          try {
+            info = constructPaymentInfo(c, paid, remaining);
+          } catch (err) {
+            return [new EngineEvent(), err as Error];
+          }
 
-        allCompleted.paymentChannelUpdates.push(info);
+          allCompleted.paymentChannelUpdates.push(info);
+        }
       }
 
       return [allCompleted, null];
@@ -962,8 +965,20 @@ export class Engine {
     for await (const rel of o.related()) {
       switch (rel.constructor) {
         case VirtualChannel: {
+          let paid: bigint | undefined;
+          let remaining: bigint | undefined;
           const vc = rel as VirtualChannel;
-          const [paid, remaining] = await getVoucherBalance(vc.id, this.vm!);
+
+          if (!vc.finalCompleted()) {
+            // If the channel is open, we inspect vouchers for that channel to get the future resolvable balance
+            [paid, remaining] = await getVoucherBalance(vc.id, this.vm!);
+          } else {
+            // If the channel is closed, vouchers have already been resolved.
+            // Note that when virtual defunding, this information may in fact be more up to date than
+            // the voucher balance due to a race condition https://github.com/statechannels/go-nitro/issues/1323
+            [paid, remaining] = vc.getPaidAndRemaining();
+          }
+
           const info = constructPaymentInfo(vc, paid, remaining);
           outgoing.paymentChannelUpdates.push(info);
 
