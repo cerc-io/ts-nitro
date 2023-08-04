@@ -4,6 +4,7 @@
 import debug from 'debug';
 import assert from 'assert';
 import _ from 'lodash';
+import { WaitGroup } from '@jpwilliams/waitgroup';
 
 import Channel from '@cerc-io/ts-channel';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
@@ -150,8 +151,6 @@ export class Engine {
 
   private _toApi?: ReadWriteChannel<EngineEvent>;
 
-  private stop?: ReadWriteChannel<void>;
-
   private msg?: MessageService;
 
   private chain?: ChainService;
@@ -171,6 +170,10 @@ export class Engine {
   // Custom channel for vouchers being sent
   private _sentVouchers?: ReadWriteChannel<Voucher>;
 
+  private cancel?: (reason ?: any) => void;
+
+  private wg?: WaitGroup;
+
   static new(
     vm: VoucherManager,
     msg: MessageService,
@@ -187,7 +190,6 @@ export class Engine {
     // bind to inbound channels
     e.objectiveRequestsFromAPI = Channel<ObjectiveRequest>();
     e.paymentRequestsFromAPI = Channel<PaymentRequest>();
-    e.stop = Channel();
 
     e.fromChain = chain.eventFeed();
     e.fromMsg = msg.out();
@@ -212,6 +214,15 @@ export class Engine {
       metricsApi,
     );
 
+    e.wg = new WaitGroup();
+
+    const ctx = new AbortController();
+    e.cancel = ctx.abort.bind(ctx);
+
+    e.wg.add(1);
+    const run = e.run.bind(e);
+    go(run, ctx);
+
     e._sentVouchers = Channel<Voucher>(SENT_VOUCHERS_CHANNEL_BUFFER_SIZE);
 
     return e;
@@ -228,27 +239,35 @@ export class Engine {
   }
 
   async close(): Promise<void> {
+    assert(this.cancel);
+    assert(this.wg);
     assert(this.msg);
-    assert(this.stop);
     assert(this._toApi);
     assert(this.chain);
 
+    this.cancel();
+    await this.wg.wait();
+
     await this.msg.close();
-    await this.stop.close();
     await this._toApi.close();
     await this.chain.close();
   }
 
-  // Run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
-  // The loop exits when a struct is received on the stop channel. Engine.Close() sends that signal.
-  async run(): Promise<void> {
+  // run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
+  // The loop exits when the context is cancelled.
+  async run(ctx: AbortController): Promise<void> {
     assert(this.objectiveRequestsFromAPI);
     assert(this.paymentRequestsFromAPI);
     assert(this.fromChain);
     assert(this.fromMsg);
     assert(this.fromLedger);
-    assert(this.stop);
     assert(this._toApi);
+
+    // Channel to implement ctx.Done()
+    const ctxDone = Channel();
+    ctx.signal.addEventListener('abort', (event) => {
+      ctxDone.close();
+    });
 
     while (true) {
       let res = new EngineEvent();
@@ -268,7 +287,7 @@ export class Engine {
         this.fromChain.shift(),
         this.fromMsg.shift(),
         this.fromLedger.shift(),
-        this.stop.shift(),
+        ctxDone.shift(),
       ])) {
         case this.objectiveRequestsFromAPI:
           [res, err] = await this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
@@ -290,8 +309,10 @@ export class Engine {
           [res, err] = await this.handleProposal(this.fromLedger.value());
           break;
 
-        case this.stop:
+        case ctxDone: {
+          this.wg!.done();
           return;
+        }
       }
 
       // Handle errors
@@ -824,6 +845,7 @@ export class Engine {
         this.recordMessageMetrics(message);
         await this.msg.send(message);
       }
+      this.wg!.done();
     } finally {
       if (deferredCompleteRecordFunction) {
         deferredCompleteRecordFunction();
@@ -838,6 +860,7 @@ export class Engine {
       const completeRecordFunction = this.metrics!.recordFunctionDuration(this.executeSideEffects.name);
       deferredCompleteRecordFunction = () => completeRecordFunction();
 
+      this.wg!.add(1);
       // Send messages in a go routine so that we don't block on message delivery
       go(this.sendMessages.bind(this), sideEffects.messagesToSend);
 

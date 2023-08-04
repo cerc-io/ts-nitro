@@ -104,15 +104,12 @@ export class Client {
     c._receivedVouchers = Channel<Voucher>(1000);
 
     c.channelNotifier = ChannelNotifier.newChannelNotifier(store, c.vm);
-    // Start the engine in a go routine
-    go(c.engine.run.bind(c.engine));
-
-    c.wg = new WaitGroup();
-    c.wg.add(1);
 
     const ctx = new AbortController();
     c.cancelEventHandler = ctx.abort.bind(ctx);
 
+    c.wg = new WaitGroup();
+    c.wg.add(1);
     // Start the event handler in a go routine
     // It will listen for events from the engine and dispatch events to client channels
     go(c.handleEngineEvents.bind(c), ctx);
