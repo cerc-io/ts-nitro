@@ -178,7 +178,7 @@ export class Nitro {
       amount,
     );
 
-    const response = await this.client.createVirtualPaymentChannel(
+    const response = await this.client.createPaymentChannel(
       intermediaries,
       counterParty,
       CHALLENGE_DURATION,
@@ -200,7 +200,7 @@ export class Nitro {
 
   async virtualDefund(virtualPaymentChannel: string): Promise<void> {
     const virtualPaymentChannelId = new Destination(virtualPaymentChannel);
-    const closeVirtualChannelObjectiveId = await this.client.closeVirtualChannel(virtualPaymentChannelId);
+    const closeVirtualChannelObjectiveId = await this.client.closePaymentChannel(virtualPaymentChannelId);
 
     await this.client.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
     log(`Virtual payment channel with id ${virtualPaymentChannelId.string()} closed`);

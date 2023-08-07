@@ -107,7 +107,7 @@ async function setUpVirtualChannel(clientA: Client, clientB: Client, intermediar
     nonce: Date.now(),
     appDefinition: ASSET,
   };
-  const response = await clientA.createVirtualPaymentChannel(
+  const response = await clientA.createPaymentChannel(
     params.intermediaries,
     params.counterParty,
     params.challengeDuration,
@@ -362,7 +362,7 @@ describe('test payment flows', () => {
     });
 
     it('should close the virtual channel', async () => {
-      const closeVirtualChannelObjectiveId = await aliceClient.closeVirtualChannel(virtualPaymentChannel.channelId);
+      const closeVirtualChannelObjectiveId = await aliceClient.closePaymentChannel(virtualPaymentChannel.channelId);
       await aliceClient.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
 
       await checkVirtualChannel(
@@ -578,7 +578,7 @@ describe('test payment flows', () => {
     });
 
     it('should close the virtual channel', async () => {
-      const closeVirtualChannelObjectiveId = await aliceClient.closeVirtualChannel(virtualPaymentChannelAliceCharlie.channelId);
+      const closeVirtualChannelObjectiveId = await aliceClient.closePaymentChannel(virtualPaymentChannelAliceCharlie.channelId);
       await aliceClient.objectiveCompleteChan(closeVirtualChannelObjectiveId).shift();
 
       await checkVirtualChannel(

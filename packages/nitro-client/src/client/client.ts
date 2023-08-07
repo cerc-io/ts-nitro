@@ -150,9 +150,9 @@ export class Client {
     return objectiveRequest.id(this.address, this.chainId);
   }
 
-  // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
+  // CreatePaymentChannel creates a virtual channel with the counterParty using ledger channels
   // with the supplied intermediaries.
-  async createVirtualPaymentChannel(
+  async createPaymentChannel(
     intermediaries: Address[],
     counterParty: Address,
     challengeDuration: number,
@@ -177,8 +177,8 @@ export class Client {
     return objectiveRequest.response(this.address);
   }
 
-  // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
-  async closeVirtualChannel(channelId: Destination): Promise<ObjectiveId> {
+  // ClosePaymentChannel attempts to close and defund the given virtually funded channel.
+  async closePaymentChannel(channelId: Destination): Promise<ObjectiveId> {
     const objectiveRequest = VirtualDefundObjectiveRequest.newObjectiveRequest(channelId);
 
     // Send the event to the engine
