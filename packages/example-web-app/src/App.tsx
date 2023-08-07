@@ -16,16 +16,16 @@ const {
 
 declare global {
   interface Window {
-    setupClient: (name: string) => Promise<utils.Nitro>
-    clearClientStorage: () => Promise<boolean>
+    setupNode: (name: string) => Promise<utils.Nitro>
+    clearNodeStorage: () => Promise<boolean>
     out: (jsonObject: any) => void
   }
 }
 
-window.clearClientStorage = utils.Nitro.clearNodeStorage;
+window.clearNodeStorage = utils.Nitro.clearNodeStorage;
 
-// Method to setup nitro client with test actors
-window.setupClient = async (name: string): Promise<utils.Nitro> => {
+// Method to setup nitro node with test actors
+window.setupNode = async (name: string): Promise<utils.Nitro> => {
   const actor = ACTORS[name];
   assert(actor, `Actor with name ${name} does not exists`);
   assert(process.env.REACT_APP_RELAY_MULTIADDR);

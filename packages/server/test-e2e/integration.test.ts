@@ -16,7 +16,7 @@ import {
   VirtualFundParams,
 } from '../src/types';
 import {
-  METRICS_KEYS_CLIENT_INSTANTIATION,
+  METRICS_KEYS_NODE_INSTANTIATION,
   METRICS_MESSAGE_KEYS_VALUES,
   METRICS_KEYS_DIRECT_FUND,
   METRICS_KEYS_FUNCTIONS,
@@ -45,24 +45,24 @@ const INITIAL_LEDGER_AMOUNT = 1_000_000;
 const INITIAL_VIRTUAL_CHANNEL_AMOUNT = 1_000_000;
 const ASSET = `0x${'00'.repeat(20)}`;
 
-async function createClient(actor: utils.Actor, contractAddresses: ContractAddresses): Promise<[Node, P2PMessageService, Metrics]> {
-  const clientPeerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
-  const clientPeer = await createPeerAndInit(process.env.RELAY_MULTIADDR!, {}, clientPeerIdObj);
-  const clientMetrics = new Metrics();
+async function createNode(actor: utils.Actor, contractAddresses: ContractAddresses): Promise<[Node, P2PMessageService, Metrics]> {
+  const nodePeerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
+  const nodePeer = await createPeerAndInit(process.env.RELAY_MULTIADDR!, {}, nodePeerIdObj);
+  const nodeMetrics = new Metrics();
 
   const nitro = await utils.Nitro.setupNode(
     actor.privateKey,
     DEFAULT_CHAIN_URL,
     actor.chainPrivateKey,
     contractAddresses,
-    clientPeer,
+    nodePeer,
     undefined,
-    clientMetrics,
+    nodeMetrics,
   );
 
   expect(nitro.node.address).to.equal(actor.address);
 
-  return [nitro.node, nitro.msgService, clientMetrics];
+  return [nitro.node, nitro.msgService, nodeMetrics];
 }
 
 async function setUpLedgerChannel(clientA: Node, clientB: Node): Promise<ObjectiveResponse> {
@@ -235,13 +235,13 @@ describe('test payment flows', () => {
     it('should instantiate clients', async () => {
       assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
-      [aliceClient, aliceMsgService, aliceMetrics] = await createClient(ACTORS.alice, contractAddresses);
-      [bobClient, bobMsgService, bobMetrics] = await createClient(ACTORS.bob, contractAddresses);
+      [aliceClient, aliceMsgService, aliceMetrics] = await createNode(ACTORS.alice, contractAddresses);
+      [bobClient, bobMsgService, bobMetrics] = await createNode(ACTORS.bob, contractAddresses);
 
       await waitForPeerInfoExchange([aliceMsgService, bobMsgService]);
 
-      expect(aliceMetrics.getMetrics()).to.includes.keys(...getMetricsKey(METRICS_KEYS_CLIENT_INSTANTIATION, ACTORS.alice.address));
-      expect(bobMetrics.getMetrics()).to.includes.keys(...getMetricsKey(METRICS_KEYS_CLIENT_INSTANTIATION, ACTORS.bob.address));
+      expect(aliceMetrics.getMetrics()).to.includes.keys(...getMetricsKey(METRICS_KEYS_NODE_INSTANTIATION, ACTORS.alice.address));
+      expect(bobMetrics.getMetrics()).to.includes.keys(...getMetricsKey(METRICS_KEYS_NODE_INSTANTIATION, ACTORS.bob.address));
     });
 
     it('should create a ledger channel', async () => {
@@ -448,9 +448,9 @@ describe('test payment flows', () => {
     it('should instantiate clients', async () => {
       assert(process.env.RELAY_MULTIADDR, 'RELAY_MULTIADDR should be set in .env');
 
-      [aliceClient, aliceMsgService] = await createClient(ACTORS.alice, contractAddresses);
-      [bobClient, bobMsgService] = await createClient(ACTORS.bob, contractAddresses);
-      [charlieClient, charlieMsgService] = await createClient(ACTORS.charlie, contractAddresses);
+      [aliceClient, aliceMsgService] = await createNode(ACTORS.alice, contractAddresses);
+      [bobClient, bobMsgService] = await createNode(ACTORS.bob, contractAddresses);
+      [charlieClient, charlieMsgService] = await createNode(ACTORS.charlie, contractAddresses);
 
       await waitForPeerInfoExchange([aliceMsgService, bobMsgService, charlieMsgService]);
     });

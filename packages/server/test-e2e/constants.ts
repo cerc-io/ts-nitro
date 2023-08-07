@@ -2,7 +2,7 @@
 export const ALICE_MESSAGING_PORT = 3005;
 export const BOB_MESSAGING_PORT = 3006;
 
-export const METRICS_KEYS_CLIENT_INSTANTIATION = [
+export const METRICS_KEYS_NODE_INSTANTIATION = [
   'api_objective_request_queue',
   'api_payment_request_queue',
   'chain_events_queue',
