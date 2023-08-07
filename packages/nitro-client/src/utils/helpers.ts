@@ -3,33 +3,33 @@ import { ethers } from 'ethers';
 
 import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
 
-import { P2PMessageService } from '../client/engine/messageservice/p2p-message-service/service';
-import { Client } from '../client/client';
-import { Store } from '../client/engine/store/store';
-import { PermissivePolicy } from '../client/engine/policy-maker';
-import { MetricsApi } from '../client/engine/metrics';
+import { P2PMessageService } from '../node/engine/messageservice/p2p-message-service/service';
+import { Node } from '../node/node';
+import { Store } from '../node/engine/store/store';
+import { PermissivePolicy } from '../node/engine/policy-maker';
+import { MetricsApi } from '../node/engine/metrics';
 import { SingleAssetExit, Exit } from '../channel/state/outcome/exit';
 import { Allocation, AllocationType, Allocations } from '../channel/state/outcome/allocation';
 import { Destination } from '../types/destination';
 import { Signature, getSignatureFromEthersSignature, recoverEthereumMessageSigner } from '../crypto/signatures';
-import { ChainService } from '../client/engine/chainservice/chainservice';
+import { ChainService } from '../node/engine/chainservice/chainservice';
 
 const log = debug('ts-nitro:util:helpers');
 
 /**
- * setupClient sets up a client using the given args
+ * setupNode sets up a node using the given args
  *
  * @param msgPort
  * @param pk
  * @param chainPk
  */
-export async function setupClient(
+export async function setupNode(
   messageService: P2PMessageService,
   store: Store,
   chainService: ChainService,
   metricsApi?: MetricsApi,
-): Promise<Client> {
-  const client = await Client.new(
+): Promise<Node> {
+  const node = await Node.new(
     messageService,
     chainService,
     store,
@@ -38,7 +38,7 @@ export async function setupClient(
     metricsApi,
   );
 
-  return client;
+  return node;
 }
 
 /**
@@ -95,11 +95,11 @@ export function createOutcome(
   ]);
 }
 
-export async function subscribeVoucherLogs(client: Client): Promise<void> {
+export async function subscribeVoucherLogs(node: Node): Promise<void> {
   // Log voucher messages from channel in loop
   while (true) {
     // eslint-disable-next-line no-await-in-loop
-    const voucher = await client.receivedVouchers().shift();
+    const voucher = await node.receivedVouchers().shift();
 
     if (voucher === undefined) {
       break;

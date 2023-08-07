@@ -1,19 +1,19 @@
-export { Client } from './client/client';
-export { EthChainService } from './client/engine/chainservice/eth-chainservice';
-export { P2PMessageService } from './client/engine/messageservice/p2p-message-service/service';
-export { Store } from './client/engine/store/store';
-export { MemStore } from './client/engine/store/memstore';
-export { DurableStore } from './client/engine/store/durablestore';
-export { PermissivePolicy } from './client/engine/policy-maker';
+export { Node } from './node/node';
+export { EthChainService } from './node/engine/chainservice/eth-chainservice';
+export { P2PMessageService } from './node/engine/messageservice/p2p-message-service/service';
+export { Store } from './node/engine/store/store';
+export { MemStore } from './node/engine/store/memstore';
+export { DurableStore } from './node/engine/store/durablestore';
+export { PermissivePolicy } from './node/engine/policy-maker';
 export { SingleAssetExit, Exit } from './channel/state/outcome/exit';
 export { Allocation, AllocationType, Allocations } from './channel/state/outcome/allocation';
 export { Destination } from './types/destination';
-export { Metrics, GetMetrics } from './client/engine/metrics';
+export { Metrics, GetMetrics } from './node/engine/metrics';
 export { Voucher } from './payments/vouchers';
 export { signEthereumMessage } from './crypto/signatures';
 export {
   LedgerChannelInfo, PaymentChannelInfo, LedgerChannelBalance, ChannelStatus, PaymentChannelBalance,
-} from './client/query/types';
+} from './node/query/types';
 export { ObjectiveResponse } from './protocols/directfund/directfund';
 
 export * as utils from './utils';

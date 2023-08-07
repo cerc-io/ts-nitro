@@ -28,7 +28,7 @@ import {
 import { Address } from '../../types/types';
 import { SignedState } from '../../channel/state/signedstate';
 import { State } from '../../channel/state/state';
-import { AllocationUpdatedEvent, ChainEvent, ConcludedEvent } from '../../client/engine/chainservice/chainservice';
+import { AllocationUpdatedEvent, ChainEvent, ConcludedEvent } from '../../node/engine/chainservice/chainservice';
 
 const WaitingForFinalization: WaitingFor = 'WaitingForFinalization';
 const WaitingForWithdraw: WaitingFor = 'WaitingForWithdraw';

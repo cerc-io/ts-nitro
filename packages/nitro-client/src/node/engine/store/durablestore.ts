@@ -348,7 +348,7 @@ export class DurableStore implements Store {
     return ch;
   }
 
-  // getConsensusChannel returns a ConsensusChannel between the calling client and
+  // getConsensusChannel returns a ConsensusChannel between the calling node and
   // the supplied counterparty, if such channel exists
   async getConsensusChannel(counterparty: Address): Promise<[ConsensusChannel | undefined, boolean]> {
     let channel: ConsensusChannel;
