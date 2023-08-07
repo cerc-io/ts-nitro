@@ -32,7 +32,7 @@
     "chain": "hardhat node"
   },
   "dependencies": {
-    "@cerc-io/nitro-client": "^0.1.7",
+    "@cerc-io/nitro-node": "^0.1.7",
     "@cerc-io/nitro-util": "^0.1.7",
     "assert": "^2.0.0",
     "debug": "^4.3.4",

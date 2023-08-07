@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import assert from 'assert';
 
-import { utils } from '@cerc-io/nitro-client';
+import { utils } from '@cerc-io/nitro-node';
 import { JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
 
 import contractAddresses from './nitro-addresses.json';
@@ -22,7 +22,7 @@ declare global {
   }
 }
 
-window.clearClientStorage = utils.Nitro.clearClientStorage;
+window.clearClientStorage = utils.Nitro.clearNodeStorage;
 
 // Method to setup nitro client with test actors
 window.setupClient = async (name: string): Promise<utils.Nitro> => {
@@ -34,7 +34,7 @@ window.setupClient = async (name: string): Promise<utils.Nitro> => {
   const peerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
   const peer = await createPeerAndInit(process.env.REACT_APP_RELAY_MULTIADDR, {}, peerIdObj);
 
-  return utils.Nitro.setupClient(
+  return utils.Nitro.setupNode(
     actor.privateKey,
     DEFAULT_CHAIN_URL,
     actor.chainPrivateKey,

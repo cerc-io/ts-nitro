@@ -34,7 +34,7 @@ const MODULES = [
     ],
   },
   {
-    path: '../nitro-client/node_modules/@multiformats/multiaddr',
+    path: '../nitro-node/node_modules/@multiformats/multiaddr',
     subPaths: [
       '.',
     ],
@@ -48,11 +48,8 @@ async function main() {
     const { content } = pkgJson;
 
     module.subPaths.forEach((subPath) => {
-      // @ts-expect-error
       content.exports![subPath] = {
-        // @ts-expect-error
         ...content.exports![subPath],
-        // @ts-expect-error
         default: content.exports![subPath].import,
       };
     });

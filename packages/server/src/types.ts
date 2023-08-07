@@ -1,4 +1,4 @@
-import { Exit } from '@cerc-io/nitro-client';
+import { Exit } from '@cerc-io/nitro-node';
 
 /**
  * Objective params
