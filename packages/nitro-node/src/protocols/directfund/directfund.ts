@@ -33,6 +33,8 @@ import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
 import { ChainEvent, DepositedEvent } from '../../node/engine/chainservice/chainservice';
 
+export const ErrLedgerChannelExists: Error = new Error('directfund: ledger channel already exists');
+
 const WaitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund';
 const WaitingForMyTurnToFund: WaitingFor = 'WaitingForMyTurnToFund';
 const WaitingForCompleteFunding: WaitingFor = 'WaitingForCompleteFunding';
@@ -189,7 +191,7 @@ export class Objective implements ObjectiveInterface {
       throw new Error(`counterparty check failed: ${err}`);
     }
     if (channelExists) {
-      throw new Error(`A channel already exists with counterparty ${request.counterParty}`);
+      throw new Error(`counterparty ${request.counterParty}: ${ErrLedgerChannelExists.message}`);
     }
 
     return objective;

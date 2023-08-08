@@ -12,6 +12,7 @@ import { ObjectiveId } from '../../../protocols/messages';
 
 export const ErrNoSuchObjective = new Error('store: no such objective');
 export const ErrNoSuchChannel = new Error('store: failed to find required channel data');
+export const ErrLoadVouchers = new Error('store: could not load vouchers');
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
 export interface Store extends ConsensusChannelStore, VoucherStore {
