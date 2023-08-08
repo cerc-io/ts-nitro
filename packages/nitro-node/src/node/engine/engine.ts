@@ -8,7 +8,7 @@ import { WaitGroup } from '@jpwilliams/waitgroup';
 
 import Channel from '@cerc-io/ts-channel';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
-import { JSONbigNative, go, Context } from '@cerc-io/nitro-util';
+import { JSONbigNative, go, Context, WrappedError } from '@cerc-io/nitro-util';
 
 import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent, ChainEventHandler } from './chainservice/chainservice';
@@ -132,12 +132,13 @@ export class EngineEvent {
   }
 }
 
-class ErrGetObjective {
+class ErrGetObjective extends Error {
   wrappedError: Error = new Error();
 
   objectiveId?: ObjectiveId;
 
   constructor(params: { wrappedError?: Error, objectiveId?: ObjectiveId }) {
+    super(`unexpected error getting/creating objective ${params.objectiveId}: ${params.wrappedError}`);
     Object.assign(this, params);
   }
 
@@ -146,10 +147,8 @@ class ErrGetObjective {
   }
 }
 
-type NonFatalErrorType = ErrGetObjective | Error;
-
 // nonFatalErrors is a list of errors for which the engine should not panic
-const nonFatalErrors: NonFatalErrorType[] = [
+const nonFatalErrors: Error[] = [
   new ErrGetObjective({}),
   ErrLoadVouchers,
   ErrLedgerChannelExists,
@@ -1280,7 +1279,7 @@ export class Engine {
       });
 
       for (const nonFatalError of nonFatalErrors) {
-        if (_.isEqual(err, nonFatalError)) {
+        if (WrappedError.is(err, nonFatalError)) {
           return;
         }
       }

@@ -3,9 +3,11 @@ import { Buffer } from 'buffer';
 import { Level } from 'level';
 import type { AbstractSublevel, AbstractSublevelOptions } from 'abstract-level';
 
-import { JSONbigNative, NitroSigner } from '@cerc-io/nitro-util';
+import { JSONbigNative, NitroSigner, WrappedError } from '@cerc-io/nitro-util';
 
-import { ErrNoSuchChannel, ErrNoSuchObjective, Store } from './store';
+import {
+  ErrLoadVouchers, ErrNoSuchChannel, ErrNoSuchObjective, Store,
+} from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
@@ -560,28 +562,21 @@ export class DurableStore implements Store {
     this.vouchers!.put(channelId.string(), vJSON);
   }
 
-  async getVoucherInfo(channelId: Destination): Promise<[VoucherInfo | undefined, boolean]> {
-    let err;
-    let v: VoucherInfo | undefined;
+  async getVoucherInfo(channelId: Destination): Promise<VoucherInfo> {
+    let v = new VoucherInfo({});
+    let vJSON: Buffer;
 
     try {
-      const vJSON = await this.vouchers!.get(channelId.string());
-
-      try {
-        v = VoucherInfo.fromJSON(vJSON.toString());
-        return [v, true];
-      } catch (jsonErr) {
-        err = jsonErr;
-      }
-    } catch (dbErr) {
-      err = null;
+      vJSON = await this.vouchers!.get(channelId.string());
+    } catch (err) {
+      throw new WrappedError(
+        `channelId ${channelId.string()}: ${ErrLoadVouchers.message}`,
+        [ErrLoadVouchers],
+      );
     }
 
-    if (!err) {
-      return [v, true];
-    }
-
-    return [v, false];
+    v = VoucherInfo.fromJSON(vJSON.toString());
+    return v;
   }
 
   async removeVoucherInfo(channelId: Destination): Promise<void> {
