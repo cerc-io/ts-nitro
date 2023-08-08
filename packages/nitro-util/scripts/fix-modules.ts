@@ -48,8 +48,11 @@ async function main() {
     const { content } = pkgJson;
 
     module.subPaths.forEach((subPath) => {
+      // @ts-expect-error
       content.exports![subPath] = {
+        // @ts-expect-error
         ...content.exports![subPath],
+        // @ts-expect-error
         default: content.exports![subPath].import,
       };
     });
