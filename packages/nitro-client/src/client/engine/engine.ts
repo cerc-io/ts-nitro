@@ -296,7 +296,7 @@ export class Engine {
 
       // Handle errors
       if (err) {
-        this.checkError(err);
+        await this.checkError(err);
       }
 
       // Only send out an event if there are changes
@@ -682,7 +682,10 @@ export class Engine {
 
             this.metrics!.recordObjectiveStarted(vdfo.id());
           } catch (err) {
-            return [new EngineEvent(), new Error(`handleAPIEvent: Could not create virtualdefund objective for ${request}: ${err}`)];
+            return [
+              new EngineEvent(),
+              new Error(`handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
+            ];
           }
 
           return await this.attemptProgress(vdfo);
@@ -718,8 +721,11 @@ export class Engine {
               this.store.getConsensusChannelById.bind(this.store),
             );
           } catch (err) {
+            const engineEvent = new EngineEvent();
+            engineEvent.failedObjectives = [objectiveId];
+
             return [
-              new EngineEvent(),
+              engineEvent,
               new Error(`handleAPIEvent: Could not create directdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
             ];
           }
@@ -728,7 +734,10 @@ export class Engine {
           try {
             await this.store.destroyConsensusChannel(request.channelId);
           } catch (err) {
-            return [new EngineEvent(), new Error(`handleAPIEvent: Could not destroy consensus channel for ${request}: ${err}`)];
+            return [
+              new EngineEvent(),
+              new Error(`handleAPIEvent: Could not destroy consensus channel for ${JSONbigNative.stringify(request)}: ${err}`),
+            ];
           }
 
           return await this.attemptProgress(ddfo);
@@ -909,7 +918,11 @@ export class Engine {
         }
       }
 
-      await this.executeSideEffects(sideEffects);
+      try {
+        await this.executeSideEffects(sideEffects);
+      } catch (err) {
+        return [outgoing, err as Error];
+      }
 
       return [outgoing, null];
     } finally {
