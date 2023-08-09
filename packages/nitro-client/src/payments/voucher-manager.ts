@@ -10,7 +10,7 @@ import { Voucher, VoucherInfo } from './vouchers';
 // VoucherStore is an interface for storing voucher information that the voucher manager expects.
 // To avoid import cycles, this interface is defined in the payments package, but implemented in the store package.
 export interface VoucherStore {
-  setVoucherInfo (channelId: Destination, v: VoucherInfo): void
+  setVoucherInfo (channelId: Destination, v: VoucherInfo): void | Promise<void>
 
   getVoucherInfo (channelId: Destination): [VoucherInfo | undefined, boolean] | Promise<[VoucherInfo | undefined, boolean]>
 
@@ -49,7 +49,7 @@ export class VoucherManager {
       throw new Error('Channel already registered');
     }
 
-    this.store.setVoucherInfo(channelId, data);
+    await this.store.setVoucherInfo(channelId, data);
   }
 
   // Remove deletes the channel's status
@@ -84,7 +84,7 @@ export class VoucherManager {
 
     await voucher.sign(signer);
 
-    this.store.setVoucherInfo(channelId, vInfo);
+    await this.store.setVoucherInfo(channelId, vInfo);
 
     return voucher;
   }
@@ -119,7 +119,7 @@ export class VoucherManager {
 
     vInfo.largestVoucher = voucher;
 
-    this.store.setVoucherInfo(voucher.channelId, vInfo);
+    await this.store.setVoucherInfo(voucher.channelId, vInfo);
     return received;
   }
 
