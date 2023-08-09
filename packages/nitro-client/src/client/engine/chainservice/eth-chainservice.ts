@@ -50,11 +50,6 @@ interface EthChain {
   chainID (): Promise<bigint>;
 }
 
-interface BlockRange {
-  from?: bigint;
-  to?: bigint;
-}
-
 export class EthChainService implements ChainService {
   private chain: EthChain;
 
@@ -169,7 +164,20 @@ export class EthChainService implements ChainService {
       cancelCtx,
     );
 
-    ecs.subscribeForLogs();
+    const errorChan = ecs.subscribeForLogs();
+
+    // TODO: Return error from chain service instead of panicking
+    go(async () => {
+      // eslint-disable-next-line no-unreachable-loop
+      while (true) {
+        // eslint-disable-next-line no-await-in-loop
+        const err = await errorChan.shift();
+        // Print to STDOUT in case we're using a noop logger
+        ecs.logger(err);
+        // Manually panic in case we're using a logger that doesn't call exit(1)
+        throw err;
+      }
+    });
 
     return ecs;
   }
@@ -233,18 +241,6 @@ export class EthChainService implements ChainService {
     }
   }
 
-  // fatalF is called to output a message and then panic, killing the chain service.
-  private fatalF(message: string) {
-    // Print to STDOUT in case we're using a noop logger
-    // eslint-disable-next-line no-console
-    console.log(message);
-
-    this.logger(message);
-
-    // Manually panic in case we're using a logger that doesn't call exit(1)
-    throw new Error(message);
-  }
-
   // dispatchChainEvents takes in a collection of event logs from the chain
   private async dispatchChainEvents(logs: Log[]): Promise<void> {
     for await (const l of logs) {
@@ -261,7 +257,7 @@ export class EthChainService implements ChainService {
             );
             await this.out.push(event);
           } catch (err) {
-            this.fatalF(`error in ParseDeposited: ${err}`);
+            throw new Error(`error in ParseDeposited: ${err}`);
           }
           break;
         }
@@ -270,7 +266,7 @@ export class EthChainService implements ChainService {
           try {
             au = this.na.interface.parseLog(l).args as unknown as AllocationUpdatedEventObject;
           } catch (err) {
-            this.fatalF(`error in ParseAllocationUpdated: ${err}`);
+            throw new Error(`error in ParseAllocationUpdated: ${err}`);
           }
 
           let tx;
@@ -278,10 +274,10 @@ export class EthChainService implements ChainService {
             tx = await this.chain.provider.getTransaction(l.transactionHash);
             if (tx.confirmations < 1) {
               // If confirmations less than 1, then tx is pending
-              this.fatalF('Expected transaction to be part of the chain, but the transaction is pending');
+              throw new Error('Expected transaction to be part of the chain, but the transaction is pending');
             }
           } catch (err) {
-            this.fatalF(`error in TransactionByHash: ${err}`);
+            throw new Error(`error in TransactionByHash: ${err}`);
           }
 
           assert(tx !== undefined);
@@ -291,7 +287,7 @@ export class EthChainService implements ChainService {
           try {
             [assetAddress, amount] = await getChainHolding(this.na, tx, au);
           } catch (err) {
-            this.fatalF(`error in getChainHoldings: ${err}`);
+            throw new Error(`error in getChainHoldings: ${err}`);
           }
 
           assert(assetAddress !== undefined);
@@ -311,7 +307,7 @@ export class EthChainService implements ChainService {
             const event = new ConcludedEvent({ _channelID: new Destination(ce.channelId), blockNum: String(l.blockNumber) });
             await this.out.push(event);
           } catch (err) {
-            this.fatalF(`error in ParseConcluded: ${err}`);
+            throw new Error(`error in ParseConcluded: ${err}`);
           }
           break;
         }
@@ -330,7 +326,7 @@ export class EthChainService implements ChainService {
 
   // subscribeForLogs subscribes for logs and pushes them to the out channel.
   // It relies on notifications being supported by the chain node.
-  private subscribeForLogs() {
+  private subscribeForLogs(): ReadChannel<Error> {
     // Subscribe to Adjudicator events
     const query: ethers.providers.EventType = {
       address: this.naAddress,
@@ -340,9 +336,10 @@ export class EthChainService implements ChainService {
     try {
       this.chain.provider.on(query, listener);
     } catch (err) {
-      this.fatalF(`subscribeFilterLogs failed: ${err}`);
+      throw new Error(`subscribeFilterLogs failed: ${err}`);
     }
 
+    const errorChan = Channel<Error>();
     // Channel to implement sub.Err()
     const subErr = Channel<Error>();
     const subErrListener = (err: Error) => subErr.push(err);
@@ -363,6 +360,9 @@ export class EthChainService implements ChainService {
 
     // Must be in a goroutine to not block chain service constructor
     go(async () => {
+      /* eslint-disable no-restricted-syntax */
+      /* eslint-disable no-labels */
+      out:
       while (true) {
         /* eslint-disable no-await-in-loop */
         /* eslint-disable default-case */
@@ -378,7 +378,8 @@ export class EthChainService implements ChainService {
           case subErr: {
             const err = subErr.value();
             if (err) {
-              this.fatalF(`received error from the subscription channel: ${err}`);
+              await errorChan.push(new Error(`received error from the subscription channel: ${err}`));
+              break out;
             }
 
             // If the error is nil then the subscription was closed and we need to re-subscribe.
@@ -386,7 +387,8 @@ export class EthChainService implements ChainService {
             try {
               this.chain.provider.on(query, listener);
             } catch (sErr) {
-              this.fatalF(`subscribeFilterLogs failed on resubscribe: ${err}`);
+              await errorChan.push(new Error(`subscribeFilterLogs failed on resubscribe: ${sErr}`));
+              break out;
             }
             this.logger('resubscribed to filtered logs');
             break;
@@ -398,17 +400,21 @@ export class EthChainService implements ChainService {
           //   // We unsub here and recreate the subscription in the next iteration of the select.
           //   sub.Unsubscribe()
 
-          case logs:
-            await this.dispatchChainEvents([logs.value()]);
+          case logs: {
+            try {
+              await this.dispatchChainEvents([logs.value()]);
+            } catch (err) {
+              await errorChan.push(new Error(`error in dispatchChainEvents: ${err}`));
+              break out;
+            }
             break;
+          }
         }
       }
     });
-  }
 
-  // splitBlockRange takes a BlockRange and chunks it into a slice of BlockRanges, each having an interval no larger than the passed interval.
-  // TODO: Implement and remove void
-  private splitBlockRange(total: BlockRange, maxInterval?: bigint): BlockRange[] | void {}
+    return errorChan;
+  }
 
   // eventFeed returns the out chan, and narrows the type so that external consumers may only receive on it.
   eventFeed(): ReadChannel<ChainEvent> {

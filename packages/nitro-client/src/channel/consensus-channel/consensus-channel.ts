@@ -6,7 +6,7 @@ import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
 
 import {
-  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, zeroValueSignature,
+  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, zeroValueSignature, JSONbigNative,
 } from '@cerc-io/nitro-util';
 import { Bytes32 } from '@statechannels/nitro-protocol';
 
@@ -788,7 +788,7 @@ export class Proposal {
       case 'RemoveProposal':
         return this.toRemove.target;
       default:
-        throw new Error('invalid proposal type');
+        throw new Error(`invalid proposal type ${this.constructor.name}`);
     }
   }
 
@@ -1140,10 +1140,6 @@ export class ConsensusChannel {
     return this.current.outcome.fundingTargets();
   }
 
-  accept(p: SignedProposal): void {
-    throw new Error('UNIMPLEMENTED');
-  }
-
   // sign constructs a state.State from the given vars, using the ConsensusChannel's constant
   // values. It signs the resulting state using sk.
   private async sign(vars: Vars, signer: NitroSigner): Promise<Signature> {
@@ -1337,19 +1333,25 @@ export class ConsensusChannel {
     }
 
     const signed = new SignedProposal({ proposal, signature, turnNum: vars.turnNum });
-    this.appendToProposalQueue(signed);
+
+    try {
+      this.appendToProposalQueue(signed);
+    } catch (err) {
+      throw new Error(`could not append to proposal queue: ${err}`);
+    }
+
     return signed;
   }
 
   // appendToProposalQueue safely appends the given SignedProposal to the proposal queue of the receiver.
-  // It will panic if the turn number of the signedproposal is not consecutive with the existing queue.
+  // It will return an error if the turn number of the signedproposal is not consecutive with the existing queue.
   private appendToProposalQueue(signed: SignedProposal) {
     if (
       this._proposalQueue
       && this._proposalQueue.length > 0
       && this._proposalQueue[this._proposalQueue.length - 1].turnNum + BigInt(1) !== signed.turnNum
     ) {
-      throw new Error('Appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum');
+      throw new Error('appending to ConsensusChannel.proposalQueue: not a consecutive TurnNum');
     }
     (this._proposalQueue ?? []).push(signed);
   }

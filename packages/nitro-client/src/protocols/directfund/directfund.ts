@@ -182,7 +182,13 @@ export class Objective implements ObjectiveInterface {
       throw new Error(`could not create new objective: ${err}`);
     }
 
-    if (await channelsExistWithCounterparty(request.counterParty, getChannels, getTwoPartyConsensusLedger)) {
+    let channelExists: boolean;
+    try {
+      channelExists = await channelsExistWithCounterparty(request.counterParty, getChannels, getTwoPartyConsensusLedger);
+    } catch (err) {
+      throw new Error(`counterparty check failed: ${err}`);
+    }
+    if (channelExists) {
       throw new Error(`A channel already exists with counterparty ${request.counterParty}`);
     }
 

@@ -1,4 +1,3 @@
-import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 import { Level } from 'level';
@@ -67,14 +66,7 @@ export class DurableStore implements Store {
     name: string,
     options: AbstractSublevelOptions<string, V> = {},
   ): AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, V> {
-    let subDb;
-    try {
-      subDb = this.db!.sublevel<string, V>(name, options);
-    } catch (err) {
-      this.checkError(err as Error);
-      assert(subDb);
-    }
-
+    const subDb = this.db!.sublevel<string, V>(name, options);
     return subDb;
   }
 
@@ -186,7 +178,7 @@ export class DurableStore implements Store {
         try {
           await this.channelToObjective!.put(obj.ownsChannel().string(), obj.id());
         } catch (err) {
-          this.checkError(err as Error);
+          throw new Error(`cannot transfer ownership of channel: ${err}`);
         }
       }
 
@@ -205,11 +197,7 @@ export class DurableStore implements Store {
 
   // destroyChannel deletes the channel with id id.
   async destroyChannel(id: Destination): Promise<void> {
-    try {
-      await this.channels!.del(id.string());
-    } catch (err) {
-      this.checkError(err as Error);
-    }
+    await this.channels!.del(id.string());
   }
 
   // SetConsensusChannel sets the channel in the store.
@@ -224,11 +212,7 @@ export class DurableStore implements Store {
 
   // DestroyChannel deletes the channel with id id.
   async destroyConsensusChannel(id: Destination): Promise<void> {
-    try {
-      await this.consensusChannels!.del(id.string());
-    } catch (err) {
-      this.checkError(err as Error);
-    }
+    await this.consensusChannels!.del(id.string());
   }
 
   // GetChannelById retrieves the channel with the supplied id, if it exists.
@@ -567,19 +551,7 @@ export class DurableStore implements Store {
   }
 
   async releaseChannelFromOwnership(channelId: Destination): Promise<void> {
-    try {
-      await this.channelToObjective!.del(channelId.string());
-    } catch (err) {
-      this.checkError(err as Error);
-    }
-  }
-
-  // checkError is a helper function that panics if an error is not nil
-  // TODO: Longer term we should return errors instead of panicking
-  private checkError(err: Error) {
-    if (err) {
-      throw err;
-    }
+    await this.channelToObjective!.del(channelId.string());
   }
 
   setVoucherInfo(channelId: Destination, v: VoucherInfo): void {

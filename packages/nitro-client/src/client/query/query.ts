@@ -151,7 +151,8 @@ export const getAllLedgerChannels = async (store: Store, consensusAppDefinition:
   const allChannels = await store.getChannelsByAppDefinition(consensusAppDefinition);
 
   for (const c of allChannels) {
-    toReturn.push(constructLedgerInfoFromChannel(c));
+    const l = constructLedgerInfoFromChannel(c);
+    toReturn.push(l);
   }
 
   return toReturn;

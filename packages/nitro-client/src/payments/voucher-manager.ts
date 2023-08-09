@@ -54,7 +54,6 @@ export class VoucherManager {
 
   // Remove deletes the channel's status
   remove(channelId: Destination): void {
-    // TODO: Return error instead of panicking
     this.store.removeVoucherInfo(channelId);
   }
 

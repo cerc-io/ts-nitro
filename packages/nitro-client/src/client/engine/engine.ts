@@ -252,6 +252,7 @@ export class Engine {
 
     while (true) {
       let res = new EngineEvent();
+      let err: Error | null = null;
 
       this.metrics!.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.channelLength());
       this.metrics!.recordQueueLength('api_payment_request_queue', this.paymentRequestsFromAPI.channelLength());
@@ -259,50 +260,43 @@ export class Engine {
       this.metrics!.recordQueueLength('messages_queue', this.fromMsg.channelLength());
       this.metrics!.recordQueueLength('proposal_queue', this.fromLedger.channelLength());
 
-      try {
-        /* eslint-disable no-await-in-loop */
-        /* eslint-disable default-case */
-        switch (await Channel.select([
-          this.objectiveRequestsFromAPI.shift(),
-          this.paymentRequestsFromAPI.shift(),
-          this.fromChain.shift(),
-          this.fromMsg.shift(),
-          this.fromLedger.shift(),
-          this.stop.shift(),
-        ])) {
-          case this.objectiveRequestsFromAPI:
-            res = await this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
-            break;
+      /* eslint-disable no-await-in-loop */
+      /* eslint-disable default-case */
+      switch (await Channel.select([
+        this.objectiveRequestsFromAPI.shift(),
+        this.paymentRequestsFromAPI.shift(),
+        this.fromChain.shift(),
+        this.fromMsg.shift(),
+        this.fromLedger.shift(),
+        this.stop.shift(),
+      ])) {
+        case this.objectiveRequestsFromAPI:
+          [res, err] = await this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
+          break;
 
-          case this.paymentRequestsFromAPI:
-            res = await this.handlePaymentRequest(this.paymentRequestsFromAPI.value());
-            break;
+        case this.paymentRequestsFromAPI:
+          [res, err] = await this.handlePaymentRequest(this.paymentRequestsFromAPI.value());
+          break;
 
-          case this.fromChain:
-            res = await this.handleChainEvent(this.fromChain.value());
-            break;
+        case this.fromChain:
+          [res, err] = await this.handleChainEvent(this.fromChain.value());
+          break;
 
-          case this.fromMsg: {
-            let err: Error | undefined;
-            [res, err] = await this.handleMessage(this.fromMsg.value());
+        case this.fromMsg:
+          [res, err] = await this.handleMessage(this.fromMsg.value());
+          break;
 
-            if (err) {
-              throw err;
-            }
+        case this.fromLedger:
+          [res, err] = await this.handleProposal(this.fromLedger.value());
+          break;
 
-            break;
-            // TODO: Return errors from other handlers as well?
-          }
-          case this.fromLedger:
-            res = await this.handleProposal(this.fromLedger.value());
-            break;
+        case this.stop:
+          return;
+      }
 
-          case this.stop:
-            return;
-        }
-      } catch (err) {
-        // Handle errors
-        this.checkError(err as Error);
+      // Handle errors
+      if (err) {
+        await this.checkError(err);
       }
 
       // Only send out an event if there are changes
@@ -321,7 +315,7 @@ export class Engine {
   // handleProposal handles a Proposal returned to the engine from
   // a running ledger channel by pulling its corresponding objective
   // from the store and attempting progress.
-  private async handleProposal(proposal: Proposal): Promise<EngineEvent> {
+  private async handleProposal(proposal: Proposal): Promise<[EngineEvent, Error | null]> {
     let deferredCompleteRecordFunction;
     try {
       const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleProposal.name);
@@ -329,11 +323,17 @@ export class Engine {
 
       assert(this.store);
       const id = getProposalObjectiveId(proposal);
-      const obj = await this.store.getObjectiveById(id);
+
+      let obj: Objective;
+      try {
+        obj = await this.store.getObjectiveById(id);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
 
       if (obj.getStatus() === ObjectiveStatus.Completed) {
         this.logger(`Ignoring proposal for complected objective ${obj.id()}`);
-        return new EngineEvent();
+        return [new EngineEvent(), null];
       }
 
       return await this.attemptProgress(obj);
@@ -350,7 +350,7 @@ export class Engine {
   //   - generates an updated objective,
   //   - attempts progress on the target Objective,
   //   - attempts progress on related objectives which may have become unblocked.
-  private async handleMessage(message: Message): Promise<[EngineEvent, Error | undefined]> {
+  private async handleMessage(message: Message): Promise<[EngineEvent, Error | null]> {
     let deferredCompleteRecordFunction;
     try {
       const completeRecordFunction = () => this.metrics!.recordFunctionDuration(this.handleMessage.name);
@@ -380,7 +380,11 @@ export class Engine {
             if (objective instanceof DirectDefundObjective) {
               // If we just approved a direct defund objective, destroy the consensus channel
               // to prevent it being used (a Channel will now take over governance)
-              await this.store.destroyConsensusChannel(objective.c!.id);
+              try {
+                await this.store.destroyConsensusChannel(objective.c!.id);
+              } catch (err) {
+                return [new EngineEvent(), err as Error];
+              }
             }
           } else {
             let sideEffects: SideEffects;
@@ -421,10 +425,9 @@ export class Engine {
           return [new EngineEvent(), err as Error];
         }
 
-        let progressEvent: EngineEvent;
-        try {
-          progressEvent = await this.attemptProgress(updatedObjective);
-        } catch (err) {
+        const [progressEvent, err] = await this.attemptProgress(updatedObjective);
+
+        if (err) {
           return [new EngineEvent(), err as Error];
         }
 
@@ -463,10 +466,9 @@ export class Engine {
           return [new EngineEvent(), err as Error];
         }
 
-        let progressEvent: EngineEvent;
-        try {
-          progressEvent = await this.attemptProgress(updatedObjective);
-        } catch (err) {
+        const [progressEvent, err] = await this.attemptProgress(updatedObjective);
+
+        if (err) {
           return [new EngineEvent(), err as Error];
         }
 
@@ -532,7 +534,7 @@ export class Engine {
         allCompleted.paymentChannelUpdates.push(info);
       }
 
-      return [allCompleted, undefined];
+      return [allCompleted, null];
     } finally {
       if (deferredCompleteRecordFunction) {
         deferredCompleteRecordFunction();
@@ -545,7 +547,7 @@ export class Engine {
   //   - reads an objective from the store,
   //   - generates an updated objective, and
   //   - attempts progress.
-  private async handleChainEvent(chainEvent: ChainEvent): Promise<EngineEvent> {
+  private async handleChainEvent(chainEvent: ChainEvent): Promise<[EngineEvent, Error | null]> {
     let deferredCompleteRecordFunction;
     try {
       const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleChainEvent.name);
@@ -561,7 +563,7 @@ export class Engine {
         // TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
         // for now we can ignore channels we aren't involved in
         // in the future the chain service should allow us to register for specific channels
-        return new EngineEvent();
+        return [new EngineEvent(), null];
       }
 
       // Workaround for Go type assertion syntax
@@ -569,14 +571,19 @@ export class Engine {
       ok = 'updateWithChainEvent' in objective && typeof objective.updateWithChainEvent === 'function';
       const eventHandler = objective as unknown as ChainEventHandler;
       if (!ok) {
-        throw new ErrUnhandledChainEvent({
+        return [new EngineEvent(), new ErrUnhandledChainEvent({
           event: chainEvent,
           objective,
           reason: 'objective does not handle chain events',
-        });
+        })];
       }
 
-      const updatedEventHandler = eventHandler.updateWithChainEvent(chainEvent);
+      let updatedEventHandler: Objective;
+      try {
+        updatedEventHandler = eventHandler.updateWithChainEvent(chainEvent);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
 
       return await this.attemptProgress(updatedEventHandler);
     } finally {
@@ -588,7 +595,7 @@ export class Engine {
 
   // handleObjectiveRequest handles an ObjectiveRequest (triggered by a client API call).
   // It will attempt to spawn a new, approved objective.
-  private async handleObjectiveRequest(or: ObjectiveRequest): Promise<EngineEvent> {
+  private async handleObjectiveRequest(or: ObjectiveRequest): Promise<[EngineEvent, Error | null]> {
     let deferredSignalObjectiveStarted;
     let deferredCompleteRecordFunction;
     try {
@@ -605,7 +612,7 @@ export class Engine {
       try {
         chainId = await this.chain.getChainId();
       } catch (err) {
-        throw new Error(`could get chain id from chain service: ${err}`);
+        return [new EngineEvent(), new Error(`could get chain id from chain service: ${err}`)];
       }
 
       const objectiveId = or.id(myAddress, chainId);
@@ -628,7 +635,7 @@ export class Engine {
               this.store.getConsensusChannel.bind(this.store),
             );
           } catch (err) {
-            throw new Error(`handleAPIEvent: Could not create objective for ${or}: ${err}`);
+            return [new EngineEvent(), new Error(`handleAPIEvent: Could not create virtualfund objective for ${or}: ${err}`)];
           }
           this.metrics!.recordObjectiveStarted(vfo.id());
 
@@ -638,7 +645,7 @@ export class Engine {
             try {
               await this.registerPaymentChannel(vfo);
             } catch (err) {
-              throw new Error(`could not register channel with payment/receipt manager: ${err}`);
+              return [new EngineEvent(), new Error(`could not register channel with payment/receipt manager: ${err}`)];
             }
           }
 
@@ -655,12 +662,16 @@ export class Engine {
 
               minAmount = paid;
             } catch (err) {
-              throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(request)}: ${err}`);
+              return [
+                new EngineEvent(),
+                new Error(`handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
+              ];
             }
           }
 
+          let vdfo: VirtualDefundObjective;
           try {
-            const vdfo = await VirtualDefundObjective.newObjective(
+            vdfo = await VirtualDefundObjective.newObjective(
               request,
               true,
               myAddress,
@@ -670,15 +681,20 @@ export class Engine {
             );
 
             this.metrics!.recordObjectiveStarted(vdfo.id());
-            return await this.attemptProgress(vdfo);
           } catch (err) {
-            throw new Error(`handleAPIEvent: Could not create objective for ${request}: ${err}`);
+            return [
+              new EngineEvent(),
+              new Error(`handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
+            ];
           }
+
+          return await this.attemptProgress(vdfo);
         }
 
-        case or instanceof DirectFundObjectiveRequest:
+        case or instanceof DirectFundObjectiveRequest: {
+          let dfo: DirectFundObjective;
           try {
-            const dfo = await DirectFundObjective.newObjective(
+            dfo = await DirectFundObjective.newObjective(
               or as DirectFundObjectiveRequest,
               true,
               myAddress,
@@ -688,10 +704,12 @@ export class Engine {
             );
 
             this.metrics!.recordObjectiveStarted(dfo.id());
-            return await this.attemptProgress(dfo);
           } catch (err) {
-            throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(or)}: ${err}`);
+            return [new EngineEvent(), new Error(`handleAPIEvent: Could not create directfund objective for ${JSONbigNative.stringify(or)}: ${err}`)];
           }
+
+          return await this.attemptProgress(dfo);
+        }
 
         case or instanceof DirectDefundObjectiveRequest: {
           const request = or as DirectDefundObjectiveRequest;
@@ -703,16 +721,30 @@ export class Engine {
               this.store.getConsensusChannelById.bind(this.store),
             );
           } catch (err) {
-            throw new Error(`handleAPIEvent: Could not create objective for ${JSONbigNative.stringify(request)}: ${err}`);
+            const engineEvent = new EngineEvent();
+            engineEvent.failedObjectives = [objectiveId];
+
+            return [
+              engineEvent,
+              new Error(`handleAPIEvent: Could not create directdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
+            ];
           }
           this.metrics!.recordObjectiveStarted(ddfo.id());
           // If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
-          await this.store.destroyConsensusChannel(request.channelId);
+          try {
+            await this.store.destroyConsensusChannel(request.channelId);
+          } catch (err) {
+            return [
+              new EngineEvent(),
+              new Error(`handleAPIEvent: Could not destroy consensus channel for ${JSONbigNative.stringify(request)}: ${err}`),
+            ];
+          }
+
           return await this.attemptProgress(ddfo);
         }
 
         default:
-          throw new Error(`handleAPIEvent: Unknown objective type ${typeof or}`);
+          return [new EngineEvent(), new Error(`handleAPIEvent: Unknown objective type ${typeof or}`)];
       }
     } finally {
       if (deferredSignalObjectiveStarted) {
@@ -726,11 +758,11 @@ export class Engine {
 
   // handlePaymentRequest handles an PaymentRequest (triggered by a client API call).
   // It prepares and dispatches a payment message to the counterparty.
-  private async handlePaymentRequest(request: PaymentRequest): Promise<EngineEvent> {
+  private async handlePaymentRequest(request: PaymentRequest): Promise<[EngineEvent, Error | null]> {
     const ee = new EngineEvent();
 
     if (_.isEqual(request, {})) {
-      throw new Error('handleAPIEvent: Empty payment request');
+      return [ee, new Error('handleAPIEvent: Empty payment request')];
     }
 
     const cId = request.channelId;
@@ -738,27 +770,27 @@ export class Engine {
     try {
       voucher = await this.vm!.pay(cId, request.amount, this.store!.getChannelSigner());
     } catch (err) {
-      throw new Error(`handleAPIEvent: Error making payment: ${err}`);
+      return [ee, new Error(`handleAPIEvent: Error making payment: ${err}`)];
     }
 
     const [c, ok] = await this.store!.getChannelById(cId);
 
     if (!ok) {
-      throw new Error(`handleAPIEvent: Could not get channel from the store ${cId}`);
+      return [ee, new Error(`handleAPIEvent: Could not get channel from the store ${cId}`)];
     }
 
     const payer = getPayer(c.participants);
     const payee = getPayee(c.participants);
 
     if (payer !== this.store!.getAddress()) {
-      throw new Error(`handleAPIEvent: Not the sender in channel ${cId}`);
+      return [ee, new Error(`handleAPIEvent: Not the sender in channel ${cId}`)];
     }
 
     let info: PaymentChannelInfo;
     try {
       info = await getPaymentChannelInfo(cId, this.store!, this.vm!);
     } catch (err) {
-      throw new Error(`handleAPIEvent: Error querying channel info: ${err}`);
+      return [ee, new Error(`handleAPIEvent: Error querying channel info: ${err}`)];
     }
 
     ee.paymentChannelUpdates = [...ee.paymentChannelUpdates, info];
@@ -767,11 +799,14 @@ export class Engine {
       messagesToSend: Message.createVoucherMessage(voucher, payee),
     });
 
-    await this.executeSideEffects(se);
+    try {
+      await this.executeSideEffects(se);
+    } catch (err) {
+      return [ee, err as Error];
+    }
 
     this._sentVouchers?.push(voucher);
-
-    return ee;
+    return [ee, null];
   }
 
   // sendMessages sends out the messages and records the metrics.
@@ -831,7 +866,7 @@ export class Engine {
   //  3. It commits the cranked objective to the store
   //  4. It executes any side effects that were declared during cranking
   //  5. It updates progress metadata in the store
-  private async attemptProgress(objective: Objective): Promise<EngineEvent> {
+  private async attemptProgress(objective: Objective): Promise<[EngineEvent, Error | null]> {
     let deferredCompleteRecordFunction;
     try {
       const completeRecordFunction = this.metrics!.recordFunctionDuration(this.attemptProgress.name);
@@ -842,11 +877,24 @@ export class Engine {
       assert(this.store);
       const signer = this.store.getChannelSigner();
 
-      const [crankedObjective, sideEffects, waitingFor] = await objective.crank(signer);
+      let crankedObjective: Objective;
+      let sideEffects: SideEffects;
+      let waitingFor: string;
+
+      try {
+        [crankedObjective, sideEffects, waitingFor] = await objective.crank(signer);
+      } catch (err) {
+        return [outgoing, err as Error];
+      }
 
       await this.store.setObjective(crankedObjective);
 
-      const notifEvents = await this.generateNotifications(crankedObjective);
+      let notifEvents: EngineEvent;
+      try {
+        notifEvents = await this.generateNotifications(crankedObjective);
+      } catch (err) {
+        return [new EngineEvent(), err as Error];
+      }
 
       outgoing.merge(notifEvents);
 
@@ -857,18 +905,26 @@ export class Engine {
       // Probably should have a better check that only adds it to CompletedObjectives if it was completed in this crank
       if (waitingFor === 'WaitingForNothing') {
         outgoing.completedObjectives = outgoing.completedObjectives.concat(crankedObjective);
-        await this.store.releaseChannelFromOwnership(crankedObjective.ownsChannel());
+        try {
+          await this.store.releaseChannelFromOwnership(crankedObjective.ownsChannel());
+        } catch (err) {
+          return [outgoing, err as Error];
+        }
 
         try {
           await this.spawnConsensusChannelIfDirectFundObjective(crankedObjective);
         } catch (err) {
-          return outgoing;
+          return [outgoing, err as Error];
         }
       }
 
-      await this.executeSideEffects(sideEffects);
+      try {
+        await this.executeSideEffects(sideEffects);
+      } catch (err) {
+        return [outgoing, err as Error];
+      }
 
-      return outgoing;
+      return [outgoing, null];
     } finally {
       if (deferredCompleteRecordFunction) {
         deferredCompleteRecordFunction();
@@ -946,15 +1002,26 @@ export class Engine {
 
       if (crankedObjective instanceof DirectFundObjective) {
         const dfo = crankedObjective as DirectFundObjective;
-        const c: ConsensusChannel = dfo.createConsensusChannel();
-        try {
-          assert(this.store);
-          await this.store.setConsensusChannel(c);
+        let c: ConsensusChannel;
+        assert(this.store);
 
+        try {
+          c = dfo.createConsensusChannel();
+        } catch (err) {
+          throw new Error(`could not create consensus channel for objective ${crankedObjective.id()}: ${err}`);
+        }
+
+        try {
+          await this.store.setConsensusChannel(c);
+        } catch (err) {
+          throw new Error(`could not store consensus channel for objective ${crankedObjective.id()}: ${err}`);
+        }
+
+        try {
           // Destroy the channel since the consensus channel takes over governance:
           await this.store.destroyChannel(c.id);
         } catch (err) {
-          throw new Error(`Could not create, store, or destroy consensus channel for objective ${crankedObjective.id()}: ${err}`);
+          throw new Error(`Could not destroy consensus channel for objective ${crankedObjective.id()}: ${err}`);
         }
       }
     } finally {

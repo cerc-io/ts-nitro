@@ -238,7 +238,7 @@ describe('test payment flows', () => {
       [aliceClient, aliceMsgService, aliceMetrics] = await createClient(ACTORS.alice, contractAddresses);
       [bobClient, bobMsgService, bobMetrics] = await createClient(ACTORS.bob, contractAddresses);
 
-      await waitForPeerInfoExchange(1, [aliceMsgService, bobMsgService]);
+      await waitForPeerInfoExchange([aliceMsgService, bobMsgService]);
 
       expect(aliceMetrics.getMetrics()).to.includes.keys(...getMetricsKey(METRICS_KEYS_CLIENT_INSTANTIATION, ACTORS.alice.address));
       expect(bobMetrics.getMetrics()).to.includes.keys(...getMetricsKey(METRICS_KEYS_CLIENT_INSTANTIATION, ACTORS.bob.address));
@@ -452,7 +452,7 @@ describe('test payment flows', () => {
       [bobClient, bobMsgService] = await createClient(ACTORS.bob, contractAddresses);
       [charlieClient, charlieMsgService] = await createClient(ACTORS.charlie, contractAddresses);
 
-      await waitForPeerInfoExchange(2, [aliceMsgService, bobMsgService, charlieMsgService]);
+      await waitForPeerInfoExchange([aliceMsgService, bobMsgService, charlieMsgService]);
     });
 
     it('should create ledger channels', async () => {
