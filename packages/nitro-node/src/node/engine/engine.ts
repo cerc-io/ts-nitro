@@ -680,8 +680,14 @@ export class Engine {
           if (vfo.myRole === lastParticipant || vfo.myRole === BigInt(PAYER_INDEX)) {
             try {
               await this.registerPaymentChannel(vfo);
-            } catch (err) {
-              return [failedEngineEvent, new Error(`could not register channel with payment/receipt manager: ${err}`)];
+            } catch (objectiveErr) {
+              const err = objectiveErr as Error;
+              return [
+                failedEngineEvent,
+                new WrappedError(
+                  `could not register channel with payment/receipt manager: ${err.message}`,
+                  [err],
+                )];
             }
           }
 

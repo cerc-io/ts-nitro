@@ -14,11 +14,12 @@ export class WrappedError extends Error {
     }
 
     if (error instanceof WrappedError) {
-      if (error.errors.includes(targetError)) {
-        return true;
+      /* eslint-disable no-restricted-syntax */
+      for (const err of error.errors) {
+        if (WrappedError.is(err, targetError)) {
+          return true;
+        }
       }
-
-      return false;
     }
 
     return false;
