@@ -1,17 +1,16 @@
 export class JsonRpcError extends Error {
-  private code?: number;
+  private code: number = 0;
 
   private data?: any;
 
-  private id?: number;
+  private id: number = 0;
 
   constructor({
-    message, code, data, id,
+    message,
+    ...params
   }: { message: string; code?: number; data?: any; id?: number }) {
     super(message);
-    this.code = code;
-    this.data = data;
-    this.id = id;
+    Object.assign(this, params);
   }
 
   error(): string {
