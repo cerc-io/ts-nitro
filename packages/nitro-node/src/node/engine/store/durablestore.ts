@@ -556,10 +556,10 @@ export class DurableStore implements Store {
     await this.channelToObjective!.del(channelId.string());
   }
 
-  setVoucherInfo(channelId: Destination, v: VoucherInfo): void {
+  async setVoucherInfo(channelId: Destination, v: VoucherInfo): Promise<void> {
     const vJSON = Buffer.from(JSONbigNative.stringify(v));
 
-    this.vouchers!.put(channelId.string(), vJSON);
+    await this.vouchers!.put(channelId.string(), vJSON);
   }
 
   async getVoucherInfo(channelId: Destination): Promise<VoucherInfo> {
