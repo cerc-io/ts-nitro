@@ -209,9 +209,9 @@ export class Client {
     // Channel to implement ctx.Done()
     const ctxDone = Channel();
     ctx.signal.onabort = () => { ctxDone.close(); };
+
     /* eslint-disable no-await-in-loop */
     /* eslint-disable default-case */
-
     while (true) {
       switch (await Channel.select([
         ctxDone.shift(),

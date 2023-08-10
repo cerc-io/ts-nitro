@@ -175,8 +175,7 @@ export class EthChainService implements ChainService {
 
     // TODO: Return error from chain service instead of panicking
     ecs.wg!.add(1);
-    const listenError = ecs.listenForErrors.bind(ecs);
-    go(listenError, ctx, errorChan);
+    go(ecs.listenForErrors.bind(ecs), ctx, errorChan);
 
     return ecs;
   }
@@ -456,8 +455,7 @@ export class EthChainService implements ChainService {
 
     this.wg!.add(1);
     // Must be in a goroutine to not block chain service constructor
-    const listenLog = this.listenForLogs.bind(this);
-    go(listenLog, subUnsubscribe, subErr, errorChan, logs, query, listener);
+    go(this.listenForLogs.bind(this), subUnsubscribe, subErr, errorChan, logs, query, listener);
 
     return errorChan;
   }

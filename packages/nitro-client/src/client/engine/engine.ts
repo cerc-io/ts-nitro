@@ -220,8 +220,7 @@ export class Engine {
     e.cancel = ctx.abort.bind(ctx);
 
     e.wg.add(1);
-    const run = e.run.bind(e);
-    go(run, ctx);
+    go(e.run.bind(e), ctx);
 
     e._sentVouchers = Channel<Voucher>(SENT_VOUCHERS_CHANNEL_BUFFER_SIZE);
 
@@ -848,8 +847,8 @@ export class Engine {
         this.recordMessageMetrics(message);
         await this.msg.send(message);
       }
-      this.wg!.done();
     } finally {
+      this.wg!.done();
       if (deferredCompleteRecordFunction) {
         deferredCompleteRecordFunction();
       }
