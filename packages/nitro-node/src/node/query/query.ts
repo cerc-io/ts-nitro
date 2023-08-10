@@ -45,21 +45,34 @@ const getPaymentChannelBalance = (participants: Address[] | null, outcome: Exit)
   });
 };
 
-const getLedgerBalanceFromState = (latest: State): LedgerChannelBalance => {
+// getLedgerBalanceFromState returns the balance of the ledger channel from the given state
+const getLedgerBalanceFromState = (latest: State, myAddress: Address): LedgerChannelBalance => {
   // TODO: We assume single asset outcomes
   const outcome = latest.outcome.value![0];
   const { asset } = outcome;
-  const client = latest.participants![0];
-  const clientBalance = BigInt(outcome.allocations.value![0].amount!);
-  const hub = latest.participants![1];
-  const hubBalance = BigInt(outcome.allocations.value![1].amount!);
+
+  let them: Address;
+  let myBalance: bigint;
+  let theirBalance: bigint;
+  /* eslint-disable prefer-destructuring */
+  if (latest.participants![0] === myAddress) {
+    them = latest.participants![1];
+    theirBalance = BigInt(outcome.allocations.value![1].amount!);
+    myBalance = BigInt(outcome.allocations.value![0].amount!);
+  } else if (latest.participants![1] === myAddress) {
+    them = latest.participants![0];
+    theirBalance = BigInt(outcome.allocations.value![0].amount!);
+    myBalance = BigInt(outcome.allocations.value![1].amount!);
+  } else {
+    throw new Error(`could not find my address ${myAddress} in participants ${latest.participants}`);
+  }
 
   return new LedgerChannelBalance({
     assetAddress: asset,
-    hub,
-    client,
-    hubBalance,
-    clientBalance,
+    me: myAddress,
+    them,
+    myBalance,
+    theirBalance,
   });
 };
 
@@ -131,39 +144,71 @@ export const getPaymentChannelInfo = async (id: Destination, store: Store, vm: V
   throw err;
 };
 
-export const constructLedgerInfoFromConsensus = (con: ConsensusChannel): LedgerChannelInfo => {
+export const constructLedgerInfoFromConsensus = (con: ConsensusChannel, myAddress: Address): LedgerChannelInfo => {
   const latest = con.consensusVars().asState(con.fixedPart());
+  let balance: LedgerChannelBalance;
+
+  try {
+    balance = getLedgerBalanceFromState(latest, myAddress);
+  } catch (err) {
+    throw new Error(`failed to construct ledger channel info from consensus channel: ${err}`);
+  }
+
   return new LedgerChannelInfo({
     iD: con.id,
     status: ChannelStatus.Open,
-    balance: getLedgerBalanceFromState(latest),
+    balance,
   });
 };
 
-export const constructLedgerInfoFromChannel = (c: Channel): LedgerChannelInfo => {
+export const constructLedgerInfoFromChannel = (c: Channel, myAddress: Address): LedgerChannelInfo => {
   const latest = getLatestSupportedOrPreFund(c);
+  let balance: LedgerChannelBalance;
+
+  try {
+    balance = getLedgerBalanceFromState(latest, myAddress);
+  } catch (err) {
+    throw new Error(`failed to construct ledger channel info from channel: ${err}`);
+  }
 
   return new LedgerChannelInfo({
     iD: c.id,
     status: getStatusFromChannel(c),
-    balance: getLedgerBalanceFromState(latest),
+    balance,
   });
 };
 
 // GetAllLedgerChannels returns a `LedgerChannelInfo` for each ledger channel in the store.
 export const getAllLedgerChannels = async (store: Store, consensusAppDefinition: Address): Promise<LedgerChannelInfo[]> => {
   const toReturn: LedgerChannelInfo[] = [];
+  const myAddress = store.getAddress();
+
   const allConsensus = await store.getAllConsensusChannels();
+  const failedConstructions: string[] = [];
 
   for (const con of allConsensus) {
-    toReturn.push(constructLedgerInfoFromConsensus(con));
+    let lInfo: LedgerChannelInfo;
+
+    try {
+      lInfo = constructLedgerInfoFromConsensus(con, myAddress);
+    } catch (err) {
+      failedConstructions.push(`${con.id}: ${err}`);
+      /* eslint-disable no-continue */
+      continue;
+    }
+
+    toReturn.push(lInfo);
   }
 
   const allChannels = await store.getChannelsByAppDefinition(consensusAppDefinition);
 
   for (const c of allChannels) {
-    const l = constructLedgerInfoFromChannel(c);
+    const l = constructLedgerInfoFromChannel(c, myAddress);
     toReturn.push(l);
+  }
+
+  if (failedConstructions.length > 0) {
+    throw new Error(`failed to construct ledger channel info for the following channels: ${failedConstructions}`);
   }
 
   return toReturn;
@@ -209,10 +254,12 @@ export const getPaymentChannelsByLedger = async (ledgerId: Destination, s: Store
 // It does this by querying the provided store
 export const getLedgerChannelInfo = async (id: Destination, store: Store): Promise<LedgerChannelInfo> => {
   const [c, ok] = await store.getChannelById(id);
+  const myAddress = store.getAddress();
+
   if (ok) {
-    return constructLedgerInfoFromChannel(c);
+    return constructLedgerInfoFromChannel(c, myAddress);
   }
 
   const con = await store.getConsensusChannelById(id)!;
-  return constructLedgerInfoFromConsensus(con);
+  return constructLedgerInfoFromConsensus(con, myAddress);
 };
