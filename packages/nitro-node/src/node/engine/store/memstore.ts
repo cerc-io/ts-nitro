@@ -531,7 +531,7 @@ export class MemStore implements Store {
     const [data, ok] = this.vouchers!.load(channelId.string());
     if (!ok) {
       throw new WrappedError(
-        `channelId ${channelId.string()}: ${ErrLoadVouchers.message}`,
+        `channelId ${channelId.string()}: ${ErrLoadVouchers}`,
         [ErrLoadVouchers],
       );
     }

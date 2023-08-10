@@ -570,7 +570,7 @@ export class DurableStore implements Store {
       vJSON = await this.vouchers!.get(channelId.string());
     } catch (err) {
       throw new WrappedError(
-        `channelId ${channelId.string()}: ${ErrLoadVouchers.message}`,
+        `channelId ${channelId.string()}: ${ErrLoadVouchers}`,
         [ErrLoadVouchers],
       );
     }

@@ -14,9 +14,8 @@ export class WrappedError extends Error {
     }
 
     if (error instanceof WrappedError) {
-      /* eslint-disable no-restricted-syntax */
-      for (const err of error.errors) {
-        if (WrappedError.is(err, targetError)) {
+      for (let i = 0; i < error.errors.length; i += 1) {
+        if (WrappedError.is(error.errors[i], targetError)) {
           return true;
         }
       }

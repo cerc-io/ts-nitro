@@ -194,7 +194,7 @@ export class Objective implements ObjectiveInterface {
 
     if (channelExists) {
       throw new WrappedError(
-        `counterparty ${request.counterParty}: ${ErrLedgerChannelExists.message}`,
+        `counterparty ${request.counterParty}: ${ErrLedgerChannelExists}`,
         [ErrLedgerChannelExists],
       );
     }
