@@ -104,7 +104,7 @@ export interface ChainService {
 
   getChainId (): Promise<bigint>;
 
-  close (): void;
+  close (): Promise<void>;
 }
 
 // ConcludedEvent is an internal representation of the Concluded blockchain event

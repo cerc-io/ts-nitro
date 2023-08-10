@@ -1,6 +1,7 @@
 import debug from 'debug';
 import assert from 'assert';
 import { ethers } from 'ethers';
+import { WaitGroup } from '@jpwilliams/waitgroup';
 
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import Channel from '@cerc-io/ts-channel';
@@ -67,6 +68,10 @@ export class Client {
 
   private logger: debug.Debugger = log;
 
+  private cancelEventHandler?: (reason ?: any) => void;
+
+  private wg?: WaitGroup;
+
   static async new(
     messageService: MessageService,
     chainservice: ChainService,
@@ -99,12 +104,15 @@ export class Client {
     c._receivedVouchers = Channel<Voucher>(1000);
 
     c.channelNotifier = ChannelNotifier.newChannelNotifier(store, c.vm);
-    // Start the engine in a go routine
-    go(c.engine.run.bind(c.engine));
 
+    const ctx = new AbortController();
+    c.cancelEventHandler = ctx.abort.bind(ctx);
+
+    c.wg = new WaitGroup();
+    c.wg.add(1);
     // Start the event handler in a go routine
     // It will listen for events from the engine and dispatch events to client channels
-    go(c.handleEngineEvents.bind(c));
+    go(c.handleEngineEvents.bind(c), ctx);
 
     return c;
   }
@@ -142,9 +150,9 @@ export class Client {
     return objectiveRequest.id(this.address, this.chainId);
   }
 
-  // CreateVirtualChannel creates a virtual channel with the counterParty using ledger channels
+  // CreatePaymentChannel creates a virtual channel with the counterParty using ledger channels
   // with the supplied intermediaries.
-  async createVirtualPaymentChannel(
+  async createPaymentChannel(
     intermediaries: Address[],
     counterParty: Address,
     challengeDuration: number,
@@ -169,8 +177,8 @@ export class Client {
     return objectiveRequest.response(this.address);
   }
 
-  // CloseVirtualChannel attempts to close and defund the given virtually funded channel.
-  async closeVirtualChannel(channelId: Destination): Promise<ObjectiveId> {
+  // ClosePaymentChannel attempts to close and defund the given virtually funded channel.
+  async closePaymentChannel(channelId: Destination): Promise<ObjectiveId> {
     const objectiveRequest = VirtualDefundObjectiveRequest.newObjectiveRequest(channelId);
 
     // Send the event to the engine
@@ -197,54 +205,67 @@ export class Client {
 
   // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
   // It parses events from the ToApi chan and then dispatches events to the necessary client chan.
-  private async handleEngineEvents() {
+  private async handleEngineEvents(ctx: AbortController) {
+    // Channel to implement ctx.Done()
+    const ctxDone = Channel();
+    ctx.signal.onabort = () => { ctxDone.close(); };
+
     /* eslint-disable no-await-in-loop */
+    /* eslint-disable default-case */
     while (true) {
-      const update = await this.engine.toApi.shift();
-      if (update === undefined) {
-        break;
-      }
-
-      for (const completed of update.completedObjectives) {
-        const [d] = this.completedObjectives!.loadOrStore(String(completed.id()), Channel());
-        d.close();
-
-        // use a nonblocking send to the RPC Client in case no one is listening
-        this.completedObjectivesForRPC!.push(completed.id());
-      }
-
-      for await (const erred of update.failedObjectives) {
-        await this.failedObjectives!.push(erred);
-      }
-
-      for await (const payment of update.receivedVouchers) {
-        await this._receivedVouchers!.push(payment);
-      }
-
-      for await (const updated of update.ledgerChannelUpdates) {
-        try {
-          // TODO: Implement
-          this.channelNotifier!.notifyLedgerUpdated(updated);
-        } catch (err) {
-          await this.handleError(err as Error);
+      switch (await Channel.select([
+        ctxDone.shift(),
+        this.engine.toApi.shift(),
+      ])) {
+        case ctxDone: {
+          this.wg!.done();
+          return;
         }
-      }
 
-      for await (const updated of update.paymentChannelUpdates) {
-        try {
-          // TODO: Implement
-          this.channelNotifier!.notifyPaymentUpdated(updated);
-        } catch (err) {
-          await this.handleError(err as Error);
+        case this.engine.toApi: {
+          const update = this.engine.toApi.value();
+          if (update === undefined) {
+            break;
+          }
+
+          for (const completed of update.completedObjectives) {
+            const [d] = this.completedObjectives!.loadOrStore(String(completed.id()), Channel());
+            d.close();
+
+            // use a nonblocking send to the RPC Client in case no one is listening
+            this.completedObjectivesForRPC!.push(completed.id());
+          }
+
+          for await (const erred of update.failedObjectives) {
+            await this.failedObjectives!.push(erred);
+          }
+
+          for await (const payment of update.receivedVouchers) {
+            await this._receivedVouchers!.push(payment);
+          }
+
+          for await (const updated of update.ledgerChannelUpdates) {
+            try {
+              // TODO: Implement
+              this.channelNotifier!.notifyLedgerUpdated(updated);
+            } catch (err) {
+              await this.handleError(err as Error);
+            }
+          }
+
+          for await (const updated of update.paymentChannelUpdates) {
+            try {
+              // TODO: Implement
+              this.channelNotifier!.notifyPaymentUpdated(updated);
+            } catch (err) {
+              await this.handleError(err as Error);
+            }
+          }
+
+          break;
         }
       }
     }
-
-    // At this point, the engine ToApi channel has been closed.
-    // If there are blocking consumers (for or select channel statements) on any channel for which the client is a producer,
-    // those channels need to be closed.
-    assert(this.completedObjectivesForRPC);
-    this.completedObjectivesForRPC.close();
   }
 
   // ObjectiveCompleteChan returns a chan that is closed when the objective with given id is completed
@@ -253,15 +274,30 @@ export class Client {
     return d;
   }
 
+  // stopEventHandler stops the event handler goroutine and waits for it to quit successfully.
+  async stopEventHandler(): Promise<void> {
+    assert(this.cancelEventHandler);
+    this.cancelEventHandler();
+    await this.wg!.wait();
+  }
+
   // Close stops the client from responding to any input.
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async close(): Promise<void> {
     assert(this.channelNotifier);
     assert(this.engine);
     assert(this.store);
+    assert(this.completedObjectivesForRPC);
 
+    await this.stopEventHandler();
     this.channelNotifier.close();
     await this.engine.close();
+
+    // At this point, the engine ToApi channel has been closed.
+    // If there are blocking consumers (for or select channel statements) on any channel for which the client is a producer,
+    // those channels need to be closed.
+    this.completedObjectivesForRPC.close();
+
     await this.store.close();
   }
 

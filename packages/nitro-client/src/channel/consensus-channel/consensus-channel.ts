@@ -192,7 +192,7 @@ export class Guarantee {
 // participant.
 //
 // This struct does not store items in sorted order. The conventional ordering of allocation items is:
-// [leader, follower, ...guaranteesSortedbyTargetDestination]
+// [leader, follower, ...guaranteesSortedByTargetDestination]
 export class LedgerOutcome {
   // Address of the asset type
   private assetAddress: Address = ethers.constants.AddressZero;
@@ -273,8 +273,8 @@ export class LedgerOutcome {
   // FromExit creates a new LedgerOutcome from the given SingleAssetExit.
   //
   // It makes the following assumptions about the exit:
-  //   - The first alloction entry is for the ledger leader
-  //   - The second alloction entry is for the ledger follower
+  //   - The first allocation entry is for the ledger leader
+  //   - The second allocation entry is for the ledger follower
   //   - All other allocations are guarantees
   static fromExit(sae: SingleAssetExit): LedgerOutcome {
     const leader = new Balance({ destination: sae.allocations.value![0].destination, amount: sae.allocations.value![0].amount });
@@ -815,12 +815,12 @@ export class Proposal {
     return _.isEqual(this.ledgerID, q.ledgerID) && this.toAdd.equal(q.toAdd) && this.toRemove.equal(q.toRemove);
   }
 
-  // NewAddProposal constucts a proposal with a valid Add proposal and empty remove proposal.
+  // NewAddProposal constructs a proposal with a valid Add proposal and empty remove proposal.
   static newAddProposal(ledgerID: Destination, g: Guarantee, leftDeposit?: bigint): Proposal {
     return new Proposal({ toAdd: Add.newAdd(g, leftDeposit), ledgerID });
   }
 
-  // NewRemoveProposal constucts a proposal with a valid Remove proposal and empty Add proposal.
+  // NewRemoveProposal constructs a proposal with a valid Remove proposal and empty Add proposal.
   static newRemoveProposal(ledgerID: Destination, target: Destination, leftAmount?: bigint): Proposal {
     return new Proposal({ toRemove: Remove.newRemove(target, leftAmount), ledgerID });
   }
@@ -1090,7 +1090,7 @@ export class ConsensusChannel {
     return this.current.outcome.includesTarget(target);
   }
 
-  // HasRemovalBeenProposed returns whether or not a proposal exists to remove the guaranatee for the target.
+  // HasRemovalBeenProposed returns whether or not a proposal exists to remove the guarantee for the target.
   hasRemovalBeenProposed(target: Destination): boolean {
     for (const p of this._proposalQueue ?? []) {
       if (p.proposal.type() === ProposalType.RemoveProposal) {
@@ -1189,8 +1189,8 @@ export class ConsensusChannel {
 
   // validateProposalID checks that the given proposal's ID matches
   // the channel's ID.
-  private validateProposalID(propsal: Proposal): void {
-    if (!_.isEqual(propsal.ledgerID, this.id)) {
+  private validateProposalID(proposal: Proposal): void {
+    if (!_.isEqual(proposal.ledgerID, this.id)) {
       throw ErrIncorrectChannelID;
     }
   }
@@ -1344,7 +1344,7 @@ export class ConsensusChannel {
   }
 
   // appendToProposalQueue safely appends the given SignedProposal to the proposal queue of the receiver.
-  // It will return an error if the turn number of the signedproposal is not consecutive with the existing queue.
+  // It will return an error if the turn number of the SignedProposal is not consecutive with the existing queue.
   private appendToProposalQueue(signed: SignedProposal) {
     if (
       this._proposalQueue

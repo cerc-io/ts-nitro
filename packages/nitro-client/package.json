@@ -51,6 +51,7 @@
     "@cerc-io/nitro-util": "^0.1.6",
     "@cerc-io/peer": "^0.2.50",
     "@cerc-io/ts-channel": "1.0.3-ts-nitro-0.1.1",
+    "@jpwilliams/waitgroup": "^2.1.0",
     "@libp2p/crypto": "^1.0.4",
     "@libp2p/tcp": "^6.0.0",
     "@multiformats/multiaddr": "^11.1.4",
