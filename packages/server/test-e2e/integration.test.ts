@@ -119,24 +119,24 @@ async function setUpVirtualChannel(clientA: Node, clientB: Node, intermediaries:
 }
 
 async function checkLedgerChannel(
-  client: Node,
-  hub: Node,
+  me: Node,
+  them: Node,
   ledgerChannelId: Destination,
   status: ChannelStatus,
-  clientBalance: bigint,
-  hubBalance: bigint,
+  myBalance: bigint,
+  theirBalance: bigint,
 ): Promise<void> {
-  const ledgerChannelStatus = await client.getLedgerChannel(ledgerChannelId);
+  const ledgerChannelStatus = await me.getLedgerChannel(ledgerChannelId);
 
   const expectedLedgerChannelStatus = new LedgerChannelInfo({
     iD: ledgerChannelId,
     status,
     balance: new LedgerChannelBalance({
       assetAddress: ASSET,
-      hub: hub.address,
-      client: client.address,
-      hubBalance,
-      clientBalance,
+      me: me.address,
+      them: them.address,
+      myBalance,
+      theirBalance,
     }),
   });
   expect(ledgerChannelStatus).to.deep.equal(expectedLedgerChannelStatus);
