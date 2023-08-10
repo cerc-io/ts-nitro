@@ -302,6 +302,21 @@ export class Node {
     return this._receivedVouchers!;
   }
 
+  // CreateVoucher creates and returns a voucher for the given channelId which increments the redeemable balance by amount.
+  // It is the responsibility of the caller to send the voucher to the payee.
+  async createVoucher(channelId: Destination, amount: bigint): Promise<Voucher> {
+    assert(this.vm);
+    assert(this.store);
+    return this.vm.pay(channelId, amount, this.store.getChannelSigner());
+  }
+
+  // ReceiveVoucher receives a voucher and returns the amount that was paid.
+  // It can be used to add a voucher that was sent outside of the go-nitro system.
+  async receiveVoucher(v: Voucher): Promise<[bigint | undefined, bigint]> {
+    assert(this.vm);
+    return this.vm.receive(v);
+  }
+
   // GetPaymentChannelsByLedger returns all active payment channels that are funded by the given ledger channel.
   getPaymentChannelsByLedger(ledgerId: Destination): Promise<PaymentChannelInfo[]> {
     assert(this.store);
