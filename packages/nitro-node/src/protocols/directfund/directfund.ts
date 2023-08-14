@@ -31,7 +31,7 @@ import {
 } from '../../channel/consensus-channel/consensus-channel';
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
-import { ChainEvent, DepositedEvent } from '../../client/engine/chainservice/chainservice';
+import { ChainEvent, DepositedEvent } from '../../node/engine/chainservice/chainservice';
 
 const WaitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund';
 const WaitingForMyTurnToFund: WaitingFor = 'WaitingForMyTurnToFund';

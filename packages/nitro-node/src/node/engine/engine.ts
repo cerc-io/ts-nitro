@@ -138,6 +138,7 @@ class ErrGetObjective {
 // nonFatalErrors is a list of errors for which the engine should not panic
 const nonFatalErrors: ErrGetObjective[] = [];
 
+// Engine is the imperative part of the core business logic of a go-nitro Node
 export class Engine {
   objectiveRequestsFromAPI?: ReadWriteChannel<ObjectiveRequest>;
 
@@ -1276,7 +1277,7 @@ export class Engine {
       await new Promise((resolve) => { setTimeout(() => resolve, 1000); });
 
       // TODO instead of a panic, errors should be sent to the manager of the engine via a channel. At the moment,
-      // the engine manager is the nitro client.
+      // the engine manager is the nitro node.
       throw err;
     }
   }

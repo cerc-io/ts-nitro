@@ -42,10 +42,10 @@ import {
   getPaymentChannelInfo, getLedgerChannelInfo, getAllLedgerChannels, getPaymentChannelsByLedger,
 } from './query/query';
 
-const log = debug('ts-nitro:client');
+const log = debug('ts-nitro:node');
 
-export class Client {
-  // The core business logic of the client
+export class Node {
+  // The core business logic of the node
   private engine: Engine = new Engine();
 
   address: Address = ethers.constants.AddressZero;
@@ -79,8 +79,8 @@ export class Client {
     logDestination: WritableStream | undefined,
     policymaker: PolicyMaker,
     metricsApi?: MetricsApi,
-  ): Promise<Client> {
-    const c = new Client();
+  ): Promise<Node> {
+    const c = new Node();
     c.address = store.getAddress();
 
     // If a metrics API is not provided we used the no-op version which does nothing.
@@ -111,7 +111,7 @@ export class Client {
     c.wg = new WaitGroup();
     c.wg.add(1);
     // Start the event handler in a go routine
-    // It will listen for events from the engine and dispatch events to client channels
+    // It will listen for events from the engine and dispatch events to node channels
     go(c.handleEngineEvents.bind(c), ctx);
 
     return c;
@@ -204,7 +204,7 @@ export class Client {
   }
 
   // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
-  // It parses events from the ToApi chan and then dispatches events to the necessary client chan.
+  // It parses events from the ToApi chan and then dispatches events to the necessary node chan.
   private async handleEngineEvents(ctx: AbortController) {
     // Channel to implement ctx.Done()
     const ctxDone = Channel();
@@ -281,7 +281,7 @@ export class Client {
     await this.wg!.wait();
   }
 
-  // Close stops the client from responding to any input.
+  // Close stops the node from responding to any input.
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async close(): Promise<void> {
     assert(this.channelNotifier);
@@ -294,7 +294,7 @@ export class Client {
     await this.engine.close();
 
     // At this point, the engine ToApi channel has been closed.
-    // If there are blocking consumers (for or select channel statements) on any channel for which the client is a producer,
+    // If there are blocking consumers (for or select channel statements) on any channel for which the node is a producer,
     // those channels need to be closed.
     this.completedObjectivesForRPC.close();
 
@@ -332,7 +332,7 @@ export class Client {
     if (err) {
       this.logger({
         error: err,
-        message: `${this.address}, error in API client`,
+        message: `${this.address}, error in nitro node`,
       });
 
       // We wait for a bit so the previous log line has time to complete

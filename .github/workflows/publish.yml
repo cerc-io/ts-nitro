@@ -33,7 +33,7 @@ jobs:
           yarn lerna publish from-package --no-git-tag-version --yes
 
   npm_publish_browser:
-    name: Push nitro-client-browser package to gitea
+    name: Push nitro-node-browser package to gitea
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -51,9 +51,9 @@ jobs:
       - name: Run yarn build
         run: |
           yarn build:browser --ignore @cerc-io/example-web-app
-      - name: Rename nitro-client package
+      - name: Rename nitro-node package
         run: |
-          cd packages/nitro-client
+          cd packages/nitro-node
           yarn build:update-package-name
           cd ../../
       - name: Configure git.vdb.to npm registry
@@ -62,7 +62,7 @@ jobs:
       - name: Authenticate to git.vdb.to registry
         run: |
           npm config set -- '//git.vdb.to/api/packages/cerc-io/npm/:_authToken' "${{ secrets.GITEA_PUBLISH_TOKEN }}"
-      - name: npm publish nitro-client-browser
+      - name: npm publish nitro-node-browser
         run: |
-          cd packages/nitro-client
+          cd packages/nitro-node
           npm publish

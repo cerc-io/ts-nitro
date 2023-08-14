@@ -1,4 +1,4 @@
-import { GetMetrics } from '@cerc-io/nitro-client';
+import { GetMetrics } from '@cerc-io/nitro-node';
 
 export function getMetricsKey(arr: string[], address: string): string[] {
   return arr.map((element) => `${element},wallet=${address}`);

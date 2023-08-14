@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
 
-import { utils } from '@cerc-io/nitro-client';
+import { utils } from '@cerc-io/nitro-node';
 import {
   JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL, DEFAULT_ASSET,
 } from '@cerc-io/nitro-util';
@@ -134,7 +134,7 @@ const main = async () => {
   const peerIdObj = await createPeerIdFromKey(hex2Bytes(argv.pk));
   const peer = await createPeerAndInit(process.env.RELAY_MULTIADDR, {}, peerIdObj);
 
-  const nitro = await utils.Nitro.setupClient(
+  const nitro = await utils.Nitro.setupNode(
     argv.pk,
     argv.chainurl,
     argv.chainpk,

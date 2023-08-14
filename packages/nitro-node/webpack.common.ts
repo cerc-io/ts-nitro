@@ -6,7 +6,7 @@ const baseConfig: webpack.Configuration = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     library: {
-      name: '@cerc-io/nitro-client',
+      name: '@cerc-io/nitro-node',
       type: 'umd',
     },
     libraryTarget: 'umd',
