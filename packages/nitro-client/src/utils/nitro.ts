@@ -169,8 +169,7 @@ export class Nitro {
     return response.channelId.string();
   }
 
-  async virtualFund(counterParty: string, amount: number): Promise<string> {
-    const intermediaries: string[] = [];
+  async virtualFund(counterParty: string, amount: number, intermediaries: string[] = []): Promise<string> {
     const outcome = createOutcome(
       this.asset,
       this.client.address,

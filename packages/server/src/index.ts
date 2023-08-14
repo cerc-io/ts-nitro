@@ -196,6 +196,7 @@ const main = async () => {
     paymentChannelIdString = await nitro.virtualFund(
       counterParty,
       argv.amount ?? 1_000,
+      argv.intermediaries,
     );
   }
 
