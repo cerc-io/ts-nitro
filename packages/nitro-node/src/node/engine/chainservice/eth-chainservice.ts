@@ -6,7 +6,9 @@ import { WaitGroup } from '@jpwilliams/waitgroup';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@cerc-io/ts-channel';
-import { EthClient, go, hex2Bytes } from '@cerc-io/nitro-util';
+import {
+  EthClient, go, hex2Bytes, Context,
+} from '@cerc-io/nitro-util';
 
 import {
   ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent,
@@ -68,7 +70,7 @@ export class EthChainService implements ChainService {
 
   private logger: debug.Debugger;
 
-  private ctx: AbortController;
+  private ctx: Context;
 
   private cancel: (reason ?: any) => void;
 
@@ -83,7 +85,7 @@ export class EthChainService implements ChainService {
     txSigner: ethers.Signer,
     out: ReadWriteChannel<ChainEvent>,
     logger: debug.Debugger,
-    ctx: AbortController,
+    ctx: Context,
     cancel: () => void,
     wg: WaitGroup,
   ) {
@@ -150,8 +152,8 @@ export class EthChainService implements ChainService {
     txSigner: ethers.Signer,
     logDestination?: WritableStream,
   ): EthChainService {
-    const ctx = new AbortController();
-    const cancelCtx = ctx.abort.bind(ctx);
+    const ctx = new Context();
+    const cancelCtx = ctx.withCancel();
 
     const out = Channel<ChainEvent>(10);
 
@@ -182,21 +184,15 @@ export class EthChainService implements ChainService {
 
   // listenForErrors listens for errors on the error channel and attempts to handle them if they occur.
   // TODO: Currently "handle" is panicking
-  private async listenForErrors(ctx: AbortController, errChan: ReadChannel<Error>): Promise<void> {
-    // Channel to implement ctx.Done()
-    const ctxDone = Channel();
-    this.ctx.signal.addEventListener('abort', (event) => {
-      ctxDone.close();
-    });
-
+  private async listenForErrors(ctx: Context, errChan: ReadChannel<Error>): Promise<void> {
     /* eslint-disable no-await-in-loop */
     /* eslint-disable default-case */
     while (true) {
       switch (await Channel.select([
-        ctxDone.shift(),
+        ctx.done.shift(),
         errChan.shift(),
       ])) {
-        case ctxDone: {
+        case ctx.done: {
           this.wg!.done();
           return;
         }
@@ -361,12 +357,6 @@ export class EthChainService implements ChainService {
     query: ethers.providers.EventType,
     listener: (eventLog: Log) => void,
   ) {
-    // Channel to implement ctx.Done()
-    const ctxDone = Channel();
-    this.ctx.signal.addEventListener('abort', (event) => {
-      ctxDone.close();
-    });
-
     /* eslint-disable no-restricted-syntax */
     /* eslint-disable no-labels */
     out:
@@ -374,11 +364,11 @@ export class EthChainService implements ChainService {
       /* eslint-disable no-await-in-loop */
       /* eslint-disable default-case */
       switch (await Channel.select([
-        ctxDone.shift(),
+        this.ctx.done.shift(),
         subErr.shift(),
         logs.shift(),
       ])) {
-        case ctxDone: {
+        case this.ctx.done: {
           subUnsubscribe();
           this.wg!.done();
           return;

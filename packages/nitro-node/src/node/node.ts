@@ -5,7 +5,7 @@ import { WaitGroup } from '@jpwilliams/waitgroup';
 
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import Channel from '@cerc-io/ts-channel';
-import { go, randUint64 } from '@cerc-io/nitro-util';
+import { go, randUint64, Context } from '@cerc-io/nitro-util';
 
 import { MessageService } from './engine/messageservice/messageservice';
 import { ChainService } from './engine/chainservice/chainservice';
@@ -105,8 +105,8 @@ export class Node {
 
     c.channelNotifier = ChannelNotifier.newChannelNotifier(store, c.vm);
 
-    const ctx = new AbortController();
-    c.cancelEventHandler = ctx.abort.bind(ctx);
+    const ctx = new Context();
+    c.cancelEventHandler = ctx.withCancel();
 
     c.wg = new WaitGroup();
     c.wg.add(1);
@@ -204,20 +204,16 @@ export class Node {
   }
 
   // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
-  // It parses events from the ToApi chan and then dispatches events to the necessary node chan.
-  private async handleEngineEvents(ctx: AbortController) {
-    // Channel to implement ctx.Done()
-    const ctxDone = Channel();
-    ctx.signal.onabort = () => { ctxDone.close(); };
-
+  // It parses events from the ToApi chan and then dispatches events to the necessary client chan.
+  private async handleEngineEvents(ctx: Context) {
     /* eslint-disable no-await-in-loop */
     /* eslint-disable default-case */
     while (true) {
       switch (await Channel.select([
-        ctxDone.shift(),
+        ctx.done.shift(),
         this.engine.toApi.shift(),
       ])) {
-        case ctxDone: {
+        case ctx.done: {
           this.wg!.done();
           return;
         }
