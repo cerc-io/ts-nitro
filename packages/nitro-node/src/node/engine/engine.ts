@@ -8,7 +8,7 @@ import { WaitGroup } from '@jpwilliams/waitgroup';
 
 import Channel from '@cerc-io/ts-channel';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
-import { JSONbigNative, go } from '@cerc-io/nitro-util';
+import { JSONbigNative, go, Context } from '@cerc-io/nitro-util';
 
 import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent, ChainEventHandler } from './chainservice/chainservice';
@@ -217,8 +217,8 @@ export class Engine {
 
     e.wg = new WaitGroup();
 
-    const ctx = new AbortController();
-    e.cancel = ctx.abort.bind(ctx);
+    const ctx = new Context();
+    e.cancel = ctx.withCancel();
 
     e.wg.add(1);
     go(e.run.bind(e), ctx);
@@ -255,19 +255,13 @@ export class Engine {
 
   // run kicks of an infinite loop that waits for communications on the supplied channels, and handles them accordingly
   // The loop exits when the context is cancelled.
-  async run(ctx: AbortController): Promise<void> {
+  async run(ctx: Context): Promise<void> {
     assert(this.objectiveRequestsFromAPI);
     assert(this.paymentRequestsFromAPI);
     assert(this.fromChain);
     assert(this.fromMsg);
     assert(this.fromLedger);
     assert(this._toApi);
-
-    // Channel to implement ctx.Done()
-    const ctxDone = Channel();
-    ctx.signal.addEventListener('abort', (event) => {
-      ctxDone.close();
-    });
 
     while (true) {
       let res = new EngineEvent();
@@ -287,7 +281,7 @@ export class Engine {
         this.fromChain.shift(),
         this.fromMsg.shift(),
         this.fromLedger.shift(),
-        ctxDone.shift(),
+        ctx.done.shift(),
       ])) {
         case this.objectiveRequestsFromAPI:
           [res, err] = await this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
@@ -309,7 +303,7 @@ export class Engine {
           [res, err] = await this.handleProposal(this.fromLedger.value());
           break;
 
-        case ctxDone: {
+        case ctx.done: {
           this.wg!.done();
           return;
         }
