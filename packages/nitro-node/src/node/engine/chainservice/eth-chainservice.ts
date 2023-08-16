@@ -72,7 +72,7 @@ export class EthChainService implements ChainService {
 
   private ctx: Context;
 
-  private cancel: (reason ?: any) => void;
+  private cancel: () => void;
 
   private wg?: WaitGroup;
 
@@ -189,10 +189,10 @@ export class EthChainService implements ChainService {
     /* eslint-disable default-case */
     while (true) {
       switch (await Channel.select([
-        ctx.done.shift(),
+        this.ctx.done.shift(),
         errChan.shift(),
       ])) {
-        case ctx.done: {
+        case this.ctx.done: {
           this.wg!.done();
           return;
         }
