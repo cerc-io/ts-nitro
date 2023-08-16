@@ -7,6 +7,7 @@ export * from './contract-bindings';
 export * from './types';
 export * from './constants';
 export * from './deploy-contracts';
+export * from './context';
 
 export {
   INitroTypes, ExitFormat, DepositedEventObject, AllocationUpdatedEventObject, ConcludedEventObject,
