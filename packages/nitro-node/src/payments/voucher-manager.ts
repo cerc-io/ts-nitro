@@ -92,8 +92,8 @@ export class VoucherManager {
     return voucher;
   }
 
-  // Receive validates the incoming voucher, and returns the total amount received so far
-  async receive(voucher: Voucher): Promise<bigint | undefined> {
+  // Receive validates the incoming voucher, and returns the total amount received so far as well as the amount received from the voucher
+  async receive(voucher: Voucher): Promise<[bigint | undefined, bigint | undefined]> {
     let vInfo: VoucherInfo;
     try {
       vInfo = await this.store.getVoucherInfo(voucher.channelId);
@@ -103,17 +103,17 @@ export class VoucherManager {
 
     // We only care about vouchers when we are the recipient of the payment
     if (vInfo.channelPayee !== this.me) {
-      return BigInt(0);
+      throw new Error('can only receive vouchers if we\'re the payee');
     }
 
-    const received = BigInt(voucher.amount!);
-    if (received > vInfo.startingBalance!) {
+    if (BigInt(voucher.amount!) > vInfo.startingBalance!) {
       throw new Error('channel has insufficient funds');
     }
 
-    const receivedSoFar = vInfo.largestVoucher.amount;
-    if (!(received > receivedSoFar!)) {
-      return receivedSoFar;
+    let total = vInfo.largestVoucher.amount;
+
+    if (!(BigInt(voucher.amount!) > total!)) {
+      return [total, BigInt(0)];
     }
 
     const signer = voucher.recoverSigner();
@@ -121,10 +121,13 @@ export class VoucherManager {
       throw new Error(`wrong signer: ${signer}, ${vInfo.channelPayer}`);
     }
 
+    // Check the difference between our largest voucher and this new one
+    const delta = BigInt(voucher.amount!) - BigInt(total!);
+    total = voucher.amount;
     vInfo.largestVoucher = voucher;
 
     await this.store.setVoucherInfo(voucher.channelId, vInfo);
-    return received;
+    return [total, delta];
   }
 
   // ChannelRegistered returns  whether a channel has been registered with the voucher manager or not

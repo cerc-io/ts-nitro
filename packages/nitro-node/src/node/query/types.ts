@@ -95,20 +95,20 @@ export class PaymentChannelInfo {
 export class LedgerChannelBalance {
   assetAddress: Address = ethers.constants.AddressZero;
 
-  hub: Address = ethers.constants.AddressZero;
+  me: Address = ethers.constants.AddressZero;
 
-  client: Address = ethers.constants.AddressZero;
+  them: Address = ethers.constants.AddressZero;
 
-  hubBalance?: bigint = undefined;
+  myBalance?: bigint = undefined;
 
-  clientBalance?: bigint = undefined;
+  theirBalance?: bigint = undefined;
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     assetAddress: { type: 'address' },
-    hub: { type: 'address' },
-    client: { type: 'address' },
-    hubBalance: { type: 'bigint' },
-    clientBalance: { type: 'bigint' },
+    me: { type: 'address' },
+    them: { type: 'address' },
+    myBalance: { type: 'bigint' },
+    theirBalance: { type: 'bigint' },
   };
 
   toJSON(): any {
@@ -117,10 +117,10 @@ export class LedgerChannelBalance {
 
   constructor(params: {
     assetAddress?: Address;
-    hub?: Address;
-    client?: Address;
-    hubBalance?: bigint;
-    clientBalance?: bigint;
+    me?: Address;
+    them?: Address;
+    myBalance?: bigint;
+    theirBalance?: bigint;
   }) {
     Object.assign(this, params);
   }
@@ -128,10 +128,10 @@ export class LedgerChannelBalance {
   // Equal returns true if the other LedgerChannelBalance is equal to this one
   equal(other: LedgerChannelBalance): boolean {
     return this.assetAddress === other.assetAddress
-    && this.hub === other.hub
-    && this.client === other.client
-    && this.hubBalance === other.hubBalance
-    && this.clientBalance === other.clientBalance;
+      && this.them === other.them
+      && this.me === other.me
+      && this.theirBalance === other.theirBalance
+      && this.myBalance === other.myBalance;
   }
 }
 

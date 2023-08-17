@@ -152,6 +152,18 @@ export class Objective implements ObjectiveInterface {
     getChannels: GetChannelsByParticipantFunction,
     getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
   ): Promise<Objective> {
+    let channelExists: boolean;
+
+    try {
+      channelExists = await channelsExistWithCounterparty(request.counterParty, getChannels, getTwoPartyConsensusLedger);
+    } catch (err) {
+      throw new Error(`counterparty check failed: ${err}`);
+    }
+
+    if (channelExists) {
+      throw new Error(`a channel already exists with counterparty ${request.counterParty}`);
+    }
+
     const initialState = new State({
       participants: [myAddress, request.counterParty],
       channelNonce: request.nonce,
@@ -182,20 +194,6 @@ export class Objective implements ObjectiveInterface {
       objective = Objective.constructFromPayload(preApprove, objectivePayload, myAddress);
     } catch (err) {
       throw new Error(`could not create new objective: ${err}`);
-    }
-
-    let channelExists: boolean;
-    try {
-      channelExists = await channelsExistWithCounterparty(request.counterParty, getChannels, getTwoPartyConsensusLedger);
-    } catch (err) {
-      throw new Error(`counterparty check failed: ${err}`);
-    }
-
-    if (channelExists) {
-      throw new WrappedError(
-        `counterparty ${request.counterParty}: ${ErrLedgerChannelExists}`,
-        [ErrLedgerChannelExists],
-      );
     }
 
     return objective;

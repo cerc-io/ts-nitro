@@ -80,8 +80,8 @@ export class Node {
     policymaker: PolicyMaker,
     metricsApi?: MetricsApi,
   ): Promise<Node> {
-    const c = new Node();
-    c.address = store.getAddress();
+    const n = new Node();
+    n.address = store.getAddress();
 
     // If a metrics API is not provided we used the no-op version which does nothing.
     if (!metricsApi) {
@@ -90,31 +90,31 @@ export class Node {
     }
 
     const chainId = await chainservice.getChainId();
-    c.chainId = chainId;
-    c.store = store;
-    c.vm = VoucherManager.newVoucherManager(store.getAddress(), store);
-    c.logger = log;
+    n.chainId = chainId;
+    n.store = store;
+    n.vm = VoucherManager.newVoucherManager(store.getAddress(), store);
+    n.logger = log;
 
-    c.engine = Engine.new(c.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi);
-    c.completedObjectives = new SafeSyncMap<ReadWriteChannel<null>>();
-    c.completedObjectivesForRPC = Channel<ObjectiveId>(100);
+    n.engine = Engine.new(n.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi);
+    n.completedObjectives = new SafeSyncMap<ReadWriteChannel<null>>();
+    n.completedObjectivesForRPC = Channel<ObjectiveId>(100);
 
-    c.failedObjectives = Channel<ObjectiveId>(100);
+    n.failedObjectives = Channel<ObjectiveId>(100);
     // Using a larger buffer since payments can be sent frequently.
-    c._receivedVouchers = Channel<Voucher>(1000);
+    n._receivedVouchers = Channel<Voucher>(1000);
 
-    c.channelNotifier = ChannelNotifier.newChannelNotifier(store, c.vm);
+    n.channelNotifier = ChannelNotifier.newChannelNotifier(store, n.vm);
 
     const ctx = new Context();
-    c.cancelEventHandler = ctx.withCancel();
+    n.cancelEventHandler = ctx.withCancel();
 
-    c.wg = new WaitGroup();
-    c.wg.add(1);
+    n.wg = new WaitGroup();
+    n.wg.add(1);
     // Start the event handler in a go routine
     // It will listen for events from the engine and dispatch events to node channels
-    go(c.handleEngineEvents.bind(c), ctx);
+    go(n.handleEngineEvents.bind(n), ctx);
 
-    return c;
+    return n;
   }
 
   // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
@@ -300,6 +300,21 @@ export class Node {
   // ReceivedVouchers returns a chan that receives a voucher every time we receive a payment voucher
   receivedVouchers(): ReadChannel<Voucher> {
     return this._receivedVouchers!;
+  }
+
+  // CreateVoucher creates and returns a voucher for the given channelId which increments the redeemable balance by amount.
+  // It is the responsibility of the caller to send the voucher to the payee.
+  async createVoucher(channelId: Destination, amount: bigint): Promise<Voucher> {
+    assert(this.vm);
+    assert(this.store);
+    return this.vm.pay(channelId, amount, this.store.getChannelSigner());
+  }
+
+  // ReceiveVoucher receives a voucher and returns the amount that was paid.
+  // It can be used to add a voucher that was sent outside of the go-nitro system.
+  async receiveVoucher(v: Voucher): Promise<[bigint | undefined, bigint | undefined]> {
+    assert(this.vm);
+    return this.vm.receive(v);
   }
 
   // GetPaymentChannelsByLedger returns all active payment channels that are funded by the given ledger channel.

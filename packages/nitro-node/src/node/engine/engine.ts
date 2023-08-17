@@ -1007,16 +1007,16 @@ export class Engine {
 
         case channel.Channel: {
           const c = rel as channel.Channel;
-          const l = constructLedgerInfoFromChannel(c);
+          const l = constructLedgerInfoFromChannel(c, this.store!.getAddress());
           outgoing.ledgerChannelUpdates.push(l);
 
           break;
         }
 
         case ConsensusChannel: {
-          const cc = rel as ConsensusChannel;
-          const ccInfo = constructLedgerInfoFromConsensus(cc);
-          outgoing.ledgerChannelUpdates.push(ccInfo);
+          const c = rel as ConsensusChannel;
+          const l = constructLedgerInfoFromConsensus(c, this.store!.getAddress());
+          outgoing.ledgerChannelUpdates.push(l);
 
           break;
         }
