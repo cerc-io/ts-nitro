@@ -8,7 +8,9 @@ import { WaitGroup } from '@jpwilliams/waitgroup';
 
 import Channel from '@cerc-io/ts-channel';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
-import { JSONbigNative, go, Context, WrappedError } from '@cerc-io/nitro-util';
+import {
+  JSONbigNative, go, Context, WrappedError,
+} from '@cerc-io/nitro-util';
 
 import { MessageService } from './messageservice/messageservice';
 import { ChainService, ChainEvent, ChainEventHandler } from './chainservice/chainservice';
