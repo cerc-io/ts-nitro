@@ -106,7 +106,7 @@ export class Node {
     n.channelNotifier = ChannelNotifier.newChannelNotifier(store, n.vm);
 
     const ctx = new Context();
-    c.cancelEventHandler = ctx.withCancel();
+    n.cancelEventHandler = ctx.withCancel();
 
     n.wg = new WaitGroup();
     n.wg.add(1);
