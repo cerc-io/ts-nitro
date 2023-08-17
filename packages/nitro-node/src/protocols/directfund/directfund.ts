@@ -32,7 +32,6 @@ import {
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
 import { ChainEvent, DepositedEvent } from '../../node/engine/chainservice/chainservice';
-import { ErrLoadVouchers } from '../../node/engine/store/store';
 
 export const ErrLedgerChannelExists: Error = new Error('directfund: ledger channel already exists');
 

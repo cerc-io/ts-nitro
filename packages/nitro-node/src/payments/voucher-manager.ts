@@ -98,7 +98,7 @@ export class VoucherManager {
     try {
       vInfo = await this.store.getVoucherInfo(voucher.channelId);
     } catch (err) {
-      throw new Error('channel not registered');
+      throw new Error(`channel not registered: ${err}`);
     }
 
     // We only care about vouchers when we are the recipient of the payment
