@@ -93,7 +93,7 @@ export class VoucherManager {
   }
 
   // Receive validates the incoming voucher, and returns the total amount received so far as well as the amount received from the voucher
-  async receive(voucher: Voucher): Promise<[bigint | undefined, bigint]> {
+  async receive(voucher: Voucher): Promise<[bigint | undefined, bigint | undefined]> {
     let vInfo: VoucherInfo;
     try {
       vInfo = await this.store.getVoucherInfo(voucher.channelId);

@@ -312,7 +312,7 @@ export class Node {
 
   // ReceiveVoucher receives a voucher and returns the amount that was paid.
   // It can be used to add a voucher that was sent outside of the go-nitro system.
-  async receiveVoucher(v: Voucher): Promise<[bigint | undefined, bigint]> {
+  async receiveVoucher(v: Voucher): Promise<[bigint | undefined, bigint | undefined]> {
     assert(this.vm);
     return this.vm.receive(v);
   }
