@@ -2,10 +2,14 @@ import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 
-import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
+import {
+  JSONbigNative, bytes2Hex, hex2Bytes, WrappedError,
+} from '@cerc-io/nitro-util';
 import type { NitroSigner } from '@cerc-io/nitro-util';
 
-import { ErrNoSuchChannel, ErrNoSuchObjective, Store } from './store';
+import {
+  ErrNoSuchChannel, ErrNoSuchObjective, Store, ErrLoadVouchers,
+} from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
 import { ConsensusChannel } from '../../../channel/consensus-channel/consensus-channel';
@@ -523,20 +527,20 @@ export class MemStore implements Store {
     this.vouchers!.store(channelId.string(), jsonData);
   }
 
-  getVoucherInfo(channelId: Destination): [VoucherInfo | undefined, boolean] {
+  getVoucherInfo(channelId: Destination): VoucherInfo {
     const [data, ok] = this.vouchers!.load(channelId.string());
     if (!ok) {
-      return [undefined, false];
+      throw new WrappedError(
+        `channelId ${channelId.string()}: ${ErrLoadVouchers}`,
+        [ErrLoadVouchers],
+      );
     }
 
     assert(data);
+    let v = new VoucherInfo({});
+    v = VoucherInfo.fromJSON(data.toString());
 
-    try {
-      const v = VoucherInfo.fromJSON(data.toString());
-      return [v, true];
-    } catch (err) {
-      return [undefined, false];
-    }
+    return v;
   }
 
   removeVoucherInfo(channelId: Destination): void {

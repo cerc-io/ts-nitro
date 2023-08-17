@@ -6,7 +6,7 @@ import _ from 'lodash';
 import Channel from '@cerc-io/ts-channel';
 import type { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
-  FieldDescription, JSONbigNative, NitroSigner, Uint64, fromJSON, toJSON,
+  FieldDescription, JSONbigNative, NitroSigner, Uint64, WrappedError, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Exit } from '../../channel/state/outcome/exit';
@@ -32,6 +32,8 @@ import {
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
 import { ChainEvent, DepositedEvent } from '../../node/engine/chainservice/chainservice';
+
+export const ErrLedgerChannelExists: Error = new Error('directfund: ledger channel already exists');
 
 const WaitingForCompletePrefund: WaitingFor = 'WaitingForCompletePrefund';
 const WaitingForMyTurnToFund: WaitingFor = 'WaitingForMyTurnToFund';
@@ -188,8 +190,12 @@ export class Objective implements ObjectiveInterface {
     } catch (err) {
       throw new Error(`counterparty check failed: ${err}`);
     }
+
     if (channelExists) {
-      throw new Error(`A channel already exists with counterparty ${request.counterParty}`);
+      throw new WrappedError(
+        `counterparty ${request.counterParty}: ${ErrLedgerChannelExists}`,
+        [ErrLedgerChannelExists],
+      );
     }
 
     return objective;
