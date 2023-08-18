@@ -6,7 +6,7 @@ import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
 
 import {
-  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, zeroValueSignature, JSONbigNative,
+  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, JSONbigNative,
 } from '@cerc-io/nitro-util';
 import { Bytes32 } from '@statechannels/nitro-protocol';
 
@@ -587,13 +587,13 @@ interface SignedVarsConstructorOptions extends VarsConstructorOptions {
 // SignedVars stores 0-2 signatures for some vars in a consensus channel.
 export class SignedVars extends Vars {
   signatures: [Signature, Signature] = [
-    zeroValueSignature,
-    zeroValueSignature,
+    new Signature({}),
+    new Signature({}),
   ];
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     ...super.jsonEncodingMap,
-    signatures: { type: 'array', value: { type: 'signature' } },
+    signatures: { type: 'array', value: { type: 'class', value: Signature } },
   };
 
   static fromJSON(data: string): SignedVars {
@@ -834,14 +834,14 @@ type SignedProposalParams = {
 
 // SignedProposal is a Proposal with a signature on it.
 export class SignedProposal {
-  signature: Signature = zeroValueSignature;
+  signature: Signature = new Signature({});
 
   proposal: Proposal = new Proposal({});
 
   turnNum: Uint64 = BigInt(0);
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    signature: { type: 'signature' },
+    signature: { type: 'class', value: Signature },
     proposal: { type: 'class', value: Proposal },
     turnNum: { type: 'uint64' },
   };

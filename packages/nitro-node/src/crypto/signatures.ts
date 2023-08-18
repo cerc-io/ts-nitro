@@ -1,17 +1,67 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
 import { ethers } from 'ethers';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 
 import {
-  FieldDescription, NitroSigner, bytes2Hex, hex2Bytes,
+  JSONbigNative, NitroSigner, bytes2Hex, hex2Bytes,
 } from '@cerc-io/nitro-util';
 
 // Signature is an ECDSA signature
-export type Signature = {
-  r: Buffer | null;
-  s: Buffer | null;
-  v: number;
-};
+export class Signature {
+  r: Buffer | null = null;
+
+  s: Buffer | null = null;
+
+  v: number = 0;
+
+  constructor(params: {
+    r?: Buffer | null;
+    s?: Buffer | null;
+    v?: number
+  }) {
+    Object.assign(this, params);
+  }
+
+  static fromJSON(data: string): Signature {
+    // Parse the JSON data string
+    const jsonValue = JSONbigNative.parse(data);
+    const sigBuf = hex2Bytes(jsonValue);
+
+    // If the signature is all zeros, we consider it to be the empty signature
+    if (allZero(sigBuf)) {
+      return new Signature({});
+    }
+
+    if (sigBuf.length !== 65) {
+      throw new Error(`signature must be 65 bytes long or a zero string, received ${sigBuf.length} bytes`);
+    }
+
+    const recSig = new Signature({
+      r: sigBuf.subarray(0, 32),
+      s: sigBuf.subarray(32, 64),
+      v: Number(sigBuf[64]),
+    });
+
+    return recSig;
+  }
+
+  toJSON(): any {
+    const sigHex = {
+      r: `0x${bytes2Hex(this.r ?? Buffer.alloc(0))}`,
+      s: `0x${bytes2Hex(this.s ?? Buffer.alloc(0))}`,
+      v: this.v,
+    };
+
+    return ethers.utils.hexlify(ethers.utils.concat([sigHex.r, sigHex.s, [sigHex.v]]));
+  }
+
+  equal(s: Signature): boolean {
+    return _.isEqual(this.r, s.r)
+    && _.isEqual(this.s, s.s)
+    && this.v === s.v;
+  }
+}
 
 // computeEthereumSignedMessageDigest accepts an arbitrary message, prepends a known message,
 // and hashes the result using keccak256. The known message added to the input before hashing is
@@ -58,18 +108,23 @@ export const recoverEthereumMessageSigner = (message: Buffer, signature: Signatu
   );
 };
 
-export const equal = (s1: Signature, s2 :Signature): boolean => {
-  return _.isEqual(s1.r, s2.r)
-  && _.isEqual(s1.s, s2.s)
-  && s1.v === s2.v;
-};
-
 // Custom function to get Signature instance from an ethers Signature
 export const getSignatureFromEthersSignature = (sig: ethers.Signature): Signature => {
   // This step is necessary to remain compatible with the ecrecover precompile
-  return {
+  return new Signature({
     r: hex2Bytes(sig.r),
     s: hex2Bytes(sig.s),
     v: sig.v < 27 ? sig.v + 27 : sig.v,
-  };
+  });
 };
+
+// allZero returns true if all bytes in the slice are zero false otherwise
+function allZero(s: Buffer): boolean {
+  for (let i = 0; i < s.length; i += 1) {
+    if (s[i] !== 0) {
+      return false;
+    }
+  }
+
+  return true;
+}

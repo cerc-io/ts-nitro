@@ -11,7 +11,6 @@ import {
   Uint64,
   fromJSON,
   toJSON,
-  zeroValueSignature,
 } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
@@ -38,7 +37,6 @@ import { SingleAssetExit, Exit } from '../../channel/state/outcome/exit';
 import {
   FixedPart, VariablePart, Signature, stateFromFixedAndVariablePart, State,
 } from '../../channel/state/state';
-import { equal } from '../../crypto/signatures';
 
 const WaitingForFinalStateFromAlice: WaitingFor = 'WaitingForFinalStateFromAlice';
 const WaitingForSupportedFinalState: WaitingFor = 'WaitingForSupportedFinalState'; // Round 1
@@ -804,7 +802,7 @@ export class Objective implements ObjectiveInterface {
 
   // isZero returns true if every byte field on the signature is zero
   private isZero(sig: Signature): boolean {
-    return equal(sig, zeroValueSignature);
+    return sig.equal(new Signature({}));
   }
 }
 
