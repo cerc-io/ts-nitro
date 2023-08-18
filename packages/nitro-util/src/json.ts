@@ -5,9 +5,17 @@ import { ethers } from 'ethers';
 import { Buffer } from 'buffer';
 
 import { JSONbigNative } from './types';
+import { bytes2Hex, hex2Bytes, zeroValueSignature } from './hex-utils';
+
+// Signature is an ECDSA signature
+type Signature = {
+  r: Buffer | null;
+  s: Buffer | null;
+  v: number;
+};
 
 export interface FieldDescription {
-  type: 'class' | 'string' | 'address' | 'number' | 'bigint' | 'uint' | 'uint64' | 'boolean' | 'buffer' | 'object' | 'array' | 'map';
+  type: 'class' | 'string' | 'address' | 'number' | 'bigint' | 'uint' | 'uint64' | 'boolean' | 'buffer' | 'object' | 'array' | 'map' | 'signature';
   key?: FieldDescription;
   value?: FieldDescription | Record<string, FieldDescription> | any;
 }
@@ -78,6 +86,10 @@ function decodeValue(fieldType: FieldDescription, fieldJsonValue: any): any {
 
       assert(fieldType.value);
       return fieldJsonValue.map((value: any) => decodeValue(fieldType.value as FieldDescription, value));
+    }
+
+    case 'signature': {
+      return decodeSignature(fieldJsonValue);
     }
 
     default:
@@ -202,6 +214,10 @@ function encodeValue(fieldType: FieldDescription, fieldValue: any): any {
       return (fieldValue as string).toLowerCase();
     }
 
+    case 'signature': {
+      return encodeSignature(fieldValue as Signature);
+    }
+
     default:
       return fieldValue;
   }
@@ -213,4 +229,46 @@ function capitalizeFirstLetter(str: string): string {
 
 function lowercaseFirstLetter(str: string): string {
   return str.charAt(0).toLowerCase() + str.slice(1);
+}
+
+function encodeSignature(sig: Signature): string {
+  const sigHex = {
+    r: `0x${bytes2Hex(sig.r ?? Buffer.alloc(0))}`,
+    s: `0x${bytes2Hex(sig.s ?? Buffer.alloc(0))}`,
+    v: sig.v,
+  };
+
+  return ethers.utils.hexlify(ethers.utils.concat([sigHex.r, sigHex.s, [sigHex.v]]));
+}
+
+// From crypto/signatures.go
+function allZero(s: Buffer): boolean {
+  for (let i = 0; i < s.length; i += 1) {
+    if (s[i] !== 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function decodeSignature(sig: string): Signature {
+  const sigBuf = hex2Bytes(sig);
+
+  // If the signature is all zeros, we consider it to be the empty signature
+  if (allZero(sigBuf)) {
+    return zeroValueSignature;
+  }
+
+  if (sigBuf.length !== 65) {
+    throw new Error(`signature must be 65 bytes long or a zero string, received ${sigBuf.length} bytes`);
+  }
+
+  const recSig = {
+    r: sigBuf.subarray(0, 32),
+    s: sigBuf.subarray(32, 64),
+    v: Number(sigBuf[64]),
+  };
+
+  return recSig;
 }
