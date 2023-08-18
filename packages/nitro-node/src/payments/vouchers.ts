@@ -32,7 +32,7 @@ export class Voucher {
   static jsonEncodingMap: Record<string, FieldDescription> = {
     channelId: { type: 'class', value: Destination },
     amount: { type: 'bigint' },
-    signature: { type: 'object', value: nc.signatureJsonEncodingMap },
+    signature: { type: 'signature' },
   };
 
   static fromJSON(data: string): Voucher {

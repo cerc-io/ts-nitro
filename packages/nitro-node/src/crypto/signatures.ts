@@ -13,12 +13,6 @@ export type Signature = {
   v: number;
 };
 
-export const signatureJsonEncodingMap: Record<string, FieldDescription> = {
-  r: { type: 'buffer' },
-  s: { type: 'buffer' },
-  v: { type: 'number' },
-};
-
 // computeEthereumSignedMessageDigest accepts an arbitrary message, prepends a known message,
 // and hashes the result using keccak256. The known message added to the input before hashing is
 // "\x19Ethereum Signed Message:\n" + len(message).

@@ -5,7 +5,7 @@ import {
   FieldDescription, Uint, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
-import { Signature, signatureJsonEncodingMap, equal } from '../../crypto/signatures';
+import { Signature, equal } from '../../crypto/signatures';
 import { State } from './state';
 import { Address } from '../../types/types';
 import { Destination } from '../../types/destination';
@@ -17,7 +17,7 @@ export class SignedState {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     state: { type: 'class', value: State },
-    sigs: { type: 'map', key: { type: 'uint' }, value: { type: 'object', value: signatureJsonEncodingMap } },
+    sigs: { type: 'map', key: { type: 'uint' }, value: { type: 'signature' } },
   };
 
   static fromJSON(data: string): SignedState {
