@@ -70,7 +70,7 @@ const getSignedStatePayload = (b: Buffer): SignedState => {
 };
 
 // channelsExistWithCounterparty returns true if a channel or consensus_channel exists with the counterparty
-const channelsExistWithCounterparty = async (
+export const channelsExistWithCounterparty = async (
   counterparty: Address,
   getChannels: GetChannelsByParticipantFunction,
   getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,

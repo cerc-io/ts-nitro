@@ -142,3 +142,8 @@ export class VoucherInfo {
     return BigInt(this.startingBalance!) - BigInt(this.paid()!);
   }
 }
+
+export interface ReceiveVoucherSummary {
+  total: bigint | undefined,
+  delta: bigint | undefined
+}

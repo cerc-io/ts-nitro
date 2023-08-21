@@ -17,12 +17,14 @@ import { Address } from '../types/types';
 import { ChannelNotifier } from './notifier/channel-notifier';
 import { ObjectiveId } from '../protocols/messages';
 import { SafeSyncMap } from '../internal/safesync/safesync';
-import { Voucher } from '../payments/vouchers';
+import { Voucher, ReceiveVoucherSummary } from '../payments/vouchers';
 import { MetricsApi, NoOpMetrics } from './engine/metrics';
 import { Exit } from '../channel/state/outcome/exit';
 import {
   ObjectiveResponse as DirectFundObjectiveResponse,
   ObjectiveRequest as DirectFundObjectiveRequest,
+  channelsExistWithCounterparty,
+  ErrLedgerChannelExists,
 } from '../protocols/directfund/directfund';
 import {
   Objective as DirectDefundObjective,
@@ -131,6 +133,29 @@ export class Node {
       randUint64(),
       this.engine.getConsensusAppAddress(),
     );
+
+    assert(this.store);
+    // Check store to see if there is an existing channel with this counterparty
+    let channelExists: boolean;
+    try {
+      channelExists = await channelsExistWithCounterparty(
+        ethers.utils.getAddress(counterparty),
+        this.store.getChannelsByParticipant.bind(this.store),
+        this.store.getConsensusChannel.bind(this.store),
+      );
+    } catch (err) {
+      this.logger({
+        message: (err as Error).message,
+      });
+      throw new Error(`counterparty check failed: ${err}`);
+    }
+
+    if (channelExists) {
+      this.logger({
+        message: 'directfund: channel already exists',
+      });
+      throw new Error(`counterparty ${ethers.utils.getAddress(counterparty)}: ${ErrLedgerChannelExists}`);
+    }
 
     assert(this.engine.objectiveRequestsFromAPI);
     // Send the event to the engine
@@ -312,9 +337,10 @@ export class Node {
 
   // ReceiveVoucher receives a voucher and returns the amount that was paid.
   // It can be used to add a voucher that was sent outside of the go-nitro system.
-  async receiveVoucher(v: Voucher): Promise<[bigint | undefined, bigint | undefined]> {
+  async receiveVoucher(v: Voucher): Promise<ReceiveVoucherSummary> {
     assert(this.vm);
-    return this.vm.receive(v);
+    const [total, delta] = await this.vm.receive(v);
+    return { total, delta };
   }
 
   // GetPaymentChannelsByLedger returns all active payment channels that are funded by the given ledger channel.
