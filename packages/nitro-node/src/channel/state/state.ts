@@ -13,11 +13,12 @@ import {
 } from '@cerc-io/nitro-util';
 
 import * as nc from '../../crypto/signatures';
+import { Signature } from '../../crypto/signatures';
 import { Address } from '../../types/types';
 import { Destination } from '../../types/destination';
 import { Exit } from './outcome/exit';
 
-export type Signature = nc.Signature;
+export { Signature } from '../../crypto/signatures';
 
 export interface ConstructorOptions {
   participants?: Address[] | null;

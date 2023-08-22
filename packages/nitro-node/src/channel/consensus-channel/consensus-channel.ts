@@ -6,11 +6,11 @@ import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
 
 import {
-  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, zeroValueSignature, JSONbigNative,
+  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, JSONbigNative,
 } from '@cerc-io/nitro-util';
 import { Bytes32 } from '@statechannels/nitro-protocol';
 
-import { Signature, signatureJsonEncodingMap } from '../../crypto/signatures';
+import { Signature } from '../../crypto/signatures';
 import { getAddressFromSecretKeyBytes } from '../../crypto/keys';
 import { Address } from '../../types/types';
 import { Funds } from '../../types/funds';
@@ -587,13 +587,13 @@ interface SignedVarsConstructorOptions extends VarsConstructorOptions {
 // SignedVars stores 0-2 signatures for some vars in a consensus channel.
 export class SignedVars extends Vars {
   signatures: [Signature, Signature] = [
-    zeroValueSignature,
-    zeroValueSignature,
+    new Signature({}),
+    new Signature({}),
   ];
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     ...super.jsonEncodingMap,
-    signatures: { type: 'array', value: { type: 'object', value: signatureJsonEncodingMap } },
+    signatures: { type: 'array', value: { type: 'class', value: Signature } },
   };
 
   static fromJSON(data: string): SignedVars {
@@ -834,14 +834,14 @@ type SignedProposalParams = {
 
 // SignedProposal is a Proposal with a signature on it.
 export class SignedProposal {
-  signature: Signature = zeroValueSignature;
+  signature: Signature = new Signature({});
 
   proposal: Proposal = new Proposal({});
 
   turnNum: Uint64 = BigInt(0);
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    ...signatureJsonEncodingMap,
+    signature: { type: 'class', value: Signature },
     proposal: { type: 'class', value: Proposal },
     turnNum: { type: 'uint64' },
   };
@@ -849,22 +849,11 @@ export class SignedProposal {
   static fromJSON(data: string): SignedProposal {
     // props has Signature properties
     const props = fromJSON(this.jsonEncodingMap, data);
-    return new SignedProposal({
-      signature: { r: props.r, s: props.s, v: props.v },
-      proposal: props.proposal,
-      turnNum: props.turnNum,
-    });
+    return new SignedProposal(props);
   }
 
   toJSON(): any {
-    // Use a custom object
-    // (SignedProposal composes/embeds Signature in go-nitro)
-    const jsonSignedProposal = {
-      ...this.signature,
-      proposal: this.proposal,
-      turnNum: this.turnNum,
-    };
-    return toJSON(SignedProposal.jsonEncodingMap, jsonSignedProposal);
+    return toJSON(SignedProposal.jsonEncodingMap, this);
   }
 
   constructor(params: SignedProposalParams) {

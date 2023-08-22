@@ -14,7 +14,7 @@ import { Buffer } from 'buffer';
 
 import { Bytes32, Voucher as NitroVoucher } from '@statechannels/nitro-protocol';
 import {
-  FieldDescription, NitroSigner, fromJSON, hex2Bytes, toJSON, zeroValueSignature,
+  FieldDescription, NitroSigner, fromJSON, hex2Bytes, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Signature } from '../channel/state/state';
@@ -27,12 +27,12 @@ export class Voucher {
 
   amount?: bigint = undefined;
 
-  signature: Signature = zeroValueSignature;
+  signature: Signature = new Signature({});
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     channelId: { type: 'class', value: Destination },
     amount: { type: 'bigint' },
-    signature: { type: 'object', value: nc.signatureJsonEncodingMap },
+    signature: { type: 'class', value: Signature },
   };
 
   static fromJSON(data: string): Voucher {
@@ -92,7 +92,7 @@ export class Voucher {
   equal(other: Voucher): boolean {
     return _.isEqual(this.channelId, other.channelId)
     && this.amount === other.amount
-    && nc.equal(this.signature, other.signature);
+    && this.signature.equal(other.signature);
   }
 }
 

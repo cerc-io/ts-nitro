@@ -161,7 +161,10 @@ export class Objective implements ObjectiveInterface {
     }
 
     if (channelExists) {
-      throw new Error(`a channel already exists with counterparty ${request.counterParty}`);
+      throw new WrappedError(
+        `counterparty ${request.counterParty}: ${ErrLedgerChannelExists}`,
+        [ErrLedgerChannelExists],
+      );
     }
 
     const initialState = new State({

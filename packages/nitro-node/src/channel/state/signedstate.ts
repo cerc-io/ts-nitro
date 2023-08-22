@@ -5,7 +5,7 @@ import {
   FieldDescription, Uint, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
-import { Signature, signatureJsonEncodingMap, equal } from '../../crypto/signatures';
+import { Signature } from '../../crypto/signatures';
 import { State } from './state';
 import { Address } from '../../types/types';
 import { Destination } from '../../types/destination';
@@ -17,7 +17,7 @@ export class SignedState {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     state: { type: 'class', value: State },
-    sigs: { type: 'map', key: { type: 'uint' }, value: { type: 'object', value: signatureJsonEncodingMap } },
+    sigs: { type: 'map', key: { type: 'uint' }, value: { type: 'class', value: Signature } },
   };
 
   static fromJSON(data: string): SignedState {
@@ -125,7 +125,7 @@ export class SignedState {
     for (const [i, sig] of ss2.sigs) {
       const existing = this.sigs.get(i);
       if (existing) { // if the signature is already present, check that it is the same
-        if (!equal(existing, sig)) {
+        if (!existing.equal(sig)) {
           throw new Error('cannot merge signed states with conflicting signatures');
         }
       } else { // otherwise add the signature

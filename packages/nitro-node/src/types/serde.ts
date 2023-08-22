@@ -3,8 +3,6 @@ export class JsonRpcError extends Error {
 
   private data?: any;
 
-  private id: number = 0;
-
   constructor({
     message,
     ...params
