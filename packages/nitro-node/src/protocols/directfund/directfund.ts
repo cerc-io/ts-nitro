@@ -388,7 +388,7 @@ export class Objective implements ObjectiveInterface {
     const de = event;
 
     if (BigInt(de.blockNum) > updated.latestBlockNumber) {
-      updated.c!.onChainFunding.value.set(de.assetAndAmount.assetAddress, de.nowHeld!);
+      updated.c!.onChainFunding.value.set(de.asset, de.nowHeld!);
       updated.latestBlockNumber = BigInt(de.blockNum);
     }
 

@@ -12,4 +12,4 @@ export * from './error';
 
 export {
   INitroTypes, ExitFormat, DepositedEventObject, AllocationUpdatedEventObject, ConcludedEventObject,
-} from './contract-bindings/NitroAdjudicator';
+} from './contract-bindings/node_modules/@statechannels/nitro-protocol/dist/artifacts/contracts/NitroAdjudicator';

@@ -4,7 +4,7 @@ import {
 } from 'ethers';
 import { Buffer } from 'buffer';
 
-import { Token__factory } from './contract-bindings/factories/Token__factory';
+import { Token__factory } from './contract-bindings/factories/artifacts/Token__factory';
 
 export class EthClient {
   provider: providers.BaseProvider;

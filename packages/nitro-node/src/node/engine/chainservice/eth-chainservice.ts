@@ -34,7 +34,7 @@ const concludedTopic = ethers.utils.keccak256(
   ethers.utils.toUtf8Bytes('Concluded(bytes32,uint48)'),
 );
 const depositedTopic = ethers.utils.keccak256(
-  ethers.utils.toUtf8Bytes('Deposited(bytes32,address,uint256,uint256)'),
+  ethers.utils.toUtf8Bytes('Deposited(bytes32,address,uint256)'),
 );
 const challengeRegisteredTopic = ethers.utils.keccak256(
   // eslint-disable-next-line max-len
@@ -277,7 +277,6 @@ export class EthChainService implements ChainService {
               new Destination(nad.destination),
               String(l.blockNumber),
               nad.asset,
-              nad.amountDeposited.toBigInt(),
               nad.destinationHoldings.toBigInt(),
             );
             await this.out.push(event);

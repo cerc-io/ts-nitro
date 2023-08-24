@@ -13,10 +13,12 @@
     "balance": "DEBUG=ts-nitro:* yarn ts-node scripts/balance.ts",
     "test:build:contracts": "hardhat compile",
     "test:deploy-token": "DEBUG=ts-nitro:* yarn ts-node scripts/deploy-token.ts",
-    "test:transfer-tokens": "DEBUG=ts-nitro:* yarn ts-node scripts/transfer-tokens.ts"
+    "test:transfer-tokens": "DEBUG=ts-nitro:* yarn ts-node scripts/transfer-tokens.ts",
+    "test:generate-bindings": "./scripts/generate-bindings.sh"
   },
   "devDependencies": {
     "@npmcli/package-json": "^3.1.1",
+    "@typechain/ethers-v5": "^11.0.0",
     "@types/json-bigint": "^1.0.1",
     "@types/lodash": "^4.14.195",
     "@types/npmcli__package-json": "^2.0.0",
@@ -31,6 +33,7 @@
     "eslint-plugin-n": "^15.0.0",
     "eslint-plugin-promise": "^6.0.0",
     "hardhat": "^2.14.0",
+    "typechain": "^8.2.0",
     "typescript": "^5.0.4",
     "yargs": "^17.7.2"
   },
