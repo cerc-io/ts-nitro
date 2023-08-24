@@ -847,7 +847,6 @@ export class SignedProposal {
   };
 
   static fromJSON(data: string): SignedProposal {
-    // props has Signature properties
     const props = fromJSON(this.jsonEncodingMap, data);
     return new SignedProposal(props);
   }
