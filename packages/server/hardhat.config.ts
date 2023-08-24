@@ -1,4 +1,5 @@
 import { HardhatUserConfig } from 'hardhat/config';
+
 import '@foundry-rs/hardhat-anvil';
 
 const config: HardhatUserConfig = {

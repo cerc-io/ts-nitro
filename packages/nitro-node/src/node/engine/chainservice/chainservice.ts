@@ -57,14 +57,13 @@ export class DepositedEvent extends CommonEvent {
   asset: Address = ethers.constants.AddressZero;
 
   constructor(
-    depositedEventparams: {
+    params: {
       nowHeld?: bigint,
       asset: Address
-    },
-    commonEventParams: CommonEventConstructorOptions,
+    } & CommonEventConstructorOptions,
   ) {
-    super(commonEventParams);
-    Object.assign(this, depositedEventparams);
+    super(params);
+    Object.assign(this, params);
   }
 
   static newDepositedEvent(channelId: Destination, blockNum: string, assetAddress: Address, nowHeld?: bigint): DepositedEvent {
@@ -72,8 +71,6 @@ export class DepositedEvent extends CommonEvent {
       {
         nowHeld,
         asset: assetAddress,
-      },
-      {
         _channelID: channelId,
         blockNum,
       },

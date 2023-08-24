@@ -5,7 +5,9 @@ import { WaitGroup } from '@jpwilliams/waitgroup';
 
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import Channel from '@cerc-io/ts-channel';
-import { go, randUint64, Context } from '@cerc-io/nitro-util';
+import {
+  go, randUint64, Context, WrappedError,
+} from '@cerc-io/nitro-util';
 
 import { MessageService } from './engine/messageservice/messageservice';
 import { ChainService } from './engine/chainservice/chainservice';
@@ -154,7 +156,10 @@ export class Node {
       this.logger({
         message: 'directfund: channel already exists',
       });
-      throw new Error(`counterparty ${ethers.utils.getAddress(counterparty)}: ${ErrLedgerChannelExists}`);
+      throw new WrappedError(
+        `counterparty ${ethers.utils.getAddress(counterparty)}: ${ErrLedgerChannelExists}`,
+        [ErrLedgerChannelExists],
+      );
     }
 
     assert(this.engine.objectiveRequestsFromAPI);

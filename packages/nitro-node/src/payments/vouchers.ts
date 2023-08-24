@@ -144,6 +144,6 @@ export class VoucherInfo {
 }
 
 export interface ReceiveVoucherSummary {
-  total: bigint | undefined,
-  delta: bigint | undefined
+  total?: bigint,
+  delta?: bigint
 }

@@ -6,4 +6,5 @@ dist/
 # Deployed nitro contract addresses json
 nitro-addresses.json
 
+artifacts
 cache
