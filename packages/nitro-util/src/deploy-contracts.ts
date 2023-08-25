@@ -1,8 +1,8 @@
 import { ContractFactory, providers } from 'ethers';
 
-import nitroAdjudicatorArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
-import consensusAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
-import virtualPaymentAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
+import nitroAdjudicatorArtifact from '@cerc-io/nitro-protocol/dist/artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
+import consensusAppArtifact from '@cerc-io/nitro-protocol/dist/artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
+import virtualPaymentAppArtifact from '@cerc-io/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 
 export async function deployContracts(signer: providers.JsonRpcSigner): Promise<[string, string, string]> {
   const nitroAdjudicatorFactory = new ContractFactory(

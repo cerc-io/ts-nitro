@@ -1188,6 +1188,15 @@
     wherearewe "^2.0.0"
     xsalsa20 "^1.1.0"
 
+"@cerc-io/nitro-protocol@^2.0.0-alpha.4-ts-port-0.1.0", "@cerc-io/nitro-protocol@^v2.0.0-alpha.4-ts-port-0.1.0":
+  version "2.0.0-alpha.4-ts-port-0.1.0"
+  resolved "https://git.vdb.to/api/packages/cerc-io/npm/%40cerc-io%2Fnitro-protocol/-/2.0.0-alpha.4-ts-port-0.1.0/nitro-protocol-2.0.0-alpha.4-ts-port-0.1.0.tgz#e88bb360228bab276f3a7623cbdda15d05f6b7ef"
+  integrity sha512-Ys5LWeGL0E2ITiM0qGABzf701Fw3KwS2q4WkIBrL1LbyLd6sLd/ahmaY3wo6R4SmE+IT3jEcfA5ZQNGZ6zcibw==
+  dependencies:
+    "@openzeppelin/contracts" "^4.7.3"
+    "@statechannels/exit-format" "^0.2.0"
+    "@typechain/ethers-v5" "^9.0.0"
+
 "@cerc-io/peer@^0.2.52":
   version "0.2.52"
   resolved "https://git.vdb.to/api/packages/cerc-io/npm/%40cerc-io%2Fpeer/-/0.2.52/peer-0.2.52.tgz#a2f6f12908c5beef8d9a85dd523858a6d1b2526f"
@@ -3901,15 +3910,6 @@
     "@openzeppelin/contracts" "4.6.0"
     ethers "^5.1.4"
     lodash "^4.17.21"
-
-"@statechannels/nitro-protocol@^2.0.0-alpha.4":
-  version "2.0.0-alpha.4"
-  resolved "https://registry.yarnpkg.com/@statechannels/nitro-protocol/-/nitro-protocol-2.0.0-alpha.4.tgz#ff252e5cd7e73740ad25a35b2af7953b499db63d"
-  integrity sha512-Nmiyu0h7VjzoYPmzUOVWb7KzzdRRTjnF1YYVqsiHiCEVkjZVBtSK/J8RDL4Ozzn2MwyOIiA90Wlrl4KB+tB43g==
-  dependencies:
-    "@openzeppelin/contracts" "^4.7.3"
-    "@statechannels/exit-format" "^0.2.0"
-    "@typechain/ethers-v5" "^9.0.0"
 
 "@surma/rollup-plugin-off-main-thread@^2.2.3":
   version "2.2.3"

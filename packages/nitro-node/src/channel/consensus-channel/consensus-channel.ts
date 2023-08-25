@@ -8,7 +8,7 @@ import { ethers } from 'ethers';
 import {
   FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, JSONbigNative,
 } from '@cerc-io/nitro-util';
-import { Bytes32 } from '@statechannels/nitro-protocol';
+import { Bytes32 } from '@cerc-io/nitro-protocol';
 
 import { Signature } from '../../crypto/signatures';
 import { getAddressFromSecretKeyBytes } from '../../crypto/keys';

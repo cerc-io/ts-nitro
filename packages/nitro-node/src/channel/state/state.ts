@@ -7,7 +7,7 @@ import {
   getChannelId as utilGetChannelId,
   State as NitroState,
   hashState as utilHashState,
-} from '@statechannels/nitro-protocol';
+} from '@cerc-io/nitro-protocol';
 import {
   FieldDescription, NitroSigner, Uint64, bytes2Hex, fromJSON, hex2Bytes, toJSON,
 } from '@cerc-io/nitro-util';
