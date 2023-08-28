@@ -10,18 +10,21 @@ export async function deployContracts(signer: providers.JsonRpcSigner): Promise<
     nitroAdjudicatorArtifact.bytecode,
   ).connect(signer);
   const nitroAdjudicator = await nitroAdjudicatorFactory.deploy();
+  await nitroAdjudicator.deployTransaction.wait();
 
   const virtualPaymentAppFactory = new ContractFactory(
     virtualPaymentAppArtifact.abi,
     virtualPaymentAppArtifact.bytecode,
   ).connect(signer);
   const virtualPaymentApp = await virtualPaymentAppFactory.deploy();
+  await virtualPaymentApp.deployTransaction.wait();
 
   const consensusAppFactory = new ContractFactory(
     consensusAppArtifact.abi,
     consensusAppArtifact.bytecode,
   ).connect(signer);
   const consensusApp = await consensusAppFactory.deploy();
+  await consensusApp.deployTransaction.wait();
 
   return [nitroAdjudicator.address, virtualPaymentApp.address, consensusApp.address];
 }
