@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import { HardhatUserConfig } from 'hardhat/config';
 
 import '@foundry-rs/hardhat-anvil';

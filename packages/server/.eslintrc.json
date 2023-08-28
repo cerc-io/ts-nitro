@@ -24,7 +24,12 @@
     "import/no-extraneous-dependencies": [
       "error",
       {
-        "devDependencies": ["test-e2e/**/*.test.ts", "hardhat.config.ts", "test-e2e/scripts/*.ts"]
+        "devDependencies": [
+          "test-e2e/**/*.test.ts",
+          "hardhat.config.ts",
+          "hardhat.*.config.ts",
+          "test-e2e/scripts/*.ts"
+        ]
       }
     ],
     "max-len": [
