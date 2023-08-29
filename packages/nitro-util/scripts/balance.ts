@@ -2,7 +2,8 @@ import yargs from 'yargs';
 import debug from 'debug';
 
 import { DEFAULT_CHAIN_URL } from '../src';
-import { getBalanceByAddress, getAddressByKey, getTokenBalanceByAddress } from '../src/eth-client';
+import { getBalanceByAddress, getAddressByKey } from '../src/miscs';
+import { getTokenBalanceByAddress } from './utils';
 
 const log = debug('ts-nitro:util');
 
