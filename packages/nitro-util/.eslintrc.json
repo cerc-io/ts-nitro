@@ -12,7 +12,9 @@
     "import/no-extraneous-dependencies": [
       "error",
       {
-        "devDependencies": ["scripts/**/*.ts", "hardhat.config.ts"]
+        "devDependencies": [
+          "scripts/**/*.ts"
+        ]
       }
     ],
     "max-classes-per-file": "off",

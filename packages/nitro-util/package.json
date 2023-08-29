@@ -11,7 +11,6 @@
     "test:copy-addresses": "cp ./nitro-addresses.json ../server/src/ && cp ./nitro-addresses.json ../example-web-app/src/",
     "build:fix-modules": "yarn ts-node scripts/fix-modules.ts",
     "balance": "DEBUG=ts-nitro:* yarn ts-node scripts/balance.ts",
-    "build:contracts": "hardhat compile",
     "test:deploy-token": "DEBUG=ts-nitro:* yarn ts-node scripts/deploy-token.ts",
     "test:transfer-tokens": "DEBUG=ts-nitro:* yarn ts-node scripts/transfer-tokens.ts",
     "generate-bindings": "./scripts/generate-bindings.sh"
@@ -32,7 +31,6 @@
     "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-n": "^15.0.0",
     "eslint-plugin-promise": "^6.0.0",
-    "hardhat": "^2.14.0",
     "typechain": "^8.2.0",
     "typescript": "^5.0.4",
     "yargs": "^17.7.2"
