@@ -18,7 +18,7 @@ import type {
   TypedEvent,
   TypedListener,
   OnEvent,
-} from "../../../../../../common";
+} from "./common";
 
 export declare namespace INitroTypes {
   export type FixedPartStruct = {

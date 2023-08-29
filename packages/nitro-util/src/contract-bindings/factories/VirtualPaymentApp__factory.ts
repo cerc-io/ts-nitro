@@ -6,7 +6,7 @@ import type { Provider, TransactionRequest } from "@ethersproject/providers";
 import type {
   VirtualPaymentApp,
   VirtualPaymentAppInterface,
-} from "../../../../../../../node_modules/@cerc-io/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp";
+} from "../VirtualPaymentApp";
 
 const _abi = [
   {

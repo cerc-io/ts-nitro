@@ -3,10 +3,7 @@
 /* eslint-disable */
 import { Signer, utils, Contract, ContractFactory, Overrides } from "ethers";
 import type { Provider, TransactionRequest } from "@ethersproject/providers";
-import type {
-  Token,
-  TokenInterface,
-} from "../../../../artifacts/test/contracts/Token";
+import type { Token, TokenInterface } from "../Token";
 
 const _abi = [
   {

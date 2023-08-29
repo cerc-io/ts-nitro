@@ -3,10 +3,7 @@
 /* eslint-disable */
 import { Signer, utils, Contract, ContractFactory, Overrides } from "ethers";
 import type { Provider, TransactionRequest } from "@ethersproject/providers";
-import type {
-  ConsensusApp,
-  ConsensusAppInterface,
-} from "../../../../../../../node_modules/@cerc-io/nitro-protocol/dist/artifacts/contracts/ConsensusApp";
+import type { ConsensusApp, ConsensusAppInterface } from "../ConsensusApp";
 
 const _abi = [
   {

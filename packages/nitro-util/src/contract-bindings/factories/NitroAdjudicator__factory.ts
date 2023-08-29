@@ -6,7 +6,7 @@ import type { Provider, TransactionRequest } from "@ethersproject/providers";
 import type {
   NitroAdjudicator,
   NitroAdjudicatorInterface,
-} from "../../../../../../../node_modules/@cerc-io/nitro-protocol/dist/artifacts/contracts/NitroAdjudicator";
+} from "../NitroAdjudicator";
 
 const _abi = [
   {
