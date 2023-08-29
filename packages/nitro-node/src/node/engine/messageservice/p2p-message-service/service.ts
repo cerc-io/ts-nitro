@@ -51,8 +51,8 @@ export interface PeerExchangeMessage {
   expectResponse: boolean;
 }
 
-// Custom function to parse raw JSON string to BasicPeerInfo
-async function parseBasicPeerInfo(raw: string): Promise<PeerExchangeMessage> {
+// Custom function to parse raw JSON string to PeerExchangeMessage
+async function parsePeerExchangeMessage(raw: string): Promise<PeerExchangeMessage> {
   const { peerIdFromString } = await import('@libp2p/peer-id');
 
   const parsed = JSON.parse(raw);
@@ -350,7 +350,7 @@ export class P2PMessageService implements MessageService {
 
       let msg: PeerExchangeMessage;
       try {
-        msg = await parseBasicPeerInfo(raw);
+        msg = await parsePeerExchangeMessage(raw);
       } catch (err) {
         this.checkError(err as Error);
       }
@@ -513,14 +513,14 @@ export class P2PMessageService implements MessageService {
     assert(this.peers);
 
     // Try to load peer from the peers info map
-    const [peerInfo, foundPeer] = this.peers.load(peerAddress);
+    const [peerId, foundPeer] = this.peers.load(peerAddress);
     if (!foundPeer) {
       return [false, ERR_PEER_NOT_FOUND];
     }
-    assert(peerInfo);
+    assert(peerId);
 
     try {
-      await this.p2pHost.dial(peerInfo);
+      await this.p2pHost.dial(peerId);
     } catch (err) {
       return [false, ERR_PEER_DIAL_FAILED];
     }

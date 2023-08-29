@@ -1,9 +1,10 @@
 import yargs from 'yargs';
 import debug from 'debug';
+import { providers, BigNumber } from 'ethers';
 
 import { DEFAULT_CHAIN_URL } from '../src';
-import { getBalanceByAddress, getAddressByKey } from '../src/miscs';
-import { getTokenBalanceByAddress } from './utils';
+import { getBalanceByAddress, getAddressByKey } from '../src/misc';
+import { Token__factory } from '../src/contract-bindings/factories/Token__factory';
 
 const log = debug('ts-nitro:util');
 
@@ -32,6 +33,13 @@ const getArgv = () => yargs.parserConfiguration({
     describe: 'Token address',
   },
 }).argv;
+
+export async function getTokenBalanceByAddress(token: string, address: string, chainURL: string): Promise<BigNumber> {
+  const provider = new providers.JsonRpcProvider(chainURL);
+  const tokenFactory = Token__factory.connect(token, provider.getSigner());
+
+  return tokenFactory.balanceOf(address);
+}
 
 async function main() {
   const argv = getArgv();
