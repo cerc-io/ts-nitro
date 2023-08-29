@@ -169,7 +169,7 @@ export interface NitroAdjudicatorInterface extends utils.Interface {
     "deposit(address,bytes32,uint256,uint256)": FunctionFragment;
     "holdings(address,bytes32)": FunctionFragment;
     "reclaim((bytes32,bytes32,bytes,uint256,uint256,bytes32,bytes,uint256))": FunctionFragment;
-    "requireStateSupported((address[],uint64,address,uint48),(((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[],(((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]))": FunctionFragment;
+    "stateIsSupported((address[],uint64,address,uint48),(((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[],(((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]))": FunctionFragment;
     "statusOf(bytes32)": FunctionFragment;
     "transfer(uint256,bytes32,bytes,bytes32,uint256[])": FunctionFragment;
     "transferAllAssets(bytes32,(address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes32)": FunctionFragment;
@@ -187,7 +187,7 @@ export interface NitroAdjudicatorInterface extends utils.Interface {
       | "deposit"
       | "holdings"
       | "reclaim"
-      | "requireStateSupported"
+      | "stateIsSupported"
       | "statusOf"
       | "transfer"
       | "transferAllAssets"
@@ -244,7 +244,7 @@ export interface NitroAdjudicatorInterface extends utils.Interface {
     values: [IMultiAssetHolder.ReclaimArgsStruct]
   ): string;
   encodeFunctionData(
-    functionFragment: "requireStateSupported",
+    functionFragment: "stateIsSupported",
     values: [
       INitroTypes.FixedPartStruct,
       INitroTypes.SignedVariablePartStruct[],
@@ -284,7 +284,7 @@ export interface NitroAdjudicatorInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "holdings", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "reclaim", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "requireStateSupported",
+    functionFragment: "stateIsSupported",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "statusOf", data: BytesLike): Result;
@@ -303,7 +303,7 @@ export interface NitroAdjudicatorInterface extends utils.Interface {
     "ChallengeCleared(bytes32,uint48)": EventFragment;
     "ChallengeRegistered(bytes32,uint48,uint48,bool,tuple,tuple[],tuple)": EventFragment;
     "Concluded(bytes32,uint48)": EventFragment;
-    "Deposited(bytes32,address,uint256,uint256)": EventFragment;
+    "Deposited(bytes32,address,uint256)": EventFragment;
     "Reclaimed(bytes32,uint256)": EventFragment;
   };
 
@@ -376,11 +376,10 @@ export type ConcludedEventFilter = TypedEventFilter<ConcludedEvent>;
 export interface DepositedEventObject {
   destination: string;
   asset: string;
-  amountDeposited: BigNumber;
   destinationHoldings: BigNumber;
 }
 export type DepositedEvent = TypedEvent<
-  [string, string, BigNumber, BigNumber],
+  [string, string, BigNumber],
   DepositedEventObject
 >;
 
@@ -496,12 +495,12 @@ export interface NitroAdjudicator extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
-    requireStateSupported(
+    stateIsSupported(
       fixedPart: INitroTypes.FixedPartStruct,
       proof: INitroTypes.SignedVariablePartStruct[],
       candidate: INitroTypes.SignedVariablePartStruct,
       overrides?: CallOverrides
-    ): Promise<[void]>;
+    ): Promise<[boolean, string]>;
 
     statusOf(arg0: BytesLike, overrides?: CallOverrides): Promise<[string]>;
 
@@ -605,12 +604,12 @@ export interface NitroAdjudicator extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  requireStateSupported(
+  stateIsSupported(
     fixedPart: INitroTypes.FixedPartStruct,
     proof: INitroTypes.SignedVariablePartStruct[],
     candidate: INitroTypes.SignedVariablePartStruct,
     overrides?: CallOverrides
-  ): Promise<void>;
+  ): Promise<[boolean, string]>;
 
   statusOf(arg0: BytesLike, overrides?: CallOverrides): Promise<string>;
 
@@ -714,12 +713,12 @@ export interface NitroAdjudicator extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    requireStateSupported(
+    stateIsSupported(
       fixedPart: INitroTypes.FixedPartStruct,
       proof: INitroTypes.SignedVariablePartStruct[],
       candidate: INitroTypes.SignedVariablePartStruct,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<[boolean, string]>;
 
     statusOf(arg0: BytesLike, overrides?: CallOverrides): Promise<string>;
 
@@ -800,16 +799,14 @@ export interface NitroAdjudicator extends BaseContract {
       finalizesAt?: null
     ): ConcludedEventFilter;
 
-    "Deposited(bytes32,address,uint256,uint256)"(
+    "Deposited(bytes32,address,uint256)"(
       destination?: BytesLike | null,
       asset?: null,
-      amountDeposited?: null,
       destinationHoldings?: null
     ): DepositedEventFilter;
     Deposited(
       destination?: BytesLike | null,
       asset?: null,
-      amountDeposited?: null,
       destinationHoldings?: null
     ): DepositedEventFilter;
 
@@ -884,7 +881,7 @@ export interface NitroAdjudicator extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
-    requireStateSupported(
+    stateIsSupported(
       fixedPart: INitroTypes.FixedPartStruct,
       proof: INitroTypes.SignedVariablePartStruct[],
       candidate: INitroTypes.SignedVariablePartStruct,
@@ -976,7 +973,7 @@ export interface NitroAdjudicator extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
-    requireStateSupported(
+    stateIsSupported(
       fixedPart: INitroTypes.FixedPartStruct,
       proof: INitroTypes.SignedVariablePartStruct[],
       candidate: INitroTypes.SignedVariablePartStruct,

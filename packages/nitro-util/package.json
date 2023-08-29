@@ -11,12 +11,14 @@
     "test:copy-addresses": "cp ./nitro-addresses.json ../server/src/ && cp ./nitro-addresses.json ../example-web-app/src/",
     "build:fix-modules": "yarn ts-node scripts/fix-modules.ts",
     "balance": "DEBUG=ts-nitro:* yarn ts-node scripts/balance.ts",
-    "test:build:contracts": "hardhat compile",
+    "build:contracts": "hardhat compile",
     "test:deploy-token": "DEBUG=ts-nitro:* yarn ts-node scripts/deploy-token.ts",
-    "test:transfer-tokens": "DEBUG=ts-nitro:* yarn ts-node scripts/transfer-tokens.ts"
+    "test:transfer-tokens": "DEBUG=ts-nitro:* yarn ts-node scripts/transfer-tokens.ts",
+    "generate-bindings": "./scripts/generate-bindings.sh"
   },
   "devDependencies": {
     "@npmcli/package-json": "^3.1.1",
+    "@typechain/ethers-v5": "^11.0.0",
     "@types/json-bigint": "^1.0.1",
     "@types/lodash": "^4.14.195",
     "@types/npmcli__package-json": "^2.0.0",
@@ -31,11 +33,12 @@
     "eslint-plugin-n": "^15.0.0",
     "eslint-plugin-promise": "^6.0.0",
     "hardhat": "^2.14.0",
+    "typechain": "^8.2.0",
     "typescript": "^5.0.4",
     "yargs": "^17.7.2"
   },
   "dependencies": {
-    "@statechannels/nitro-protocol": "^2.0.0-alpha.4",
+    "@cerc-io/nitro-protocol": "^v2.0.0-alpha.4-ts-port-0.1.0",
     "@cerc-io/ts-channel": "1.0.3-ts-nitro-0.1.1",
     "assert": "^2.0.0",
     "debug": "^4.3.4",

@@ -5,7 +5,8 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "@statechannels/nitro-protocol": "^2.0.0-alpha.4",
+    "@foundry-rs/hardhat-anvil": "^0.1.7",
+    "@cerc-io/nitro-protocol": "^v2.0.0-alpha.4-ts-port-0.1.0",
     "@types/mocha": "^10.0.1",
     "@typescript-eslint/eslint-plugin": "^5.13.0",
     "@typescript-eslint/parser": "^5.0.0",
@@ -29,7 +30,8 @@
     "lint": "eslint .",
     "test:e2e": "mocha test-e2e/**/*.test.ts --bail",
     "test:deploy-contracts": "DEBUG=ts-nitro:* yarn ts-node test-e2e/scripts/deploy-contracts.ts",
-    "chain": "hardhat node"
+    "chain": "hardhat node",
+    "chain:anvil": "hardhat --config hardhat.anvil.config.ts node"
   },
   "dependencies": {
     "@cerc-io/nitro-node": "^0.1.8",

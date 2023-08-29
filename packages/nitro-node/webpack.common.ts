@@ -30,7 +30,7 @@ const baseConfig: webpack.Configuration = {
     '@cerc-io/ts-channel': '@cerc-io/ts-channel',
     '@cerc-io/nitro-util': '@cerc-io/nitro-util',
     '@statechannels/exit-format': '@statechannels/exit-format',
-    '@statechannels/nitro-protocol': '@statechannels/nitro-protocol',
+    '@cerc-io/nitro-protocol': '@cerc-io/nitro-protocol',
     lodash: 'lodash',
     'json-bigint': 'json-bigint',
     assert: 'assert',

@@ -54,37 +54,32 @@ class AssetAndAmount {
 export class DepositedEvent extends CommonEvent {
   nowHeld?: bigint = undefined;
 
-  // Workaround for extending multiple classes in TypeScript
-  assetAndAmount: AssetAndAmount;
+  asset: Address = ethers.constants.AddressZero;
 
   constructor(
     params: {
       nowHeld?: bigint,
+      asset: Address
     } & CommonEventConstructorOptions,
-    assetAndAmountParams: AssetAndAmountConstructorOptions,
   ) {
     super(params);
     Object.assign(this, params);
-    this.assetAndAmount = new AssetAndAmount(assetAndAmountParams);
   }
 
-  static newDepositedEvent(channelId: Destination, blockNum: string, assetAddress: Address, assetAmount?: bigint, nowHeld?: bigint): DepositedEvent {
+  static newDepositedEvent(channelId: Destination, blockNum: string, assetAddress: Address, nowHeld?: bigint): DepositedEvent {
     return new DepositedEvent(
       {
+        nowHeld,
+        asset: assetAddress,
         _channelID: channelId,
         blockNum,
-        nowHeld,
-      },
-      {
-        assetAddress,
-        assetAmount,
       },
     );
   }
 
   string(): string {
     /* eslint-disable max-len */
-    return `Deposited ${this.assetAndAmount.string()} leaving ${this.nowHeld!.toString()} now held against channel ${this.channelID().string()} at Block ${this.blockNum}`;
+    return `Deposited ${this.asset} leaving ${this.nowHeld!.toString()} now held against channel ${this.channelID().string()} at Block ${this.blockNum}`;
   }
 }
 
@@ -114,7 +109,7 @@ export class ConcludedEvent extends CommonEvent {
   }
 }
 
-// AllocationUpdated is an internal representation of the AllocatonUpdated blockchain event
+// AllocationUpdated is an internal representation of the AllocationUpdated blockchain event
 // The event includes the token address and amount at the block that generated the event
 export class AllocationUpdatedEvent extends CommonEvent {
   assetAndAmount: AssetAndAmount;

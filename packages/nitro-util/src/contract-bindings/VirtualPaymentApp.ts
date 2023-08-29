@@ -112,15 +112,13 @@ export declare namespace ExitFormat {
 
 export interface VirtualPaymentAppInterface extends utils.Interface {
   functions: {
-    "requireStateSupported((address[],uint64,address,uint48),(((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),uint256)[],(((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),uint256))": FunctionFragment;
+    "stateIsSupported((address[],uint64,address,uint48),(((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),uint256)[],(((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),uint256))": FunctionFragment;
   };
 
-  getFunction(
-    nameOrSignatureOrTopic: "requireStateSupported"
-  ): FunctionFragment;
+  getFunction(nameOrSignatureOrTopic: "stateIsSupported"): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "requireStateSupported",
+    functionFragment: "stateIsSupported",
     values: [
       INitroTypes.FixedPartStruct,
       INitroTypes.RecoveredVariablePartStruct[],
@@ -129,7 +127,7 @@ export interface VirtualPaymentAppInterface extends utils.Interface {
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "requireStateSupported",
+    functionFragment: "stateIsSupported",
     data: BytesLike
   ): Result;
 
@@ -163,34 +161,34 @@ export interface VirtualPaymentApp extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    requireStateSupported(
+    stateIsSupported(
       fixedPart: INitroTypes.FixedPartStruct,
       proof: INitroTypes.RecoveredVariablePartStruct[],
       candidate: INitroTypes.RecoveredVariablePartStruct,
       overrides?: CallOverrides
-    ): Promise<[void]>;
+    ): Promise<[boolean, string]>;
   };
 
-  requireStateSupported(
+  stateIsSupported(
     fixedPart: INitroTypes.FixedPartStruct,
     proof: INitroTypes.RecoveredVariablePartStruct[],
     candidate: INitroTypes.RecoveredVariablePartStruct,
     overrides?: CallOverrides
-  ): Promise<void>;
+  ): Promise<[boolean, string]>;
 
   callStatic: {
-    requireStateSupported(
+    stateIsSupported(
       fixedPart: INitroTypes.FixedPartStruct,
       proof: INitroTypes.RecoveredVariablePartStruct[],
       candidate: INitroTypes.RecoveredVariablePartStruct,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<[boolean, string]>;
   };
 
   filters: {};
 
   estimateGas: {
-    requireStateSupported(
+    stateIsSupported(
       fixedPart: INitroTypes.FixedPartStruct,
       proof: INitroTypes.RecoveredVariablePartStruct[],
       candidate: INitroTypes.RecoveredVariablePartStruct,
@@ -199,7 +197,7 @@ export interface VirtualPaymentApp extends BaseContract {
   };
 
   populateTransaction: {
-    requireStateSupported(
+    stateIsSupported(
       fixedPart: INitroTypes.FixedPartStruct,
       proof: INitroTypes.RecoveredVariablePartStruct[],
       candidate: INitroTypes.RecoveredVariablePartStruct,

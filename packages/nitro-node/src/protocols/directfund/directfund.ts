@@ -70,7 +70,7 @@ const getSignedStatePayload = (b: Buffer): SignedState => {
 };
 
 // channelsExistWithCounterparty returns true if a channel or consensus_channel exists with the counterparty
-const channelsExistWithCounterparty = async (
+export const channelsExistWithCounterparty = async (
   counterparty: Address,
   getChannels: GetChannelsByParticipantFunction,
   getTwoPartyConsensusLedger: GetTwoPartyConsensusLedgerFunction,
@@ -388,7 +388,7 @@ export class Objective implements ObjectiveInterface {
     const de = event;
 
     if (BigInt(de.blockNum) > updated.latestBlockNumber) {
-      updated.c!.onChainFunding.value.set(de.assetAndAmount.assetAddress, de.nowHeld!);
+      updated.c!.onChainFunding.value.set(de.asset, de.nowHeld!);
       updated.latestBlockNumber = BigInt(de.blockNum);
     }
 

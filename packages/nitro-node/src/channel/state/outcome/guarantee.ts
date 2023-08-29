@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer';
 
-import { decodeGuaranteeData, encodeGuaranteeData } from '@statechannels/nitro-protocol/dist/src/contract/outcome';
+import { decodeGuaranteeData, encodeGuaranteeData } from '@cerc-io/nitro-protocol/dist/src/contract/outcome';
 
 import { Destination } from '../../../types/destination';
 

@@ -6,7 +6,6 @@ import { State } from '../../channel/state/state';
 import { VoucherManager } from '../../payments/voucher-manager';
 import { Destination } from '../../types/destination';
 import { Address } from '../../types/types';
-import { InvalidParamsError } from '../../types/serde';
 import {
   ChannelStatus, LedgerChannelBalance, LedgerChannelInfo, PaymentChannelInfo, PaymentChannelBalance,
 } from './types';
@@ -126,9 +125,7 @@ export const constructPaymentInfo = (c: Channel, paid?: bigint, remaining?: bigi
 // It does this by querying the provided store and voucher manager
 export const getPaymentChannelInfo = async (id: Destination, store: Store, vm: VoucherManager): Promise<PaymentChannelInfo> => {
   if (_.isEqual(id, new Destination())) {
-    const err = InvalidParamsError;
-    err.message = 'a valid channel id must be provided';
-    throw err;
+    throw new Error('a valid channel id must be provided');
   }
 
   const [c, channelFound] = await store.getChannelById(id);
@@ -139,9 +136,7 @@ export const getPaymentChannelInfo = async (id: Destination, store: Store, vm: V
     return constructPaymentInfo(c, paid, remaining);
   }
 
-  const err = InvalidParamsError;
-  err.message = `Could not find channel with id ${id}`;
-  throw err;
+  throw new Error(`Could not find channel with id ${id}`);
 };
 
 export const constructLedgerInfoFromConsensus = (con: ConsensusChannel, myAddress: Address): LedgerChannelInfo => {

@@ -8,5 +8,5 @@ export type { VirtualPaymentApp } from "./VirtualPaymentApp";
 export * as factories from "./factories";
 export { NitroAdjudicator__factory } from "./factories/NitroAdjudicator__factory";
 export { ConsensusApp__factory } from "./factories/ConsensusApp__factory";
-export { Token__factory } from "./factories/Token__factory";
 export { VirtualPaymentApp__factory } from "./factories/VirtualPaymentApp__factory";
+export { Token__factory } from "./factories/Token__factory";

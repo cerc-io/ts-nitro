@@ -76,6 +76,7 @@ export async function getBalanceByKey(chainPrivateKey: string, chainURL: string)
   return getBalanceByAddress(address, chainURL);
 }
 
+// TODO: Move out of eth-client
 export async function getTokenBalanceByAddress(token: string, address: string, chainURL: string): Promise<BigNumber> {
   const provider = new providers.JsonRpcProvider(chainURL);
   const tokenFactory = Token__factory.connect(token, provider.getSigner());

@@ -4,7 +4,7 @@ import path from 'path';
 import debug from 'debug';
 import { providers } from 'ethers';
 
-import { DEFAULT_CHAIN_URL } from '../src';
+import { DEFAULT_CHAIN_URL } from '../src/constants';
 import { deployContracts } from '../src/deploy-contracts';
 
 const log = debug('ts-nitro:util');
