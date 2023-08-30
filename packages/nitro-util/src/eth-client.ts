@@ -1,10 +1,7 @@
 import assert from 'assert';
 import {
-  ethers, providers, EventFilter, Wallet, BigNumber,
+  ethers, providers, EventFilter,
 } from 'ethers';
-import { Buffer } from 'buffer';
-
-import { Token__factory } from './contract-bindings/factories/Token__factory';
 
 export class EthClient {
   provider: providers.BaseProvider;
@@ -47,39 +44,4 @@ export class EthClient {
 
     return listener;
   }
-}
-
-// connectToChain connects to the chain at the given url and returns a client and a transactor.
-export async function connectToChain(chainUrl: string, chainPK: Buffer): Promise<[EthClient, ethers.Signer]> {
-  const client = await EthClient.dial(chainUrl);
-  const txSigner = new ethers.Wallet(chainPK, client.provider);
-
-  return [client, txSigner];
-}
-
-export async function getAddressByKey(chainPrivateKey: string, chainURL: string): Promise<string> {
-  const provider = new providers.JsonRpcProvider(chainURL);
-  const signer = new Wallet(chainPrivateKey, provider);
-
-  return signer.getAddress();
-}
-
-export async function getBalanceByAddress(address: string, chainURL: string): Promise<BigNumber> {
-  const provider = new providers.JsonRpcProvider(chainURL);
-
-  return provider.getBalance(address);
-}
-
-export async function getBalanceByKey(chainPrivateKey: string, chainURL: string): Promise<BigNumber> {
-  const address = await getAddressByKey(chainPrivateKey, chainURL);
-
-  return getBalanceByAddress(address, chainURL);
-}
-
-// TODO: Move out of eth-client
-export async function getTokenBalanceByAddress(token: string, address: string, chainURL: string): Promise<BigNumber> {
-  const provider = new providers.JsonRpcProvider(chainURL);
-  const tokenFactory = Token__factory.connect(token, provider.getSigner());
-
-  return tokenFactory.balanceOf(address);
 }

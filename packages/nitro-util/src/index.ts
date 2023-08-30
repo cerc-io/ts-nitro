@@ -9,6 +9,7 @@ export * from './constants';
 export * from './deploy-contracts';
 export * from './context';
 export * from './error';
+export * from './misc';
 
 export {
   INitroTypes, ExitFormat, DepositedEventObject, AllocationUpdatedEventObject, ConcludedEventObject,

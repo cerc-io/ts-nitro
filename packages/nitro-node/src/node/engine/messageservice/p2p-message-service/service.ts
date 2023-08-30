@@ -45,29 +45,27 @@ export interface BasicPeerInfo {
   address: Address;
 }
 
-// Custom function to parse raw JSON string to BasicPeerInfo
-async function parseBasicPeerInfo(raw: string): Promise<BasicPeerInfo> {
+export interface PeerExchangeMessage {
+  id: PeerId;
+  address: Address;
+  expectResponse: boolean;
+}
+
+// Custom function to parse raw JSON string to PeerExchangeMessage
+async function parsePeerExchangeMessage(raw: string): Promise<PeerExchangeMessage> {
   const { peerIdFromString } = await import('@libp2p/peer-id');
 
   const parsed = JSON.parse(raw);
-
   return {
     id: peerIdFromString(parsed.id),
     address: parsed.address,
+    expectResponse: parsed.expectResponse,
   };
-}
-
-// PeerInfo contains peer information and the ip address/port
-export interface PeerInfo {
-  port: number;
-  id: PeerId;
-  address: Address;
-  ipAddress: string;
 }
 
 interface ConstructorOptions {
   toEngine: ReadWriteChannel<Message>;
-  peers: SafeSyncMap<BasicPeerInfo>;
+  peers: SafeSyncMap<PeerId>;
   me: Address;
   newPeerInfo: ReadWriteChannel<BasicPeerInfo>;
   logger: debug.Debugger;
@@ -80,7 +78,7 @@ export class P2PMessageService implements MessageService {
   // For forwarding processed messages to the engine
   private toEngine?: ReadWriteChannel<Message>;
 
-  private peers?: SafeSyncMap<BasicPeerInfo>;
+  private peers?: SafeSyncMap<PeerId>;
 
   private me: Address = ethers.constants.AddressZero;
 
@@ -112,7 +110,7 @@ export class P2PMessageService implements MessageService {
     const ms = new P2PMessageService({
       toEngine: Channel<Message>(BUFFER_SIZE),
       newPeerInfo: Channel<BasicPeerInfo>(BUFFER_SIZE),
-      peers: new SafeSyncMap<BasicPeerInfo>(),
+      peers: new SafeSyncMap<PeerId>(),
       me,
       logger: log,
     });
@@ -136,12 +134,7 @@ export class P2PMessageService implements MessageService {
     ms.p2pHost.peerStore.addEventListener('change:protocols', ms.handleChangeProtocols.bind(ms));
 
     ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
-
-    ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ({ stream }: IncomingStreamData) => {
-      ms.receivePeerInfo(stream).then(() => {
-        stream.close();
-      });
-    });
+    ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ms.receivePeerInfo.bind(ms));
 
     await ms.exchangeInfoWithConnectedPeers();
 
@@ -200,10 +193,7 @@ export class P2PMessageService implements MessageService {
   private async exchangePeerInfo(peerId: PeerId) {
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
-        const stream = await this.p2pHost.dialProtocol(peerId, PEER_EXCHANGE_PROTOCOL_ID);
-
-        await this.sendPeerInfo(stream);
-        stream.close();
+        await this.sendPeerInfo(peerId, false);
 
         // Use a non-blocking channel send in case no one is listening
         this.sentInfoToPeer.push(peerId);
@@ -226,119 +216,165 @@ export class P2PMessageService implements MessageService {
   }
 
   private async msgStreamHandler({ stream }: IncomingStreamData) {
-    const { pipe } = await import('it-pipe');
-    const { toString: uint8ArrayToString } = await import('uint8arrays/to-string');
-
-    let raw: string = '';
+    let deferStreamClose;
     try {
-      await pipe(
-        stream.source,
-        async (source) => {
-          let temp: string = '';
-          for await (const msg of source) {
-            temp += uint8ArrayToString(msg.subarray());
+      deferStreamClose = () => {
+        stream.close();
+      };
+      const { pipe } = await import('it-pipe');
+      const { toString: uint8ArrayToString } = await import('uint8arrays/to-string');
 
-            const delimiterIndex = temp.indexOf(DELIMITER);
-            if (delimiterIndex !== -1) {
-              raw = temp.slice(0, delimiterIndex);
-              break;
+      let raw: string = '';
+      try {
+        await pipe(
+          stream.source,
+          async (source) => {
+            let temp: string = '';
+            for await (const msg of source) {
+              temp += uint8ArrayToString(msg.subarray());
+
+              const delimiterIndex = temp.indexOf(DELIMITER);
+              if (delimiterIndex !== -1) {
+                raw = temp.slice(0, delimiterIndex);
+                break;
+              }
             }
-          }
-        },
-      );
-    } catch (err) {
-      this.checkError(err as Error);
-    }
+          },
+        );
+      } catch (err) {
+        this.checkError(err as Error);
+      }
 
-    // An EOF means the stream has been closed by the other side.
-    // Check if 'raw' is empty in place of EOF error
-    if (raw === '') {
-      return;
-    }
+      // An EOF means the stream has been closed by the other side.
+      // Check if 'raw' is empty in place of EOF error
+      if (raw === '') {
+        return;
+      }
 
-    let m;
-    try {
-      m = deserializeMessage(raw);
-    } catch (err) {
-      this.checkError(err as Error);
-    }
-    assert(m);
+      let m;
+      try {
+        m = deserializeMessage(raw);
+      } catch (err) {
+        this.checkError(err as Error);
+      }
+      assert(m);
 
-    await this.toEngine!.push(m);
-    stream.close();
+      await this.toEngine!.push(m);
+    } finally {
+      if (deferStreamClose) {
+        deferStreamClose();
+      }
+    }
   }
 
   // sendPeerInfo sends our peer info over the given stream
-  private async sendPeerInfo(stream: Stream): Promise<void> {
-    let raw: string = '';
-    const peerId = await this.id();
-
-    const peerInfo: BasicPeerInfo = {
-      id: peerId,
-      address: this.me,
-    };
-
+  private async sendPeerInfo(recipientId: PeerId, expectResponse: boolean): Promise<void> {
+    let deferSreamClose;
+    let stream: Stream;
     try {
-      raw = JSON.stringify(peerInfo);
-    } catch (err) {
-      this.checkError(err as Error);
+      try {
+        stream = await this.p2pHost.dialProtocol(recipientId, PEER_EXCHANGE_PROTOCOL_ID);
+      } catch (err) {
+        this.checkError(err as Error);
+      }
+
+      deferSreamClose = () => {
+        stream.close();
+      };
+
+      let raw: string = '';
+      const peerId = await this.id();
+      const peerExchangeMessage: PeerExchangeMessage = {
+        id: peerId,
+        address: this.me,
+        expectResponse,
+      };
+
+      try {
+        raw = JSON.stringify(peerExchangeMessage);
+      } catch (err) {
+        this.checkError(err as Error);
+      }
+      const { pipe } = await import('it-pipe');
+      const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
+
+      await pipe(
+        [uint8ArrayFromString(raw + DELIMITER)],
+        stream!.sink,
+      );
+    } finally {
+      if (deferSreamClose) {
+        deferSreamClose();
+      }
     }
-
-    const { pipe } = await import('it-pipe');
-    const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
-
-    await pipe(
-      [uint8ArrayFromString(raw + DELIMITER)],
-      stream.sink,
-    );
   }
 
   // receivePeerInfo receives peer info from the given stream
-  private async receivePeerInfo(stream: Stream) {
-    const { pipe } = await import('it-pipe');
-    const { toString: uint8ArrayToString } = await import('uint8arrays/to-string');
-
-    let raw: string = '';
+  private async receivePeerInfo({ stream }: IncomingStreamData) {
+    let deferStreamClose;
     try {
-      await pipe(
-        stream.source,
-        async (source) => {
-          let temp: string = '';
-          for await (const msg of source) {
-            temp += uint8ArrayToString(msg.subarray());
+      const { pipe } = await import('it-pipe');
+      const { toString: uint8ArrayToString } = await import('uint8arrays/to-string');
 
-            const delimiterIndex = temp.indexOf(DELIMITER);
-            if (delimiterIndex !== -1) {
-              raw = temp.slice(0, delimiterIndex);
-              break;
+      this.logger('received peerInfo');
+      deferStreamClose = () => {
+        stream.close();
+      };
+
+      let raw: string = '';
+      try {
+        await pipe(
+          stream.source,
+          async (source) => {
+            let temp: string = '';
+            for await (const msg of source) {
+              temp += uint8ArrayToString(msg.subarray());
+
+              const delimiterIndex = temp.indexOf(DELIMITER);
+              if (delimiterIndex !== -1) {
+                raw = temp.slice(0, delimiterIndex);
+                break;
+              }
             }
-          }
-        },
-      );
-    } catch (err) {
-      this.checkError(err as Error);
-    }
+          },
+        );
+      } catch (err) {
+        this.checkError(err as Error);
+      }
 
-    // An EOF means the stream has been closed by the other side.
-    // Check if 'raw' is empty in place of EOF error
-    if (raw === '') {
-      return;
-    }
+      // An EOF means the stream has been closed by the other side.
+      // Check if 'raw' is empty in place of EOF error
+      if (raw === '') {
+        return;
+      }
 
-    let peerInfo;
-    try {
-      peerInfo = await parseBasicPeerInfo(raw);
-    } catch (err) {
-      this.checkError(err as Error);
-    }
-    assert(peerInfo);
+      let msg: PeerExchangeMessage;
+      try {
+        msg = await parsePeerExchangeMessage(raw);
+      } catch (err) {
+        this.checkError(err as Error);
+      }
 
-    const [, foundPeer] = this.peers!.loadOrStore(peerInfo.address, peerInfo);
-    if (!foundPeer) {
-      this.logger(`New peer found ${JSON.stringify(peerInfo)}`);
+      const peerInfo: BasicPeerInfo = {
+        id: msg!.id,
+        address: msg!.address,
+      };
 
-      // Use a non-blocking send in case no one is listening
-      this.newPeerInfo!.push(peerInfo);
+      const [, foundPeer] = this.peers!.loadOrStore(msg!.address.toString(), msg!.id);
+      if (!foundPeer) {
+        this.logger(`stored new peer in map: ${JSON.stringify(peerInfo)}`);
+
+        // Use a non-blocking send in case no one is listening
+        this.newPeerInfo!.push(peerInfo);
+      }
+
+      if (msg!.expectResponse) {
+        await this.sendPeerInfo(msg!.id, false);
+      }
+    } finally {
+      if (deferStreamClose) {
+        deferStreamClose();
+      }
     }
   }
 
@@ -353,19 +389,19 @@ export class P2PMessageService implements MessageService {
       this.checkError(err as Error);
     }
 
-    const [peerInfo, ok] = this.peers!.load(msg.to);
+    const [peerId, ok] = this.peers!.load(msg.to);
     if (!ok) {
       throw new Error(`Could not load peer ${msg.to}`);
     }
 
-    assert(peerInfo);
+    assert(peerId);
     assert(this.p2pHost);
     const { pipe } = await import('it-pipe');
     const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
 
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
-        const s = await this.p2pHost.dialProtocol(peerInfo.id, PROTOCOL_ID);
+        const s = await this.p2pHost.dialProtocol(peerId, PROTOCOL_ID);
 
         // Use await on pipe in place of writer.Flush()
         await pipe(
@@ -407,32 +443,6 @@ export class P2PMessageService implements MessageService {
     return this.newPeerInfo!.readOnly();
   }
 
-  /* eslint-disable no-continue */
-  // AddPeers adds the peers to the message service.
-  // We ignore peers that are ourselves.
-  async addPeers(peers: PeerInfo[]) {
-    assert(this.p2pHost);
-
-    for (const [, p] of peers.entries()) {
-      // Ignore ourselves
-      if (p.address === this.me) {
-        continue;
-      }
-
-      const { multiaddr } = await import('@multiformats/multiaddr');
-      const multi = multiaddr(`/ip4/${p.ipAddress}/tcp/${p.port}/p2p/${p.id}`);
-
-      await this.p2pHost.peerStore.addressBook.add(
-        p.id,
-        [multi],
-      );
-      this.peers!.store(p.address, { id: p.id, address: p.address });
-
-      // Call custom method to send self info to remote peers so that they can send messages
-      await this.connectAndSendPeerInfos(peers);
-    }
-  }
-
   // Custom method to add peer using multiaddr
   // Used for adding peers that support transports other than tcp
   async addPeerByMultiaddr(clientAddress: Address, multiaddrString: string) {
@@ -454,7 +464,7 @@ export class P2PMessageService implements MessageService {
       [multi],
     );
 
-    this.peers!.store(clientAddress, { id: peerId, address: clientAddress });
+    this.peers!.store(clientAddress, peerId);
 
     // Call custom method to send self info to remote peers so that they can send messages
     await this.connectAndSendPeerInfos([
@@ -503,14 +513,14 @@ export class P2PMessageService implements MessageService {
     assert(this.peers);
 
     // Try to load peer from the peers info map
-    const [peerInfo, foundPeer] = this.peers.load(peerAddress);
+    const [peerId, foundPeer] = this.peers.load(peerAddress);
     if (!foundPeer) {
       return [false, ERR_PEER_NOT_FOUND];
     }
-    assert(peerInfo);
+    assert(peerId);
 
     try {
-      await this.p2pHost.dial(peerInfo.id);
+      await this.p2pHost.dial(peerId);
     } catch (err) {
       return [false, ERR_PEER_DIAL_FAILED];
     }
