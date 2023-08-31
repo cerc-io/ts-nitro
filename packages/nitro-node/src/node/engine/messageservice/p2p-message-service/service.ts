@@ -28,11 +28,11 @@ import { MessageService } from '../messageservice';
 
 const log = debug('ts-nitro:p2p-message-service');
 
-const PROTOCOL_ID = '/go-nitro/msg/1.0.0';
-const PEER_EXCHANGE_PROTOCOL_ID = '/go-nitro/peerinfo/1.0.0';
+const PROTOCOL_ID = '/nitro/msg/1.0.0';
+const PEER_EXCHANGE_PROTOCOL_ID = '/nitro/peerinfo/1.0.0';
 const DELIMITER = '\n';
 const BUFFER_SIZE = 1_000;
-const NUM_CONNECT_ATTEMPTS = 20;
+const NUM_CONNECT_ATTEMPTS = 10;
 const RETRY_SLEEP_DURATION = 2.5 * 1000; // 2.5 seconds
 const ERR_CONNECTION_BEING_CLOSED = 'the connection is being closed';
 const ERR_PROTOCOL_FAIL = 'protocol selection failed';
@@ -268,6 +268,7 @@ export class P2PMessageService implements MessageService {
   }
 
   // sendPeerInfo sends our peer info over the given stream
+  // Triggered whenever node establishes a connection with a peer
   private async sendPeerInfo(recipientId: PeerId, expectResponse: boolean): Promise<void> {
     let deferSreamClose;
     let stream: Stream;
@@ -355,13 +356,13 @@ export class P2PMessageService implements MessageService {
         this.checkError(err as Error);
       }
 
-      const peerInfo: BasicPeerInfo = {
-        id: msg!.id,
-        address: msg!.address,
-      };
-
       const [, foundPeer] = this.peers!.loadOrStore(msg!.address.toString(), msg!.id);
       if (!foundPeer) {
+        const peerInfo: BasicPeerInfo = {
+          id: msg!.id,
+          address: msg!.address,
+        };
+
         this.logger(`stored new peer in map: ${JSON.stringify(peerInfo)}`);
 
         // Use a non-blocking send in case no one is listening
@@ -412,7 +413,7 @@ export class P2PMessageService implements MessageService {
 
         return;
       } catch (err) {
-        this.logger(`Attempt ${i} - Could not open stream to ${msg.to}: ${err}`);
+        this.logger(`Attempt ${i} - could not open stream to ${msg.to}: ${err}`);
         await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
       }
     }
