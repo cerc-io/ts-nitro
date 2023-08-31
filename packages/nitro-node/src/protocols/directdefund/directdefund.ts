@@ -91,7 +91,8 @@ export class Objective implements ObjectiveInterface {
 
   private finalTurnNum: Uint64 = BigInt(0);
 
-  private transactionSubmitted: boolean = false; // whether a transition for the objective has been submitted or not
+  // Whether a withdraw transaction has been declared as a side effect in a previous crank
+  private withdrawTransactionSubmitted: boolean = false;
 
   // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
   // (other than Id) from the field C is discarded
@@ -105,7 +106,7 @@ export class Objective implements ObjectiveInterface {
   static fromJSON(data: string): Objective {
     // props has c.id as c and
     // transactionSumbmitted as a key instead of transactionSubmitted (typo from go-nitro custom serialization)
-    const props = fromJSON(this.jsonEncodingMap, data, new Map([['transactionSumbmitted', 'transactionSubmitted']]));
+    const props = fromJSON(this.jsonEncodingMap, data, new Map([['transactionSumbmitted', 'withdrawTransactionSubmitted']]));
     return new Objective(set(props, 'c', new channel.Channel({ id: props.c })));
   }
 
@@ -115,7 +116,7 @@ export class Objective implements ObjectiveInterface {
     return toJSON(
       Objective.jsonEncodingMap,
       set(cloneDeep(this), 'c', this.c!.id),
-      new Map([['transactionSubmitted', 'transactionSumbmitted']]),
+      new Map([['withdrawTransactionSubmitted', 'transactionSumbmitted']]),
     );
   }
 
@@ -123,7 +124,7 @@ export class Objective implements ObjectiveInterface {
     status?: ObjectiveStatus,
     c?: channel.Channel,
     finalTurnNum?: number,
-    transactionSubmitted?: boolean,
+    withdrawTransactionSubmitted?: boolean,
   }) {
     Object.assign(this, params);
   }
@@ -318,7 +319,7 @@ export class Objective implements ObjectiveInterface {
       throw new Error('the channel must contain at least one signed state to crank the defund objective');
     }
 
-    // Finalize and sign a state if no supported, finalized state exists
+    // Sign a final state if no supported, final state exists
     if (!latestSignedState.state().isFinal || !latestSignedState.hasSignatureForParticipant(updated.c!.myIndex)) {
       const stateToSign = latestSignedState.state().clone();
       if (!stateToSign.isFinal) {
@@ -357,10 +358,10 @@ export class Objective implements ObjectiveInterface {
     // Withdrawal of funds
     if (!updated.fullyWithdrawn()) {
       // The first participant in the channel submits the withdrawAll transaction
-      if (Number(updated.c!.myIndex) === 0 && !updated.transactionSubmitted) {
+      if (Number(updated.c!.myIndex) === 0 && !updated.withdrawTransactionSubmitted) {
         const withdrawAll = WithdrawAllTransaction.newWithdrawAllTransaction(updated.c!.id, latestSignedState);
         sideEffects.transactionsToSubmit.push(withdrawAll);
-        updated.transactionSubmitted = true;
+        updated.withdrawTransactionSubmitted = true;
       }
 
       // Every participant waits for all channel funds to be distributed, even if the participant has no funds in the channel
@@ -381,7 +382,7 @@ export class Objective implements ObjectiveInterface {
     clone.c = cClone;
 
     clone.finalTurnNum = this.finalTurnNum;
-    clone.transactionSubmitted = this.transactionSubmitted;
+    clone.withdrawTransactionSubmitted = this.withdrawTransactionSubmitted;
 
     return clone;
   }
