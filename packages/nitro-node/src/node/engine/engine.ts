@@ -866,7 +866,11 @@ export class Engine {
         message.from = this.store.getAddress();
         this.logMessage(message, Outgoing);
         this.recordMessageMetrics(message);
-        await this.msg.send(message);
+        try {
+          await this.msg.send(message);
+        } catch (err) {
+          this.logger(err);
+        }
       }
     } finally {
       this.wg!.done();
