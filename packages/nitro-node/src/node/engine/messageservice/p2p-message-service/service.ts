@@ -28,11 +28,11 @@ import { MessageService } from '../messageservice';
 
 const log = debug('ts-nitro:p2p-message-service');
 
-const PROTOCOL_ID = '/go-nitro/msg/1.0.0';
-const PEER_EXCHANGE_PROTOCOL_ID = '/go-nitro/peerinfo/1.0.0';
+const PROTOCOL_ID = '/nitro/msg/1.0.0';
+const PEER_EXCHANGE_PROTOCOL_ID = '/nitro/peerinfo/1.0.0';
 const DELIMITER = '\n';
 const BUFFER_SIZE = 1_000;
-const NUM_CONNECT_ATTEMPTS = 20;
+const NUM_CONNECT_ATTEMPTS = 10;
 const RETRY_SLEEP_DURATION = 2.5 * 1000; // 2.5 seconds
 const ERR_CONNECTION_BEING_CLOSED = 'the connection is being closed';
 const ERR_PROTOCOL_FAIL = 'protocol selection failed';
@@ -119,13 +119,8 @@ export class P2PMessageService implements MessageService {
     assert(ms.peer.peerId);
     const { unmarshalPrivateKey } = await import('@libp2p/crypto/keys');
 
-    try {
-      const messageKey = await unmarshalPrivateKey(ms.peer.peerId.privateKey!);
-
-      ms.key = messageKey;
-    } catch (err) {
-      ms.checkError(err as Error);
-    }
+    const messageKey = await unmarshalPrivateKey(ms.peer.peerId.privateKey!);
+    ms.key = messageKey;
 
     assert(ms.peer.node);
     ms.p2pHost = ms.peer.node;
@@ -242,7 +237,8 @@ export class P2PMessageService implements MessageService {
           },
         );
       } catch (err) {
-        this.checkError(err as Error);
+        this.logger(err);
+        return;
       }
 
       // An EOF means the stream has been closed by the other side.
@@ -255,7 +251,8 @@ export class P2PMessageService implements MessageService {
       try {
         m = deserializeMessage(raw);
       } catch (err) {
-        this.checkError(err as Error);
+        this.logger(err);
+        return;
       }
       assert(m);
 
@@ -268,6 +265,7 @@ export class P2PMessageService implements MessageService {
   }
 
   // sendPeerInfo sends our peer info over the given stream
+  // Triggered whenever node establishes a connection with a peer
   private async sendPeerInfo(recipientId: PeerId, expectResponse: boolean): Promise<void> {
     let deferSreamClose;
     let stream: Stream;
@@ -275,7 +273,8 @@ export class P2PMessageService implements MessageService {
       try {
         stream = await this.p2pHost.dialProtocol(recipientId, PEER_EXCHANGE_PROTOCOL_ID);
       } catch (err) {
-        this.checkError(err as Error);
+        this.logger(err);
+        return;
       }
 
       deferSreamClose = () => {
@@ -293,15 +292,21 @@ export class P2PMessageService implements MessageService {
       try {
         raw = JSON.stringify(peerExchangeMessage);
       } catch (err) {
-        this.checkError(err as Error);
+        this.logger(err);
+        return;
       }
       const { pipe } = await import('it-pipe');
       const { fromString: uint8ArrayFromString } = await import('uint8arrays/from-string');
 
-      await pipe(
-        [uint8ArrayFromString(raw + DELIMITER)],
-        stream!.sink,
-      );
+      try {
+        await pipe(
+          [uint8ArrayFromString(raw + DELIMITER)],
+          stream!.sink,
+        );
+      } catch (err) {
+        this.logger(err);
+        return;
+      }
     } finally {
       if (deferSreamClose) {
         deferSreamClose();
@@ -339,7 +344,8 @@ export class P2PMessageService implements MessageService {
           },
         );
       } catch (err) {
-        this.checkError(err as Error);
+        this.logger(err);
+        return;
       }
 
       // An EOF means the stream has been closed by the other side.
@@ -352,16 +358,17 @@ export class P2PMessageService implements MessageService {
       try {
         msg = await parsePeerExchangeMessage(raw);
       } catch (err) {
-        this.checkError(err as Error);
+        this.logger(err);
+        return;
       }
-
-      const peerInfo: BasicPeerInfo = {
-        id: msg!.id,
-        address: msg!.address,
-      };
 
       const [, foundPeer] = this.peers!.loadOrStore(msg!.address.toString(), msg!.id);
       if (!foundPeer) {
+        const peerInfo: BasicPeerInfo = {
+          id: msg!.id,
+          address: msg!.address,
+        };
+
         this.logger(`stored new peer in map: ${JSON.stringify(peerInfo)}`);
 
         // Use a non-blocking send in case no one is listening
@@ -383,11 +390,7 @@ export class P2PMessageService implements MessageService {
   // It will retry establishing a stream NUM_CONNECT_ATTEMPTS times before giving up
   async send(msg: Message) {
     let raw: string = '';
-    try {
-      raw = msg.serialize();
-    } catch (err) {
-      this.checkError(err as Error);
-    }
+    raw = msg.serialize();
 
     const [peerId, ok] = this.peers!.load(msg.to);
     if (!ok) {
@@ -412,16 +415,10 @@ export class P2PMessageService implements MessageService {
 
         return;
       } catch (err) {
-        this.logger(`Attempt ${i} - Could not open stream to ${msg.to}: ${err}`);
+        this.logger(`Attempt ${i} - could not open stream to ${msg.to}: ${err}`);
         await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
       }
     }
-  }
-
-  // checkError panics if the message service is running and there is an error, otherwise it just returns
-  // eslint-disable-next-line n/handle-callback-err
-  private checkError(err: Error) {
-    throw err;
   }
 
   // out returns a channel that can be used to receive messages from the message service

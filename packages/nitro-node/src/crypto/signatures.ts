@@ -47,6 +47,11 @@ export class Signature {
   }
 
   toJSON(): any {
+    return this.toHexString();
+  }
+
+  // ToHexString returns the signature as a hex string
+  toHexString(): string {
     const sigHex = {
       r: `0x${bytes2Hex(this.r ?? Buffer.alloc(0))}`,
       s: `0x${bytes2Hex(this.s ?? Buffer.alloc(0))}`,
