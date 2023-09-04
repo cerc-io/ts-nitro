@@ -168,7 +168,7 @@ export class Engine {
 
   private fromLedger?: ReadWriteChannel<Proposal>;
 
-  private _toApi?: ReadWriteChannel<EngineEvent>;
+  private eventHandler?: (engineEvent: EngineEvent)=> void;
 
   private msg?: MessageService;
 
@@ -200,6 +200,7 @@ export class Engine {
     store: Store,
     logDestination: WritableStream | undefined,
     policymaker: PolicyMaker,
+    eventHandler: (engineEvent: EngineEvent)=> void,
     metricsApi?: MetricsApi,
   ) {
     const e = new Engine();
@@ -216,7 +217,7 @@ export class Engine {
     e.chain = chain;
     e.msg = msg;
 
-    e._toApi = Channel<EngineEvent>(100);
+    e.eventHandler = eventHandler;
 
     e.policymaker = policymaker;
 
@@ -251,23 +252,16 @@ export class Engine {
     return this._sentVouchers.readOnly();
   }
 
-  get toApi(): ReadChannel<EngineEvent> {
-    assert(this._toApi);
-    return this._toApi.readOnly();
-  }
-
   async close(): Promise<void> {
     assert(this.cancel);
     assert(this.wg);
     assert(this.msg);
-    assert(this._toApi);
     assert(this.chain);
 
     this.cancel();
     await this.wg.wait();
 
     await this.msg.close();
-    await this._toApi.close();
     await this.chain.close();
   }
 
@@ -279,7 +273,7 @@ export class Engine {
     assert(this.fromChain);
     assert(this.fromMsg);
     assert(this.fromLedger);
-    assert(this._toApi);
+    assert(this.eventHandler);
 
     while (true) {
       let res = new EngineEvent({});
@@ -340,7 +334,7 @@ export class Engine {
           this.metrics!.recordObjectiveCompleted(obj.id());
         });
 
-        await this._toApi.push(res);
+        this.eventHandler(res);
       }
     }
   }

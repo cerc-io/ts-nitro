@@ -14,7 +14,7 @@ import { ChainService } from './engine/chainservice/chainservice';
 import { Store } from './engine/store/store';
 import { PolicyMaker } from './engine/policy-maker';
 import { VoucherManager } from '../payments/voucher-manager';
-import { Engine } from './engine/engine';
+import { Engine, EngineEvent } from './engine/engine';
 import { Address } from '../types/types';
 import { ChannelNotifier } from './notifier/channel-notifier';
 import { ObjectiveId } from '../protocols/messages';
@@ -72,10 +72,6 @@ export class Node {
 
   private logger: debug.Debugger = log;
 
-  private cancelEventHandler?: (reason ?: any) => void;
-
-  private wg?: WaitGroup;
-
   static async new(
     messageService: MessageService,
     chainservice: ChainService,
@@ -99,7 +95,7 @@ export class Node {
     n.vm = VoucherManager.newVoucherManager(store.getAddress(), store);
     n.logger = log;
 
-    n.engine = Engine.new(n.vm, messageService, chainservice, store, logDestination, policymaker, metricsApi);
+    n.engine = Engine.new(n.vm, messageService, chainservice, store, logDestination, policymaker, n.handleEngineEvents.bind(n), metricsApi);
     n.completedObjectives = new SafeSyncMap<ReadWriteChannel<null>>();
     n.completedObjectivesForRPC = Channel<ObjectiveId>(100);
 
@@ -108,15 +104,6 @@ export class Node {
     n._receivedVouchers = Channel<Voucher>(1000);
 
     n.channelNotifier = ChannelNotifier.newChannelNotifier(store, n.vm);
-
-    const ctx = new Context();
-    n.cancelEventHandler = ctx.withCancel();
-
-    n.wg = new WaitGroup();
-    n.wg.add(1);
-    // Start the event handler in a go routine
-    // It will listen for events from the engine and dispatch events to node channels
-    go(n.handleEngineEvents.bind(n), ctx);
 
     return n;
   }
@@ -233,63 +220,39 @@ export class Node {
     return getPaymentChannelInfo(id, this.store, this.vm);
   }
 
-  // handleEngineEvents is responsible for monitoring the ToApi channel on the engine.
-  // It parses events from the ToApi chan and then dispatches events to the necessary client chan.
-  private async handleEngineEvents(ctx: Context) {
-    /* eslint-disable no-await-in-loop */
-    /* eslint-disable default-case */
-    while (true) {
-      switch (await Channel.select([
-        ctx.done.shift(),
-        this.engine.toApi.shift(),
-      ])) {
-        case ctx.done: {
-          this.wg!.done();
-          return;
-        }
+  // handleEngineEvents dispatches events to the necessary node chan.
+  private async handleEngineEvents(update: EngineEvent) {
+    for (const completed of update.completedObjectives) {
+      const [d] = this.completedObjectives!.loadOrStore(String(completed.id()), Channel());
+      d.close();
 
-        case this.engine.toApi: {
-          const update = this.engine.toApi.value();
-          if (update === undefined) {
-            break;
-          }
+      // use a nonblocking send to the RPC Client in case no one is listening
+      this.completedObjectivesForRPC!.push(completed.id());
+    }
 
-          for (const completed of update.completedObjectives) {
-            const [d] = this.completedObjectives!.loadOrStore(String(completed.id()), Channel());
-            d.close();
+    for await (const erred of update.failedObjectives) {
+      await this.failedObjectives!.push(erred);
+    }
 
-            // use a nonblocking send to the RPC Client in case no one is listening
-            this.completedObjectivesForRPC!.push(completed.id());
-          }
+    for await (const payment of update.receivedVouchers) {
+      await this._receivedVouchers!.push(payment);
+    }
 
-          for await (const erred of update.failedObjectives) {
-            await this.failedObjectives!.push(erred);
-          }
+    for await (const updated of update.ledgerChannelUpdates) {
+      try {
+        // TODO: Implement
+        this.channelNotifier!.notifyLedgerUpdated(updated);
+      } catch (err) {
+        await this.handleError(err as Error);
+      }
+    }
 
-          for await (const payment of update.receivedVouchers) {
-            await this._receivedVouchers!.push(payment);
-          }
-
-          for await (const updated of update.ledgerChannelUpdates) {
-            try {
-              // TODO: Implement
-              this.channelNotifier!.notifyLedgerUpdated(updated);
-            } catch (err) {
-              await this.handleError(err as Error);
-            }
-          }
-
-          for await (const updated of update.paymentChannelUpdates) {
-            try {
-              // TODO: Implement
-              this.channelNotifier!.notifyPaymentUpdated(updated);
-            } catch (err) {
-              await this.handleError(err as Error);
-            }
-          }
-
-          break;
-        }
+    for await (const updated of update.paymentChannelUpdates) {
+      try {
+        // TODO: Implement
+        this.channelNotifier!.notifyPaymentUpdated(updated);
+      } catch (err) {
+        await this.handleError(err as Error);
       }
     }
   }
@@ -300,13 +263,6 @@ export class Node {
     return d;
   }
 
-  // stopEventHandler stops the event handler goroutine and waits for it to quit successfully.
-  async stopEventHandler(): Promise<void> {
-    assert(this.cancelEventHandler);
-    this.cancelEventHandler();
-    await this.wg!.wait();
-  }
-
   // Close stops the node from responding to any input.
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async close(): Promise<void> {
@@ -315,11 +271,9 @@ export class Node {
     assert(this.store);
     assert(this.completedObjectivesForRPC);
 
-    await this.stopEventHandler();
-    this.channelNotifier.close();
     await this.engine.close();
+    this.channelNotifier.close();
 
-    // At this point, the engine ToApi channel has been closed.
     // If there are blocking consumers (for or select channel statements) on any channel for which the node is a producer,
     // those channels need to be closed.
     this.completedObjectivesForRPC.close();
