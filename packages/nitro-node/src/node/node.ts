@@ -240,7 +240,6 @@ export class Node {
 
     for await (const updated of update.ledgerChannelUpdates) {
       try {
-        // TODO: Implement
         this.channelNotifier!.notifyLedgerUpdated(updated);
       } catch (err) {
         await this.handleError(err as Error);
@@ -249,7 +248,6 @@ export class Node {
 
     for await (const updated of update.paymentChannelUpdates) {
       try {
-        // TODO: Implement
         this.channelNotifier!.notifyPaymentUpdated(updated);
       } catch (err) {
         await this.handleError(err as Error);
