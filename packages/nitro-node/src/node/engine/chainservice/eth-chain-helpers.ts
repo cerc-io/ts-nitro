@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
 import {
-  Transaction, utils, providers, BigNumber,
+  Transaction, utils, providers,
 } from 'ethers';
 
 import { AllocationUpdatedEventObject, INitroTypes, NitroAdjudicator } from './adjudicator/nitro-adjudicator';
@@ -9,7 +9,7 @@ import { Address } from '../../../types/types';
 import { Destination } from '../../../types/destination';
 
 // assetAddressForIndex uses the input parameters of a transaction to map an asset index to an asset address
-export function assetAddressForIndex(na: NitroAdjudicator, tx: Transaction, index?: BigNumber): Address {
+export function assetAddressForIndex(na: NitroAdjudicator, tx: Transaction, index?: bigint): Address {
   const abiInterface = na.interface;
   const params = decodeTxParams(abiInterface, tx);
 

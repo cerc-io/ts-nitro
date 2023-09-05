@@ -391,7 +391,7 @@ export class EthChainService implements ChainService {
           assert(au !== undefined);
           let assetAddress: Address;
           try {
-            assetAddress = assetAddressForIndex(this.na, tx, au.assetIndex);
+            assetAddress = assetAddressForIndex(this.na, tx, au.assetIndex.toBigInt());
           } catch (err) {
             throw new Error(`error in assetAddressForIndex: ${err}`);
           }
@@ -402,7 +402,7 @@ export class EthChainService implements ChainService {
             new Destination(au.channelId),
             String(l.blockNumber),
             assetAddress,
-            au.finalHoldings,
+            au.finalHoldings.toBigInt(),
           );
           await this.out.push(event);
           break;
