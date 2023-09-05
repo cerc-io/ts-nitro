@@ -309,10 +309,11 @@ export class EthChainService implements ChainService {
           } else {
             const tokenTransactor = Token__factory.connect(tokenAddress, this.txSigner);
             await tokenTransactor.approve(this.naAddress, amount);
+            // TODO: wait for the Approve tx to be mined before continuing
           }
 
           const holdings = await this.na.holdings(tokenAddress, depositTx.channelId().value);
-
+          this.logger(`existing holdings: ${holdings}`);
           await this.na.deposit(tokenAddress, depositTx.channelId().value, holdings, amount, txOpts);
         }
 
