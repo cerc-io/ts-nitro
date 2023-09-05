@@ -22,13 +22,13 @@ import {
 } from './adjudicator/nitro-adjudicator';
 import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 
-import { getChainHolding } from './eth-chain-helpers';
+import { assetAddressForIndex } from './eth-chain-helpers';
 import { connectToChain } from './utils/utils';
 
 const log = debug('ts-nitro:eth-chain-service');
 
 const allocationUpdatedTopic = ethers.utils.keccak256(
-  ethers.utils.toUtf8Bytes('AllocationUpdated(bytes32,uint256,uint256)'),
+  ethers.utils.toUtf8Bytes('AllocationUpdated(bytes32,uint256,uint256,uint256)'),
 );
 const concludedTopic = ethers.utils.keccak256(
   ethers.utils.toUtf8Bytes('Concluded(bytes32,uint48)'),
@@ -267,11 +267,13 @@ export class EthChainService implements ChainService {
   }
 
   // dispatchChainEvents takes in a collection of event logs from the chain
+  // and dispatches events to the out channel
   private async dispatchChainEvents(logs: Log[]): Promise<void> {
     for await (const l of logs) {
       switch (l.topics[0]) {
         case depositedTopic: {
           try {
+            this.logger('Processing Deposited event');
             const nad = this.na.interface.parseLog(l).args as unknown as DepositedEventObject;
             const event = DepositedEvent.newDepositedEvent(
               new Destination(nad.destination),
@@ -286,6 +288,7 @@ export class EthChainService implements ChainService {
           break;
         }
         case allocationUpdatedTopic: {
+          this.logger('Processing AllocationUpdated event');
           let au;
           try {
             au = this.na.interface.parseLog(l).args as unknown as AllocationUpdatedEventObject;
@@ -306,26 +309,26 @@ export class EthChainService implements ChainService {
 
           assert(tx !== undefined);
           assert(au !== undefined);
-          let assetAddress;
-          let amount;
+          let assetAddress: Address;
           try {
-            [assetAddress, amount] = await getChainHolding(this.na, tx, au);
+            assetAddress = assetAddressForIndex(this.na, tx, au.assetIndex);
           } catch (err) {
-            throw new Error(`error in getChainHoldings: ${err}`);
+            throw new Error(`error in assetAddressForIndex: ${err}`);
           }
 
+          this.logger(`assetAddress: ${assetAddress}`);
           assert(assetAddress !== undefined);
-          assert(amount !== undefined);
           const event = AllocationUpdatedEvent.newAllocationUpdatedEvent(
             new Destination(au.channelId),
             String(l.blockNumber),
             assetAddress,
-            amount,
+            au.finalHoldings,
           );
           await this.out.push(event);
           break;
         }
         case concludedTopic: {
+          this.logger('Processing Concluded event');
           try {
             const ce = this.na.interface.parseLog(l).args as unknown as ConcludedEventObject;
             const event = new ConcludedEvent({ _channelID: new Destination(ce.channelId), blockNum: String(l.blockNumber) });
