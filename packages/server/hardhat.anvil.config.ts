@@ -11,6 +11,7 @@ const config: HardhatUserConfig = {
       url: 'http://127.0.0.1:8545/',
       // @ts-expect-error
       launch: true,
+      blockTime: 1,
     },
   },
 };
