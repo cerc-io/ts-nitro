@@ -8,7 +8,7 @@ import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@cerc-io/ts-channel';
 import {
-  EthClient, go, hex2Bytes, Context,
+  EthClient, go, hex2Bytes, Context, WrappedError,
 } from '@cerc-io/nitro-util';
 
 import {
@@ -183,7 +183,7 @@ export class EthChainService implements ChainService {
       cancelCtx,
       new WaitGroup(),
     );
-    const subscribe = ecs.subscribeForLogs.bind(ecs);
+
     const [
       errChan,
       subErr,
@@ -194,8 +194,11 @@ export class EthChainService implements ChainService {
       eventQuery,
       eventListener,
       newBlockListener,
-    ] = subscribe();
+    ] = ecs.subscribeForLogs();
 
+    // Implement Min-Heap
+    // https://pkg.go.dev/container/heap
+    // https://github.com/qiao/heap.js#constructor-heapcmp
     const eventQueue = new Heap((log1: Log, log2: Log) => {
       return log1.blockNumber - log2.blockNumber;
     });
@@ -204,25 +207,23 @@ export class EthChainService implements ChainService {
     ecs.wg!.add(4);
     go(ecs.listenForEventLogs.bind(ecs), eventSubUnSubscribe, eventChan, eventQueue);
     go(ecs.listenForNewBlocks.bind(ecs), errChan, newBlockSubUnSubscribe, newBlockChan, eventQueue);
-    go(ecs.listenForSubscriptionError.bind(ecs), subErr, errChan, eventQuery, eventListener, newBlockListener);
+    go(ecs.listenForSubscriptionError.bind(ecs), errChan, subErr, eventQuery, eventListener, newBlockListener);
     go(ecs.listenForErrors.bind(ecs), errChan);
 
     return ecs;
   }
 
   private async listenForSubscriptionError(
-    subErr: ReadWriteChannel<Error>,
     errorChan: ReadWriteChannel<Error>,
+    subErr: ReadWriteChannel<Error>,
     eventQuery: ethers.providers.EventType,
     eventListener: (eventLog: Log) => void,
     newBlockListener: (blockNumber: number) => void,
   ): Promise<void> {
-    /* eslint-disable no-restricted-syntax */
-    /* eslint-disable no-labels */
-    /* eslint-disable no-await-in-loop */
-    /* eslint-disable default-case */
+    // eslint-disable-next-line no-labels, no-restricted-syntax
     out:
     while (true) {
+      // eslint-disable-next-line default-case, no-await-in-loop
       switch (await Channel.select([
         this.ctx.done.shift(),
         subErr.shift(),
@@ -235,7 +236,9 @@ export class EthChainService implements ChainService {
         case subErr: {
           const err = subErr.value();
           if (err) {
-            await errorChan.push(new Error(`received error from subscription channel: ${err}`));
+            // eslint-disable-next-line no-await-in-loop
+            await errorChan.push(new WrappedError(`received error from subscription channel: ${err}`, [err as Error]));
+            // eslint-disable-next-line no-labels
             break out;
           }
 
@@ -244,7 +247,9 @@ export class EthChainService implements ChainService {
           try {
             this.chain.provider.on(eventQuery, eventListener);
           } catch (sErr) {
-            await errorChan.push(new Error(`subscribeFilterLogs failed on resubscribe: ${sErr}`));
+            // eslint-disable-next-line no-await-in-loop
+            await errorChan.push(new WrappedError(`subscribeFilterLogs failed on resubscribe: ${sErr}`, [sErr as Error]));
+            // eslint-disable-next-line no-labels
             break out;
           }
           this.logger('resubscribed to filtered event logs');
@@ -252,7 +257,9 @@ export class EthChainService implements ChainService {
           try {
             this.chain.provider.on('block', newBlockListener);
           } catch (sErr) {
-            await errorChan.push(new Error(`subscribeNewHead failed on resubscribe: ${sErr}`));
+            // eslint-disable-next-line no-await-in-loop
+            await errorChan.push(new WrappedError(`subscribeNewHead failed on resubscribe: ${sErr}`, [sErr as Error]));
+            // eslint-disable-next-line no-labels
             break out;
           }
           this.logger('resubscribed to new blocks');
@@ -265,9 +272,8 @@ export class EthChainService implements ChainService {
   // listenForErrors listens for errors on the error channel and attempts to handle them if they occur.
   // TODO: Currently "handle" is panicking
   private async listenForErrors(errChan: ReadChannel<Error>): Promise<void> {
-    /* eslint-disable no-await-in-loop */
-    /* eslint-disable default-case */
     while (true) {
+      // eslint-disable-next-line no-await-in-loop, default-case
       switch (await Channel.select([
         this.ctx.done.shift(),
         errChan.shift(),
@@ -394,7 +400,10 @@ export class EthChainService implements ChainService {
           try {
             assetAddress = assetAddressForIndex(this.na, tx, au.assetIndex.toBigInt());
           } catch (err) {
-            throw new Error(`error in assetAddressForIndex: ${err}`);
+            throw new WrappedError(
+              `error in assetAddressForIndex: ${err}`,
+              [err as Error],
+            );
           }
 
           this.logger(`assetAddress: ${assetAddress}`);
@@ -437,11 +446,8 @@ export class EthChainService implements ChainService {
     eventChan: ReadWriteChannel<Log>,
     eventQueue: Heap<ethers.providers.Log>,
   ) {
-    /* eslint-disable no-restricted-syntax */
-    /* eslint-disable no-labels */
     while (true) {
-      /* eslint-disable no-await-in-loop */
-      /* eslint-disable default-case */
+      // eslint-disable-next-line no-await-in-loop, default-case
       switch (await Channel.select([
         this.ctx.done.shift(),
         eventChan.shift(),
@@ -478,12 +484,10 @@ export class EthChainService implements ChainService {
     newBlockChan: ReadWriteChannel<number>,
     eventQueue: Heap<ethers.providers.Log>,
   ) {
-    /* eslint-disable no-restricted-syntax */
-    /* eslint-disable no-labels */
+    // eslint-disable-next-line no-restricted-syntax, no-labels
     out:
     while (true) {
-      /* eslint-disable no-await-in-loop */
-      /* eslint-disable default-case */
+      // eslint-disable-next-line no-await-in-loop, default-case
       switch (await Channel.select([
         this.ctx.done.shift(),
         newBlockChan.shift(),
@@ -504,9 +508,15 @@ export class EthChainService implements ChainService {
             this.logger(`event popped from queue (updated queue length: ${eventQueue.size()}`);
             assert(chainEvent);
             try {
+              // eslint-disable-next-line no-await-in-loop
               await this.dispatchChainEvents([chainEvent]);
             } catch (err) {
-              await errorChan.push(new Error(`failed dispatchChainEvents: ${err}`));
+              // eslint-disable-next-line no-await-in-loop
+              await errorChan.push(new WrappedError(
+                `failed dispatchChainEvents: ${err}`,
+                [err as Error],
+              ));
+              // eslint-disable-next-line no-labels
               break out;
             }
           }
@@ -541,7 +551,7 @@ export class EthChainService implements ChainService {
     try {
       this.chain.provider.on(eventQuery, eventListener);
     } catch (err) {
-      throw new Error(`subscribeFilterLogs failed: ${err}`);
+      throw new WrappedError(`subscribeFilterLogs failed: ${err}`, [err as Error]);
     }
 
     const errorChan = Channel<Error>();
@@ -557,7 +567,7 @@ export class EthChainService implements ChainService {
     try {
       this.chain.provider.on('block', newBlockListener);
     } catch (err) {
-      throw new Error(`subscribeNewHead failed: ${err}`);
+      throw new WrappedError(`subscribeNewHead failed: ${err}`, [err as Error]);
     }
 
     // Channel to implement subscription.Err() for eventSub and newBlockSub
