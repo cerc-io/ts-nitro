@@ -299,7 +299,7 @@ export interface NitroAdjudicatorInterface extends utils.Interface {
   ): Result;
 
   events: {
-    "AllocationUpdated(bytes32,uint256,uint256)": EventFragment;
+    "AllocationUpdated(bytes32,uint256,uint256,uint256)": EventFragment;
     "ChallengeCleared(bytes32,uint48)": EventFragment;
     "ChallengeRegistered(bytes32,uint48,uint48,bool,tuple,tuple[],tuple)": EventFragment;
     "Concluded(bytes32,uint48)": EventFragment;
@@ -319,9 +319,10 @@ export interface AllocationUpdatedEventObject {
   channelId: string;
   assetIndex: BigNumber;
   initialHoldings: BigNumber;
+  finalHoldings: BigNumber;
 }
 export type AllocationUpdatedEvent = TypedEvent<
-  [string, BigNumber, BigNumber],
+  [string, BigNumber, BigNumber, BigNumber],
   AllocationUpdatedEventObject
 >;
 
@@ -751,15 +752,17 @@ export interface NitroAdjudicator extends BaseContract {
   };
 
   filters: {
-    "AllocationUpdated(bytes32,uint256,uint256)"(
+    "AllocationUpdated(bytes32,uint256,uint256,uint256)"(
       channelId?: BytesLike | null,
       assetIndex?: null,
-      initialHoldings?: null
+      initialHoldings?: null,
+      finalHoldings?: null
     ): AllocationUpdatedEventFilter;
     AllocationUpdated(
       channelId?: BytesLike | null,
       assetIndex?: null,
-      initialHoldings?: null
+      initialHoldings?: null,
+      finalHoldings?: null
     ): AllocationUpdatedEventFilter;
 
     "ChallengeCleared(bytes32,uint48)"(

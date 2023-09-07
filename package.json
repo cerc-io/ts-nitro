@@ -7,8 +7,7 @@
     ],
     "nohoist": [
       "**/mocha",
-      "**/mocha/**",
-      "**/@cerc-io/nitro-protocol"
+      "**/mocha/**"
     ]
   },
   "devDependencies": {

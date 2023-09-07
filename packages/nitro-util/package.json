@@ -36,7 +36,7 @@
     "yargs": "^17.7.2"
   },
   "dependencies": {
-    "@cerc-io/nitro-protocol": "^v2.0.0-alpha.4-ts-port-0.1.0",
+    "@cerc-io/nitro-protocol": "^v2.0.0-alpha.4-ts-port-0.1.2",
     "@cerc-io/ts-channel": "1.0.3-ts-nitro-0.1.1",
     "assert": "^2.0.0",
     "debug": "^4.3.4",

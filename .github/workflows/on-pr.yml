@@ -28,8 +28,9 @@ jobs:
           path: ./watcher-ts
       - name: "Run relay node"
         run: |
-          cd ./watcher-ts/packages/peer
+          cd ./watcher-ts
           yarn && yarn build
+          cd ./packages/peer
           yarn create-peer -f relay-id.json
           export RELAY_PEER_ID=$(jq -r '.id' relay-id.json)
           echo "RELAY_MULTIADDR=/ip4/127.0.0.1/tcp/9090/ws/p2p/$RELAY_PEER_ID" >> "$GITHUB_ENV"

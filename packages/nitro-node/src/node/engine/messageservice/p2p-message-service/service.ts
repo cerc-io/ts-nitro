@@ -28,7 +28,7 @@ import { MessageService } from '../messageservice';
 
 const log = debug('ts-nitro:p2p-message-service');
 
-const PROTOCOL_ID = '/nitro/msg/1.0.0';
+const GENERAL_MSG_PROTOCOL_ID = '/nitro/msg/1.0.0';
 const PEER_EXCHANGE_PROTOCOL_ID = '/nitro/peerinfo/1.0.0';
 const DELIMITER = '\n';
 const BUFFER_SIZE = 1_000;
@@ -128,7 +128,7 @@ export class P2PMessageService implements MessageService {
     ms.p2pHost.addEventListener('peer:connect', ms.handlePeerConnect.bind(ms));
     ms.p2pHost.peerStore.addEventListener('change:protocols', ms.handleChangeProtocols.bind(ms));
 
-    ms.p2pHost.handle(PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
+    ms.p2pHost.handle(GENERAL_MSG_PROTOCOL_ID, ms.msgStreamHandler.bind(ms));
     ms.p2pHost.handle(PEER_EXCHANGE_PROTOCOL_ID, ms.receivePeerInfo.bind(ms));
 
     await ms.exchangeInfoWithConnectedPeers();
@@ -273,7 +273,10 @@ export class P2PMessageService implements MessageService {
       try {
         stream = await this.p2pHost.dialProtocol(recipientId, PEER_EXCHANGE_PROTOCOL_ID);
       } catch (err) {
-        this.logger(err);
+        this.logger({
+          error: err,
+          message: `failed to create stream for passing peerInfo with ${recipientId.toString()}`,
+        });
         return;
       }
 
@@ -404,7 +407,7 @@ export class P2PMessageService implements MessageService {
 
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
-        const s = await this.p2pHost.dialProtocol(peerId, PROTOCOL_ID);
+        const s = await this.p2pHost.dialProtocol(peerId, GENERAL_MSG_PROTOCOL_ID);
 
         // Use await on pipe in place of writer.Flush()
         await pipe(
@@ -431,7 +434,7 @@ export class P2PMessageService implements MessageService {
     assert(this.p2pHost);
 
     await this.peer?.close();
-    await this.p2pHost.unhandle(PROTOCOL_ID);
+    await this.p2pHost.unhandle(GENERAL_MSG_PROTOCOL_ID);
     await this.p2pHost.stop();
   }
 
