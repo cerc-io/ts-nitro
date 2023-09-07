@@ -3,6 +3,7 @@ import { ethers, providers } from 'ethers';
 import debug from 'debug';
 import { WaitGroup } from '@jpwilliams/waitgroup';
 import Heap from 'heap';
+import { Mutex } from 'async-mutex';
 
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import type { Log } from '@ethersproject/abstract-provider';
@@ -69,6 +70,7 @@ interface EthChain {
 interface EventTracker {
   latestBlockNum: number;
   events: Heap<ethers.providers.Log>;
+  mu: Mutex;
 }
 
 export class EthChainService implements ChainService {
@@ -189,6 +191,7 @@ export class EthChainService implements ChainService {
     const tracker: EventTracker = {
       latestBlockNum: 0,
       events: eventQueue,
+      mu: new Mutex(),
     };
 
     // Use a buffered channel so we don't have to worry about blocking on writing to the channel.
@@ -533,27 +536,30 @@ export class EthChainService implements ChainService {
     chainEvent: ethers.providers.Log | undefined,
   ) {
     // lock the mutex for the shortest amount of time. The mutex only need to be locked to update the eventTracker data structure
-    // ecs.eventTracker.mu.Lock()
-    if (blockNumber && blockNumber > this.eventTracker.latestBlockNum) {
-      this.eventTracker.latestBlockNum = blockNumber;
-    }
-    if (chainEvent) {
-      this.eventTracker.events.push(chainEvent);
-    }
-
+    const release = await this.eventTracker.mu.acquire();
     const eventsToDispatch: ethers.providers.Log[] = [];
-    while (
-      this.eventTracker.events.size() > 0
-      && this.eventTracker.latestBlockNum >= this.eventTracker.events.peek()!.blockNumber + REQUIRED_BLOCK_CONFIRMATIONS
-    ) {
-      // eslint-disable-next-line @typescript-eslint/no-shadow
-      const chainEvent = this.eventTracker.events.pop();
-      assert(chainEvent);
-      eventsToDispatch.push(chainEvent);
-      this.logger(`event popped from queue (updated queue length: ${this.eventTracker.events.size()}`);
+    try {
+      if (blockNumber && blockNumber > this.eventTracker.latestBlockNum) {
+        this.eventTracker.latestBlockNum = blockNumber;
+      }
+      if (chainEvent) {
+        this.eventTracker.events.push(chainEvent);
+      }
+
+      while (
+        this.eventTracker.events.size() > 0
+        && this.eventTracker.latestBlockNum >= this.eventTracker.events.peek()!.blockNumber + REQUIRED_BLOCK_CONFIRMATIONS
+      ) {
+        // eslint-disable-next-line @typescript-eslint/no-shadow
+        const chainEvent = this.eventTracker.events.pop();
+        assert(chainEvent);
+        eventsToDispatch.push(chainEvent);
+        this.logger(`event popped from queue (updated queue length: ${this.eventTracker.events.size()}`);
+      }
+    } finally {
+      release();
     }
 
-    // ecs.eventTracker.mu.Unlock()
     try {
       await this.dispatchChainEvents(eventsToDispatch);
     } catch (err) {
