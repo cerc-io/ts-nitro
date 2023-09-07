@@ -65,6 +65,12 @@ interface EthChain {
   chainID (): Promise<bigint>;
 }
 
+// eventTracker holds on to events in memory and dispatches an event after required number of confirmations
+interface EventTracker {
+  latestBlockNum: number;
+  events: Heap<ethers.providers.Log>;
+}
+
 export class EthChainService implements ChainService {
   private chain: EthChain;
 
@@ -88,6 +94,8 @@ export class EthChainService implements ChainService {
 
   private wg?: WaitGroup;
 
+  private eventTracker: EventTracker;
+
   constructor(
     chain: EthChain,
     na: NitroAdjudicator,
@@ -100,6 +108,7 @@ export class EthChainService implements ChainService {
     ctx: Context,
     cancel: () => void,
     wg: WaitGroup,
+    eventTracker: EventTracker,
   ) {
     this.chain = chain;
     this.na = na;
@@ -112,6 +121,7 @@ export class EthChainService implements ChainService {
     this.ctx = ctx;
     this.cancel = cancel;
     this.wg = wg;
+    this.eventTracker = eventTracker;
   }
 
   // newEthChainService is a convenient wrapper around _newEthChainService, which provides a simpler API
@@ -169,6 +179,18 @@ export class EthChainService implements ChainService {
 
     const out = Channel<ChainEvent>(10);
 
+    // Implement Min-Heap
+    // https://pkg.go.dev/container/heap
+    // https://github.com/qiao/heap.js#constructor-heapcmp
+    const eventQueue = new Heap((log1: Log, log2: Log) => {
+      return log1.blockNumber - log2.blockNumber;
+    });
+
+    const tracker: EventTracker = {
+      latestBlockNum: 0,
+      events: eventQueue,
+    };
+
     // Use a buffered channel so we don't have to worry about blocking on writing to the channel.
     const ecs = new EthChainService(
       chain,
@@ -182,6 +204,7 @@ export class EthChainService implements ChainService {
       ctx,
       cancelCtx,
       new WaitGroup(),
+      tracker,
     );
 
     const [
@@ -196,17 +219,10 @@ export class EthChainService implements ChainService {
       newBlockListener,
     ] = ecs.subscribeForLogs();
 
-    // Implement Min-Heap
-    // https://pkg.go.dev/container/heap
-    // https://github.com/qiao/heap.js#constructor-heapcmp
-    const eventQueue = new Heap((log1: Log, log2: Log) => {
-      return log1.blockNumber - log2.blockNumber;
-    });
-
     // TODO: Return error from chain service instead of panicking
     ecs.wg!.add(4);
-    go(ecs.listenForEventLogs.bind(ecs), eventSubUnSubscribe, eventChan, eventQueue);
-    go(ecs.listenForNewBlocks.bind(ecs), errChan, newBlockSubUnSubscribe, newBlockChan, eventQueue);
+    go(ecs.listenForEventLogs.bind(ecs), errChan, eventSubUnSubscribe, eventChan);
+    go(ecs.listenForNewBlocks.bind(ecs), errChan, newBlockSubUnSubscribe, newBlockChan);
     go(ecs.listenForSubscriptionError.bind(ecs), errChan, subErr, eventQuery, eventListener, newBlockListener);
     go(ecs.listenForErrors.bind(ecs), errChan);
 
@@ -442,9 +458,9 @@ export class EthChainService implements ChainService {
   }
 
   private async listenForEventLogs(
+    errorChan: ReadWriteChannel<Error>,
     eventSubUnSubscribe: () => void,
     eventChan: ReadWriteChannel<Log>,
-    eventQueue: Heap<ethers.providers.Log>,
   ) {
     while (true) {
       // eslint-disable-next-line no-await-in-loop, default-case
@@ -470,9 +486,11 @@ export class EthChainService implements ChainService {
             const topic = topicsToWatch[i];
             if (chainEvent.topics[0] === topic) {
               this.logger(`queueing new chainEvent from block: ${chainEvent.blockNumber}`);
-              eventQueue.push(chainEvent);
+              // eslint-disable-next-line no-await-in-loop
+              await this.updateEventTracker(errorChan, undefined, chainEvent);
             }
           }
+          break;
         }
       }
     }
@@ -482,10 +500,8 @@ export class EthChainService implements ChainService {
     errorChan: ReadWriteChannel<Error>,
     newBlockSubUnSubscribe: () => void,
     newBlockChan: ReadWriteChannel<number>,
-    eventQueue: Heap<ethers.providers.Log>,
   ) {
     // eslint-disable-next-line no-restricted-syntax, no-labels
-    out:
     while (true) {
       // eslint-disable-next-line no-await-in-loop, default-case
       switch (await Channel.select([
@@ -499,30 +515,52 @@ export class EthChainService implements ChainService {
         }
 
         case newBlockChan: {
-          const newBlock = newBlockChan.value();
-          this.logger(`detected new block: ${newBlock}`);
-          // When we get a new block, check the events at the top of the queue.
-          // If they have enough block confirmations, remove them from the queue and process them
-          while (eventQueue.size() > 0 && newBlock >= eventQueue.peek()!.blockNumber + REQUIRED_BLOCK_CONFIRMATIONS) {
-            const chainEvent = eventQueue.pop();
-            this.logger(`event popped from queue (updated queue length: ${eventQueue.size()}`);
-            assert(chainEvent);
-            try {
-              // eslint-disable-next-line no-await-in-loop
-              await this.dispatchChainEvents([chainEvent]);
-            } catch (err) {
-              // eslint-disable-next-line no-await-in-loop
-              await errorChan.push(new WrappedError(
-                `failed dispatchChainEvents: ${err}`,
-                [err as Error],
-              ));
-              // eslint-disable-next-line no-labels
-              break out;
-            }
-          }
+          const newBlockNum = newBlockChan.value();
+          this.logger(`detected new block: ${newBlockNum}`);
+          // eslint-disable-next-line no-await-in-loop
+          await this.updateEventTracker(errorChan, newBlockNum, undefined);
+          this.logger(`detected new block: ${newBlockNum}`);
           break;
         }
       }
+    }
+  }
+
+  // updateEventTracker accepts a new block number and/or new event and dispatches a chain event if there are enough block confirmations
+  private async updateEventTracker(
+    errorChan: ReadWriteChannel<Error>,
+    blockNumber: number | undefined,
+    chainEvent: ethers.providers.Log | undefined,
+  ) {
+    // lock the mutex for the shortest amount of time. The mutex only need to be locked to update the eventTracker data structure
+    // ecs.eventTracker.mu.Lock()
+    if (blockNumber && blockNumber > this.eventTracker.latestBlockNum) {
+      this.eventTracker.latestBlockNum = blockNumber;
+    }
+    if (chainEvent) {
+      this.eventTracker.events.push(chainEvent);
+    }
+
+    const eventsToDispatch: ethers.providers.Log[] = [];
+    while (
+      this.eventTracker.events.size() > 0
+      && this.eventTracker.latestBlockNum >= this.eventTracker.events.peek()!.blockNumber + REQUIRED_BLOCK_CONFIRMATIONS
+    ) {
+      // eslint-disable-next-line @typescript-eslint/no-shadow
+      const chainEvent = this.eventTracker.events.pop();
+      assert(chainEvent);
+      eventsToDispatch.push(chainEvent);
+      this.logger(`event popped from queue (updated queue length: ${this.eventTracker.events.size()}`);
+    }
+
+    // ecs.eventTracker.mu.Unlock()
+    try {
+      await this.dispatchChainEvents(eventsToDispatch);
+    } catch (err) {
+      await errorChan.push(new WrappedError(
+        `failed dispatchChainEvents: ${err}`,
+        [err as Error],
+      ));
     }
   }
 
