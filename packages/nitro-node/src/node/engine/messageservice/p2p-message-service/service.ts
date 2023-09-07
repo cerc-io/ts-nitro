@@ -45,21 +45,14 @@ export interface BasicPeerInfo {
   address: Address;
 }
 
-export interface PeerExchangeMessage {
-  id: PeerId;
-  address: Address;
-  expectResponse: boolean;
-}
-
-// Custom function to parse raw JSON string to PeerExchangeMessage
-async function parsePeerExchangeMessage(raw: string): Promise<PeerExchangeMessage> {
+// Custom function to parse raw JSON string to BasicPeerInfo
+async function parseBasicPeerInfo(raw: string): Promise<BasicPeerInfo> {
   const { peerIdFromString } = await import('@libp2p/peer-id');
 
   const parsed = JSON.parse(raw);
   return {
     id: peerIdFromString(parsed.id),
     address: parsed.address,
-    expectResponse: parsed.expectResponse,
   };
 }
 
@@ -188,7 +181,7 @@ export class P2PMessageService implements MessageService {
   private async exchangePeerInfo(peerId: PeerId) {
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
-        await this.sendPeerInfo(peerId, false);
+        await this.sendPeerInfo(peerId);
 
         // Use a non-blocking channel send in case no one is listening
         this.sentInfoToPeer.push(peerId);
@@ -266,7 +259,7 @@ export class P2PMessageService implements MessageService {
 
   // sendPeerInfo sends our peer info over the given stream
   // Triggered whenever node establishes a connection with a peer
-  private async sendPeerInfo(recipientId: PeerId, expectResponse: boolean): Promise<void> {
+  private async sendPeerInfo(recipientId: PeerId): Promise<void> {
     let deferSreamClose;
     let stream: Stream;
     try {
@@ -286,14 +279,13 @@ export class P2PMessageService implements MessageService {
 
       let raw: string = '';
       const peerId = await this.id();
-      const peerExchangeMessage: PeerExchangeMessage = {
+      const basicPeerInfo: BasicPeerInfo = {
         id: peerId,
         address: this.me,
-        expectResponse,
       };
 
       try {
-        raw = JSON.stringify(peerExchangeMessage);
+        raw = JSON.stringify(basicPeerInfo);
       } catch (err) {
         this.logger(err);
         return;
@@ -357,9 +349,9 @@ export class P2PMessageService implements MessageService {
         return;
       }
 
-      let msg: PeerExchangeMessage;
+      let msg: BasicPeerInfo;
       try {
-        msg = await parsePeerExchangeMessage(raw);
+        msg = await parseBasicPeerInfo(raw);
       } catch (err) {
         this.logger(err);
         return;
@@ -376,10 +368,6 @@ export class P2PMessageService implements MessageService {
 
         // Use a non-blocking send in case no one is listening
         this.newPeerInfo!.push(peerInfo);
-      }
-
-      if (msg!.expectResponse) {
-        await this.sendPeerInfo(msg!.id, false);
       }
     } finally {
       if (deferStreamClose) {
@@ -422,6 +410,11 @@ export class P2PMessageService implements MessageService {
         await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
       }
     }
+  }
+
+  // checkError panics if the message service is running and there is an error, otherwise it just returns
+  private checkError(err: Error) {
+    throw err;
   }
 
   // out returns a channel that can be used to receive messages from the message service
