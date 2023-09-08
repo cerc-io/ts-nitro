@@ -31,7 +31,6 @@ import {
 } from '../../channel/consensus-channel/consensus-channel';
 import { SignedState } from '../../channel/state/signedstate';
 import { Destination } from '../../types/destination';
-import { ChainEvent, DepositedEvent } from '../../node/engine/chainservice/chainservice';
 
 export const ErrLedgerChannelExists: Error = new Error('directfund: ledger channel already exists');
 
@@ -99,8 +98,6 @@ export class Objective implements ObjectiveInterface {
 
   private fullyFundedThreshold: Funds = new Funds();
 
-  private latestBlockNumber: Uint64 = BigInt(0);
-
   private transactionSubmitted: boolean = false;
 
   // NOTE: Marshal -> Unmarshal is a lossy process. All channel data
@@ -111,7 +108,6 @@ export class Objective implements ObjectiveInterface {
     myDepositSafetyThreshold: { type: 'class', value: Funds },
     myDepositTarget: { type: 'class', value: Funds },
     fullyFundedThreshold: { type: 'class', value: Funds },
-    latestBlockNumber: { type: 'number' },
     transactionSumbmitted: { type: 'boolean' },
   };
 
@@ -374,27 +370,6 @@ export class Objective implements ObjectiveInterface {
     return updated;
   }
 
-  // UpdateWithChainEvent updates the objective with observed on-chain data.
-  //
-  // Only Channel Deposit events are currently handled.
-  updateWithChainEvent(event: ChainEvent): ObjectiveInterface {
-    const updated = this.clone();
-
-    if (!(event instanceof DepositedEvent)) {
-      // TODO: Handle partial return case if required
-      throw new Error(`objective ${JSONbigNative.stringify(updated)} cannot handle event ${JSONbigNative.stringify(event)}`);
-    }
-
-    const de = event;
-
-    if (BigInt(de.blockNum) > updated.latestBlockNumber) {
-      updated.c!.onChainFunding.value.set(de.asset, de.nowHeld!);
-      updated.latestBlockNumber = BigInt(de.blockNum);
-    }
-
-    return updated;
-  }
-
   private otherParticipants(): Address[] {
     const others: Address[] = [];
 
@@ -561,7 +536,6 @@ export class Objective implements ObjectiveInterface {
     clone.myDepositSafetyThreshold = this.myDepositSafetyThreshold.clone();
     clone.myDepositTarget = this.myDepositTarget.clone();
     clone.fullyFundedThreshold = this.fullyFundedThreshold.clone();
-    clone.latestBlockNumber = this.latestBlockNumber;
     clone.transactionSubmitted = this.transactionSubmitted;
 
     return clone;

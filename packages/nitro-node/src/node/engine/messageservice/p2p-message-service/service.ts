@@ -93,8 +93,6 @@ export class P2PMessageService implements MessageService {
   }
 
   // newMessageService returns a running P2PMessageService listening on the given ip, port and message key.
-  // If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
-  // Otherwise, peers must be added manually via `AddPeers`.
   static async newMessageService(
     me: Address,
     peer: Peer,

@@ -383,7 +383,7 @@ export class EthChainService implements ChainService {
             const nad = this.na.interface.parseLog(l).args as unknown as DepositedEventObject;
             const event = DepositedEvent.newDepositedEvent(
               new Destination(nad.destination),
-              String(l.blockNumber),
+              BigInt(l.blockNumber),
               nad.asset,
               nad.destinationHoldings.toBigInt(),
             );
@@ -429,7 +429,7 @@ export class EthChainService implements ChainService {
           assert(assetAddress !== undefined);
           const event = AllocationUpdatedEvent.newAllocationUpdatedEvent(
             new Destination(au.channelId),
-            String(l.blockNumber),
+            BigInt(l.blockNumber),
             assetAddress,
             au.finalHoldings.toBigInt(),
           );
@@ -440,7 +440,7 @@ export class EthChainService implements ChainService {
           this.logger('Processing Concluded event');
           try {
             const ce = this.na.interface.parseLog(l).args as unknown as ConcludedEventObject;
-            const event = new ConcludedEvent({ _channelID: new Destination(ce.channelId), blockNum: String(l.blockNumber) });
+            const event = new ConcludedEvent({ _channelID: new Destination(ce.channelId), _blockNum: BigInt(l.blockNumber) });
             await this.out.push(event);
           } catch (err) {
             throw new Error(`error in ParseConcluded: ${err}`);
