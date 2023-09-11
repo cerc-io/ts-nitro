@@ -146,6 +146,9 @@ export class P2PMessageService implements MessageService {
     }));
   }
 
+  // handleChangeProtocols is called by the libp2p node when a peer changes protocol.
+  // This is similar to HandlePeerFound method in go-nitro, which has been now removed
+  // https://github.com/statechannels/go-nitro/pull/1534/
   private async handleChangeProtocols({ detail: data }: CustomEvent<PeerProtocolsChangeData>) {
     // Ignore self protocol changes
     if (data.peerId.equals(this.p2pHost.peerId)) {
@@ -161,7 +164,9 @@ export class P2PMessageService implements MessageService {
     await this.exchangePeerInfo(data.peerId);
   }
 
-  // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
+  // handlePeerConnect is called by the libp2p node when a peer gets connected.
+  // This is similar to HandlePeerFound method in go-nitro, which has been now removed
+  // https://github.com/statechannels/go-nitro/pull/1534/
   private async handlePeerConnect({ detail: data }: CustomEvent<Connection>) {
     assert(this.p2pHost);
 
@@ -176,6 +181,8 @@ export class P2PMessageService implements MessageService {
     await this.exchangePeerInfo(data.remotePeer);
   }
 
+  // Custom method to exchange peer info
+  // Method is called by handleChangeProtocols and handlePeerConnect
   private async exchangePeerInfo(peerId: PeerId) {
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
@@ -257,6 +264,8 @@ export class P2PMessageService implements MessageService {
 
   // sendPeerInfo sends our peer info over the given stream
   // Triggered whenever node establishes a connection with a peer
+  // This is similar to SendPeerInfo method in go-nitro, which has been now removed
+  // https://github.com/statechannels/go-nitro/pull/1534/
   private async sendPeerInfo(recipientId: PeerId): Promise<void> {
     let deferSreamClose;
     let stream: Stream;
@@ -308,6 +317,8 @@ export class P2PMessageService implements MessageService {
   }
 
   // receivePeerInfo receives peer info from the given stream
+  // This is similar to ReceivePeerInfo method in go-nitro, which has been now removed
+  // https://github.com/statechannels/go-nitro/pull/1534/
   private async receivePeerInfo({ stream }: IncomingStreamData) {
     let deferStreamClose;
     try {
