@@ -127,6 +127,7 @@ export class Channel extends FixedPart {
       d.signedStateForTurnNum.set(key, value);
     });
     d.onChainFunding = this.onChainFunding.clone();
+    d.latestBlockNumber = this.latestBlockNumber;
     Object.assign(d, super.clone());
 
     return d;
@@ -340,18 +341,18 @@ export class Channel extends FixedPart {
       return this; // ignore stale information TODO: is this reorg safe?
     }
     this.latestBlockNumber = event.blockNum();
-    switch (true) {
-      case event instanceof AllocationUpdatedEvent: {
+    switch (event.constructor) {
+      case AllocationUpdatedEvent: {
         const e = event as AllocationUpdatedEvent;
         this.onChainFunding.value.set(e.assetAndAmount.assetAddress, e.assetAndAmount.assetAmount!);
         break;
       }
-      case event instanceof DepositedEvent: {
+      case DepositedEvent: {
         const e = event as DepositedEvent;
         this.onChainFunding.value.set(e.asset, e.nowHeld!);
         break;
       }
-      case event instanceof ConcludedEvent: {
+      case ConcludedEvent: {
         break;
       }
       default: {

@@ -1,19 +1,24 @@
 import { Actor } from '../types';
 
 // https://github.com/cerc-io/go-nitro/blob/ts-port-v1.0/scripts/test-configs/alice.toml
+// PeerID: 12D3KooWCKG2HgD24cjCnfmCRRmoeyxFALVrZkTiyBwfZGXQB2Zt
 export const ALICE_ADDRESS = '0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE';
 export const ALICE_PK = '2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d';
 
 // https://github.com/cerc-io/go-nitro/blob/ts-port-v1.0/scripts/test-configs/bob.toml
+// PeerID: 12D3KooWDyNacKpCKiTzPxB9vRqr1fga7hw1g9Kt1RZPmxeEuv41
 export const BOB_ADDRESS = '0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94';
 export const BOB_PK = '0279651921cd800ac560c21ceea27aab0107b67daf436cdd25ce84cad30159b4';
 
+// PeerID: 12D3KooWBF1EBPG8NvquDTXUxHM6ituxXZoLNUcT8j1ErYRSmj7t
 export const CHARLIE_ADDRESS = '0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d';
 export const CHARLIE_PK = '58368d20ff12f17669c06158c21d885897aa56f9be430edc789614bf9851d53f';
 
+// PeerID: 12D3KooWSvACfUBFeFsgrb4Hc8Cj9ezopkNnfeqF371yfnHX5Vdo
 export const DAVID_ADDRESS = '0x111A00868581f73AB42FEEF67D235Ca09ca1E8db';
 export const DAVID_PK = 'febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781';
 
+// PeerID: 12D3KooWCygmPonhiJ5CvDdTsZpRrpdJffkypViANtpgBwzZu5jn
 export const ERIN_ADDRESS = '0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01';
 export const ERIN_PK = '0aca28ba64679f63d71e671ab4dbb32aaa212d4789988e6ca47da47601c18fe2';
 

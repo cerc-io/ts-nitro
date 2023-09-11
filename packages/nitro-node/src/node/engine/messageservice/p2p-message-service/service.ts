@@ -135,7 +135,7 @@ export class P2PMessageService implements MessageService {
     return PeerIdFactory.createFromPrivKey(this.key);
   }
 
-  // Method to exchange info with already connected peers
+  // Custom Method to exchange info with already connected peers
   private async exchangeInfoWithConnectedPeers() {
     const peerIds = this.p2pHost.getPeers();
 
