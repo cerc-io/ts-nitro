@@ -45,21 +45,14 @@ export interface BasicPeerInfo {
   address: Address;
 }
 
-export interface PeerExchangeMessage {
-  id: PeerId;
-  address: Address;
-  expectResponse: boolean;
-}
-
-// Custom function to parse raw JSON string to PeerExchangeMessage
-async function parsePeerExchangeMessage(raw: string): Promise<PeerExchangeMessage> {
+// Custom function to parse raw JSON string to BasicPeerInfo
+async function parseBasicPeerInfo(raw: string): Promise<BasicPeerInfo> {
   const { peerIdFromString } = await import('@libp2p/peer-id');
 
   const parsed = JSON.parse(raw);
   return {
     id: peerIdFromString(parsed.id),
     address: parsed.address,
-    expectResponse: parsed.expectResponse,
   };
 }
 
@@ -100,8 +93,6 @@ export class P2PMessageService implements MessageService {
   }
 
   // newMessageService returns a running P2PMessageService listening on the given ip, port and message key.
-  // If useMdnsPeerDiscovery is true, the message service will use mDNS to discover peers.
-  // Otherwise, peers must be added manually via `AddPeers`.
   static async newMessageService(
     me: Address,
     peer: Peer,
@@ -144,7 +135,7 @@ export class P2PMessageService implements MessageService {
     return PeerIdFactory.createFromPrivKey(this.key);
   }
 
-  // Method to exchange info with already connected peers
+  // Custom Method to exchange info with already connected peers
   private async exchangeInfoWithConnectedPeers() {
     const peerIds = this.p2pHost.getPeers();
 
@@ -155,6 +146,9 @@ export class P2PMessageService implements MessageService {
     }));
   }
 
+  // handleChangeProtocols is called by the libp2p node when a peer changes protocol.
+  // This is similar to HandlePeerFound method in go-nitro, which has been now removed
+  // https://github.com/statechannels/go-nitro/pull/1534/
   private async handleChangeProtocols({ detail: data }: CustomEvent<PeerProtocolsChangeData>) {
     // Ignore self protocol changes
     if (data.peerId.equals(this.p2pHost.peerId)) {
@@ -170,7 +164,9 @@ export class P2PMessageService implements MessageService {
     await this.exchangePeerInfo(data.peerId);
   }
 
-  // handlePeerProtocols is called by the libp2p node when a peer protocols are updated.
+  // handlePeerConnect is called by the libp2p node when a peer gets connected.
+  // This is similar to HandlePeerFound method in go-nitro, which has been now removed
+  // https://github.com/statechannels/go-nitro/pull/1534/
   private async handlePeerConnect({ detail: data }: CustomEvent<Connection>) {
     assert(this.p2pHost);
 
@@ -185,10 +181,12 @@ export class P2PMessageService implements MessageService {
     await this.exchangePeerInfo(data.remotePeer);
   }
 
+  // Custom method to exchange peer info
+  // Method is called by handleChangeProtocols and handlePeerConnect
   private async exchangePeerInfo(peerId: PeerId) {
     for (let i = 0; i < NUM_CONNECT_ATTEMPTS; i += 1) {
       try {
-        await this.sendPeerInfo(peerId, false);
+        await this.sendPeerInfo(peerId);
 
         // Use a non-blocking channel send in case no one is listening
         this.sentInfoToPeer.push(peerId);
@@ -266,7 +264,9 @@ export class P2PMessageService implements MessageService {
 
   // sendPeerInfo sends our peer info over the given stream
   // Triggered whenever node establishes a connection with a peer
-  private async sendPeerInfo(recipientId: PeerId, expectResponse: boolean): Promise<void> {
+  // This is similar to SendPeerInfo method in go-nitro, which has been now removed
+  // https://github.com/statechannels/go-nitro/pull/1534/
+  private async sendPeerInfo(recipientId: PeerId): Promise<void> {
     let deferSreamClose;
     let stream: Stream;
     try {
@@ -286,14 +286,13 @@ export class P2PMessageService implements MessageService {
 
       let raw: string = '';
       const peerId = await this.id();
-      const peerExchangeMessage: PeerExchangeMessage = {
+      const basicPeerInfo: BasicPeerInfo = {
         id: peerId,
         address: this.me,
-        expectResponse,
       };
 
       try {
-        raw = JSON.stringify(peerExchangeMessage);
+        raw = JSON.stringify(basicPeerInfo);
       } catch (err) {
         this.logger(err);
         return;
@@ -318,6 +317,8 @@ export class P2PMessageService implements MessageService {
   }
 
   // receivePeerInfo receives peer info from the given stream
+  // This is similar to ReceivePeerInfo method in go-nitro, which has been now removed
+  // https://github.com/statechannels/go-nitro/pull/1534/
   private async receivePeerInfo({ stream }: IncomingStreamData) {
     let deferStreamClose;
     try {
@@ -357,9 +358,9 @@ export class P2PMessageService implements MessageService {
         return;
       }
 
-      let msg: PeerExchangeMessage;
+      let msg: BasicPeerInfo;
       try {
-        msg = await parsePeerExchangeMessage(raw);
+        msg = await parseBasicPeerInfo(raw);
       } catch (err) {
         this.logger(err);
         return;
@@ -376,10 +377,6 @@ export class P2PMessageService implements MessageService {
 
         // Use a non-blocking send in case no one is listening
         this.newPeerInfo!.push(peerInfo);
-      }
-
-      if (msg!.expectResponse) {
-        await this.sendPeerInfo(msg!.id, false);
       }
     } finally {
       if (deferStreamClose) {
@@ -422,6 +419,11 @@ export class P2PMessageService implements MessageService {
         await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
       }
     }
+  }
+
+  // checkError panics if the message service is running and there is an error, otherwise it just returns
+  private checkError(err: Error) {
+    throw err;
   }
 
   // out returns a channel that can be used to receive messages from the message service

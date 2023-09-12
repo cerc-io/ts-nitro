@@ -14,6 +14,9 @@ import { MaxTurnNum, PostFundTurnNum, PreFundTurnNum } from './constants';
 import { Allocation } from './state/outcome/allocation';
 import { SignedState } from './state/signedstate';
 import { FixedPart, State, ConstructorOptions as FixedPartConstructorOptions } from './state/state';
+import {
+  AllocationUpdatedEvent, ChainEvent, ConcludedEvent, DepositedEvent,
+} from '../node/engine/chainservice/chainservice';
 
 interface ConstructorOptions extends FixedPartConstructorOptions {
   id?: Destination;
@@ -32,6 +35,8 @@ export class Channel extends FixedPart {
 
   onChainFunding: Funds = new Funds();
 
+  latestBlockNumber: Uint64 = BigInt(0); // the latest block number we've seen
+
   // Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
   // It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
 
@@ -46,6 +51,7 @@ export class Channel extends FixedPart {
     id: { type: 'class', value: Destination },
     myIndex: { type: 'uint' },
     onChainFunding: { type: 'class', value: Funds },
+    latestBlockNumber: { type: 'uint64' },
     ...super.jsonEncodingMap,
     signedStateForTurnNum: { type: 'map', key: { type: 'uint64' }, value: { type: 'class', value: SignedState } },
     latestSupportedStateTurnNum: { type: 'uint64' },
@@ -121,6 +127,7 @@ export class Channel extends FixedPart {
       d.signedStateForTurnNum.set(key, value);
     });
     d.onChainFunding = this.onChainFunding.clone();
+    d.latestBlockNumber = this.latestBlockNumber;
     Object.assign(d, super.clone());
 
     return d;
@@ -326,5 +333,33 @@ export class Channel extends FixedPart {
     }
 
     return ss;
+  }
+
+  // UpdateWithChainEvent mutates the receiver if provided with a "new" chain event (with a greater block number than previously seen)
+  updateWithChainEvent(event: ChainEvent): Channel {
+    if (event.blockNum() < this.latestBlockNumber) {
+      return this; // ignore stale information TODO: is this reorg safe?
+    }
+    this.latestBlockNumber = event.blockNum();
+    switch (event.constructor) {
+      case AllocationUpdatedEvent: {
+        const e = event as AllocationUpdatedEvent;
+        this.onChainFunding.value.set(e.assetAndAmount.assetAddress, e.assetAndAmount.assetAmount!);
+        break;
+      }
+      case DepositedEvent: {
+        const e = event as DepositedEvent;
+        this.onChainFunding.value.set(e.asset, e.nowHeld!);
+        break;
+      }
+      case ConcludedEvent: {
+        break;
+      }
+      default: {
+        throw new Error(`channel ${this} cannot handle event ${event}`);
+      }
+    }
+
+    return this;
   }
 }

@@ -2,25 +2,28 @@ import { ethers } from 'ethers';
 
 import type { ReadChannel } from '@cerc-io/ts-channel';
 
+import { Uint64 } from '@cerc-io/nitro-util';
+
 import { ChainTransaction, Objective } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
 import { Destination } from '../../../types/destination';
 
 // ChainEvent dictates which methods all chain events must implement
 export interface ChainEvent {
-  channelID (): Destination
+  channelID(): Destination
+  blockNum(): Uint64
 }
 
 interface CommonEventConstructorOptions {
   _channelID?: Destination
-  blockNum?: string
+  _blockNum?: Uint64
 }
 
 // CommonEvent declares fields shared by all chain events
 class CommonEvent implements ChainEvent {
   private _channelID: Destination = new Destination();
 
-  blockNum: string = '0';
+  _blockNum = BigInt(0);
 
   constructor(params: CommonEventConstructorOptions) {
     Object.assign(this, params);
@@ -28,6 +31,10 @@ class CommonEvent implements ChainEvent {
 
   channelID(): Destination {
     return this._channelID;
+  }
+
+  blockNum(): Uint64 {
+    return this._blockNum;
   }
 }
 
@@ -66,20 +73,20 @@ export class DepositedEvent extends CommonEvent {
     Object.assign(this, params);
   }
 
-  static newDepositedEvent(channelId: Destination, blockNum: string, assetAddress: Address, nowHeld?: bigint): DepositedEvent {
+  static newDepositedEvent(channelId: Destination, blockNum: Uint64, assetAddress: Address, nowHeld?: bigint): DepositedEvent {
     return new DepositedEvent(
       {
         nowHeld,
         asset: assetAddress,
         _channelID: channelId,
-        blockNum,
+        _blockNum: blockNum,
       },
     );
   }
 
   string(): string {
     /* eslint-disable max-len */
-    return `Deposited ${this.asset} leaving ${this.nowHeld!.toString()} now held against channel ${this.channelID().string()} at Block ${this.blockNum}`;
+    return `Deposited ${this.asset} leaving ${this.nowHeld!.toString()} now held against channel ${this.channelID().string()} at Block ${this._blockNum}`;
   }
 }
 
@@ -89,23 +96,23 @@ export interface ChainEventHandler {
 }
 
 export interface ChainService {
-  eventFeed (): ReadChannel<ChainEvent>;
+  eventFeed(): ReadChannel<ChainEvent>;
 
-  sendTransaction (tx: ChainTransaction): Promise<void>;
+  sendTransaction(tx: ChainTransaction): Promise<void>;
 
-  getConsensusAppAddress (): Address;
+  getConsensusAppAddress(): Address;
 
-  getVirtualPaymentAppAddress (): Address;
+  getVirtualPaymentAppAddress(): Address;
 
-  getChainId (): Promise<bigint>;
+  getChainId(): Promise<bigint>;
 
-  close (): Promise<void>;
+  close(): Promise<void>;
 }
 
 // ConcludedEvent is an internal representation of the Concluded blockchain event
 export class ConcludedEvent extends CommonEvent {
   string(): string {
-    return `Channel ${this.channelID().string()} concluded at Block ${this.blockNum}`;
+    return `Channel ${this.channelID().string()} concluded at Block ${this._blockNum}`;
   }
 }
 
@@ -115,11 +122,11 @@ export class AllocationUpdatedEvent extends CommonEvent {
   assetAndAmount: AssetAndAmount;
 
   string(): string {
-    return `Channel ${this.channelID().string()} has had allocation updated to ${this.assetAndAmount.string()} at Block ${this.blockNum}`;
+    return `Channel ${this.channelID().string()} has had allocation updated to ${this.assetAndAmount.string()} at Block ${this._blockNum}`;
   }
 
-  static newAllocationUpdatedEvent(channelId: Destination, blockNum: string, assetAddress: Address, assetAmount: bigint | undefined): AllocationUpdatedEvent {
-    return new AllocationUpdatedEvent({ _channelID: channelId, blockNum }, { assetAddress, assetAmount });
+  static newAllocationUpdatedEvent(channelId: Destination, blockNum: Uint64, assetAddress: Address, assetAmount: bigint | undefined): AllocationUpdatedEvent {
+    return new AllocationUpdatedEvent({ _channelID: channelId, _blockNum: blockNum }, { assetAddress, assetAmount });
   }
 
   constructor(

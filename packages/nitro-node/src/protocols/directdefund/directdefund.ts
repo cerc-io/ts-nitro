@@ -278,30 +278,6 @@ export class Objective implements ObjectiveInterface {
     return updated;
   }
 
-  // UpdateWithChainEvent updates the objective with observed on-chain data.
-  //
-  // Only Allocation Updated events are currently handled.
-  updateWithChainEvent(event: ChainEvent): ObjectiveInterface {
-    const updated = this.clone();
-
-    switch (event.constructor) {
-      case AllocationUpdatedEvent: {
-        const e = event as AllocationUpdatedEvent;
-
-        // todo: check block number
-        updated.c!.onChainFunding.value.set(e.assetAndAmount!.assetAddress!, e.assetAndAmount!.assetAmount!);
-        break;
-      }
-      case ConcludedEvent: {
-        break;
-      }
-      default:
-        throw new Error(`objective ${JSONbigNative.stringify(updated)} cannot handle event ${JSONbigNative.stringify(event)}`);
-    }
-
-    return updated;
-  }
-
   // does *not* accept an event, but *does* accept a pointer to a signing key; declare side effects; return an updated Objective
   async crank(signer: NitroSigner): Promise<[Objective, SideEffects, WaitingFor]> {
     const updated = this.clone();

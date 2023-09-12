@@ -65,16 +65,16 @@ const SENT_VOUCHERS_CHANNEL_BUFFER_SIZE = 100;
 class ErrUnhandledChainEvent extends Error {
   event?: ChainEvent;
 
-  objective?: Objective;
+  channel?: channel.Channel;
 
   reason: string = '';
 
   constructor(params: {
     event?: ChainEvent,
-    objective?: Objective,
+    channel?: channel.Channel;
     reason?: string
   }) {
-    super(`Chain event ${params.event} could not be handled by objective ${params.objective} due to: ${params.reason ?? ''}`);
+    super(`Chain event ${params.event} could not be handled by channel ${params.channel} due to: ${params.reason ?? ''}`);
     Object.assign(this);
   }
 }
@@ -587,7 +587,7 @@ export class Engine {
       this.logger(`handling chain event: ${chainEvent.string()}`);
 
       // eslint-disable-next-line prefer-const
-      let [objective, ok] = await this.store!.getObjectiveByChannelId(chainEvent.channelID());
+      let [c, ok] = await this.store!.getChannelById(chainEvent.channelID());
 
       if (!ok) {
         // TODO: Right now the chain service returns chain events for ALL channels even those we aren't involved in
@@ -596,26 +596,29 @@ export class Engine {
         return [new EngineEvent({}), null];
       }
 
-      // Workaround for Go type assertion syntax
-      assert(objective);
-      ok = 'updateWithChainEvent' in objective && typeof objective.updateWithChainEvent === 'function';
-      const eventHandler = objective as unknown as ChainEventHandler;
-      if (!ok) {
-        return [new EngineEvent({}), new ErrUnhandledChainEvent({
-          event: chainEvent,
-          objective,
-          reason: 'objective does not handle chain events',
-        })];
-      }
-
-      let updatedEventHandler: Objective;
+      let updateChannel: channel.Channel;
       try {
-        updatedEventHandler = eventHandler.updateWithChainEvent(chainEvent);
+        updateChannel = c.updateWithChainEvent(chainEvent);
       } catch (err) {
         return [new EngineEvent({}), err as Error];
       }
 
-      return await this.attemptProgress(updatedEventHandler);
+      try {
+        await this.store!.setChannel(updateChannel);
+      } catch (err) {
+        return [new EngineEvent({}), err as Error];
+      }
+
+      let objective: Objective | undefined;
+      // eslint-disable-next-line prefer-const
+      [objective, ok] = await this.store!.getObjectiveByChannelId(chainEvent.channelID());
+      assert(objective);
+
+      if (ok) {
+        return await this.attemptProgress(objective);
+      }
+
+      return [new EngineEvent({}), null];
     } finally {
       if (deferredCompleteRecordFunction) {
         deferredCompleteRecordFunction();
