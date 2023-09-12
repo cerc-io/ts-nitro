@@ -70,13 +70,10 @@ export class Node {
 
   private vm?: VoucherManager;
 
-  private logger: debug.Debugger = log;
-
   static async new(
     messageService: MessageService,
     chainservice: ChainService,
     store: Store,
-    logDestination: WritableStream | undefined,
     policymaker: PolicyMaker,
     metricsApi?: MetricsApi,
   ): Promise<Node> {
@@ -87,9 +84,8 @@ export class Node {
     n.chainId = chainId;
     n.store = store;
     n.vm = VoucherManager.newVoucherManager(store.getAddress(), store);
-    n.logger = log;
 
-    n.engine = Engine.new(n.vm, messageService, chainservice, store, logDestination, policymaker, n.handleEngineEvents.bind(n), metricsApi);
+    n.engine = Engine.new(n.vm, messageService, chainservice, store, policymaker, n.handleEngineEvents.bind(n), metricsApi);
     n.completedObjectives = new SafeSyncMap<ReadWriteChannel<null>>();
     n.completedObjectivesForRPC = Channel<ObjectiveId>(100);
 
@@ -127,16 +123,18 @@ export class Node {
         this.store.getConsensusChannel.bind(this.store),
       );
     } catch (err) {
-      this.logger({
-        message: (err as Error).message,
-      });
+      log(JSON.stringify({
+        message: 'direct fund error',
+        error: err,
+      }));
       throw new Error(`counterparty check failed: ${err}`);
     }
 
     if (channelExists) {
-      this.logger({
+      log(JSON.stringify({
         message: 'directfund: channel already exists',
-      });
+        error: ErrLedgerChannelExists,
+      }));
       throw new WrappedError(
         `counterparty ${ethers.utils.getAddress(counterparty)}: ${ErrLedgerChannelExists}`,
         [ErrLedgerChannelExists],
@@ -318,10 +316,10 @@ export class Node {
   // Eventually it should return the error to the caller
   async handleError(err: Error) {
     if (err) {
-      this.logger({
+      log(JSON.stringify({
+        message: 'Error in nitro node',
         error: err,
-        message: `${this.address}, error in nitro node`,
-      });
+      }));
 
       // We wait for a bit so the previous log line has time to complete
       await new Promise((resolve) => { setTimeout(() => resolve, 1000); });
