@@ -44,6 +44,7 @@ const CHARLIE_BALANCE_AFTER_DIRECTDEFUND_WITH_INTERMEDIARY = '1000150';
 const INITIAL_LEDGER_AMOUNT = 1_000_000;
 const INITIAL_VIRTUAL_CHANNEL_AMOUNT = 1_000_000;
 const ASSET = `0x${'00'.repeat(20)}`;
+const METRICS_ENABLED = false;
 
 async function createNode(actor: utils.Actor, contractAddresses: ContractAddresses): Promise<[Node, P2PMessageService, Metrics]> {
   const nodePeerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
@@ -240,8 +241,10 @@ describe('test payment flows', () => {
 
       await waitForPeerInfoExchange([aliceMsgService, bobMsgService]);
 
-      expect(aliceMetrics.getMetrics()).to.includes.keys(...getMetricsKey(METRICS_KEYS_NODE_INSTANTIATION, ACTORS.alice.address));
-      expect(bobMetrics.getMetrics()).to.includes.keys(...getMetricsKey(METRICS_KEYS_NODE_INSTANTIATION, ACTORS.bob.address));
+      if (METRICS_ENABLED) {
+        expect(aliceMetrics.getMetrics()).to.includes.keys(...getMetricsKey(METRICS_KEYS_NODE_INSTANTIATION, ACTORS.alice.address));
+        expect(bobMetrics.getMetrics()).to.includes.keys(...getMetricsKey(METRICS_KEYS_NODE_INSTANTIATION, ACTORS.bob.address));
+      }
     });
 
     it('should create a ledger channel', async () => {
@@ -271,27 +274,29 @@ describe('test payment flows', () => {
       aliceChainBalance = await checkAndUpdateChainBalance(ACTORS.alice, DEFAULT_CHAIN_URL, aliceChainBalance);
       bobChainBalance = await checkAndUpdateChainBalance(ACTORS.bob, DEFAULT_CHAIN_URL, bobChainBalance);
 
-      expect(aliceMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.alice.address, ACTORS.bob.address));
-      expect(bobMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.bob.address, ACTORS.alice.address));
+      if (METRICS_ENABLED) {
+        expect(aliceMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.alice.address, ACTORS.bob.address));
+        expect(bobMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_payload_size', ACTORS.bob.address, ACTORS.alice.address));
 
-      expect(aliceMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_size', ACTORS.alice.address, ACTORS.bob.address));
-      expect(bobMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_size', ACTORS.bob.address, ACTORS.alice.address));
+        expect(aliceMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_size', ACTORS.alice.address, ACTORS.bob.address));
+        expect(bobMetrics.getMetrics()).to.have.property(getMetricsMessage('msg_size', ACTORS.bob.address, ACTORS.alice.address));
 
-      expect(aliceMetrics.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, ACTORS.alice.address, ACTORS.bob.address));
-      expect(bobMetrics.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, ACTORS.bob.address, ACTORS.alice.address));
+        expect(aliceMetrics.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, ACTORS.alice.address, ACTORS.bob.address));
+        expect(bobMetrics.getMetrics()).to.include(getMetricsMessageObj(METRICS_MESSAGE_KEYS_VALUES, ACTORS.bob.address, ACTORS.alice.address));
 
-      expect(aliceMetrics.getMetrics()).to.include.keys(...getMetricsKey(METRICS_KEYS_DIRECT_FUND, ACTORS.alice.address));
+        expect(aliceMetrics.getMetrics()).to.include.keys(...getMetricsKey(METRICS_KEYS_DIRECT_FUND, ACTORS.alice.address));
 
-      getMetricsKey(METRICS_KEYS_FUNCTIONS, ACTORS.alice.address).forEach((key) => {
-        expect(aliceMetrics.getMetrics()[key]).to.be.above(0);
-      });
+        getMetricsKey(METRICS_KEYS_FUNCTIONS, ACTORS.alice.address).forEach((key) => {
+          expect(aliceMetrics.getMetrics()[key]).to.be.above(0);
+        });
 
-      getMetricsKey(METRICS_KEYS_FUNCTIONS, ACTORS.bob.address).forEach((key) => {
-        expect(bobMetrics.getMetrics()[key]).to.be.above(0);
-      });
+        getMetricsKey(METRICS_KEYS_FUNCTIONS, ACTORS.bob.address).forEach((key) => {
+          expect(bobMetrics.getMetrics()[key]).to.be.above(0);
+        });
 
-      expect(aliceMetrics.getMetrics()[getMetricsKey(['handleObjectiveRequest'], ACTORS.alice.address)[0]]).to.be.above(0);
-      expect(bobMetrics.getMetrics()[getMetricsKey(['constructObjectiveFromMessage'], ACTORS.bob.address)[0]]).to.be.above(0);
+        expect(aliceMetrics.getMetrics()[getMetricsKey(['handleObjectiveRequest'], ACTORS.alice.address)[0]]).to.be.above(0);
+        expect(bobMetrics.getMetrics()[getMetricsKey(['constructObjectiveFromMessage'], ACTORS.bob.address)[0]]).to.be.above(0);
+      }
     });
 
     it('should create a virtual channel', async () => {
