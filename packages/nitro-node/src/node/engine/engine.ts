@@ -971,7 +971,11 @@ export class Engine {
         return [outgoing, err as Error];
       }
 
-      await this.store.setObjective(crankedObjective);
+      try {
+        await this.store.setObjective(crankedObjective);
+      } catch (err) {
+        return [new EngineEvent({}), err as Error];
+      }
 
       let notifEvents: EngineEvent;
       try {
