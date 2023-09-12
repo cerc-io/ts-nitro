@@ -10,6 +10,7 @@ import type { Log } from '@ethersproject/abstract-provider';
 import Channel from '@cerc-io/ts-channel';
 import {
   EthClient, go, hex2Bytes, Context, WrappedError,
+  JSONbigNative,
 } from '@cerc-io/nitro-util';
 
 import {
@@ -133,7 +134,6 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
-    logDestination?: WritableStream,
   ): Promise<EthChainService> {
     if (vpaAddress === caAddress) {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
@@ -143,7 +143,7 @@ export class EthChainService implements ChainService {
 
     const na = NitroAdjudicator__factory.connect(naAddress, txSigner);
 
-    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination);
+    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner);
   }
 
   static async newEthChainServiceWithProvider(
@@ -162,7 +162,7 @@ export class EthChainService implements ChainService {
 
     const na = NitroAdjudicator__factory.connect(naAddress, txSigner);
 
-    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner, logDestination);
+    return EthChainService._newEthChainService(ethClient, na, naAddress, caAddress, vpaAddress, txSigner);
   }
 
   // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator
@@ -174,7 +174,6 @@ export class EthChainService implements ChainService {
     caAddress: Address,
     vpaAddress: Address,
     txSigner: ethers.Signer,
-    logDestination?: WritableStream,
   ): EthChainService {
     const ctx = new Context();
     const cancelCtx = ctx.withCancel();
@@ -304,7 +303,10 @@ export class EthChainService implements ChainService {
         case errChan: {
           const err = errChan.value();
           // Print to STDOUT in case we're using a noop logger
-          this.logger(err);
+          this.logger(JSON.stringify({
+            msg: 'chain service error',
+            error: err,
+          }));
           // Manually panic in case we're using a logger that doesn't call exit(1)
           throw err;
         }
@@ -338,7 +340,10 @@ export class EthChainService implements ChainService {
           }
 
           const holdings = await this.na.holdings(tokenAddress, depositTx.channelId().value);
-          this.logger(`existing holdings: ${holdings}`);
+          this.logger(JSONbigNative.stringify({
+            msg: 'existing holdings',
+            holdings,
+          }));
           await this.na.deposit(tokenAddress, depositTx.channelId().value, holdings, amount, txOpts);
         }
 
@@ -425,7 +430,10 @@ export class EthChainService implements ChainService {
             );
           }
 
-          this.logger(`assetAddress: ${assetAddress}`);
+          this.logger(JSON.stringify({
+            msg: 'assetAddress',
+            assetAddress,
+          }));
           assert(assetAddress !== undefined);
           const event = AllocationUpdatedEvent.newAllocationUpdatedEvent(
             new Destination(au.channelId),
@@ -454,7 +462,10 @@ export class EthChainService implements ChainService {
           this.logger('Ignoring Challenge Cleared event');
           break;
         default:
-          this.logger(`Ignoring unknown chain event topic: ${l.topics[0].toString()}`);
+          this.logger(JSON.stringify({
+            msg: 'Ignoring unknown chain event topic',
+            topics: l.topics[0].toString(),
+          }));
           break;
       }
     }
@@ -488,7 +499,10 @@ export class EthChainService implements ChainService {
           for (let i = 0; i < topicsToWatch.length; i += 1) {
             const topic = topicsToWatch[i];
             if (chainEvent.topics[0] === topic) {
-              this.logger(`queueing new chainEvent from block: ${chainEvent.blockNumber}`);
+              this.logger(JSON.stringify({
+                msg: 'queueing new chainEvent',
+                'block-num': chainEvent.blockNumber,
+              }));
               // eslint-disable-next-line no-await-in-loop
               await this.updateEventTracker(errorChan, undefined, chainEvent);
             }
@@ -519,7 +533,10 @@ export class EthChainService implements ChainService {
 
         case newBlockChan: {
           const newBlockNum = newBlockChan.value();
-          this.logger(`detected new block: ${newBlockNum}`);
+          this.logger(JSON.stringify({
+            msg: 'detected new block',
+            'block-num': newBlockNum,
+          }));
           // eslint-disable-next-line no-await-in-loop
           await this.updateEventTracker(errorChan, newBlockNum, undefined);
           break;
@@ -553,7 +570,10 @@ export class EthChainService implements ChainService {
         const chainEvent = this.eventTracker.events.pop();
         assert(chainEvent);
         eventsToDispatch.push(chainEvent);
-        this.logger(`event popped from queue (updated queue length: ${this.eventTracker.events.size()}`);
+        this.logger(JSON.stringify({
+          msg: 'event popped from queue',
+          'updated-queue-length': this.eventTracker.events.size(),
+        }));
       }
     } finally {
       release();

@@ -235,7 +235,10 @@ export class P2PMessageService implements MessageService {
           },
         );
       } catch (err) {
-        this.logger(err);
+        this.logger(JSON.stringify({
+          msg: 'error reading from stream',
+          err,
+        }));
         return;
       }
 
@@ -249,7 +252,11 @@ export class P2PMessageService implements MessageService {
       try {
         m = deserializeMessage(raw);
       } catch (err) {
-        this.logger(err);
+        this.logger(JSON.stringify({
+          msg: 'error deserializing message',
+          err,
+        }));
+
         return;
       }
       assert(m);
@@ -415,7 +422,12 @@ export class P2PMessageService implements MessageService {
 
         return;
       } catch (err) {
-        this.logger(`Attempt ${i} - could not open stream to ${msg.to}: ${err}`);
+        this.logger(JSON.stringify({
+          msg: 'error opening stream',
+          err,
+          attempt: i,
+          to: msg.to,
+        }));
         await new Promise((resolve) => { setTimeout(resolve, RETRY_SLEEP_DURATION); });
       }
     }
@@ -423,6 +435,11 @@ export class P2PMessageService implements MessageService {
 
   // checkError panics if the message service is running and there is an error, otherwise it just returns
   private checkError(err: Error) {
+    this.logger(JSON.stringify({
+      msg: 'error in message service',
+      err,
+    }));
+
     throw err;
   }
 
