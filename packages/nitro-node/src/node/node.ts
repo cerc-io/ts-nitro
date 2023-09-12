@@ -83,12 +83,6 @@ export class Node {
     const n = new Node();
     n.address = store.getAddress();
 
-    // If a metrics API is not provided we used the no-op version which does nothing.
-    if (!metricsApi) {
-      // eslint-disable-next-line no-param-reassign
-      metricsApi = new NoOpMetrics();
-    }
-
     const chainId = await chainservice.getChainId();
     n.chainId = chainId;
     n.store = store;
