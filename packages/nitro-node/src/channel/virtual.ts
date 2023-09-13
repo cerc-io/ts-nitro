@@ -51,8 +51,10 @@ export class VirtualChannel extends Channel {
   }
 
   getPaidAndRemaining(): [bigint | undefined, bigint | undefined] {
-    const remaining = this.signedStateForTurnNum.get(this.latestSupportedStateTurnNum)!.state().outcome.value?.[0].allocations.value?.[0].amount;
-    const paid = this.signedStateForTurnNum.get(this.latestSupportedStateTurnNum)!.state().outcome.value?.[0].allocations.value?.[1].amount;
+    // eslint-disable-next-line max-len
+    const remaining = this.offChain.signedStateForTurnNum.get(this.offChain.latestSupportedStateTurnNum)!.state().outcome.value?.[0].allocations.value?.[0].amount;
+    // eslint-disable-next-line max-len
+    const paid = this.offChain.signedStateForTurnNum.get(this.offChain.latestSupportedStateTurnNum)!.state().outcome.value?.[0].allocations.value?.[1].amount;
     return [remaining, paid];
   }
 }

@@ -17,14 +17,77 @@ import { FixedPart, State, ConstructorOptions as FixedPartConstructorOptions } f
 import {
   AllocationUpdatedEvent, ChainEvent, ConcludedEvent, DepositedEvent,
 } from '../node/engine/chainservice/chainservice';
+import { Exit } from './state/outcome/exit';
 
 interface ConstructorOptions extends FixedPartConstructorOptions {
   id?: Destination;
   myIndex?: Uint;
-  onChainFunding?: Funds;
-  fixedPart?: FixedPart;
+  onChain?: OnChainData;
+  offChain?: OffChainData;
+}
+
+interface OnChainDataConstructorOptions {
+  holdings?: Funds;
+  outcome?: Exit;
+  stateHash?: string
+}
+interface OffChainDataConstructorOptions {
   signedStateForTurnNum?: Map<Uint64, SignedState>;
   latestSupportedStateTurnNum?: Uint64;
+}
+
+class OnChainData {
+  holdings: Funds = new Funds();
+
+  outcome: Exit = new Exit();
+
+  stateHash: string = '';
+
+  constructor(params: OnChainDataConstructorOptions) {
+    Object.assign(this, params);
+  }
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    holdings: { type: 'class', value: Funds },
+    myIndex: { type: 'class', value: Exit },
+    stateHash: { type: 'string' },
+  };
+
+  static fromJSON(data: string): OnChainData {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new OnChainData(props);
+  }
+
+  toJSON(): any {
+    return toJSON(OnChainData.jsonEncodingMap, this);
+  }
+}
+
+class OffChainData {
+  signedStateForTurnNum: Map<Uint64, SignedState> = new Map();
+  // Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
+
+  // largest uint64 value reserved for "no supported state"
+  // Can't make it private as access required when constructing VirtualChannel from an existing Channel instance
+  latestSupportedStateTurnNum: Uint64 = BigInt(0);
+
+  constructor(params: OffChainDataConstructorOptions) {
+    Object.assign(this, params);
+  }
+
+  static jsonEncodingMap: Record<string, FieldDescription> = {
+    signedStateForTurnNum: { type: 'map', key: { type: 'uint64' }, value: { type: 'class', value: SignedState } },
+    latestSupportedStateTurnNum: { type: 'uint64' },
+  };
+
+  static fromJSON(data: string): OffChainData {
+    const props = fromJSON(this.jsonEncodingMap, data);
+    return new OffChainData(props);
+  }
+
+  toJSON(): any {
+    return toJSON(OffChainData.jsonEncodingMap, this);
+  }
 }
 
 // Channel contains states and metadata and exposes convenience methods.
@@ -33,25 +96,16 @@ export class Channel extends FixedPart {
 
   myIndex: Uint = BigInt(0);
 
-  onChainFunding: Funds = new Funds();
+  onChain: OnChainData = new OnChainData({});
 
-  latestBlockNumber: Uint64 = BigInt(0); // the latest block number we've seen
-
-  signedStateForTurnNum: Map<Uint64, SignedState> = new Map();
-  // Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
-
-  // largest uint64 value reserved for "no supported state"
-  // Can't make it private as access required when constructing VirtualChannel from an existing Channel instance
-  latestSupportedStateTurnNum: Uint64 = BigInt(0);
+  offChain: OffChainData = new OffChainData({});
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     id: { type: 'class', value: Destination },
     myIndex: { type: 'uint' },
-    onChainFunding: { type: 'class', value: Funds },
-    latestBlockNumber: { type: 'uint64' },
+    onChain: { type: 'class', value: OnChainData },
+    offChain: { type: 'class', value: OffChainData },
     ...super.jsonEncodingMap,
-    signedStateForTurnNum: { type: 'map', key: { type: 'uint64' }, value: { type: 'class', value: SignedState } },
-    latestSupportedStateTurnNum: { type: 'uint64' },
   };
 
   static fromJSON(data: string): Channel {
@@ -76,22 +130,22 @@ export class Channel extends FixedPart {
     c.id = s.channelId();
 
     c.myIndex = myIndex;
-    c.onChainFunding = new Funds();
+    c.onChain.holdings = new Funds();
     Object.assign(c, s.fixedPart().clone());
-    c.latestSupportedStateTurnNum = MaxTurnNum; // largest uint64 value reserved for "no supported state"
+    c.offChain.latestSupportedStateTurnNum = MaxTurnNum; // largest uint64 value reserved for "no supported state"
 
     // Store prefund
-    c.signedStateForTurnNum = new Map();
-    c.signedStateForTurnNum.set(PreFundTurnNum, SignedState.newSignedState(s));
+    c.offChain.signedStateForTurnNum = new Map();
+    c.offChain.signedStateForTurnNum.set(PreFundTurnNum, SignedState.newSignedState(s));
 
     // Store postfund
     const post = s.clone();
     post.turnNum = PostFundTurnNum;
-    c.signedStateForTurnNum.set(PostFundTurnNum, SignedState.newSignedState(post));
+    c.offChain.signedStateForTurnNum.set(PostFundTurnNum, SignedState.newSignedState(post));
 
     // Set on chain holdings to zero for each asset
     for (const [asset] of s.outcome.totalAllocated().value) {
-      c.onChainFunding.value.set(asset, BigInt(0));
+      c.onChain.holdings.value.set(asset, BigInt(0));
     }
 
     return c;
@@ -117,13 +171,12 @@ export class Channel extends FixedPart {
   // Clone returns a pointer to a new, deep copy of the receiver, or a nil pointer if the receiver is nil.
   clone(): Channel {
     const d = Channel.new(this.preFundState().clone(), this.myIndex);
-    d.latestSupportedStateTurnNum = this.latestSupportedStateTurnNum;
+    d.offChain.latestSupportedStateTurnNum = this.offChain.latestSupportedStateTurnNum;
 
-    this.signedStateForTurnNum.forEach((value, key) => {
-      d.signedStateForTurnNum.set(key, value);
+    this.offChain.signedStateForTurnNum.forEach((value, key) => {
+      d.offChain.signedStateForTurnNum.set(key, value);
     });
-    d.onChainFunding = this.onChainFunding.clone();
-    d.latestBlockNumber = this.latestBlockNumber;
+    d.onChain.holdings = this.onChain.holdings.clone();
     Object.assign(d, super.clone());
 
     return d;
@@ -131,29 +184,29 @@ export class Channel extends FixedPart {
 
   // PreFundState() returns the pre fund setup state for the channel.
   preFundState(): State {
-    return this.signedStateForTurnNum.get(PreFundTurnNum)!.state();
+    return this.offChain.signedStateForTurnNum.get(PreFundTurnNum)!.state();
   }
 
   // SignedPreFundState returns the signed pre fund setup state for the channel.
   signedPreFundState(): SignedState {
-    return this.signedStateForTurnNum.get(PreFundTurnNum)!;
+    return this.offChain.signedStateForTurnNum.get(PreFundTurnNum)!;
   }
 
   // PostFundState() returns the post fund setup state for the channel.
   postFundState(): State {
-    assert(this.signedStateForTurnNum);
-    return this.signedStateForTurnNum.get(PostFundTurnNum)!.state();
+    assert(this.offChain.signedStateForTurnNum);
+    return this.offChain.signedStateForTurnNum.get(PostFundTurnNum)!.state();
   }
 
   // SignedPostFundState() returns the SIGNED post fund setup state for the channel.
   signedPostFundState(): SignedState {
-    return this.signedStateForTurnNum.get(PostFundTurnNum)!;
+    return this.offChain.signedStateForTurnNum.get(PostFundTurnNum)!;
   }
 
   // PreFundSignedByMe returns true if the calling client has signed the pre fund setup state, false otherwise.
   preFundSignedByMe(): boolean {
-    if (this.signedStateForTurnNum.has(PreFundTurnNum)) {
-      if (this.signedStateForTurnNum.get(PreFundTurnNum)!.hasSignatureForParticipant(this.myIndex)) {
+    if (this.offChain.signedStateForTurnNum.has(PreFundTurnNum)) {
+      if (this.offChain.signedStateForTurnNum.get(PreFundTurnNum)!.hasSignatureForParticipant(this.myIndex)) {
         return true;
       }
     }
@@ -162,8 +215,8 @@ export class Channel extends FixedPart {
 
   // PostFundSignedByMe returns true if the calling client has signed the post fund setup state, false otherwise.
   postFundSignedByMe(): boolean {
-    if (this.signedStateForTurnNum.has(PostFundTurnNum)) {
-      if (this.signedStateForTurnNum.get(PostFundTurnNum)!.hasSignatureForParticipant(this.myIndex)) {
+    if (this.offChain.signedStateForTurnNum.has(PostFundTurnNum)) {
+      if (this.offChain.signedStateForTurnNum.get(PostFundTurnNum)!.hasSignatureForParticipant(this.myIndex)) {
         return true;
       }
     }
@@ -172,17 +225,17 @@ export class Channel extends FixedPart {
 
   // PreFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
   preFundComplete(): boolean {
-    return this.signedStateForTurnNum.get(PreFundTurnNum)!.hasAllSignatures();
+    return this.offChain.signedStateForTurnNum.get(PreFundTurnNum)!.hasAllSignatures();
   }
 
   // PostFundComplete() returns true if I have a complete set of signatures on  the pre fund setup state, false otherwise.
   postFundComplete(): boolean {
-    return this.signedStateForTurnNum.get(PostFundTurnNum)!.hasAllSignatures();
+    return this.offChain.signedStateForTurnNum.get(PostFundTurnNum)!.hasAllSignatures();
   }
 
   // FinalSignedByMe returns true if the calling client has signed a final state, false otherwise.
   finalSignedByMe(): boolean {
-    for (const [, ss] of this.signedStateForTurnNum) {
+    for (const [, ss] of this.offChain.signedStateForTurnNum) {
       if (ss.hasSignatureForParticipant(this.myIndex) && ss.state().isFinal) {
         return true;
       }
@@ -193,40 +246,40 @@ export class Channel extends FixedPart {
 
   // FinalCompleted returns true if I have a complete set of signatures on a final state, false otherwise.
   finalCompleted(): boolean {
-    if (this.latestSupportedStateTurnNum === MaxTurnNum) {
+    if (this.offChain.latestSupportedStateTurnNum === MaxTurnNum) {
       return false;
     }
 
-    return this.signedStateForTurnNum.get(this.latestSupportedStateTurnNum)!.state().isFinal;
+    return this.offChain.signedStateForTurnNum.get(this.offChain.latestSupportedStateTurnNum)!.state().isFinal;
   }
 
   // HasSupportedState returns true if the channel has a supported state, false otherwise.
   hasSupportedState(): boolean {
-    return this.latestSupportedStateTurnNum !== MaxTurnNum;
+    return this.offChain.latestSupportedStateTurnNum !== MaxTurnNum;
   }
 
   // LatestSupportedState returns the latest supported state. A state is supported if it is signed
   // by all participants.
   latestSupportedState(): State {
-    if (this.latestSupportedStateTurnNum === MaxTurnNum) {
+    if (this.offChain.latestSupportedStateTurnNum === MaxTurnNum) {
       throw new Error('no state is yet supported');
     }
 
-    return this.signedStateForTurnNum.get(this.latestSupportedStateTurnNum)!.state();
+    return this.offChain.signedStateForTurnNum.get(this.offChain.latestSupportedStateTurnNum)!.state();
   }
 
   // LatestSignedState fetches the state with the largest turn number signed by at least one participant.
   latestSignedState(): SignedState {
-    if (this.signedStateForTurnNum.size === 0) {
+    if (this.offChain.signedStateForTurnNum.size === 0) {
       throw new Error('no states are signed');
     }
     let latestTurn: Uint64 = BigInt(0);
-    for (const [k] of this.signedStateForTurnNum) {
+    for (const [k] of this.offChain.signedStateForTurnNum) {
       if (k > latestTurn) {
         latestTurn = k;
       }
     }
-    return this.signedStateForTurnNum.get(latestTurn)!;
+    return this.offChain.signedStateForTurnNum.get(latestTurn)!;
   }
 
   // Total() returns the total allocated of each asset allocated by the pre fund setup state of the Channel.
@@ -268,17 +321,17 @@ export class Channel extends FixedPart {
       return false;
     }
 
-    if (this.latestSupportedStateTurnNum !== MaxTurnNum && s.turnNum < this.latestSupportedStateTurnNum) {
+    if (this.offChain.latestSupportedStateTurnNum !== MaxTurnNum && s.turnNum < this.offChain.latestSupportedStateTurnNum) {
       // Stale state
       return false;
     }
 
     // Store the signatures. If we have no record yet, add one.
 
-    const signedState = this.signedStateForTurnNum.get(s.turnNum);
+    const signedState = this.offChain.signedStateForTurnNum.get(s.turnNum);
 
     if (!signedState) {
-      this.signedStateForTurnNum.set(s.turnNum, ss);
+      this.offChain.signedStateForTurnNum.set(s.turnNum, ss);
     } else {
       try {
         signedState.merge(ss);
@@ -288,8 +341,8 @@ export class Channel extends FixedPart {
     }
 
     // Update latest supported state
-    if (this.signedStateForTurnNum.get(s.turnNum)!.hasAllSignatures()) {
-      this.latestSupportedStateTurnNum = s.turnNum;
+    if (this.offChain.signedStateForTurnNum.get(s.turnNum)!.hasAllSignatures()) {
+      this.offChain.latestSupportedStateTurnNum = s.turnNum;
     }
 
     return true;
@@ -331,19 +384,15 @@ export class Channel extends FixedPart {
 
   // UpdateWithChainEvent mutates the receiver if provided with a "new" chain event (with a greater block number than previously seen)
   updateWithChainEvent(event: ChainEvent): Channel {
-    if (event.blockNum() < this.latestBlockNumber) {
-      return this; // ignore stale information TODO: is this reorg safe?
-    }
-    this.latestBlockNumber = event.blockNum();
     switch (event.constructor) {
       case AllocationUpdatedEvent: {
         const e = event as AllocationUpdatedEvent;
-        this.onChainFunding.value.set(e.assetAndAmount.assetAddress, e.assetAndAmount.assetAmount!);
+        this.onChain.holdings.value.set(e.assetAndAmount.assetAddress, e.assetAndAmount.assetAmount!);
         break;
       }
       case DepositedEvent: {
         const e = event as DepositedEvent;
-        this.onChainFunding.value.set(e.asset, e.nowHeld!);
+        this.onChain.holdings.value.set(e.asset, e.nowHeld!);
         break;
       }
       case ConcludedEvent: {

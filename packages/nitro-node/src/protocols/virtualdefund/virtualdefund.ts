@@ -391,7 +391,7 @@ export class Objective implements ObjectiveInterface {
 
   // finalState returns the final state for the virtual channel
   private finalState(): State {
-    return this.v!.signedStateForTurnNum.get(FinalTurnNum)!.state();
+    return this.v!.offChain.signedStateForTurnNum.get(FinalTurnNum)!.state();
   }
 
   private initialOutcome(): SingleAssetExit {
@@ -512,8 +512,8 @@ export class Objective implements ObjectiveInterface {
   }
 
   private hasFinalStateFromAlice(): boolean {
-    const ok = this.v!.signedStateForTurnNum.has(FinalTurnNum);
-    const ss = this.v!.signedStateForTurnNum.get(FinalTurnNum);
+    const ok = this.v!.offChain.signedStateForTurnNum.has(FinalTurnNum);
+    const ss = this.v!.offChain.signedStateForTurnNum.get(FinalTurnNum);
     return ok && ss!.state().isFinal && !this.isZero(ss!.signatures()[0]);
   }
 

@@ -116,6 +116,11 @@ export class ConcludedEvent extends CommonEvent {
   }
 }
 
+class ChallengeEvent extends CommonEvent {
+
+  // TODO fill out other fields
+}
+
 // AllocationUpdated is an internal representation of the AllocationUpdated blockchain event
 // The event includes the token address and amount at the block that generated the event
 export class AllocationUpdatedEvent extends CommonEvent {
