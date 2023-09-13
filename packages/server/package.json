@@ -1,12 +1,11 @@
 {
   "name": "@cerc-io/server",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "main": "index.js",
   "license": "MIT",
   "private": true,
   "devDependencies": {
     "@foundry-rs/hardhat-anvil": "^0.1.7",
-    "@cerc-io/nitro-protocol": "^v2.0.0-alpha.4-ts-port-0.1.0",
     "@types/mocha": "^10.0.1",
     "@typescript-eslint/eslint-plugin": "^5.13.0",
     "@typescript-eslint/parser": "^5.0.0",
@@ -34,8 +33,8 @@
     "chain:anvil": "hardhat --config hardhat.anvil.config.ts node"
   },
   "dependencies": {
-    "@cerc-io/nitro-node": "^0.1.8",
-    "@cerc-io/nitro-util": "^0.1.8",
+    "@cerc-io/nitro-node": "^0.1.9",
+    "@cerc-io/nitro-util": "^0.1.9",
     "assert": "^2.0.0",
     "debug": "^4.3.4",
     "dotenv": "^16.0.3",

@@ -12,23 +12,27 @@ jobs:
     steps:
       - name: "Clone project repository"
         uses: actions/checkout@v3
+        with:
+          path: ./ts-nitro
       - name: "Use Node.js ${{ matrix.node-version }}"
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
       - name: "Install dependencies and build packages"
+        working-directory: ./ts-nitro
         run: yarn && yarn build:node
       - name: "Run Chain"
+        working-directory: ./ts-nitro
         run: nohup yarn chain > chain.out 2>&1 &
-      - name: "Install watcher-ts"
+      - name: "Clone watcher-ts"
         uses: actions/checkout@v3
         with:
           repository: cerc-io/watcher-ts
           ref: main
           path: ./watcher-ts
       - name: "Run relay node"
+        working-directory: ./watcher-ts
         run: |
-          cd ./watcher-ts
           yarn && yarn build
           cd ./packages/peer
           yarn create-peer -f relay-id.json
@@ -36,6 +40,7 @@ jobs:
           echo "RELAY_MULTIADDR=/ip4/127.0.0.1/tcp/9090/ws/p2p/$RELAY_PEER_ID" >> "$GITHUB_ENV"
           nohup yarn relay-node --peerIdFile relay-id.json > relay-node.out 2>&1 &
       - name: "Run integration test"
+        working-directory: ./ts-nitro
         run: |
           export RELAY_MULTIADDR=${{ env.RELAY_MULTIADDR }}
           cd packages/server
