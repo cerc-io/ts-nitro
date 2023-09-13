@@ -522,7 +522,6 @@ export class EthChainService implements ChainService {
           this.logger(`detected new block: ${newBlockNum}`);
           // eslint-disable-next-line no-await-in-loop
           await this.updateEventTracker(errorChan, newBlockNum, undefined);
-          this.logger(`detected new block: ${newBlockNum}`);
           break;
         }
       }

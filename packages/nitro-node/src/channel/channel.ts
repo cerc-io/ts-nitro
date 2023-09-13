@@ -37,9 +37,6 @@ export class Channel extends FixedPart {
 
   latestBlockNumber: Uint64 = BigInt(0); // the latest block number we've seen
 
-  // Support []uint64 // TODO: this property will be important, and allow the Channel to store the necessary data to close out the channel on chain
-  // It could be an array of turnNums, which can be used to slice into Channel.SignedStateForTurnNum
-
   signedStateForTurnNum: Map<Uint64, SignedState> = new Map();
   // Longer term, we should have a more efficient and smart mechanism to store states https://github.com/statechannels/go-nitro/issues/106
 
@@ -82,7 +79,6 @@ export class Channel extends FixedPart {
     c.onChainFunding = new Funds();
     Object.assign(c, s.fixedPart().clone());
     c.latestSupportedStateTurnNum = MaxTurnNum; // largest uint64 value reserved for "no supported state"
-    // c.Support =  // TODO
 
     // Store prefund
     c.signedStateForTurnNum = new Map();
@@ -295,8 +291,6 @@ export class Channel extends FixedPart {
     if (this.signedStateForTurnNum.get(s.turnNum)!.hasAllSignatures()) {
       this.latestSupportedStateTurnNum = s.turnNum;
     }
-
-    // TODO update support
 
     return true;
   }

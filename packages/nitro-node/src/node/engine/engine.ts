@@ -61,6 +61,7 @@ import { Destination } from '../../types/destination';
 const log = debug('ts-nitro:engine');
 
 const SENT_VOUCHERS_CHANNEL_BUFFER_SIZE = 100;
+const METRICS_ENABLED = false;
 
 class ErrUnhandledChainEvent extends Error {
   event?: ChainEvent;
@@ -225,14 +226,18 @@ export class Engine {
 
     e.logger('Constructed Engine');
 
-    if (!metricsApi) {
-      // eslint-disable-next-line no-param-reassign
-      metricsApi = new NoOpMetrics();
+    if (METRICS_ENABLED) {
+      // If a metrics API is not provided we used the no-op version which does nothing.
+      if (!metricsApi) {
+        // eslint-disable-next-line no-param-reassign
+        metricsApi = new NoOpMetrics();
+      }
+
+      e.metrics = MetricsRecorder.newMetricsRecorder(
+        e.store.getAddress(),
+        metricsApi,
+      );
     }
-    e.metrics = MetricsRecorder.newMetricsRecorder(
-      e.store.getAddress(),
-      metricsApi,
-    );
 
     e.wg = new WaitGroup();
 
@@ -279,11 +284,13 @@ export class Engine {
       let res = new EngineEvent({});
       let err: Error | null = null;
 
-      this.metrics!.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.channelLength());
-      this.metrics!.recordQueueLength('api_payment_request_queue', this.paymentRequestsFromAPI.channelLength());
-      this.metrics!.recordQueueLength('chain_events_queue', this.fromChain.channelLength());
-      this.metrics!.recordQueueLength('messages_queue', this.fromMsg.channelLength());
-      this.metrics!.recordQueueLength('proposal_queue', this.fromLedger.channelLength());
+      if (METRICS_ENABLED) {
+        this.metrics!.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.channelLength());
+        this.metrics!.recordQueueLength('api_payment_request_queue', this.paymentRequestsFromAPI.channelLength());
+        this.metrics!.recordQueueLength('chain_events_queue', this.fromChain.channelLength());
+        this.metrics!.recordQueueLength('messages_queue', this.fromMsg.channelLength());
+        this.metrics!.recordQueueLength('proposal_queue', this.fromLedger.channelLength());
+      }
 
       /* eslint-disable no-await-in-loop */
       /* eslint-disable default-case */
@@ -331,7 +338,10 @@ export class Engine {
         res.completedObjectives?.forEach((obj) => {
           assert(this.logger);
           this.logger(`Objective ${obj.id()} is complete & returned to API`);
-          this.metrics!.recordObjectiveCompleted(obj.id());
+
+          if (METRICS_ENABLED) {
+            this.metrics!.recordObjectiveCompleted(obj.id());
+          }
         });
 
         this.eventHandler(res);
@@ -345,8 +355,10 @@ export class Engine {
   private async handleProposal(proposal: Proposal): Promise<[EngineEvent, Error | null]> {
     let deferredCompleteRecordFunction;
     try {
-      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleProposal.name);
-      deferredCompleteRecordFunction = () => completeRecordFunction();
+      if (METRICS_ENABLED) {
+        const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleProposal.name);
+        deferredCompleteRecordFunction = () => completeRecordFunction();
+      }
 
       assert(this.store);
       const id = getProposalObjectiveId(proposal);
@@ -380,8 +392,10 @@ export class Engine {
   private async handleMessage(message: Message): Promise<[EngineEvent, Error | null]> {
     let deferredCompleteRecordFunction;
     try {
-      const completeRecordFunction = () => this.metrics!.recordFunctionDuration(this.handleMessage.name);
-      deferredCompleteRecordFunction = () => completeRecordFunction();
+      if (METRICS_ENABLED) {
+        const completeRecordFunction = () => this.metrics!.recordFunctionDuration(this.handleMessage.name);
+        deferredCompleteRecordFunction = () => completeRecordFunction();
+      }
 
       assert(this.policymaker);
       assert(this.store);
@@ -580,8 +594,10 @@ export class Engine {
   private async handleChainEvent(chainEvent: ChainEvent): Promise<[EngineEvent, Error | null]> {
     let deferredCompleteRecordFunction;
     try {
-      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleChainEvent.name);
-      deferredCompleteRecordFunction = () => completeRecordFunction();
+      if (METRICS_ENABLED) {
+        const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleChainEvent.name);
+        deferredCompleteRecordFunction = () => completeRecordFunction();
+      }
 
       assert('string' in chainEvent && typeof chainEvent.string === 'function');
       this.logger(`handling chain event: ${chainEvent.string()}`);
@@ -632,8 +648,10 @@ export class Engine {
     let deferredSignalObjectiveStarted;
     let deferredCompleteRecordFunction;
     try {
-      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleObjectiveRequest.name);
-      deferredCompleteRecordFunction = () => completeRecordFunction();
+      if (METRICS_ENABLED) {
+        const completeRecordFunction = this.metrics!.recordFunctionDuration(this.handleObjectiveRequest.name);
+        deferredCompleteRecordFunction = () => completeRecordFunction();
+      }
 
       assert(this.store);
       assert(this.chain);
@@ -672,7 +690,10 @@ export class Engine {
           } catch (err) {
             return [failedEngineEvent, new Error(`handleAPIEvent: Could not create virtualfund objective for ${or}: ${err}`)];
           }
-          this.metrics!.recordObjectiveStarted(vfo.id());
+
+          if (METRICS_ENABLED) {
+            this.metrics!.recordObjectiveStarted(vfo.id());
+          }
 
           // Only Alice or Bob care about registering the objective and keeping track of vouchers
           const lastParticipant = BigInt((vfo.v!.participants ?? []).length - 1);
@@ -721,7 +742,9 @@ export class Engine {
               this.store.getConsensusChannel.bind(this.store),
             );
 
-            this.metrics!.recordObjectiveStarted(vdfo.id());
+            if (METRICS_ENABLED) {
+              this.metrics!.recordObjectiveStarted(vdfo.id());
+            }
           } catch (err) {
             return [
               failedEngineEvent,
@@ -744,7 +767,9 @@ export class Engine {
               this.store.getConsensusChannel.bind(this.store),
             );
 
-            this.metrics!.recordObjectiveStarted(dfo.id());
+            if (METRICS_ENABLED) {
+              this.metrics!.recordObjectiveStarted(dfo.id());
+            }
           } catch (err) {
             return [
               failedEngineEvent,
@@ -770,7 +795,10 @@ export class Engine {
               new Error(`handleAPIEvent: Could not create directdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
             ];
           }
-          this.metrics!.recordObjectiveStarted(ddfo.id());
+
+          if (METRICS_ENABLED) {
+            this.metrics!.recordObjectiveStarted(ddfo.id());
+          }
           // If ddfo creation was successful, destroy the consensus channel to prevent it being used (a Channel will now take over governance)
           try {
             await this.store.destroyConsensusChannel(request.channelId);
@@ -854,15 +882,20 @@ export class Engine {
   private async sendMessages(msgs: Message[]): Promise<void> {
     let deferredCompleteRecordFunction;
     try {
-      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.sendMessages.name);
-      deferredCompleteRecordFunction = () => completeRecordFunction();
+      if (METRICS_ENABLED) {
+        const completeRecordFunction = this.metrics!.recordFunctionDuration(this.sendMessages.name);
+        deferredCompleteRecordFunction = () => completeRecordFunction();
+      }
 
       assert(this.store);
       assert(this.msg);
       for await (const message of msgs) {
         message.from = this.store.getAddress();
         this.logMessage(message, Outgoing);
-        this.recordMessageMetrics(message);
+
+        if (METRICS_ENABLED) {
+          this.recordMessageMetrics(message);
+        }
         try {
           await this.msg.send(message);
         } catch (err) {
@@ -881,8 +914,10 @@ export class Engine {
   private async executeSideEffects(sideEffects: SideEffects): Promise<void> {
     let deferredCompleteRecordFunction;
     try {
-      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.executeSideEffects.name);
-      deferredCompleteRecordFunction = () => completeRecordFunction();
+      if (METRICS_ENABLED) {
+        const completeRecordFunction = this.metrics!.recordFunctionDuration(this.executeSideEffects.name);
+        deferredCompleteRecordFunction = () => completeRecordFunction();
+      }
 
       this.wg!.add(1);
       // Send messages in a go routine so that we don't block on message delivery
@@ -916,8 +951,10 @@ export class Engine {
   private async attemptProgress(objective: Objective): Promise<[EngineEvent, Error | null]> {
     let deferredCompleteRecordFunction;
     try {
-      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.attemptProgress.name);
-      deferredCompleteRecordFunction = () => completeRecordFunction();
+      if (METRICS_ENABLED) {
+        const completeRecordFunction = this.metrics!.recordFunctionDuration(this.attemptProgress.name);
+        deferredCompleteRecordFunction = () => completeRecordFunction();
+      }
 
       const outgoing = new EngineEvent({});
 
@@ -934,7 +971,11 @@ export class Engine {
         return [outgoing, err as Error];
       }
 
-      await this.store.setObjective(crankedObjective);
+      try {
+        await this.store.setObjective(crankedObjective);
+      } catch (err) {
+        return [new EngineEvent({}), err as Error];
+      }
 
       let notifEvents: EngineEvent;
       try {
@@ -1056,8 +1097,10 @@ export class Engine {
   private async spawnConsensusChannelIfDirectFundObjective(crankedObjective: Objective): Promise<void> {
     let deferredCompleteRecordFunction;
     try {
-      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.spawnConsensusChannelIfDirectFundObjective.name);
-      deferredCompleteRecordFunction = () => completeRecordFunction();
+      if (METRICS_ENABLED) {
+        const completeRecordFunction = this.metrics!.recordFunctionDuration(this.spawnConsensusChannelIfDirectFundObjective.name);
+        deferredCompleteRecordFunction = () => completeRecordFunction();
+      }
 
       if (crankedObjective instanceof DirectFundObjective) {
         const dfo = crankedObjective as DirectFundObjective;
@@ -1095,8 +1138,10 @@ export class Engine {
   private async getOrCreateObjective(p: ObjectivePayload): Promise<Objective> {
     let deferredCompleteRecordFunction;
     try {
-      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.getOrCreateObjective.name);
-      deferredCompleteRecordFunction = () => completeRecordFunction();
+      if (METRICS_ENABLED) {
+        const completeRecordFunction = this.metrics!.recordFunctionDuration(this.getOrCreateObjective.name);
+        deferredCompleteRecordFunction = () => completeRecordFunction();
+      }
 
       assert(this.store);
 
@@ -1114,7 +1159,9 @@ export class Engine {
             throw new Error(`error constructing objective from message: ${constructErr}`);
           }
 
-          this.metrics!.recordObjectiveStarted(newObj.id());
+          if (METRICS_ENABLED) {
+            this.metrics!.recordObjectiveStarted(newObj.id());
+          }
 
           try {
             await this.store.setObjective(newObj);
@@ -1141,8 +1188,10 @@ export class Engine {
     let deferredCompleteRecordFunction;
     try {
       this.logger(`Constructing objective ${id} from message`);
-      const completeRecordFunction = this.metrics!.recordFunctionDuration(this.constructObjectiveFromMessage.name);
-      deferredCompleteRecordFunction = () => completeRecordFunction();
+      if (METRICS_ENABLED) {
+        const completeRecordFunction = this.metrics!.recordFunctionDuration(this.constructObjectiveFromMessage.name);
+        deferredCompleteRecordFunction = () => completeRecordFunction();
+      }
 
       assert(this.store);
       assert(this.vm);
