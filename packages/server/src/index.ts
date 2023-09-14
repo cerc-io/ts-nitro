@@ -18,6 +18,7 @@ const log = debug('ts-nitro:server');
 const {
   createPeerIdFromKey,
   createPeerAndInit,
+  subscribeVoucherLogs,
 } = utils;
 
 const getArgv = () => yargs.parserConfiguration({
@@ -145,7 +146,8 @@ const main = async () => {
     asset,
   );
 
-  log('Started P2PMessageService');
+  subscribeVoucherLogs(nitro.node);
+  log('Started P2PMessageService and subscribed to vouchers');
 
   const peersToConnect: string[] = argv.counterparty ? [argv.counterparty] : [];
   peersToConnect.push(...(argv.intermediaries as string[]));

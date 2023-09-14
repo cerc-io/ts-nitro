@@ -273,7 +273,8 @@ export class Node {
 
   // ReceivedVouchers returns a chan that receives a voucher every time we receive a payment voucher
   receivedVouchers(): ReadChannel<Voucher> {
-    return this._receivedVouchers!;
+    // TODO: Register listeners and send voucher to each instead
+    return this._receivedVouchers!.readOnly();
   }
 
   // CreateVoucher creates and returns a voucher for the given channelId which increments the redeemable balance by amount.

@@ -11,7 +11,8 @@ import './App.css';
 const {
   ACTORS,
   createPeerIdFromKey,
-  createPeerAndInit
+  createPeerAndInit,
+  subscribeVoucherLogs
 } = utils;
 
 declare global {
@@ -34,7 +35,7 @@ window.setupNode = async (name: string): Promise<utils.Nitro> => {
   const peerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
   const peer = await createPeerAndInit(process.env.REACT_APP_RELAY_MULTIADDR, {}, peerIdObj);
 
-  return utils.Nitro.setupNode(
+  const nitro = await utils.Nitro.setupNode(
     actor.privateKey,
     DEFAULT_CHAIN_URL,
     actor.chainPrivateKey,
@@ -44,6 +45,11 @@ window.setupNode = async (name: string): Promise<utils.Nitro> => {
     undefined,
     process.env.REACT_APP_ASSET_ADDRESS
   );
+
+  // Subscribe to vouchers and log them
+  subscribeVoucherLogs(nitro.node);
+
+  return nitro;
 };
 
 window.out = (jsonObject) => {
