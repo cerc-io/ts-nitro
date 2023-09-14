@@ -279,6 +279,7 @@ export class Engine {
     assert(this.fromMsg);
     assert(this.fromLedger);
     assert(this.eventHandler);
+    assert(this.store);
 
     while (true) {
       let res = new EngineEvent({});
@@ -311,6 +312,13 @@ export class Engine {
           break;
 
         case this.fromChain:
+          try {
+            await this.store.setLastBlockNumSeen(this.fromChain.value().blockNum());
+            // eslint-disable-next-line @typescript-eslint/no-shadow
+          } catch (err) {
+            this.checkError(err as Error);
+          }
+
           [res, err] = await this.handleChainEvent(this.fromChain.value());
           break;
 

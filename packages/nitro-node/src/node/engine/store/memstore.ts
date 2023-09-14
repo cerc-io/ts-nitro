@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 
 import {
   JSONbigNative, bytes2Hex, hex2Bytes, WrappedError,
+  Uint64,
 } from '@cerc-io/nitro-util';
 import type { NitroSigner } from '@cerc-io/nitro-util';
 
@@ -36,6 +37,8 @@ export class MemStore implements Store {
 
   vouchers?: SafeSyncMap<Buffer>;
 
+  lastBlockNumSeen?: Uint64;
+
   // the signer for the store's engine
   signer?: NitroSigner;
 
@@ -52,6 +55,7 @@ export class MemStore implements Store {
     ms.consensusChannels = new SafeSyncMap();
     ms.channelToObjective = new SafeSyncMap();
     ms.vouchers = new SafeSyncMap();
+    ms.lastBlockNumSeen = BigInt(0);
 
     return ms;
   }
@@ -160,6 +164,16 @@ export class MemStore implements Store {
         throw new Error(`cannot transfer ownership of channel from objective ${prevOwner} to ${obj.id()}`);
       }
     }
+  }
+
+  // SetLastBlockNumSeen
+  setLastBlockNumSeen(blockNumber: Uint64): void {
+    this.lastBlockNumSeen = blockNumber;
+  }
+
+  // GetLastBlockNumSeen
+  getLastBlockNumSeen(): Uint64 {
+    return this.lastBlockNumSeen!;
   }
 
   public setChannel(ch: Channel): void {

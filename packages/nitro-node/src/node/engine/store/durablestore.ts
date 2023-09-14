@@ -3,10 +3,12 @@ import { Buffer } from 'buffer';
 import { Level } from 'level';
 import type { AbstractSublevel, AbstractSublevelOptions } from 'abstract-level';
 
-import { JSONbigNative, NitroSigner, WrappedError } from '@cerc-io/nitro-util';
+import {
+  JSONbigNative, NitroSigner, WrappedError, Uint64,
+} from '@cerc-io/nitro-util';
 
 import {
-  ErrLoadVouchers, ErrNoSuchChannel, ErrNoSuchObjective, Store,
+  ErrLoadVouchers, ErrNoSuchChannel, ErrNoSuchObjective, Store, lastBlockNumSeenKey,
 } from './store';
 import { Objective, ObjectiveStatus } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
@@ -32,6 +34,8 @@ export class DurableStore implements Store {
   private channelToObjective?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, string>;
 
   private vouchers?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
+
+  private lastBlockNumSeen?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, string>;
 
   // the signer for the store's engine
   private signer?: NitroSigner;
@@ -60,6 +64,7 @@ export class DurableStore implements Store {
     ps.consensusChannels = ps.openDB<Buffer>('consensus_channels', { valueEncoding: 'buffer' });
     ps.channelToObjective = ps.openDB('channel_to_objective');
     ps.vouchers = ps.openDB<Buffer>('vouchers', { valueEncoding: 'buffer' });
+    ps.lastBlockNumSeen = ps.openDB('lastBlockNumSeen');
 
     return ps;
   }
@@ -188,6 +193,18 @@ export class DurableStore implements Store {
         throw new Error(`cannot transfer ownership of channel from objective ${prevOwner} to ${obj.id()}`);
       }
     }
+  }
+
+  // GetLastBlockNumSeen retrieves the last blockchain block processed by this node
+  async getLastBlockNumSeen(): Promise<Uint64> {
+    const val = await this.lastBlockNumSeen!.get(lastBlockNumSeenKey);
+    const result = BigInt(val);
+    return result;
+  }
+
+  // SetLastBlockNumSeen sets the last blockchain block processed by this node
+  async setLastBlockNumSeen(blockNumber: Uint64): Promise<void> {
+    await this.lastBlockNumSeen!.put(lastBlockNumSeenKey, blockNumber.toString());
   }
 
   // SetChannel sets the channel in the store.
