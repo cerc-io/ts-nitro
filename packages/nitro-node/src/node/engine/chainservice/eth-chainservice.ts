@@ -342,7 +342,7 @@ export class EthChainService implements ChainService {
           const holdings = await this.na.holdings(tokenAddress, depositTx.channelId().value);
           this.logger(JSONbigNative.stringify({
             msg: 'existing holdings',
-            holdings,
+            holdings: holdings.toBigInt(),
           }));
           await this.na.deposit(tokenAddress, depositTx.channelId().value, holdings, amount, txOpts);
         }
@@ -533,10 +533,10 @@ export class EthChainService implements ChainService {
 
         case newBlockChan: {
           const newBlockNum = newBlockChan.value();
-          this.logger(JSON.stringify({
-            msg: 'detected new block',
-            'block-num': newBlockNum,
-          }));
+          // this.logger(JSON.stringify({
+          //   msg: 'detected new block',
+          //   'block-num': newBlockNum,
+          // }));
           // eslint-disable-next-line no-await-in-loop
           await this.updateEventTracker(errorChan, newBlockNum, undefined);
           break;
