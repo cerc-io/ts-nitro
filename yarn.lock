@@ -1296,7 +1296,7 @@
     wherearewe "^2.0.0"
     xsalsa20 "^1.1.0"
 
-"@cerc-io/nitro-protocol@^2.0.0-alpha.4-ts-port-0.1.2", "@cerc-io/nitro-protocol@^v2.0.0-alpha.4-ts-port-0.1.2":
+"@cerc-io/nitro-protocol@^2.0.0-alpha.4-ts-port-0.1.2":
   version "2.0.0-alpha.4-ts-port-0.1.2"
   resolved "https://git.vdb.to/api/packages/cerc-io/npm/%40cerc-io%2Fnitro-protocol/-/2.0.0-alpha.4-ts-port-0.1.2/nitro-protocol-2.0.0-alpha.4-ts-port-0.1.2.tgz#6d2f893f5aa08dd5550447f04967b908f3f6d469"
   integrity sha512-Cyx2+S/6BlAzvl+LZxwLjK2Y0H01f/kvTYUktdsGHx1eTWXTzS6FQ0nTVwJkKEcO8V/Y50+dc2PwvFXvk8iG9w==

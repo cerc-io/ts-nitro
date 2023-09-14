@@ -57,6 +57,7 @@ import {
 } from '../query/query';
 import { PAYER_INDEX, getPayee, getPayer } from '../../payments/helpers';
 import { Destination } from '../../types/destination';
+import { withObjectiveIdAttribute } from '../../internal/logging/logging';
 
 const log = debug('ts-nitro:engine');
 
@@ -199,7 +200,6 @@ export class Engine {
     msg: MessageService,
     chain: ChainService,
     store: Store,
-    logDestination: WritableStream | undefined,
     policymaker: PolicyMaker,
     eventHandler: (engineEvent: EngineEvent)=> void,
     metricsApi?: MetricsApi,
@@ -337,7 +337,10 @@ export class Engine {
       if (!res.isEmpty()) {
         res.completedObjectives?.forEach((obj) => {
           assert(this.logger);
-          this.logger(`Objective ${obj.id()} is complete & returned to API`);
+          this.logger(JSON.stringify({
+            msg: 'Objective is complete & returned to API',
+            ...withObjectiveIdAttribute(obj.id()),
+          }));
 
           if (METRICS_ENABLED) {
             this.metrics!.recordObjectiveCompleted(obj.id());
@@ -371,7 +374,10 @@ export class Engine {
       }
 
       if (obj.getStatus() === ObjectiveStatus.Completed) {
-        this.logger(`Ignoring proposal for complected objective ${obj.id()}`);
+        this.logger(JSON.stringify({
+          msg: 'Ignoring proposal for complected objective',
+          ...withObjectiveIdAttribute(id),
+        }));
         return [new EngineEvent({}), null];
       }
 
@@ -413,7 +419,11 @@ export class Engine {
         }
 
         if (objective.getStatus() === ObjectiveStatus.Unapproved) {
-          this.logger('Policymaker is', this.policymaker.constructor.name);
+          this.logger(JSON.stringify({
+            msg: 'Policymaker for objective',
+            'policy-maker': this.policymaker.constructor.name,
+            ...withObjectiveIdAttribute(objective.id()),
+          }));
 
           if (this.policymaker.shouldApprove(objective)) {
             objective = objective.approve();
@@ -450,12 +460,19 @@ export class Engine {
         }
 
         if (objective.getStatus() === ObjectiveStatus.Completed) {
-          this.logger(`Ignoring payload for complected objective ${objective.id()}`);
+          this.logger(JSON.stringify({
+            msg: 'Ignoring payload for complected objective',
+            ...withObjectiveIdAttribute(objective.id()),
+          }));
+
           continue;
         }
 
         if (objective.getStatus() === ObjectiveStatus.Rejected) {
-          this.logger(`Ignoring payload for rejected objective ${objective.id()}`);
+          this.logger(JSON.stringify({
+            msg: 'Ignoring payload for rejected objective',
+            ...withObjectiveIdAttribute(objective.id()),
+          }));
           continue;
         }
 
@@ -489,7 +506,10 @@ export class Engine {
         }
 
         if (o.getStatus() === ObjectiveStatus.Completed) {
-          this.logger(`Ignoring payload for complected objective ${o.id()}`);
+          this.logger(JSON.stringify({
+            msg: 'Ignoring proposal for completed objective',
+            ...withObjectiveIdAttribute(id),
+          }));
           continue;
         }
 
@@ -525,7 +545,10 @@ export class Engine {
         }
 
         if (objective.getStatus() === ObjectiveStatus.Rejected) {
-          this.logger(`Ignoring payload for rejected objective ${objective.id()}`);
+          this.logger(JSON.stringify({
+            msg: 'Ignoring payload for rejected objective',
+            ...withObjectiveIdAttribute(objective.id()),
+          }));
           continue;
         }
 
@@ -600,7 +623,10 @@ export class Engine {
       }
 
       assert('string' in chainEvent && typeof chainEvent.string === 'function');
-      this.logger(`handling chain event: ${chainEvent.string()}`);
+      this.logger(JSON.stringify({
+        msg: 'handling chain event',
+        event: chainEvent.string(),
+      }));
 
       // eslint-disable-next-line prefer-const
       let [c, ok] = await this.store!.getChannelById(chainEvent.channelID());
@@ -669,8 +695,10 @@ export class Engine {
       const objectiveId = or.id(myAddress, chainId);
 
       const failedEngineEvent = new EngineEvent({ failedObjectives: [objectiveId] });
-      this.logger(`handling new objective request for ${objectiveId}`);
-
+      this.logger(JSON.stringify({
+        msg: 'handling new objective request',
+        ...withObjectiveIdAttribute(objectiveId),
+      }));
       // Need to pass objective id instead of objective request id
       // this.metrics!.recordObjectiveStarted(objectiveId);
 
@@ -925,8 +953,10 @@ export class Engine {
 
       assert(this.chain);
       for await (const tx of sideEffects.transactionsToSubmit) {
-        this.logger(`Sending chain transaction for channel ${tx.channelId().string()}`);
-
+        this.logger(JSON.stringify({
+          msg: 'Sending chain transaction',
+          channel: tx.channelId().string(),
+        }));
         await this.chain.sendTransaction(tx);
       }
 
@@ -986,7 +1016,12 @@ export class Engine {
 
       outgoing.merge(notifEvents);
 
-      this.logger(`Objective ${objective.id()} is ${waitingFor}`);
+      this.logger(JSON.stringify({
+        msg: 'Objective cranked',
+        ...withObjectiveIdAttribute(objective.id()),
+        'waiting-for': waitingFor,
+
+      }));
 
       // If our protocol is waiting for nothing then we know the objective is complete
       // TODO: If attemptProgress is called on a completed objective CompletedObjectives would include that objective id
@@ -1169,7 +1204,10 @@ export class Engine {
             throw new Error(`error setting objective in store: ${setErr}`);
           }
 
-          this.logger(`Created new objective from message ${newObj.id()}`);
+          this.logger(JSON.stringify({
+            msg: 'Created new objective from message',
+            id: newObj.id(),
+          }));
           return newObj;
         }
 
@@ -1187,7 +1225,10 @@ export class Engine {
   private async constructObjectiveFromMessage(id: ObjectiveId, p: ObjectivePayload): Promise<Objective> {
     let deferredCompleteRecordFunction;
     try {
-      this.logger(`Constructing objective ${id} from message`);
+      this.logger(JSON.stringify({
+        msg: 'Constructing objective from message',
+        ...withObjectiveIdAttribute(id),
+      }));
       if (METRICS_ENABLED) {
         const completeRecordFunction = this.metrics!.recordFunctionDuration(this.constructObjectiveFromMessage.name);
         deferredCompleteRecordFunction = () => completeRecordFunction();
@@ -1297,9 +1338,15 @@ export class Engine {
   // logMessage logs a message to the engine's logger
   private logMessage(msg: Message, direction: MessageDirection): void {
     if (direction === Incoming) {
-      this.logger(`Received message: ${JSONbigNative.stringify(msg.summarize())}`);
+      this.logger(JSONbigNative.stringify({
+        msg: 'Received message',
+        _msg: msg.summarize(),
+      }));
     } else {
-      this.logger(`Sending message: ${JSONbigNative.stringify(msg.summarize())}`);
+      this.logger(JSONbigNative.stringify({
+        msg: 'Sent message',
+        _msg: msg.summarize(),
+      }));
     }
   }
 
@@ -1331,10 +1378,10 @@ export class Engine {
   // eslint-disable-next-line n/handle-callback-err
   private async checkError(err: Error): Promise<void> {
     if (err) {
-      this.logger({
-        error: err,
-        message: `${this.store?.getAddress()}, error in run loop`,
-      });
+      this.logger(JSON.stringify({
+        msg: 'error in run loop',
+        err,
+      }));
 
       for (const nonFatalError of nonFatalErrors) {
         if (WrappedError.is(err, nonFatalError)) {

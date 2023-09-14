@@ -33,7 +33,6 @@ export async function setupNode(
     messageService,
     chainService,
     store,
-    undefined,
     new PermissivePolicy(),
     metricsApi,
   );
