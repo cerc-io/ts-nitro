@@ -83,7 +83,6 @@ export class Nitro {
       metricsApi,
     );
 
-    subscribeVoucherLogs(node);
     return new Nitro(node, msgService, chainService, keySigner, store);
   }
 
@@ -114,7 +113,6 @@ export class Nitro {
       metricsApi,
     );
 
-    subscribeVoucherLogs(node);
     return new Nitro(node, msgService, chainService, snapSigner, store);
   }
 
