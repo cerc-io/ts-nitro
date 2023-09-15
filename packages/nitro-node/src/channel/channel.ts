@@ -15,7 +15,7 @@ import { Allocation } from './state/outcome/allocation';
 import { SignedState } from './state/signedstate';
 import { FixedPart, State, ConstructorOptions as FixedPartConstructorOptions } from './state/state';
 import {
-  AllocationUpdatedEvent, ChainEvent, ConcludedEvent, DepositedEvent,
+  AllocationUpdatedEvent, ChainEvent, ChallengeEvent, ConcludedEvent, DepositedEvent,
 } from '../node/engine/chainservice/chainservice';
 import { Exit } from './state/outcome/exit';
 
@@ -109,7 +109,14 @@ export class Channel extends FixedPart {
   };
 
   static fromJSON(data: string): Channel {
-    const props = fromJSON(this.jsonEncodingMap, data);
+    let props;
+
+    try {
+      props = fromJSON(this.jsonEncodingMap, data);
+    } catch (err) {
+      throw new Error(`error unmarshaling channel data: ${err}`);
+    }
+
     return new Channel(props);
   }
 
@@ -388,7 +395,7 @@ export class Channel extends FixedPart {
       case AllocationUpdatedEvent: {
         const e = event as AllocationUpdatedEvent;
         this.onChain.holdings.value.set(e.assetAndAmount.assetAddress, e.assetAndAmount.assetAmount!);
-        break;
+        break; // TODO: update OnChain.StateHash and OnChain.Outcome
       }
       case DepositedEvent: {
         const e = event as DepositedEvent;
@@ -396,7 +403,10 @@ export class Channel extends FixedPart {
         break;
       }
       case ConcludedEvent: {
-        break;
+        break; // TODO: update OnChain.StateHash and OnChain.Outcome
+      }
+      case ChallengeEvent: {
+        break; // TODO: update OnChain.StateHash and OnChain.Outcome
       }
       default: {
         throw new Error(`channel ${this} cannot handle event ${event}`);

@@ -116,7 +116,7 @@ export class ConcludedEvent extends CommonEvent {
   }
 }
 
-class ChallengeEvent extends CommonEvent {
+export class ChallengeEvent extends CommonEvent {
 
   // TODO fill out other fields
 }
