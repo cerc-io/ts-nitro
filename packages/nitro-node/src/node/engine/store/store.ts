@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer';
 
-import { NitroSigner } from '@cerc-io/nitro-util';
+import { NitroSigner, Uint64 } from '@cerc-io/nitro-util';
 
 import { Objective } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';
@@ -13,6 +13,7 @@ import { ObjectiveId } from '../../../protocols/messages';
 export const ErrNoSuchObjective = new Error('store: no such objective');
 export const ErrNoSuchChannel = new Error('store: failed to find required channel data');
 export const ErrLoadVouchers = new Error('store: could not load vouchers');
+export const lastBlockNumSeenKey = 'lastBlockNumSeen';
 
 // Store is responsible for persisting objectives, objective metadata, states, signatures, private keys and blockchain data
 export interface Store extends ConsensusChannelStore, VoucherStore {
@@ -48,6 +49,10 @@ export interface Store extends ConsensusChannelStore, VoucherStore {
 
   // Release channel from being owned by any objective
   releaseChannelFromOwnership (channelId: Destination): void | Promise<void>
+
+  getLastBlockNumSeen(): Uint64 | Promise<Uint64>;
+
+  setLastBlockNumSeen(blockNumber: Uint64): void | Promise<void>
 
   // The behavior of Close after the first call is undefined
   close (): void | Promise<void>

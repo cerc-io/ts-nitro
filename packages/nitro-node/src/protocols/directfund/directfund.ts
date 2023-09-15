@@ -303,7 +303,7 @@ export class Objective implements ObjectiveInterface {
         outcome,
         signatures,
       );
-      con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
+      con.onChainFunding = ledger.onChain.holdings.clone(); // Copy OnChain.Holdings so we don't lose this information
       return con;
     }
     const con = ConsensusChannel.newFollowerChannel(
@@ -317,7 +317,7 @@ export class Objective implements ObjectiveInterface {
       outcome,
       signatures,
     );
-    con.onChainFunding = ledger.onChainFunding.clone(); // Copy OnChainFunding so we don't lose this information
+    con.onChainFunding = ledger.onChain.holdings.clone(); // Copy OnChain.Holdings so we don't lose this information
     return con;
   }
 
@@ -479,7 +479,7 @@ export class Objective implements ObjectiveInterface {
   // fundingComplete returns true if the recorded OnChainHoldings are greater than or equal to the threshold for being fully funded.
   private fundingComplete(): boolean {
     for (const [asset, threshold] of this.fullyFundedThreshold!.value) {
-      const chainHolding = this.c!.onChainFunding.value.get(asset);
+      const chainHolding = this.c!.onChain.holdings.value.get(asset);
 
       if (chainHolding === undefined) {
         return false;
@@ -496,7 +496,7 @@ export class Objective implements ObjectiveInterface {
   // safeToDeposit returns true if the recorded OnChainHoldings are greater than or equal to the threshold for safety.
   private safeToDeposit(): boolean {
     for (const [asset, safetyThreshold] of this.myDepositSafetyThreshold!.value) {
-      const chainHolding = this.c!.onChainFunding.value.get(asset);
+      const chainHolding = this.c!.onChain.holdings.value.get(asset);
 
       if (chainHolding === undefined) {
         return false;
@@ -515,7 +515,7 @@ export class Objective implements ObjectiveInterface {
     const deposits: Funds = new Funds();
 
     for (const [asset, target] of this.myDepositTarget!.value) {
-      const holding = this.c!.onChainFunding.value.get(asset) ?? BigInt(0);
+      const holding = this.c!.onChain.holdings.value.get(asset) ?? BigInt(0);
       deposits.value.set(asset, target - holding);
     }
 

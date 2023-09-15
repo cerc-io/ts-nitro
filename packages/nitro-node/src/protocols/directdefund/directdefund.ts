@@ -78,8 +78,8 @@ const createChannelFromConsensusChannel = (cc: ConsensusChannel): channel.Channe
     cc.myIndex,
   );
 
-  c.onChainFunding = cc.onChainFunding.clone();
   c.addSignedState(cc.supportedSignedState());
+  c.onChain.holdings = cc.onChainFunding;
 
   return c;
 };
@@ -365,7 +365,7 @@ export class Objective implements ObjectiveInterface {
 
   // fullyWithdrawn returns true if the channel contains no assets on chain
   private fullyWithdrawn(): boolean {
-    return !this.c!.onChainFunding.isNonZero();
+    return !this.c!.onChain.holdings.isNonZero();
   }
 
   // otherParticipants returns the participants in the channel that are not the current participant.
