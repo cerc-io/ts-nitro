@@ -8,8 +8,7 @@ import { NitroSigner, DEFAULT_ASSET } from '@cerc-io/nitro-util';
 import { Node } from '../node/node';
 import { P2PMessageService } from '../node/engine/messageservice/p2p-message-service/service';
 import { Store } from '../node/engine/store/store';
-import { MemStore } from '../node/engine/store/memstore';
-import { DurableStore } from '../node/engine/store/durablestore';
+import { newStore } from '../node/engine/store/utils';
 import { Destination } from '../types/destination';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../node/query/types';
 import { EthChainService } from '../node/engine/chainservice/eth-chainservice';
@@ -65,7 +64,7 @@ export class Nitro {
     asset?: string,
   ): Promise<Nitro> {
     const keySigner = new KeySigner(pk);
-    const store = await this.getStore(keySigner, location);
+    const store = await newStore(keySigner, location);
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
     const chainService = await EthChainService.newEthChainService(
@@ -96,7 +95,7 @@ export class Nitro {
     asset?: string,
   ): Promise<Nitro> {
     const snapSigner = new SnapSigner(provider, snapOrigin);
-    const store = await this.getStore(snapSigner, location);
+    const store = await newStore(snapSigner, location);
     const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
     const chainService = await EthChainService.newEthChainServiceWithProvider(
@@ -114,16 +113,6 @@ export class Nitro {
     );
 
     return new Nitro(node, msgService, chainService, snapSigner, store);
-  }
-
-  private static async getStore(signer: NitroSigner, location?: string): Promise<Store> {
-    await signer.init();
-
-    if (location) {
-      return DurableStore.newDurableStore(signer, location);
-    }
-
-    return MemStore.newMemStore(signer);
   }
 
   static async clearNodeStorage(): Promise<boolean> {

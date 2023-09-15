@@ -389,7 +389,7 @@ export class Channel extends FixedPart {
     return ss;
   }
 
-  // UpdateWithChainEvent mutates the receiver if provided with a "new" chain event (with a greater block number than previously seen)
+  // UpdateWithChainEvent mutates the receiver with the supplied chain event, replacing the relevant data fields.
   updateWithChainEvent(event: ChainEvent): Channel {
     switch (event.constructor) {
       case AllocationUpdatedEvent: {
