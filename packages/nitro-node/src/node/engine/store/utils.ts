@@ -1,5 +1,5 @@
 import debug from 'debug';
-import path from 'path';
+import path from 'path-browserify';
 
 import { NitroSigner } from '@cerc-io/nitro-util';
 

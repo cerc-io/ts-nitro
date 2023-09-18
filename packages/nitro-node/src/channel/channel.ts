@@ -31,6 +31,7 @@ interface OnChainDataConstructorOptions {
   outcome?: Exit;
   stateHash?: string
 }
+
 interface OffChainDataConstructorOptions {
   signedStateForTurnNum?: Map<Uint64, SignedState>;
   latestSupportedStateTurnNum?: Uint64;
