@@ -7,4 +7,5 @@ export {
   DepositedEventObject,
   AllocationUpdatedEventObject,
   ConcludedEventObject,
+  ChallengeRegisteredEventObject,
 } from '@cerc-io/nitro-util';

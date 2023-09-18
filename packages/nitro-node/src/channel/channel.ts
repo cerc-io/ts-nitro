@@ -15,7 +15,7 @@ import { Allocation } from './state/outcome/allocation';
 import { SignedState } from './state/signedstate';
 import { FixedPart, State, ConstructorOptions as FixedPartConstructorOptions } from './state/state';
 import {
-  AllocationUpdatedEvent, ChainEvent, ChallengeEvent, ConcludedEvent, DepositedEvent,
+  AllocationUpdatedEvent, ChainEvent, ChallengeRegisteredEvent, ConcludedEvent, DepositedEvent,
 } from '../node/engine/chainservice/chainservice';
 import { Exit } from './state/outcome/exit';
 
@@ -405,8 +405,16 @@ export class Channel extends FixedPart {
       case ConcludedEvent: {
         break; // TODO: update OnChain.StateHash and OnChain.Outcome
       }
-      case ChallengeEvent: {
-        break; // TODO: update OnChain.StateHash and OnChain.Outcome
+      case ChallengeRegisteredEvent: {
+        const e = event as ChallengeRegisteredEvent;
+
+        const h = e.stateHash(this);
+        this.onChain.stateHash = h;
+        this.onChain.outcome = e.outcome();
+
+        const ss = e.SignedState(this);
+        this.addSignedState(ss);
+        break;
       }
       default: {
         throw new Error(`channel ${this} cannot handle event ${event}`);

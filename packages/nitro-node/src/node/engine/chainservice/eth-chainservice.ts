@@ -14,19 +14,22 @@ import {
 } from '@cerc-io/nitro-util';
 
 import {
-  ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent,
+  ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent, ChallengeRegisteredEvent,
 } from './chainservice';
 import { ChainTransaction, DepositTransaction, WithdrawAllTransaction } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
 import { Token__factory } from './erc20/token';
 import { Destination } from '../../../types/destination';
 import {
-  INitroTypes, NitroAdjudicator__factory, NitroAdjudicator, DepositedEventObject, AllocationUpdatedEventObject, ConcludedEventObject,
+  INitroTypes, NitroAdjudicator__factory, NitroAdjudicator, DepositedEventObject, AllocationUpdatedEventObject,
+  ConcludedEventObject, ChallengeRegisteredEventObject,
 } from './adjudicator/nitro-adjudicator';
 import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 
 import { assetAddressForIndex } from './eth-chain-helpers';
 import { connectToChain } from './utils/utils';
+import { VariablePart } from '../../../channel/state/state';
+import { convertBindingsExitToExit, convertBindingsSignaturesToSignatures } from './adjudicator/reverse_typeconversions';
 
 const log = debug('ts-nitro:eth-chain-service');
 
@@ -455,9 +458,28 @@ export class EthChainService implements ChainService {
           }
           break;
         }
-        case challengeRegisteredTopic:
-          this.logger('Ignoring Challenge Registered event');
+        case challengeRegisteredTopic: {
+          try {
+            const cr = this.na.interface.parseLog(l).args as unknown as ChallengeRegisteredEventObject;
+
+            const event = ChallengeRegisteredEvent.NewChallengeRegisteredEvent(
+              new Destination(cr.channelId),
+              BigInt(l.blockNumber),
+              new VariablePart({
+                appData: Buffer.from(cr.candidate.variablePart.appData.toString()),
+                outcome: convertBindingsExitToExit(cr.candidate.variablePart.outcome),
+                turnNum: BigInt(cr.candidate.variablePart.turnNum),
+                isFinal: cr.candidate.variablePart.isFinal,
+              }),
+              convertBindingsSignaturesToSignatures(cr.candidate.sigs),
+            );
+
+            this.out.push(event);
+          } catch (err) {
+            throw new Error(`error in ParseChallengeRegistered: ${err}`);
+          }
           break;
+        }
         case challengeClearedTopic:
           this.logger('Ignoring Challenge Cleared event');
           break;

@@ -7,6 +7,10 @@ import { Uint64 } from '@cerc-io/nitro-util';
 import { ChainTransaction, Objective } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
 import { Destination } from '../../../types/destination';
+import { FixedPart, VariablePart, stateFromFixedAndVariablePart } from '../../../channel/state/state';
+import { Signature } from '../../../crypto/signatures';
+import { Exit } from '../../../channel/state/outcome/exit';
+import { SignedState } from '../../../channel/state/signedstate';
 
 // ChainEvent dictates which methods all chain events must implement
 export interface ChainEvent {
@@ -116,9 +120,67 @@ export class ConcludedEvent extends CommonEvent {
   }
 }
 
-export class ChallengeEvent extends CommonEvent {
+export class ChallengeRegisteredEvent extends CommonEvent {
+  canditate?: VariablePart;
 
-  // TODO fill out other fields
+  candidateSignatures?: Signature[];
+
+  constructor(
+    params: {
+      canditate: VariablePart,
+      candidateSignatures: Signature[]
+    } & CommonEventConstructorOptions,
+  ) {
+    super(params);
+    Object.assign(this, params);
+  }
+
+  // NewChallengeRegisteredEvent constructs a ChallengeRegisteredEvent
+  static NewChallengeRegisteredEvent(
+    channelId: Destination,
+    blockNum: Uint64,
+    variablePart: VariablePart,
+    sigs: Signature[],
+  ): ChallengeRegisteredEvent {
+    return new ChallengeRegisteredEvent({
+      _channelID: channelId,
+      _blockNum: blockNum,
+      canditate: new VariablePart({
+        appData: variablePart.appData,
+        outcome: variablePart.outcome,
+        turnNum: variablePart.turnNum,
+        isFinal: variablePart.isFinal,
+      }),
+      candidateSignatures: sigs,
+    });
+  }
+
+  // StateHash returns the statehash stored on chain at the time of the ChallengeRegistered Event firing.
+  stateHash(fp: FixedPart): string {
+    return stateFromFixedAndVariablePart(fp, this.canditate!).hash();
+  }
+
+  // Outcome returns the outcome which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
+  outcome(): Exit {
+    return this.canditate?.outcome!;
+  }
+
+  // SignedState returns the signed state which will have been stored on chain in the adjudicator after the ChallengeRegistered Event fires.
+  SignedState(fp: FixedPart): SignedState {
+    const s = stateFromFixedAndVariablePart(fp, this.canditate!);
+    const ss = SignedState.newSignedState(s);
+
+    for (let i = 0; i < this.candidateSignatures!.length; i += 1) {
+      const sig = this.candidateSignatures![i];
+      ss.addSignature(sig);
+    }
+
+    return ss;
+  }
+
+  string(): string {
+    return `CHALLENGE registered for Channel ${this.channelID().string()} at Block ${this._blockNum}`;
+  }
 }
 
 // AllocationUpdated is an internal representation of the AllocationUpdated blockchain event
