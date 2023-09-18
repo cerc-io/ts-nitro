@@ -65,48 +65,8 @@
         {
           "indexed": false,
           "internalType": "uint48",
-          "name": "turnNumRecord",
-          "type": "uint48"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint48",
           "name": "finalizesAt",
           "type": "uint48"
-        },
-        {
-          "indexed": false,
-          "internalType": "bool",
-          "name": "isFinal",
-          "type": "bool"
-        },
-        {
-          "components": [
-            {
-              "internalType": "address[]",
-              "name": "participants",
-              "type": "address[]"
-            },
-            {
-              "internalType": "uint64",
-              "name": "channelNonce",
-              "type": "uint64"
-            },
-            {
-              "internalType": "address",
-              "name": "appDefinition",
-              "type": "address"
-            },
-            {
-              "internalType": "uint48",
-              "name": "challengeDuration",
-              "type": "uint48"
-            }
-          ],
-          "indexed": false,
-          "internalType": "struct INitroTypes.FixedPart",
-          "name": "fixedPart",
-          "type": "tuple"
         },
         {
           "components": [
