@@ -7,6 +7,7 @@ import { Signature } from '../../../../crypto/signatures';
 import {
   ExitFormat, INitroTypes,
 } from './nitro-adjudicator';
+import { SignedState } from '../../../../channel/state/signedstate';
 
 export function convertAssetMetadata(am: AssetMetadata): ExitFormat.AssetMetadataStruct {
   return {
@@ -61,4 +62,33 @@ export function convertSignature(s: Signature): INitroTypes.SignatureStruct {
   (s.s ?? Buffer.alloc(0)).copy(sig.s);
 
   return sig;
+}
+
+export function convertSignedStateToFixedPartAndSignedVariablePart(s: SignedState): [
+  INitroTypes.FixedPartStruct,
+  INitroTypes.SignedVariablePartStruct,
+] {
+  const fp = convertFixedPart(s.state().fixedPart());
+  const svp: INitroTypes.SignedVariablePartStruct = {
+    variablePart: convertVariablePart(s.state().variablePart()),
+    sigs: [],
+  };
+
+  for (let i = 0; i < s.signatures().length; i += 1) {
+    const sig = s.signatures()[i];
+    svp.sigs.push(convertSignature(sig));
+  }
+
+  return [fp, svp];
+}
+
+export function convertSignedStatesToProof(ss: SignedState[]): INitroTypes.SignedVariablePartStruct[] {
+  const svps: INitroTypes.SignedVariablePartStruct[] = [];
+  for (let i = 0; i < ss.length; i += 1) {
+    const s = ss[i];
+    const [,svp] = convertSignedStateToFixedPartAndSignedVariablePart(s);
+    svps.push(svp);
+  }
+
+  return svps;
 }
