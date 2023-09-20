@@ -27,62 +27,6 @@ import type {
   OnEvent,
 } from "./common";
 
-export declare namespace INitroTypes {
-  export type FixedPartStruct = {
-    participants: string[];
-    channelNonce: BigNumberish;
-    appDefinition: string;
-    challengeDuration: BigNumberish;
-  };
-
-  export type FixedPartStructOutput = [string[], BigNumber, string, number] & {
-    participants: string[];
-    channelNonce: BigNumber;
-    appDefinition: string;
-    challengeDuration: number;
-  };
-
-  export type VariablePartStruct = {
-    outcome: ExitFormat.SingleAssetExitStruct[];
-    appData: BytesLike;
-    turnNum: BigNumberish;
-    isFinal: boolean;
-  };
-
-  export type VariablePartStructOutput = [
-    ExitFormat.SingleAssetExitStructOutput[],
-    string,
-    number,
-    boolean
-  ] & {
-    outcome: ExitFormat.SingleAssetExitStructOutput[];
-    appData: string;
-    turnNum: number;
-    isFinal: boolean;
-  };
-
-  export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
-
-  export type SignatureStructOutput = [number, string, string] & {
-    v: number;
-    r: string;
-    s: string;
-  };
-
-  export type SignedVariablePartStruct = {
-    variablePart: INitroTypes.VariablePartStruct;
-    sigs: INitroTypes.SignatureStruct[];
-  };
-
-  export type SignedVariablePartStructOutput = [
-    INitroTypes.VariablePartStructOutput,
-    INitroTypes.SignatureStructOutput[]
-  ] & {
-    variablePart: INitroTypes.VariablePartStructOutput;
-    sigs: INitroTypes.SignatureStructOutput[];
-  };
-}
-
 export declare namespace ExitFormat {
   export type AssetMetadataStruct = {
     assetType: BigNumberish;
@@ -122,6 +66,62 @@ export declare namespace ExitFormat {
     asset: string;
     assetMetadata: ExitFormat.AssetMetadataStructOutput;
     allocations: ExitFormat.AllocationStructOutput[];
+  };
+}
+
+export declare namespace INitroTypes {
+  export type VariablePartStruct = {
+    outcome: ExitFormat.SingleAssetExitStruct[];
+    appData: BytesLike;
+    turnNum: BigNumberish;
+    isFinal: boolean;
+  };
+
+  export type VariablePartStructOutput = [
+    ExitFormat.SingleAssetExitStructOutput[],
+    string,
+    number,
+    boolean
+  ] & {
+    outcome: ExitFormat.SingleAssetExitStructOutput[];
+    appData: string;
+    turnNum: number;
+    isFinal: boolean;
+  };
+
+  export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
+
+  export type SignatureStructOutput = [number, string, string] & {
+    v: number;
+    r: string;
+    s: string;
+  };
+
+  export type SignedVariablePartStruct = {
+    variablePart: INitroTypes.VariablePartStruct;
+    sigs: INitroTypes.SignatureStruct[];
+  };
+
+  export type SignedVariablePartStructOutput = [
+    INitroTypes.VariablePartStructOutput,
+    INitroTypes.SignatureStructOutput[]
+  ] & {
+    variablePart: INitroTypes.VariablePartStructOutput;
+    sigs: INitroTypes.SignatureStructOutput[];
+  };
+
+  export type FixedPartStruct = {
+    participants: string[];
+    channelNonce: BigNumberish;
+    appDefinition: string;
+    challengeDuration: BigNumberish;
+  };
+
+  export type FixedPartStructOutput = [string[], BigNumber, string, number] & {
+    participants: string[];
+    channelNonce: BigNumber;
+    appDefinition: string;
+    challengeDuration: number;
   };
 }
 
@@ -301,7 +301,7 @@ export interface NitroAdjudicatorInterface extends utils.Interface {
   events: {
     "AllocationUpdated(bytes32,uint256,uint256,uint256)": EventFragment;
     "ChallengeCleared(bytes32,uint48)": EventFragment;
-    "ChallengeRegistered(bytes32,uint48,uint48,bool,tuple,tuple[],tuple)": EventFragment;
+    "ChallengeRegistered(bytes32,uint48,tuple[],tuple)": EventFragment;
     "Concluded(bytes32,uint48)": EventFragment;
     "Deposited(bytes32,address,uint256)": EventFragment;
     "Reclaimed(bytes32,uint256)": EventFragment;
@@ -343,10 +343,7 @@ export type ChallengeClearedEventFilter =
 
 export interface ChallengeRegisteredEventObject {
   channelId: string;
-  turnNumRecord: number;
   finalizesAt: number;
-  isFinal: boolean;
-  fixedPart: INitroTypes.FixedPartStructOutput;
   proof: INitroTypes.SignedVariablePartStructOutput[];
   candidate: INitroTypes.SignedVariablePartStructOutput;
 }
@@ -354,9 +351,6 @@ export type ChallengeRegisteredEvent = TypedEvent<
   [
     string,
     number,
-    number,
-    boolean,
-    INitroTypes.FixedPartStructOutput,
     INitroTypes.SignedVariablePartStructOutput[],
     INitroTypes.SignedVariablePartStructOutput
   ],
@@ -774,21 +768,15 @@ export interface NitroAdjudicator extends BaseContract {
       newTurnNumRecord?: null
     ): ChallengeClearedEventFilter;
 
-    "ChallengeRegistered(bytes32,uint48,uint48,bool,tuple,tuple[],tuple)"(
+    "ChallengeRegistered(bytes32,uint48,tuple[],tuple)"(
       channelId?: BytesLike | null,
-      turnNumRecord?: null,
       finalizesAt?: null,
-      isFinal?: null,
-      fixedPart?: null,
       proof?: null,
       candidate?: null
     ): ChallengeRegisteredEventFilter;
     ChallengeRegistered(
       channelId?: BytesLike | null,
-      turnNumRecord?: null,
       finalizesAt?: null,
-      isFinal?: null,
-      fixedPart?: null,
       proof?: null,
       candidate?: null
     ): ChallengeRegisteredEventFilter;

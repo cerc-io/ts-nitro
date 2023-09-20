@@ -13,4 +13,5 @@ export * from './misc';
 
 export {
   INitroTypes, ExitFormat, DepositedEventObject, AllocationUpdatedEventObject, ConcludedEventObject,
+  ChallengeRegisteredEventObject,
 } from './contract-bindings/NitroAdjudicator';

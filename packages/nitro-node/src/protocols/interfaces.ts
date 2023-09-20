@@ -7,6 +7,7 @@ import { Address } from '../types/types';
 import { Destination } from '../types/destination';
 import { Funds } from '../types/funds';
 import { SignedState } from '../channel/state/signedstate';
+import { Signature } from '../crypto/signatures';
 
 export const errNotApproved = new Error('objective not approved');
 
@@ -61,6 +62,38 @@ export class WithdrawAllTransaction extends ChainTransactionBase implements Chai
 
   static newWithdrawAllTransaction(channelId: Destination, signedState: SignedState): WithdrawAllTransaction {
     return new WithdrawAllTransaction({ channelId, signedState });
+  }
+}
+
+export class ChallengeTransaction extends ChainTransactionBase implements ChainTransaction {
+  candidate: SignedState = new SignedState({});
+
+  proof: SignedState[] = [];
+
+  challengerSig: Signature = new Signature({});
+
+  constructor(params: {
+    channelId: Destination
+    candidate: SignedState,
+    proof: SignedState[],
+    challengerSig: Signature
+  }) {
+    super(params.channelId);
+    Object.assign(this, { candidate: params.candidate, proof: params.proof, challengerSig: params.challengerSig });
+  }
+
+  static newChallengeTransaction(
+    channelId: Destination,
+    candidate: SignedState,
+    proof: SignedState[],
+    challengerSig: Signature,
+  ): ChallengeTransaction {
+    return new ChallengeTransaction({
+      channelId,
+      candidate,
+      proof,
+      challengerSig,
+    });
   }
 }
 

@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 
-import * as ExitFormat from '@statechannels/exit-format';
+import type * as ExitFormat from '@statechannels/exit-format';
 import {
   getChannelId as utilGetChannelId,
   State as NitroState,

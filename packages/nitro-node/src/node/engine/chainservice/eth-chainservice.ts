@@ -14,41 +14,36 @@ import {
 } from '@cerc-io/nitro-util';
 
 import {
-  ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent,
+  ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent, ChallengeRegisteredEvent,
 } from './chainservice';
-import { ChainTransaction, DepositTransaction, WithdrawAllTransaction } from '../../../protocols/interfaces';
+import {
+  ChainTransaction, ChallengeTransaction, DepositTransaction, WithdrawAllTransaction,
+} from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
 import { Token__factory } from './erc20/token';
 import { Destination } from '../../../types/destination';
 import {
-  INitroTypes, NitroAdjudicator__factory, NitroAdjudicator, DepositedEventObject, AllocationUpdatedEventObject, ConcludedEventObject,
+  INitroTypes, NitroAdjudicator__factory, NitroAdjudicator, DepositedEventObject, AllocationUpdatedEventObject,
+  ConcludedEventObject, ChallengeRegisteredEventObject,
 } from './adjudicator/nitro-adjudicator';
 import * as NitroAdjudicatorConversions from './adjudicator/typeconversions';
 
 import { assetAddressForIndex } from './eth-chain-helpers';
 import { connectToChain } from './utils/utils';
+import { VariablePart } from '../../../channel/state/state';
+import { convertBindingsExitToExit, convertBindingsSignaturesToSignatures } from './adjudicator/reverse_typeconversions';
 
 const log = debug('ts-nitro:eth-chain-service');
 
 // REQUIRED_BLOCK_CONFIRMATIONS is how many blocks must be mined before an emitted event is processed
 const REQUIRED_BLOCK_CONFIRMATIONS = 2;
 
-const allocationUpdatedTopic = ethers.utils.keccak256(
-  ethers.utils.toUtf8Bytes('AllocationUpdated(bytes32,uint256,uint256,uint256)'),
-);
-const concludedTopic = ethers.utils.keccak256(
-  ethers.utils.toUtf8Bytes('Concluded(bytes32,uint48)'),
-);
-const depositedTopic = ethers.utils.keccak256(
-  ethers.utils.toUtf8Bytes('Deposited(bytes32,address,uint256)'),
-);
-const challengeRegisteredTopic = ethers.utils.keccak256(
-  // eslint-disable-next-line max-len
-  ethers.utils.toUtf8Bytes('ChallengeRegistered(bytes32 indexed channelId, uint48 turnNumRecord, uint48 finalizesAt, bool isFinal, (address[],uint64,address,uint48) fixedPart, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[])[] proof, (((address,(uint8,bytes),(bytes32,uint256,uint8,bytes)[])[],bytes,uint48,bool),(uint8,bytes32,bytes32)[]) candidate)'),
-);
-const challengeClearedTopic = ethers.utils.keccak256(
-  ethers.utils.toUtf8Bytes('ChallengeCleared(bytes32 indexed channelId, uint48 newTurnNumRecord)'),
-);
+const naInterface = NitroAdjudicator__factory.createInterface();
+const concludedTopic = ethers.utils.id(naInterface.getEvent('Concluded').format());
+const allocationUpdatedTopic = ethers.utils.id(naInterface.getEvent('AllocationUpdated').format());
+const depositedTopic = ethers.utils.id(naInterface.getEvent('Deposited').format());
+const challengeRegisteredTopic = ethers.utils.id(naInterface.getEvent('ChallengeRegistered').format());
+const challengeClearedTopic = ethers.utils.id(naInterface.getEvent('ChallengeCleared').format());
 
 const topicsToWatch: string[] = [
   allocationUpdatedTopic,
@@ -151,7 +146,6 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
-    logDestination?: WritableStream,
   ): Promise<EthChainService> {
     if (vpaAddress === caAddress) {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
@@ -372,6 +366,16 @@ export class EthChainService implements ChainService {
         break;
       }
 
+      case ChallengeTransaction: {
+        const challengeTx = tx as ChallengeTransaction;
+
+        const [fp, candidate] = NitroAdjudicatorConversions.convertSignedStateToFixedPartAndSignedVariablePart(challengeTx.candidate);
+        const proof = NitroAdjudicatorConversions.convertSignedStatesToProof(challengeTx.proof);
+        const challengerSig = NitroAdjudicatorConversions.convertSignature(challengeTx.challengerSig);
+
+        await this.na.challenge(fp, proof, candidate, challengerSig);
+        break;
+      }
       default:
         throw new Error(`Unexpected transaction type ${tx.constructor}`);
     }
@@ -455,9 +459,28 @@ export class EthChainService implements ChainService {
           }
           break;
         }
-        case challengeRegisteredTopic:
-          this.logger('Ignoring Challenge Registered event');
+        case challengeRegisteredTopic: {
+          try {
+            const cr = this.na.interface.parseLog(l).args as unknown as ChallengeRegisteredEventObject;
+
+            const event = ChallengeRegisteredEvent.NewChallengeRegisteredEvent(
+              new Destination(cr.channelId),
+              BigInt(l.blockNumber),
+              new VariablePart({
+                appData: Buffer.from(cr.candidate.variablePart.appData.toString()),
+                outcome: convertBindingsExitToExit(cr.candidate.variablePart.outcome),
+                turnNum: BigInt(cr.candidate.variablePart.turnNum),
+                isFinal: cr.candidate.variablePart.isFinal,
+              }),
+              convertBindingsSignaturesToSignatures(cr.candidate.sigs),
+            );
+
+            this.out.push(event);
+          } catch (err) {
+            throw new Error(`error in ParseChallengeRegistered: ${err}`);
+          }
           break;
+        }
         case challengeClearedTopic:
           this.logger('Ignoring Challenge Cleared event');
           break;
