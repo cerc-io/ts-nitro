@@ -146,7 +146,6 @@ export class EthChainService implements ChainService {
     naAddress: Address,
     caAddress: Address,
     vpaAddress: Address,
-    logDestination?: WritableStream,
   ): Promise<EthChainService> {
     if (vpaAddress === caAddress) {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);

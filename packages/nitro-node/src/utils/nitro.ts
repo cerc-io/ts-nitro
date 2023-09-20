@@ -19,6 +19,7 @@ import { Voucher } from '../payments/vouchers';
 import { KeySigner } from './signers/key-signer';
 import { SnapSigner } from './signers/snap-signer';
 import { MetricsApi } from '../node/engine/metrics';
+import { initializeNode } from '../internal/node/node';
 
 const log = debug('ts-nitro:util:nitro');
 
@@ -64,24 +65,20 @@ export class Nitro {
     asset?: string,
   ): Promise<Nitro> {
     const keySigner = new KeySigner(pk);
-    const store = await newStore(keySigner, location);
-    const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
-    const chainService = await EthChainService.newEthChainService(
-      chainURL,
-      chainPk,
-      contractAddresses.nitroAdjudicatorAddress,
-      contractAddresses.consensusAppAddress,
-      contractAddresses.virtualPaymentAppAddress,
-    );
-
-    const node = await setupNode(
-      msgService,
-      store,
-      chainService,
+    const [node, store, msgService, chainService] = await initializeNode(
+      keySigner,
+      peer,
+      {
+        naAddress: contractAddresses.nitroAdjudicatorAddress,
+        vpaAddress: contractAddresses.virtualPaymentAppAddress,
+        caAddress: contractAddresses.consensusAppAddress,
+        chainPk,
+        chainUrl: chainURL,
+      },
+      location,
       metricsApi,
     );
-
     return new Nitro(node, msgService, chainService, keySigner, store);
   }
 
@@ -95,20 +92,17 @@ export class Nitro {
     asset?: string,
   ): Promise<Nitro> {
     const snapSigner = new SnapSigner(provider, snapOrigin);
-    const store = await newStore(snapSigner, location);
-    const msgService = await P2PMessageService.newMessageService(store.getAddress(), peer);
 
-    const chainService = await EthChainService.newEthChainServiceWithProvider(
-      provider,
-      contractAddresses.nitroAdjudicatorAddress,
-      contractAddresses.consensusAppAddress,
-      contractAddresses.virtualPaymentAppAddress,
-    );
-
-    const node = await setupNode(
-      msgService,
-      store,
-      chainService,
+    const [node, store, msgService, chainService] = await initializeNode(
+      snapSigner,
+      peer,
+      {
+        naAddress: contractAddresses.nitroAdjudicatorAddress,
+        vpaAddress: contractAddresses.virtualPaymentAppAddress,
+        caAddress: contractAddresses.consensusAppAddress,
+        provider,
+      },
+      location,
       metricsApi,
     );
 
