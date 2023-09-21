@@ -48,16 +48,16 @@ async function main() {
   if (argv.address) {
     address = argv.address;
   } else if (argv.key) {
-    address = await getAddressByKey(argv.key, DEFAULT_CHAIN_URL);
+    address = await getAddressByKey(argv.key, argv.chainurl);
   } else {
     throw new Error('Provide either address or private key of an account');
   }
 
   if (argv.token) {
-    const balance = await getTokenBalanceByAddress(argv.token, address, DEFAULT_CHAIN_URL);
+    const balance = await getTokenBalanceByAddress(argv.token, address, argv.chainurl);
     log(`Token balance of account ${address} is ${balance.toString()}`);
   } else {
-    const balance = await getBalanceByAddress(address, DEFAULT_CHAIN_URL);
+    const balance = await getBalanceByAddress(address, argv.chainurl);
     log(`ETH balance of account ${address} is ${balance.toString()}`);
   }
 }
