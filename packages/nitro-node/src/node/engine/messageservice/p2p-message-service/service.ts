@@ -373,18 +373,16 @@ export class P2PMessageService implements MessageService {
         return;
       }
 
-      const [, foundPeer] = this.peers!.loadOrStore(msg!.address.toString(), msg!.id);
-      if (!foundPeer) {
-        const peerInfo: BasicPeerInfo = {
-          id: msg!.id,
-          address: msg!.address,
-        };
+      this.peers!.store(msg.address.toString(), msg.id);
 
-        this.logger(`stored new peer in map: ${JSON.stringify(peerInfo)}`);
+      const peerInfo: BasicPeerInfo = {
+        id: msg!.id,
+        address: msg!.address,
+      };
+      this.logger(`stored new peer in map: ${JSON.stringify(peerInfo)}`);
 
-        // Use a non-blocking send in case no one is listening
-        this.newPeerInfo!.push(peerInfo);
-      }
+      // Use a non-blocking send in case no one is listening
+      this.newPeerInfo!.push(peerInfo);
     } finally {
       if (deferStreamClose) {
         deferStreamClose();
@@ -422,6 +420,7 @@ export class P2PMessageService implements MessageService {
 
         return;
       } catch (err) {
+        // TODO: Fix error logging, JSON.stringify results into err field being {} for Error class
         this.logger(JSON.stringify({
           msg: 'error opening stream',
           err,
