@@ -707,6 +707,9 @@ export class EthChainService implements ChainService {
 
   async close(): Promise<void> {
     this.cancel();
+    if (this.chain.provider instanceof providers.WebSocketProvider) {
+      await this.chain.provider.destroy();
+    }
     await this.wg!.wait();
   }
 }
