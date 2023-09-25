@@ -1,10 +1,12 @@
 import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
+import { ethers } from 'ethers';
 
 import {
   fromJSON, toJSON, FieldDescription, Uint, Uint64, NitroSigner,
 } from '@cerc-io/nitro-util';
+import { Bytes32 } from '@cerc-io/nitro-protocol';
 
 import { Signature } from '../crypto/signatures';
 import { Destination } from '../types/destination';
@@ -29,7 +31,7 @@ interface ConstructorOptions extends FixedPartConstructorOptions {
 interface OnChainDataConstructorOptions {
   holdings?: Funds;
   outcome?: Exit;
-  stateHash?: string
+  stateHash?: Bytes32
 }
 
 interface OffChainDataConstructorOptions {
@@ -42,7 +44,7 @@ class OnChainData {
 
   outcome: Exit = new Exit();
 
-  stateHash: string = '';
+  stateHash: Bytes32 = ethers.utils.hexZeroPad([], 32);
 
   constructor(params: OnChainDataConstructorOptions) {
     Object.assign(this, params);
@@ -50,7 +52,7 @@ class OnChainData {
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     holdings: { type: 'class', value: Funds },
-    myIndex: { type: 'class', value: Exit },
+    outcome: { type: 'class', value: Exit },
     stateHash: { type: 'string' },
   };
 
@@ -410,7 +412,7 @@ export class Channel extends FixedPart {
         const e = event as ChallengeRegisteredEvent;
 
         const h = e.stateHash(this);
-        this.onChain.stateHash = h;
+        this.onChain.stateHash = ethers.utils.hexZeroPad(h, 32);
         this.onChain.outcome = e.outcome();
 
         const ss = e.SignedState(this);
