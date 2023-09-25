@@ -412,7 +412,7 @@ export class Channel extends FixedPart {
         const e = event as ChallengeRegisteredEvent;
 
         const h = e.stateHash(this);
-        this.onChain.stateHash = ethers.utils.hexZeroPad(h, 32);
+        this.onChain.stateHash = h;
         this.onChain.outcome = e.outcome();
 
         const ss = e.SignedState(this);

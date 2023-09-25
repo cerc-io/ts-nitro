@@ -7,6 +7,7 @@ import {
   getChannelId as utilGetChannelId,
   State as NitroState,
   hashState as utilHashState,
+  Bytes32,
 } from '@cerc-io/nitro-protocol';
 import {
   FieldDescription, NitroSigner, Uint64, bytes2Hex, fromJSON, hex2Bytes, toJSON,
@@ -191,7 +192,7 @@ export class State {
   }
 
   // Hash returns the keccak256 hash of the State
-  hash(): string {
+  hash(): Bytes32 {
     // Use hashState method from @statechannels/nitro-protocol
     // Create NitroState instance from State
     const state: NitroState = this._getNitroState();
