@@ -1,10 +1,10 @@
-import { ContractFactory, providers } from 'ethers';
+import { ContractFactory, Signer } from 'ethers';
 
 import nitroAdjudicatorArtifact from '@cerc-io/nitro-protocol/dist/artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
 import consensusAppArtifact from '@cerc-io/nitro-protocol/dist/artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '@cerc-io/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
 
-export async function deployContracts(signer: providers.JsonRpcSigner): Promise<[string, string, string]> {
+export async function deployContracts(signer: Signer): Promise<[string, string, string]> {
   const nitroAdjudicatorFactory = new ContractFactory(
     nitroAdjudicatorArtifact.abi,
     nitroAdjudicatorArtifact.bytecode,
@@ -29,7 +29,7 @@ export async function deployContracts(signer: providers.JsonRpcSigner): Promise<
   return [nitroAdjudicator.address, virtualPaymentApp.address, consensusApp.address];
 }
 
-export async function deployToken(signer: providers.JsonRpcSigner, artifact: any): Promise<string> {
+export async function deployToken(signer: Signer, artifact: any): Promise<string> {
   const tokenFactory = new ContractFactory(
     artifact.abi,
     artifact.bytecode,
