@@ -274,7 +274,7 @@ export class EthChainService implements ChainService {
     // Fetch the latest block
     const latestBlock = await this.chain.provider.getBlock('latest');
 
-    this.logger(JSON.stringify({
+    this.logger(JSONbigNative.stringify({
       msg: 'checking for missed chain events',
       startBlock,
       currentBlock: latestBlock.number,
@@ -480,7 +480,7 @@ export class EthChainService implements ChainService {
             const event = DepositedEvent.newDepositedEvent(
               new Destination(nad.destination),
               BigInt(l.blockNumber),
-              BigInt(l.txIndex),
+              BigInt(l.transactionIndex),
               nad.asset,
               nad.destinationHoldings.toBigInt(),
             );
@@ -530,7 +530,7 @@ export class EthChainService implements ChainService {
           const event = AllocationUpdatedEvent.newAllocationUpdatedEvent(
             new Destination(au.channelId),
             BigInt(l.blockNumber),
-            BigInt(l.txIndex),
+            BigInt(l.transactionIndex),
             assetAddress,
             au.finalHoldings.toBigInt(),
           );
@@ -555,7 +555,7 @@ export class EthChainService implements ChainService {
             const event = ChallengeRegisteredEvent.NewChallengeRegisteredEvent(
               new Destination(cr.channelId),
               BigInt(l.blockNumber),
-              BigInt(l.txIndex),
+              BigInt(l.transactionIndex),
               new VariablePart({
                 appData: Buffer.from(cr.candidate.variablePart.appData.toString()),
                 outcome: convertBindingsExitToExit(cr.candidate.variablePart.outcome),

@@ -640,7 +640,7 @@ export class Engine {
       }
 
       assert('string' in chainEvent && typeof chainEvent.string === 'function');
-      this.logger(JSON.stringify({
+      this.logger(JSONbigNative.stringify({
         msg: 'handling chain event',
         blockNum: chainEvent.blockNum(),
         event: chainEvent.string(),

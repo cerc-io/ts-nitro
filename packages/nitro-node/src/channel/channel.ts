@@ -108,7 +108,7 @@ export class Channel extends FixedPart {
 
   offChain: OffChainData = new OffChainData({});
 
-  lastChainUpdate?: ChainUpdateData;
+  lastChainUpdate: ChainUpdateData = { blockNum: BigInt(0), txIndex: BigInt(0) };
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
     id: { type: 'class', value: Destination },
@@ -445,8 +445,8 @@ export class Channel extends FixedPart {
     }
 
     // Update Channel.LastChainUpdate
-    this.lastChainUpdate!.blockNum = event.blockNum();
-    this.lastChainUpdate!.txIndex = event.txIndex();
+    this.lastChainUpdate.blockNum = event.blockNum();
+    this.lastChainUpdate.txIndex = event.txIndex();
     return this;
   }
 }
