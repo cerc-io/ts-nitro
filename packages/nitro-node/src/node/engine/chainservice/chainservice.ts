@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import type { ReadChannel } from '@cerc-io/ts-channel';
 
 import { Uint64 } from '@cerc-io/nitro-util';
+import { Bytes32 } from '@cerc-io/nitro-protocol';
 
 import { ChainTransaction, Objective } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
@@ -156,7 +157,7 @@ export class ChallengeRegisteredEvent extends CommonEvent {
   }
 
   // StateHash returns the statehash stored on chain at the time of the ChallengeRegistered Event firing.
-  stateHash(fp: FixedPart): string {
+  stateHash(fp: FixedPart): Bytes32 {
     return stateFromFixedAndVariablePart(fp, this.canditate!).hash();
   }
 

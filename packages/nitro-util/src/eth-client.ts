@@ -12,7 +12,7 @@ export class EthClient {
 
   static dial(chainUrl: string): EthClient {
     // Connect to the Ethereum provider
-    const provider = new ethers.providers.JsonRpcProvider(chainUrl);
+    const provider = new ethers.providers.WebSocketProvider(chainUrl);
     return new EthClient(provider);
   }
 

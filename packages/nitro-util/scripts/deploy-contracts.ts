@@ -2,7 +2,7 @@ import yargs from 'yargs';
 import fs from 'fs';
 import path from 'path';
 import debug from 'debug';
-import { providers } from 'ethers';
+import { ethers, providers } from 'ethers';
 
 import { DEFAULT_CHAIN_URL } from '../src/constants';
 import { deployContracts } from '../src/deploy-contracts';
@@ -24,17 +24,24 @@ const getArgv = () => yargs.parserConfiguration({
     describe: 'JSON file path to export addresses to',
     default: './nitro-addresses.json',
   },
+  key: {
+    alias: 'k',
+    type: 'string',
+    describe: 'Private key of deployer account',
+  },
 }).argv;
 
 async function main() {
   const argv = getArgv();
 
   const provider = new providers.JsonRpcProvider(argv.chainurl);
+  const signer = argv.key ? new ethers.Wallet(argv.key, provider) : provider.getSigner();
+
   const [
     nitroAdjudicatorAddress,
     virtualPaymentAppAddress,
     consensusAppAddress,
-  ] = await deployContracts(provider.getSigner());
+  ] = await deployContracts(signer);
 
   const output = {
     nitroAdjudicatorAddress,

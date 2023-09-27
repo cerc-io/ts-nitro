@@ -7,7 +7,7 @@ import 'dotenv/config';
 
 import { utils } from '@cerc-io/nitro-node';
 import {
-  JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL, DEFAULT_ASSET,
+  JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL_WEBSOCKET, DEFAULT_ASSET,
 } from '@cerc-io/nitro-util';
 
 import { waitForMultiplePeers } from './utils/index';
@@ -40,7 +40,7 @@ const getArgv = () => yargs.parserConfiguration({
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
-    default: DEFAULT_CHAIN_URL,
+    default: DEFAULT_CHAIN_URL_WEBSOCKET,
   },
   contracts: {
     type: 'string',

@@ -1,6 +1,6 @@
 import yargs from 'yargs';
 import debug from 'debug';
-import { providers } from 'ethers';
+import { ethers, providers } from 'ethers';
 
 import { DEFAULT_CHAIN_URL } from '../src';
 import { deployToken } from '../src/deploy-contracts';
@@ -17,13 +17,20 @@ const getArgv = () => yargs.parserConfiguration({
     describe: 'RPC endpoint for the chain',
     default: DEFAULT_CHAIN_URL,
   },
+  key: {
+    alias: 'k',
+    type: 'string',
+    describe: 'Private key of deployer account',
+  },
 }).argv;
 
 async function main() {
   const argv = getArgv();
 
   const provider = new providers.JsonRpcProvider(argv.chainurl);
-  const tokenAddress = await deployToken(provider.getSigner(), tokenArtifact);
+  const signer = argv.key ? new ethers.Wallet(argv.key, provider) : provider.getSigner();
+
+  const tokenAddress = await deployToken(signer, tokenArtifact);
 
   log('Token deployed to:', tokenAddress);
 }

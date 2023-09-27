@@ -8,7 +8,7 @@ import {
   ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse,
 } from '@cerc-io/nitro-node';
 import {
-  hex2Bytes, DEFAULT_CHAIN_URL, getBalanceByKey, getBalanceByAddress, deployContracts,
+  hex2Bytes, DEFAULT_CHAIN_URL, DEFAULT_CHAIN_URL_WEBSOCKET, getBalanceByKey, getBalanceByAddress, deployContracts,
 } from '@cerc-io/nitro-util';
 
 import {
@@ -53,7 +53,7 @@ async function createNode(actor: utils.Actor, contractAddresses: ContractAddress
 
   const nitro = await utils.Nitro.setupNode(
     actor.privateKey,
-    DEFAULT_CHAIN_URL,
+    DEFAULT_CHAIN_URL_WEBSOCKET,
     actor.chainPrivateKey,
     contractAddresses,
     nodePeer,

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import assert from 'assert';
 
 import { utils } from '@cerc-io/nitro-node';
-import { JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util';
+import { JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL_WEBSOCKET } from '@cerc-io/nitro-util';
 
 import contractAddresses from './nitro-addresses.json';
 import logo from './logo.svg';
@@ -37,7 +37,7 @@ window.setupNode = async (name: string): Promise<utils.Nitro> => {
 
   const nitro = await utils.Nitro.setupNode(
     actor.privateKey,
-    DEFAULT_CHAIN_URL,
+    DEFAULT_CHAIN_URL_WEBSOCKET,
     actor.chainPrivateKey,
     contractAddresses,
     peer,
