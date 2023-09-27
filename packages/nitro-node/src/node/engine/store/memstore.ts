@@ -1,6 +1,7 @@
 import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
+import { Mutex } from 'async-mutex';
 
 import {
   JSONbigNative, bytes2Hex, hex2Bytes, WrappedError,
@@ -26,6 +27,11 @@ import { isDirectDefundObjective, Objective as DirectDefundObjective } from '../
 import { isVirtualFundObjective, Objective as VirtualFundObjective } from '../../../protocols/virtualfund/virtualfund';
 import { isVirtualDefundObjective, Objective as VirtualDefundObjective } from '../../../protocols/virtualdefund/virtualdefund';
 
+export interface BlockData {
+  blockNum: Uint64;
+  mu: Mutex;
+}
+
 export class MemStore implements Store {
   objectives?: SafeSyncMap<Buffer>;
 
@@ -37,7 +43,7 @@ export class MemStore implements Store {
 
   vouchers?: SafeSyncMap<Buffer>;
 
-  lastBlockNumSeen?: Uint64;
+  lastBlockSeen?: BlockData;
 
   // the signer for the store's engine
   signer?: NitroSigner;
@@ -55,7 +61,7 @@ export class MemStore implements Store {
     ms.consensusChannels = new SafeSyncMap();
     ms.channelToObjective = new SafeSyncMap();
     ms.vouchers = new SafeSyncMap();
-    ms.lastBlockNumSeen = BigInt(0);
+    ms.lastBlockSeen = { blockNum: BigInt(0), mu: new Mutex() };
 
     return ms;
   }
@@ -167,13 +173,27 @@ export class MemStore implements Store {
   }
 
   // SetLastBlockNumSeen
-  setLastBlockNumSeen(blockNumber: Uint64): void {
-    this.lastBlockNumSeen = blockNumber;
+  async setLastBlockNumSeen(blockNumber: Uint64): Promise<void> {
+    const release = await this.lastBlockSeen!.mu.acquire();
+    try {
+      this.lastBlockSeen!.blockNum = blockNumber;
+    } finally {
+      release();
+    }
   }
 
   // GetLastBlockNumSeen
-  getLastBlockNumSeen(): Uint64 {
-    return this.lastBlockNumSeen!;
+  async getLastBlockNumSeen(): Promise<Uint64> {
+    const release = await this.lastBlockSeen!.mu.acquire();
+
+    let lastBlockNumSeen;
+    try {
+      lastBlockNumSeen = this.lastBlockSeen!.blockNum;
+    } finally {
+      release();
+    }
+
+    return lastBlockNumSeen;
   }
 
   public setChannel(ch: Channel): void {
