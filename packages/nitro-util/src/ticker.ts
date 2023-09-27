@@ -25,6 +25,6 @@ export class Ticker {
   }
 
   stop(): void {
-    clearInterval(this.intervalId!);
+    clearInterval(this.intervalId);
   }
 }

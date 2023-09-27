@@ -170,7 +170,7 @@ export class Engine {
 
   private fromLedger?: ReadWriteChannel<Proposal>;
 
-  private eventHandler?: (engineEvent: EngineEvent)=> void;
+  private eventHandler?: (engineEvent: EngineEvent) => void;
 
   private msg?: MessageService;
 
@@ -191,7 +191,7 @@ export class Engine {
   // Custom channel for vouchers being sent
   private _sentVouchers?: ReadWriteChannel<Voucher>;
 
-  private cancel?: (reason ?: any) => void;
+  private cancel?: (reason?: any) => void;
 
   private wg?: WaitGroup;
 
@@ -201,7 +201,7 @@ export class Engine {
     chain: ChainService,
     store: Store,
     policymaker: PolicyMaker,
-    eventHandler: (engineEvent: EngineEvent)=> void,
+    eventHandler: (engineEvent: EngineEvent) => void,
     metricsApi?: MetricsApi,
   ) {
     const e = new Engine();
@@ -340,10 +340,15 @@ export class Engine {
         }
 
         case ctx.done: {
+          // Stop ticker instance
+          blockTicker.stop();
           this.wg!.done();
           return;
         }
       }
+
+      // Stop ticker instance
+      blockTicker.stop();
 
       // Handle errors
       if (err) {
