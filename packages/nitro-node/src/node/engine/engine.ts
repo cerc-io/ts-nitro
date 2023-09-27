@@ -9,7 +9,7 @@ import { WaitGroup } from '@jpwilliams/waitgroup';
 import Channel from '@cerc-io/ts-channel';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
-  JSONbigNative, go, Context, WrappedError,
+  JSONbigNative, go, Context, WrappedError, Ticker,
 } from '@cerc-io/nitro-util';
 
 import { MessageService } from './messageservice/messageservice';
@@ -280,10 +280,14 @@ export class Engine {
     assert(this.fromLedger);
     assert(this.eventHandler);
     assert(this.store);
+    assert(this.chain);
 
     while (true) {
       let res = new EngineEvent({});
       let err: Error | null = null;
+
+      // eslint-disable-next-line no-await-in-loop
+      const blockTicker = await Ticker.newTicker(15 * 1000);
 
       if (METRICS_ENABLED) {
         this.metrics!.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.channelLength());
@@ -302,6 +306,7 @@ export class Engine {
         this.fromMsg.shift(),
         this.fromLedger.shift(),
         ctx.done.shift(),
+        blockTicker.c!.shift(),
       ])) {
         case this.objectiveRequestsFromAPI:
           [res, err] = await this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
@@ -312,13 +317,6 @@ export class Engine {
           break;
 
         case this.fromChain:
-          try {
-            await this.store.setLastBlockNumSeen(this.fromChain.value().blockNum());
-            // eslint-disable-next-line @typescript-eslint/no-shadow
-          } catch (err) {
-            this.checkError(err as Error);
-          }
-
           [res, err] = await this.handleChainEvent(this.fromChain.value());
           break;
 
@@ -329,6 +327,17 @@ export class Engine {
         case this.fromLedger:
           [res, err] = await this.handleProposal(this.fromLedger.value());
           break;
+
+        case blockTicker.c: {
+          const blockNum = await this.chain.getLastConfirmedBlockNum();
+
+          try {
+            await this.store.setLastBlockNumSeen(blockNum);
+          } catch (storeErr) {
+            err = storeErr as Error;
+          }
+          break;
+        }
 
         case ctx.done: {
           this.wg!.done();
@@ -633,8 +642,15 @@ export class Engine {
       assert('string' in chainEvent && typeof chainEvent.string === 'function');
       this.logger(JSON.stringify({
         msg: 'handling chain event',
+        blockNum: chainEvent.blockNum(),
         event: chainEvent.string(),
       }));
+
+      try {
+        await this.store!.setLastBlockNumSeen(chainEvent.blockNum());
+      } catch (err) {
+        return [new EngineEvent({}), err as Error];
+      }
 
       // eslint-disable-next-line prefer-const
       let [c, ok] = await this.store!.getChannelById(chainEvent.channelID());

@@ -67,7 +67,7 @@ export interface ChainOpts {
 // From node/engine/chainservice/event_queue.go
 // eventTracker holds on to events in memory and dispatches an event after required number of confirmations
 interface EventTracker {
-  latestBlockNum: number;
+  latestBlockNum: bigint;
   events: Heap<ethers.providers.Log>;
   mu: Mutex;
 }
@@ -188,7 +188,7 @@ export class EthChainService implements ChainService {
     }
 
     // TODO: find startBlock for provider
-    let startBlock;
+    const startBlock: bigint = BigInt(0);
 
     const ethClient = new EthClient(provider);
     const txSigner = provider.getSigner();
@@ -651,7 +651,7 @@ export class EthChainService implements ChainService {
           //   'block-num': newBlockNum,
           // }));
           // eslint-disable-next-line no-await-in-loop
-          await this.updateEventTracker(errorChan, newBlockNum, undefined);
+          await this.updateEventTracker(errorChan, BigInt(newBlockNum), undefined);
           break;
         }
       }
@@ -661,7 +661,7 @@ export class EthChainService implements ChainService {
   // updateEventTracker accepts a new block number and/or new event and dispatches a chain event if there are enough block confirmations
   private async updateEventTracker(
     errorChan: ReadWriteChannel<Error>,
-    blockNumber: number | undefined,
+    blockNumber: bigint | undefined,
     chainEvent: ethers.providers.Log | undefined,
   ) {
     // lock the mutex for the shortest amount of time. The mutex only need to be locked to update the eventTracker data structure
@@ -812,9 +812,9 @@ export class EthChainService implements ChainService {
     try {
       // Check for potential underflow
       if (this.eventTracker.latestBlockNum >= REQUIRED_BLOCK_CONFIRMATIONS) {
-        confirmedBlockNum = this.eventTracker.latestBlockNum - REQUIRED_BLOCK_CONFIRMATIONS;
+        confirmedBlockNum = this.eventTracker.latestBlockNum - BigInt(REQUIRED_BLOCK_CONFIRMATIONS);
       } else {
-        confirmedBlockNum = 0;
+        confirmedBlockNum = BigInt(0);
       }
     } finally {
       release();

@@ -126,6 +126,9 @@ export interface ChainService {
 
   getChainId(): Promise<bigint>;
 
+  // GetLastConfirmedBlockNum returns the highest blockNum that satisfies the chainservice's REQUIRED_BLOCK_CONFIRMATIONS
+  getLastConfirmedBlockNum(): Promise<Uint64>;
+
   close(): Promise<void>;
 }
 
