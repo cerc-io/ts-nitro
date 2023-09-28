@@ -178,24 +178,27 @@ export class EthChainService implements ChainService {
   }
 
   static async newEthChainServiceWithProvider(
-    provider: providers.JsonRpcProvider,
-    naAddress: Address,
-    caAddress: Address,
-    vpaAddress: Address,
-  ): Promise<EthChainService> {
-    if (vpaAddress === caAddress) {
-      throw new Error(`virtual payment app address and consensus app address cannot be the same: ${vpaAddress}`);
+    chainOpts: ChainOpts,
+  ): Promise<ChainService> {
+    if (chainOpts.vpaAddress === chainOpts.caAddress) {
+      throw new Error(`virtual payment app address and consensus app address cannot be the same: ${chainOpts.vpaAddress}`);
     }
 
-    // TODO: find startBlock for provider
-    const startBlock: bigint = BigInt(0);
+    assert(chainOpts.provider);
+    const ethClient = new EthClient(chainOpts.provider);
+    const txSigner = chainOpts.provider.getSigner();
 
-    const ethClient = new EthClient(provider);
-    const txSigner = provider.getSigner();
+    const na = NitroAdjudicator__factory.connect(chainOpts.naAddress, txSigner);
 
-    const na = NitroAdjudicator__factory.connect(naAddress, txSigner);
-
-    return EthChainService._newEthChainService(ethClient, startBlock, na, naAddress, caAddress, vpaAddress, txSigner);
+    return EthChainService._newEthChainService(
+      ethClient,
+      chainOpts.chainStartBlock,
+      na,
+      chainOpts.naAddress,
+      chainOpts.caAddress,
+      chainOpts.vpaAddress,
+      txSigner,
+    );
   }
 
   // _newEthChainService constructs a chain service that submits transactions to a NitroAdjudicator

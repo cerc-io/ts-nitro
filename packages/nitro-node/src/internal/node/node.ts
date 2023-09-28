@@ -1,4 +1,5 @@
 import debug from 'debug';
+import assert from 'assert';
 
 // @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
@@ -37,7 +38,13 @@ export async function initializeNode(
   }
 
   log('Initializing chain service...');
-  const ourChain = await EthChainService.newEthChainService(chainOpts);
+
+  let ourChain: ChainService;
+  if (chainOpts.provider) {
+    ourChain = await EthChainService.newEthChainServiceWithProvider(chainOpts);
+  } else {
+    ourChain = await EthChainService.newEthChainService(chainOpts);
+  }
 
   const node = await setupNode(
     msgService,
