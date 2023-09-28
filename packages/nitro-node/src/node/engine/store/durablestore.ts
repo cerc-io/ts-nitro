@@ -197,8 +197,16 @@ export class DurableStore implements Store {
 
   // GetLastBlockNumSeen retrieves the last blockchain block processed by this node
   async getLastBlockNumSeen(): Promise<Uint64> {
-    const val = await this.lastBlockNumSeen!.get(lastBlockNumSeenKey);
-    const result = BigInt(val);
+    let result: bigint;
+    let val: string;
+
+    try {
+      val = await this.lastBlockNumSeen!.get(lastBlockNumSeenKey);
+      result = BigInt(val);
+    } catch (err) {
+      result = BigInt(0);
+    }
+
     return result;
   }
 

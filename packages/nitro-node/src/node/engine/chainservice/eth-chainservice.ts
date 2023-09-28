@@ -284,7 +284,7 @@ export class EthChainService implements ChainService {
       fromBlock: Number(startBlock),
       toBlock: Number(latestBlock.number),
       address: this.naAddress,
-      topics: topicsToWatch,
+      topics: [topicsToWatch],
     };
 
     let missedEvents;
