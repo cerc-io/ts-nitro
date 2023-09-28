@@ -1409,7 +1409,7 @@ export class Engine {
     if (err) {
       this.logger(JSON.stringify({
         msg: 'error in run loop',
-        err,
+        err: (err as Error).message,
       }));
 
       for (const nonFatalError of nonFatalErrors) {

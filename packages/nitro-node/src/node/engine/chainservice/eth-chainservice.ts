@@ -390,7 +390,7 @@ export class EthChainService implements ChainService {
           const err = errChan.value();
           this.logger(JSON.stringify({
             msg: 'chain service error',
-            error: err,
+            err: (err as Error).message,
           }));
           throw err;
         }

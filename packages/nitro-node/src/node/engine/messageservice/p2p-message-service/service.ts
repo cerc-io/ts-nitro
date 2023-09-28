@@ -237,7 +237,7 @@ export class P2PMessageService implements MessageService {
       } catch (err) {
         this.logger(JSON.stringify({
           msg: 'error reading from stream',
-          err,
+          err: (err as Error).message,
         }));
         return;
       }
@@ -254,7 +254,7 @@ export class P2PMessageService implements MessageService {
       } catch (err) {
         this.logger(JSON.stringify({
           msg: 'error deserializing message',
-          err,
+          err: (err as Error).message,
         }));
 
         return;
@@ -423,7 +423,7 @@ export class P2PMessageService implements MessageService {
         // TODO: Fix error logging, JSON.stringify results into err field being {} for Error class
         this.logger(JSON.stringify({
           msg: 'error opening stream',
-          err,
+          err: (err as Error).message,
           attempt: i,
           to: msg.to,
         }));
@@ -436,7 +436,7 @@ export class P2PMessageService implements MessageService {
   private checkError(err: Error) {
     this.logger(JSON.stringify({
       msg: 'error in message service',
-      err,
+      err: (err as Error).message,
     }));
 
     throw err;
