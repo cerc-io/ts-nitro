@@ -14,7 +14,7 @@
     "test:deploy-token": "DEBUG=ts-nitro:* yarn ts-node scripts/deploy-token.ts",
     "test:transfer-tokens": "DEBUG=ts-nitro:* yarn ts-node scripts/transfer-tokens.ts",
     "generate-bindings": "./scripts/generate-bindings.sh",
-    "test": "mocha src/**/*.test.ts --bail"
+    "test:components": "mocha src/**/*.test.ts --bail"
   },
   "devDependencies": {
     "@npmcli/package-json": "^3.1.1",

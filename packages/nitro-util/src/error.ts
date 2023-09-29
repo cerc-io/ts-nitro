@@ -4,7 +4,7 @@ export class WrappedError extends Error {
   errors: Error[] = [];
 
   constructor(message: string, errors: Error[]) {
-    super(message);
+    super(`${message}: ${errors[0].message}`);
     this.errors = errors;
   }
 
@@ -22,24 +22,5 @@ export class WrappedError extends Error {
     }
 
     return false;
-  }
-
-  static printError(error: WrappedError | Error) {
-    let errorMsg = 'Error';
-
-    const printNestedError = (err: WrappedError | Error) => {
-      errorMsg = `${errorMsg}: ${err.message}`;
-
-      if (err instanceof WrappedError) {
-        for (let i = 0; i < err.errors.length; i += 1) {
-          printNestedError(err.errors[i]);
-        }
-      }
-
-      return errorMsg;
-    };
-
-    printNestedError(error);
-    return errorMsg;
   }
 }
