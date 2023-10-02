@@ -15,7 +15,8 @@
     "dev": "webpack --watch --config webpack.dev.ts",
     "lint": "eslint .",
     "test": "mocha",
-    "test:deploy-contracts": "DEBUG=ts-nitro:* yarn ts-node scripts/deploy-contracts.ts"
+    "test:deploy-contracts": "DEBUG=ts-nitro:* yarn ts-node scripts/deploy-contracts.ts",
+    "test:copy-addresses": "cp ./nitro-addresses.json ../server/src/ && cp ./nitro-addresses.json ../example-web-app/src/"
   },
   "devDependencies": {
     "@libp2p/interface-peer-store": "1.2.9",

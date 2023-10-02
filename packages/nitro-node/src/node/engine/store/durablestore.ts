@@ -24,6 +24,8 @@ import { Objective as DirectDefundObjective } from '../../../protocols/directdef
 import { Objective as VirtualFundObjective } from '../../../protocols/virtualfund/virtualfund';
 import { Objective as VirtualDefundObjective } from '../../../protocols/virtualdefund/virtualdefund';
 
+const LEVEL_NOT_FOUND = 'LEVEL_NOT_FOUND';
+
 export class DurableStore implements Store {
   private objectives?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
 
@@ -204,7 +206,7 @@ export class DurableStore implements Store {
       val = await this.lastBlockNumSeen!.get(lastBlockNumSeenKey);
       result = BigInt(val);
     } catch (err) {
-      if ((err as any).code === 'LEVEL_NOT_FOUND') {
+      if ((err as any).code === LEVEL_NOT_FOUND) {
         result = BigInt(0);
         return result;
       }
