@@ -204,7 +204,12 @@ export class DurableStore implements Store {
       val = await this.lastBlockNumSeen!.get(lastBlockNumSeenKey);
       result = BigInt(val);
     } catch (err) {
-      result = BigInt(0);
+      if ((err as any).code === 'LEVEL_NOT_FOUND') {
+        result = BigInt(0);
+        return result;
+      }
+
+      throw err;
     }
 
     return result;
@@ -596,7 +601,7 @@ export class DurableStore implements Store {
     } catch (err) {
       throw new WrappedError(
         `channelId ${channelId.string()}: ${ErrLoadVouchers}`,
-        [ErrLoadVouchers],
+        ErrLoadVouchers,
       );
     }
 

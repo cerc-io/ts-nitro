@@ -141,7 +141,6 @@ const main = async () => {
     argv.chainpk,
     contractAddresses,
     peer,
-    undefined,
     argv.store && path.resolve(argv.store),
     undefined,
     asset,

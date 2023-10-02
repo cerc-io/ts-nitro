@@ -32,6 +32,8 @@ import { assetAddressForIndex } from './eth-chain-helpers';
 import { connectToChain } from './utils/utils';
 import { VariablePart } from '../../../channel/state/state';
 import { convertBindingsExitToExit, convertBindingsSignaturesToSignatures } from './adjudicator/reverse_typeconversions';
+import { ChainOpts } from '../../../internal/chain/chain';
+import { EventTracker } from './event-queue';
 
 const log = debug('ts-nitro:eth-chain-service');
 
@@ -52,42 +54,6 @@ const topicsToWatch: string[] = [
   challengeRegisteredTopic,
   challengeClearedTopic,
 ];
-
-// From internal/chain/chain.go
-export interface ChainOpts {
-  chainUrl?: string
-  chainStartBlock: Uint64
-  chainPk?: string
-  provider?: providers.JsonRpcProvider,
-  naAddress: Address
-  vpaAddress: Address
-  caAddress: Address
-}
-
-// From node/engine/chainservice/event_queue.go
-// eventTracker holds on to events in memory and dispatches an event after required number of confirmations
-interface EventTracker {
-  latestBlockNum: bigint;
-  events: Heap<ethers.providers.Log>;
-  mu: Mutex;
-}
-
-function newEventTracker(startBlock: Uint64): EventTracker {
-  // Implement Min-Heap
-  // https://pkg.go.dev/container/heap
-  // https://github.com/qiao/heap.js#constructor-heapcmp
-  const eventQueue = new Heap((log1: Log, log2: Log) => {
-    return log1.blockNumber - log2.blockNumber;
-  });
-
-  const eventTracker: EventTracker = {
-    latestBlockNum: startBlock,
-    events: eventQueue,
-    mu: new Mutex(),
-  };
-
-  return eventTracker;
-}
 
 interface EthChain {
   // Following Interfaces in Go have been implemented using EthClient.provider (ethers Provider)
@@ -153,41 +119,25 @@ export class EthChainService implements ChainService {
 
   // newEthChainService is a convenient wrapper around _newEthChainService, which provides a simpler API
   static async newEthChainService(chainOpts: ChainOpts): Promise<ChainService> {
-    if (!chainOpts.chainPk) {
-      throw new Error('chainpk must be set');
+    let ethClient;
+    let txSigner;
+
+    if (chainOpts.chainPk) {
+      assert(chainOpts.chainUrl);
+      [ethClient, txSigner] = await connectToChain(chainOpts.chainUrl, hex2Bytes(chainOpts.chainPk));
+    }
+
+    if (chainOpts.provider) {
+      ethClient = new EthClient(chainOpts.provider);
+      txSigner = chainOpts.provider.getSigner();
     }
 
     if (chainOpts.vpaAddress === chainOpts.caAddress) {
       throw new Error(`virtual payment app address and consensus app address cannot be the same: ${chainOpts.vpaAddress}`);
     }
 
-    assert(chainOpts.chainUrl);
-    const [ethClient, txSigner] = await connectToChain(chainOpts.chainUrl, hex2Bytes(chainOpts.chainPk));
-
-    const na = NitroAdjudicator__factory.connect(chainOpts.naAddress, txSigner);
-
-    return EthChainService._newEthChainService(
-      ethClient,
-      chainOpts.chainStartBlock,
-      na,
-      chainOpts.naAddress,
-      chainOpts.caAddress,
-      chainOpts.vpaAddress,
-      txSigner,
-    );
-  }
-
-  static async newEthChainServiceWithProvider(
-    chainOpts: ChainOpts,
-  ): Promise<ChainService> {
-    if (chainOpts.vpaAddress === chainOpts.caAddress) {
-      throw new Error(`virtual payment app address and consensus app address cannot be the same: ${chainOpts.vpaAddress}`);
-    }
-
-    assert(chainOpts.provider);
-    const ethClient = new EthClient(chainOpts.provider);
-    const txSigner = chainOpts.provider.getSigner();
-
+    assert(ethClient);
+    assert(txSigner);
     const na = NitroAdjudicator__factory.connect(chainOpts.naAddress, txSigner);
 
     return EthChainService._newEthChainService(
@@ -215,7 +165,7 @@ export class EthChainService implements ChainService {
     const ctx = new Context();
     const cancelCtx = ctx.withCancel();
 
-    const tracker = newEventTracker(startBlock);
+    const tracker = EventTracker.newEventTracker(startBlock);
     const out = Channel<ChainEvent>(10);
 
     // Use a buffered channel so we don't have to worry about blocking on writing to the channel.
@@ -249,26 +199,26 @@ export class EthChainService implements ChainService {
     // Prevent go routines from processing events before checkForMissedEvents completes
     const release = await ecs.eventTracker.mu.acquire();
     try {
+      ecs.wg!.add(4);
+      go(ecs.listenForEventLogs.bind(ecs), errChan, eventSubUnSubscribe, eventChan);
+      go(ecs.listenForNewBlocks.bind(ecs), errChan, newBlockSubUnSubscribe, newBlockChan);
+      go(
+        ecs.listenForSubscriptionError.bind(ecs),
+        errChan,
+        subErr,
+        eventQuery,
+        eventListener,
+        eventSubUnSubscribe,
+        newBlockListener,
+        newBlockSubUnSubscribe,
+      );
+      go(ecs.listenForErrors.bind(ecs), errChan);
+
       // Search for any missed events emitted while this node was offline
       await ecs.checkForMissedEvents(startBlock);
     } finally {
       release();
     }
-
-    ecs.wg!.add(4);
-    go(ecs.listenForEventLogs.bind(ecs), errChan, eventSubUnSubscribe, eventChan);
-    go(ecs.listenForNewBlocks.bind(ecs), errChan, newBlockSubUnSubscribe, newBlockChan);
-    go(
-      ecs.listenForSubscriptionError.bind(ecs),
-      errChan,
-      subErr,
-      eventQuery,
-      eventListener,
-      eventSubUnSubscribe,
-      newBlockListener,
-      newBlockSubUnSubscribe,
-    );
-    go(ecs.listenForErrors.bind(ecs), errChan);
 
     return ecs;
   }
@@ -296,10 +246,8 @@ export class EthChainService implements ChainService {
     } catch (err) {
       this.logger(`failed to retrieve old chain logs. ${(err as Error).message}`);
 
-      // eslint-disable-next-line no-multi-str
-      const errorMsg = '*** To avoid this error, consider increasing the chainstartblock value in your \
-      configuration before restarting the node. Note that this may cause your node to miss chain events \
-      emitted prior to the chainstartblock.';
+      let errorMsg = '*** To avoid this error, consider increasing the chainstartblock value in your configuration before restarting the node.';
+      errorMsg += ' Note that this may cause your node to miss chain events emitted prior to the chainstartblock.';
 
       this.logger(errorMsg);
       throw err;
@@ -312,7 +260,7 @@ export class EthChainService implements ChainService {
 
     for (let i = 0; i < missedEvents.length; i += 1) {
       const event = missedEvents[i];
-      this.eventTracker.events.push(event);
+      this.eventTracker.push(event);
     }
   }
 
@@ -341,7 +289,7 @@ export class EthChainService implements ChainService {
         case subErr: {
           const err = subErr.value();
           if (err) {
-            this.logger(`received error from subscription channel: ${err}`);
+            this.logger(`error in subscription: ${err}`);
             eventSubUnSubscribe();
             newBlockSubUnSubscribe();
           }
@@ -351,7 +299,7 @@ export class EthChainService implements ChainService {
             this.chain.provider.on(eventQuery, eventListener);
           } catch (sErr) {
             // eslint-disable-next-line no-await-in-loop
-            await errorChan.push(new WrappedError(`subscribeFilterLogs failed on resubscribe: ${sErr}`, [sErr as Error]));
+            await errorChan.push(new WrappedError(`subscribeFilterLogs failed on resubscribe: ${sErr}`, sErr as Error));
             // eslint-disable-next-line no-labels
             break out;
           }
@@ -362,7 +310,7 @@ export class EthChainService implements ChainService {
             this.chain.provider.on('block', newBlockListener);
           } catch (sErr) {
             // eslint-disable-next-line no-await-in-loop
-            await errorChan.push(new WrappedError(`subscribeNewHead failed on resubscribe: ${sErr}`, [sErr as Error]));
+            await errorChan.push(new WrappedError(`subscribeNewHead failed on resubscribe: ${sErr}`, sErr as Error));
             // eslint-disable-next-line no-labels
             break out;
           }
@@ -521,7 +469,7 @@ export class EthChainService implements ChainService {
           } catch (err) {
             throw new WrappedError(
               `error in assetAddressForIndex: ${err}`,
-              [err as Error],
+              err as Error,
             );
           }
 
@@ -672,32 +620,32 @@ export class EthChainService implements ChainService {
     const eventsToDispatch: ethers.providers.Log[] = [];
 
     try {
-      if (blockNumber && blockNumber > this.eventTracker.latestBlockNum) {
+      if (blockNumber && blockNumber > this.eventTracker.latestBlockNum!) {
         this.eventTracker.latestBlockNum = blockNumber;
       }
 
       if (chainEvent) {
-        this.eventTracker.events.push(chainEvent);
+        this.eventTracker.push(chainEvent);
 
         this.logger(JSON.stringify({
           msg: 'event added to queue',
-          'updated-queue-length': this.eventTracker.events.size(),
+          'updated-queue-length': this.eventTracker.events!.size(),
         }));
       }
 
       while (
-        this.eventTracker.events.size() > 0
-        && this.eventTracker.latestBlockNum >= this.eventTracker.events.peek()!.blockNumber + REQUIRED_BLOCK_CONFIRMATIONS
+        this.eventTracker.events!.size() > 0
+        && this.eventTracker.latestBlockNum! >= this.eventTracker.events!.peek()!.blockNumber + REQUIRED_BLOCK_CONFIRMATIONS
       ) {
         // eslint-disable-next-line @typescript-eslint/no-shadow
-        const chainEvent = this.eventTracker.events.pop();
+        const chainEvent = this.eventTracker.pop();
 
         assert(chainEvent);
         eventsToDispatch.push(chainEvent);
 
         this.logger(JSON.stringify({
           msg: 'event popped from queue',
-          'updated-queue-length': this.eventTracker.events.size(),
+          'updated-queue-length': this.eventTracker.events!.size(),
         }));
       }
     } finally {
@@ -709,7 +657,7 @@ export class EthChainService implements ChainService {
     } catch (err) {
       await errorChan.push(new WrappedError(
         `failed dispatchChainEvents: ${err}`,
-        [err as Error],
+        err as Error,
       ));
     }
   }
@@ -739,7 +687,7 @@ export class EthChainService implements ChainService {
     try {
       this.chain.provider.on(eventQuery, eventListener);
     } catch (err) {
-      throw new WrappedError(`subscribeFilterLogs failed: ${err}`, [err as Error]);
+      throw new WrappedError(`subscribeFilterLogs failed: ${err}`, err as Error);
     }
 
     const errorChan = Channel<Error>();
@@ -755,7 +703,7 @@ export class EthChainService implements ChainService {
     try {
       this.chain.provider.on('block', newBlockListener);
     } catch (err) {
-      throw new WrappedError(`subscribeNewHead failed: ${err}`, [err as Error]);
+      throw new WrappedError(`subscribeNewHead failed: ${err}`, err as Error);
     }
 
     // Channel to implement subscription.Err() for eventSub and newBlockSub
@@ -814,8 +762,8 @@ export class EthChainService implements ChainService {
 
     try {
       // Check for potential underflow
-      if (this.eventTracker.latestBlockNum >= REQUIRED_BLOCK_CONFIRMATIONS) {
-        confirmedBlockNum = this.eventTracker.latestBlockNum - BigInt(REQUIRED_BLOCK_CONFIRMATIONS);
+      if (this.eventTracker.latestBlockNum! >= REQUIRED_BLOCK_CONFIRMATIONS) {
+        confirmedBlockNum = this.eventTracker.latestBlockNum! - BigInt(REQUIRED_BLOCK_CONFIRMATIONS);
       } else {
         confirmedBlockNum = BigInt(0);
       }

@@ -2,12 +2,12 @@ import yargs from 'yargs';
 import fs from 'fs';
 import path from 'path';
 import debug from 'debug';
-import { ethers, providers } from 'ethers';
 
-import { DEFAULT_CHAIN_URL } from '../src/constants';
-import { deployContracts } from '../src/deploy-contracts';
+import { DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util/src/constants';
 
-const log = debug('ts-nitro:util');
+import { deployContracts } from '../src/internal/chain/chain';
+
+const log = debug('ts-nitro:node');
 
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
@@ -34,14 +34,11 @@ const getArgv = () => yargs.parserConfiguration({
 async function main() {
   const argv = getArgv();
 
-  const provider = new providers.JsonRpcProvider(argv.chainurl);
-  const signer = argv.key ? new ethers.Wallet(argv.key, provider) : provider.getSigner();
-
   const [
     nitroAdjudicatorAddress,
     virtualPaymentAppAddress,
     consensusAppAddress,
-  ] = await deployContracts(signer);
+  ] = await deployContracts(argv.chainurl, argv.key);
 
   const output = {
     nitroAdjudicatorAddress,
@@ -55,7 +52,7 @@ async function main() {
 }
 
 main()
-  .then(() => {})
+  .then(() => { })
   .catch((err) => {
     log(err);
   });

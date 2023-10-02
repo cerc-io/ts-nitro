@@ -763,7 +763,7 @@ export class Engine {
                 failedEngineEvent,
                 new WrappedError(
                   `could not register channel with payment/receipt manager: ${err}`,
-                  [err],
+                  err,
                 )];
             }
           }

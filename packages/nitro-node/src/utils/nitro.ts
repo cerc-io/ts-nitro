@@ -60,10 +60,10 @@ export class Nitro {
     chainPk: string,
     contractAddresses: { [key: string]: string },
     peer: Peer,
-    chainStartBlock: number = 0,
     location?: string,
     metricsApi?: MetricsApi,
     asset?: string,
+    chainStartBlock: number = 0,
   ): Promise<Nitro> {
     const keySigner = new KeySigner(pk);
 
@@ -89,10 +89,10 @@ export class Nitro {
     snapOrigin: string,
     contractAddresses: { [key: string]: string },
     peer: Peer,
-    chainStartBlock: number = 0,
     location?: string,
     metricsApi?: MetricsApi,
     asset?: string,
+    chainStartBlock: number = 0,
   ): Promise<Nitro> {
     const snapSigner = new SnapSigner(provider, snapOrigin);
 

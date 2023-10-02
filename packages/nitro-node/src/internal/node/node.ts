@@ -5,7 +5,7 @@ import assert from 'assert';
 import type { Peer } from '@cerc-io/peer';
 import { NitroSigner } from '@cerc-io/nitro-util';
 
-import { EthChainService, ChainOpts } from '../../node/engine/chainservice/eth-chainservice';
+import { EthChainService } from '../../node/engine/chainservice/eth-chainservice';
 import { ChainService } from '../../node/engine/chainservice/chainservice';
 import { P2PMessageService } from '../../node/engine/messageservice/p2p-message-service/service';
 import { newStore } from '../../node/engine/store/utils';
@@ -13,6 +13,7 @@ import { setupNode } from '../../utils/helpers';
 import { MetricsApi } from '../../node/engine/metrics';
 import { Store } from '../../node/engine/store/store';
 import { Node } from '../../node/node';
+import { ChainOpts } from '../chain/chain';
 
 const log = debug('ts-nitro:node');
 
@@ -39,12 +40,7 @@ export async function initializeNode(
 
   log('Initializing chain service...');
 
-  let ourChain: ChainService;
-  if (chainOpts.provider) {
-    ourChain = await EthChainService.newEthChainServiceWithProvider(chainOpts);
-  } else {
-    ourChain = await EthChainService.newEthChainService(chainOpts);
-  }
+  const ourChain = await EthChainService.newEthChainService(chainOpts);
 
   const node = await setupNode(
     msgService,

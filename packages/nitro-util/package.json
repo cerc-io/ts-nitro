@@ -7,7 +7,6 @@
     "lint": "eslint .",
     "build": "yarn clean && tsc && if [ \"$TARGET\" = \"browser\" ]; then yarn build:fix-modules; fi",
     "clean": "rm -rf ./dist",
-    "test:deploy-contracts": "DEBUG=ts-nitro:* yarn ts-node scripts/deploy-contracts.ts",
     "test:copy-addresses": "cp ./nitro-addresses.json ../server/src/ && cp ./nitro-addresses.json ../example-web-app/src/",
     "build:fix-modules": "yarn ts-node scripts/fix-modules.ts",
     "balance": "DEBUG=ts-nitro:* yarn ts-node scripts/balance.ts",

@@ -3,9 +3,9 @@ import _ from 'lodash';
 export class WrappedError extends Error {
   errors: Error[] = [];
 
-  constructor(message: string, errors: Error[]) {
-    super(`${message}: ${errors[0].message}`);
-    this.errors = errors;
+  constructor(message: string, errors: Error) {
+    super(`${message}: ${errors.message}`);
+    this.errors = [errors];
   }
 
   static is(error: Error, targetError: Error) {

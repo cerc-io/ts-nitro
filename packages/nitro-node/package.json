@@ -14,7 +14,8 @@
     "build:update-package-name": "yarn ts-node scripts/update-package-name.ts",
     "dev": "webpack --watch --config webpack.dev.ts",
     "lint": "eslint .",
-    "test": "mocha"
+    "test": "mocha",
+    "test:deploy-contracts": "DEBUG=ts-nitro:* yarn ts-node scripts/deploy-contracts.ts"
   },
   "devDependencies": {
     "@libp2p/interface-peer-store": "1.2.9",
@@ -47,7 +48,8 @@
     "typescript": "^5.0.4",
     "webpack": "^5.83.1",
     "webpack-cli": "^5.1.1",
-    "webpack-merge": "^5.8.0"
+    "webpack-merge": "^5.8.0",
+    "yargs": "^17.7.2"
   },
   "dependencies": {
     "@cerc-io/libp2p": "0.42.2-laconic-0.1.4",

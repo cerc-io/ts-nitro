@@ -41,7 +41,6 @@ window.setupNode = async (name: string): Promise<utils.Nitro> => {
     actor.chainPrivateKey,
     contractAddresses,
     peer,
-    undefined,
     `${name}-db`,
     undefined,
     process.env.REACT_APP_ASSET_ADDRESS

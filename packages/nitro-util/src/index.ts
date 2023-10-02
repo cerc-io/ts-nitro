@@ -6,7 +6,7 @@ export * from './json';
 export * from './contract-bindings';
 export * from './types';
 export * from './constants';
-export * from './deploy-contracts';
+export * from './deploy-token';
 export * from './context';
 export * from './error';
 export * from './misc';

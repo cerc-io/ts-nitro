@@ -3,7 +3,7 @@ import debug from 'debug';
 import { ethers, providers } from 'ethers';
 
 import { DEFAULT_CHAIN_URL } from '../src';
-import { deployToken } from '../src/deploy-contracts';
+import { deployToken } from '../src/deploy-token';
 import tokenArtifact from '../contracts/Token.json';
 
 const log = debug('ts-nitro:util');

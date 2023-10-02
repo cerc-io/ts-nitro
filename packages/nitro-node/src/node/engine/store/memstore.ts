@@ -566,7 +566,7 @@ export class MemStore implements Store {
     if (!ok) {
       throw new WrappedError(
         `channelId ${channelId.string()}: ${ErrLoadVouchers}`,
-        [ErrLoadVouchers],
+        ErrLoadVouchers,
       );
     }
 

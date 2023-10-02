@@ -137,7 +137,7 @@ export class Node {
       }));
       throw new WrappedError(
         `counterparty ${ethers.utils.getAddress(counterparty)}: ${ErrLedgerChannelExists}`,
-        [ErrLedgerChannelExists],
+        ErrLedgerChannelExists,
       );
     }
 
