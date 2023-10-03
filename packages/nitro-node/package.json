@@ -1,6 +1,6 @@
 {
   "name": "@cerc-io/nitro-node",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
@@ -54,14 +54,14 @@
   },
   "dependencies": {
     "@cerc-io/libp2p": "0.42.2-laconic-0.1.4",
-    "@statechannels/nitro-protocol": "^2.0.0-alpha.5",
-    "@cerc-io/nitro-util": "^0.1.11",
+    "@cerc-io/nitro-util": "^0.1.12",
     "@cerc-io/peer": "^0.2.60",
     "@cerc-io/ts-channel": "1.0.3-ts-nitro-0.1.1",
     "@jpwilliams/waitgroup": "^2.1.0",
     "@libp2p/crypto": "^1.0.4",
     "@libp2p/tcp": "^6.0.0",
     "@multiformats/multiaddr": "^11.1.4",
+    "@statechannels/nitro-protocol": "^2.0.0-alpha.5",
     "assert": "^2.0.0",
     "async-mutex": "^0.4.0",
     "debug": "^4.3.4",
