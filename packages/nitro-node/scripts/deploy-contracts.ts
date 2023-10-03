@@ -18,7 +18,7 @@ const getArgv = () => yargs.parserConfiguration({
     describe: 'RPC endpoint for the chain',
     default: DEFAULT_CHAIN_URL,
   },
-  addressesFilePath: {
+  addressesfilepath: {
     alias: 'f',
     type: 'string',
     describe: 'JSON file path to export addresses to',
@@ -46,7 +46,7 @@ async function main() {
     consensusAppAddress,
   };
 
-  const outputFilePath = path.resolve(argv.addressesFilePath);
+  const outputFilePath = path.resolve(argv.addressesfilepath);
   fs.writeFileSync(outputFilePath, JSON.stringify(output, null, 2));
   log('Contracts deployed, addresses written to', outputFilePath);
 }

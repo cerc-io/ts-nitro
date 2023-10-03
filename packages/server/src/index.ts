@@ -50,36 +50,36 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'Counterparty to create channel(s) against',
   },
-  additionalPeers: {
+  additionalpeers: {
     type: 'string',
     describe: 'JSON file path with peer multiaddrs to be added',
   },
-  directFund: {
+  directfund: {
     type: 'boolean',
     default: false,
     describe: 'Whether to create a ledger channel with the given counterparty',
   },
-  virtualFund: {
+  virtualfund: {
     type: 'boolean',
     default: false,
     describe: 'Whether to create a virtual payment channel with the given counterparty',
   },
-  getLedgerChannel: {
+  getledgerchannel: {
     type: 'boolean',
     default: false,
     describe: 'Whether to get information about a ledger channel',
   },
-  getAllLedgerChannels: {
+  getallledgerchannels: {
     type: 'boolean',
     default: false,
     describe: 'Whether to get information about all ledger channels',
   },
-  getPaymentChannel: {
+  getpaymentchannel: {
     type: 'boolean',
     default: false,
     describe: 'Whether to get information about a virtual payment channel',
   },
-  getPaymentChannelsByLedger: {
+  getpaymentchannelsbyledger: {
     type: 'boolean',
     default: false,
     describe: 'Whether to get information about all active payment channels that are funded by the given ledger channel',
@@ -92,12 +92,12 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'number',
     describe: 'Amount for fund and pay methods',
   },
-  virtualDefund: {
+  virtualdefund: {
     type: 'boolean',
     default: false,
     describe: 'Whether to close a virtual payment channel with the given counterparty',
   },
-  directDefund: {
+  directdefund: {
     type: 'boolean',
     default: false,
     describe: 'Whether to close a ledger channel with the given counterparty',
@@ -106,11 +106,11 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'Directory path to use for DurableStore',
   },
-  paymentChannel: {
+  paymentchannel: {
     type: 'string',
     describe: 'Id of virtual payment channel to use',
   },
-  ledgerChannel: {
+  ledgerchannel: {
     type: 'string',
     describe: 'Id of ledger channel to use',
   },
@@ -153,8 +153,8 @@ const main = async () => {
   peersToConnect.push(...(argv.intermediaries as string[]));
 
   let peersToAdd: any[] = [];
-  if (argv.additionalPeers) {
-    const data = fs.readFileSync(path.resolve(argv.additionalPeers), 'utf-8');
+  if (argv.additionalpeers) {
+    const data = fs.readFileSync(path.resolve(argv.additionalpeers), 'utf-8');
     peersToAdd = JSON.parse(data);
 
     for await (const [, peerToAdd] of Array.from(peersToAdd).entries()) {
@@ -179,11 +179,11 @@ const main = async () => {
     }
   }
 
-  let ledgerChannelIdString = argv.ledgerChannel;
-  let paymentChannelIdString = argv.paymentChannel;
+  let ledgerChannelIdString = argv.ledgerchannel;
+  let paymentChannelIdString = argv.paymentchannel;
   const counterParty = argv.counterparty;
 
-  if (argv.directFund) {
+  if (argv.directfund) {
     assert(counterParty, 'Specify counterparty address');
 
     ledgerChannelIdString = await nitro.directFund(
@@ -192,7 +192,7 @@ const main = async () => {
     );
   }
 
-  if (argv.virtualFund) {
+  if (argv.virtualfund) {
     assert(counterParty, 'Specify counterparty address');
 
     paymentChannelIdString = await nitro.virtualFund(
@@ -210,21 +210,21 @@ const main = async () => {
     log(`Hash: ${sentVoucher.hash()} Sig: ${utils.getJoinedSignature(sentVoucher.signature)}`);
   }
 
-  if (argv.virtualDefund) {
+  if (argv.virtualdefund) {
     assert(paymentChannelIdString, 'Provide payment-channel id to close channel');
     await nitro.virtualDefund(paymentChannelIdString);
 
     log(`Virtual payment channel with id ${paymentChannelIdString} closed`);
   }
 
-  if (argv.directDefund) {
+  if (argv.directdefund) {
     assert(ledgerChannelIdString, 'Provide ledger-channel id to close channel');
     await nitro.directDefund(ledgerChannelIdString);
 
     log(`Ledger channel with id ${ledgerChannelIdString} closed`);
   }
 
-  if (argv.getPaymentChannel) {
+  if (argv.getpaymentchannel) {
     assert(paymentChannelIdString, 'Provide payment-channel id for get-payment-channel');
     const paymentChannelStatus = await nitro.getPaymentChannel(paymentChannelIdString);
 
@@ -234,7 +234,7 @@ const main = async () => {
     );
   }
 
-  if (argv.getLedgerChannel) {
+  if (argv.getledgerchannel) {
     assert(ledgerChannelIdString, 'Provide ledger-channel id for get-ledger-channel');
     const ledgerChannelStatus = await nitro.getLedgerChannel(ledgerChannelIdString);
 
@@ -244,7 +244,7 @@ const main = async () => {
     );
   }
 
-  if (argv.getAllLedgerChannels) {
+  if (argv.getallledgerchannels) {
     const allLedgerChannels = await nitro.getAllLedgerChannels();
     log(
       'All ledger channel:\n',
@@ -252,7 +252,7 @@ const main = async () => {
     );
   }
 
-  if (argv.getPaymentChannelsByLedger) {
+  if (argv.getpaymentchannelsbyledger) {
     assert(ledgerChannelIdString, 'Provide ledger-channel id to get all active payment channels');
     const paymentChannelsByLedger = await nitro.getPaymentChannelsByLedger(ledgerChannelIdString);
 
