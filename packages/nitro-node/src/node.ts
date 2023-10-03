@@ -15,5 +15,6 @@ export {
   LedgerChannelInfo, PaymentChannelInfo, LedgerChannelBalance, ChannelStatus, PaymentChannelBalance,
 } from './node/query/types';
 export { ObjectiveResponse } from './protocols/directfund/directfund';
+export { deployContracts } from './internal/chain/chain';
 
 export * as utils from './utils';

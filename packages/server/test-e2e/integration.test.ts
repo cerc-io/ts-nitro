@@ -1,14 +1,14 @@
 import 'mocha';
 import assert from 'assert';
 import { expect } from 'chai';
-import { BigNumber, providers } from 'ethers';
+import { BigNumber } from 'ethers';
 
 import {
   Node, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
-  ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse,
+  ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse, deployContracts,
 } from '@cerc-io/nitro-node';
 import {
-  hex2Bytes, DEFAULT_CHAIN_URL, DEFAULT_CHAIN_URL_WEBSOCKET, getBalanceByKey, getBalanceByAddress, deployContracts,
+  hex2Bytes, DEFAULT_CHAIN_URL, DEFAULT_CHAIN_URL_WEBSOCKET, getBalanceByKey, getBalanceByAddress,
 } from '@cerc-io/nitro-util';
 
 import {
@@ -200,12 +200,11 @@ describe('test payment flows', () => {
   let charlieChainBalance: BigNumber;
 
   before(async () => {
-    const provider = new providers.JsonRpcProvider(DEFAULT_CHAIN_URL);
     const [
       nitroAdjudicatorAddress,
       virtualPaymentAppAddress,
       consensusAppAddress,
-    ] = await deployContracts(provider.getSigner());
+    ] = await deployContracts(DEFAULT_CHAIN_URL);
 
     contractAddresses = {
       nitroAdjudicatorAddress,

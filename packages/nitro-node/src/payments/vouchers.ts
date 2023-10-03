@@ -12,7 +12,7 @@ import { ethers } from 'ethers';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 
-import { Bytes32, Voucher as NitroVoucher } from '@cerc-io/nitro-protocol';
+import { Bytes32, Voucher as NitroVoucher } from '@statechannels/nitro-protocol';
 import {
   FieldDescription, NitroSigner, fromJSON, hex2Bytes, toJSON,
 } from '@cerc-io/nitro-util';

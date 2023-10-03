@@ -8,7 +8,7 @@ import {
   State as NitroState,
   hashState as utilHashState,
   Bytes32,
-} from '@cerc-io/nitro-protocol';
+} from '@statechannels/nitro-protocol';
 import {
   FieldDescription, NitroSigner, Uint64, bytes2Hex, fromJSON, hex2Bytes, toJSON,
 } from '@cerc-io/nitro-util';

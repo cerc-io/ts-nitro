@@ -22,8 +22,8 @@
     "test:node": "lerna run test --stream --parallel --ignore @cerc-io/example-web-app",
     "prepare": "husky install",
     "chain": "lerna run chain --scope=@cerc-io/server",
-    "test:deploy-contracts": "lerna run test:deploy-contracts --scope=@cerc-io/nitro-util",
-    "test:copy-addresses": "lerna run test:copy-addresses --scope=@cerc-io/nitro-util",
+    "test:deploy-contracts": "lerna run test:deploy-contracts --scope=@cerc-io/nitro-node",
+    "test:copy-addresses": "lerna run test:copy-addresses --scope=@cerc-io/nitro-node",
     "build:contracts": "lerna run build:contracts --scope=@cerc-io/nitro-util",
     "test:deploy-token": "lerna run test:deploy-token --scope=@cerc-io/nitro-util",
     "version:set": "lerna version --no-git-tag-version"

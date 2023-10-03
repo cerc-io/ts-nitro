@@ -13,7 +13,8 @@
       "error",
       {
         "devDependencies": [
-          "scripts/**/*.ts"
+          "scripts/**/*.ts",
+          "src/**/*.test.ts"
         ]
       }
     ],

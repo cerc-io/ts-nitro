@@ -24,6 +24,8 @@ import { Objective as DirectDefundObjective } from '../../../protocols/directdef
 import { Objective as VirtualFundObjective } from '../../../protocols/virtualfund/virtualfund';
 import { Objective as VirtualDefundObjective } from '../../../protocols/virtualdefund/virtualdefund';
 
+const LEVEL_NOT_FOUND = 'LEVEL_NOT_FOUND';
+
 export class DurableStore implements Store {
   private objectives?: AbstractSublevel<Level<string, Buffer>, string | Buffer | Uint8Array, string, Buffer>;
 
@@ -197,8 +199,21 @@ export class DurableStore implements Store {
 
   // GetLastBlockNumSeen retrieves the last blockchain block processed by this node
   async getLastBlockNumSeen(): Promise<Uint64> {
-    const val = await this.lastBlockNumSeen!.get(lastBlockNumSeenKey);
-    const result = BigInt(val);
+    let result: bigint;
+    let val: string;
+
+    try {
+      val = await this.lastBlockNumSeen!.get(lastBlockNumSeenKey);
+      result = BigInt(val);
+    } catch (err) {
+      if ((err as any).code === LEVEL_NOT_FOUND) {
+        result = BigInt(0);
+        return result;
+      }
+
+      throw err;
+    }
+
     return result;
   }
 
@@ -588,7 +603,7 @@ export class DurableStore implements Store {
     } catch (err) {
       throw new WrappedError(
         `channelId ${channelId.string()}: ${ErrLoadVouchers}`,
-        [ErrLoadVouchers],
+        ErrLoadVouchers,
       );
     }
 

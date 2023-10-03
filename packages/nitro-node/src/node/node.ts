@@ -6,7 +6,7 @@ import { WaitGroup } from '@jpwilliams/waitgroup';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import Channel from '@cerc-io/ts-channel';
 import {
-  go, randUint64, Context, WrappedError,
+  go, randUint64, Context, WrappedError, Uint64,
 } from '@cerc-io/nitro-util';
 
 import { MessageService } from './engine/messageservice/messageservice';
@@ -137,7 +137,7 @@ export class Node {
       }));
       throw new WrappedError(
         `counterparty ${ethers.utils.getAddress(counterparty)}: ${ErrLedgerChannelExists}`,
-        [ErrLedgerChannelExists],
+        ErrLedgerChannelExists,
       );
     }
 
@@ -304,6 +304,12 @@ export class Node {
   getAllLedgerChannels(): Promise<LedgerChannelInfo[]> {
     assert(this.store);
     return getAllLedgerChannels(this.store, this.engine.getConsensusAppAddress());
+  }
+
+  // GetLastBlockNum returns last confirmed blockNum read from store
+  getLastBlockNum(): bigint | Promise<bigint> {
+    assert(this.store);
+    return this.store.getLastBlockNumSeen();
   }
 
   // GetLedgerChannel returns the ledger channel with the given id.

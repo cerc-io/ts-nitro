@@ -6,7 +6,7 @@ import { ethers } from 'ethers';
 import {
   fromJSON, toJSON, FieldDescription, Uint, Uint64, NitroSigner,
 } from '@cerc-io/nitro-util';
-import { Bytes32 } from '@cerc-io/nitro-protocol';
+import { Bytes32 } from '@statechannels/nitro-protocol';
 
 import { Signature } from '../crypto/signatures';
 import { Destination } from '../types/destination';
@@ -37,6 +37,11 @@ interface OnChainDataConstructorOptions {
 interface OffChainDataConstructorOptions {
   signedStateForTurnNum?: Map<Uint64, SignedState>;
   latestSupportedStateTurnNum?: Uint64;
+}
+
+interface ChainUpdateData {
+  blockNum: Uint64;
+  txIndex: Uint;
 }
 
 class OnChainData {
@@ -103,6 +108,8 @@ export class Channel extends FixedPart {
 
   offChain: OffChainData = new OffChainData({});
 
+  lastChainUpdate: ChainUpdateData = { blockNum: BigInt(0), txIndex: BigInt(0) };
+
   static jsonEncodingMap: Record<string, FieldDescription> = {
     id: { type: 'class', value: Destination },
     myIndex: { type: 'uint' },
@@ -130,6 +137,14 @@ export class Channel extends FixedPart {
   constructor(params: ConstructorOptions) {
     super(params);
     Object.assign(this, params);
+  }
+
+  // isNewChainEvent returns true if the event has a greater block number (or equal blocknumber but with greater tx index)
+  // than prior chain events process by the receiver.
+  isNewChainEvent(event: ChainEvent): boolean {
+    assert(this.lastChainUpdate);
+    return event.blockNum() > this.lastChainUpdate.blockNum
+      || (event.blockNum() === this.lastChainUpdate.blockNum && event.txIndex() > this.lastChainUpdate.txIndex);
   }
 
   // new constructs a new Channel from the supplied state.
@@ -394,6 +409,11 @@ export class Channel extends FixedPart {
 
   // UpdateWithChainEvent mutates the receiver with the supplied chain event, replacing the relevant data fields.
   updateWithChainEvent(event: ChainEvent): Channel {
+    if (!this.isNewChainEvent(event)) {
+      throw new Error("chain event older than channel's last update");
+    }
+    // Process event
+
     switch (event.constructor) {
       case AllocationUpdatedEvent: {
         const e = event as AllocationUpdatedEvent;
@@ -424,6 +444,9 @@ export class Channel extends FixedPart {
       }
     }
 
+    // Update Channel.LastChainUpdate
+    this.lastChainUpdate.blockNum = event.blockNum();
+    this.lastChainUpdate.txIndex = event.txIndex();
     return this;
   }
 }

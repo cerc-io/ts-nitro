@@ -2,8 +2,8 @@ import { ethers } from 'ethers';
 
 import type { ReadChannel } from '@cerc-io/ts-channel';
 
-import { Uint64 } from '@cerc-io/nitro-util';
-import { Bytes32 } from '@cerc-io/nitro-protocol';
+import { Uint64, Uint } from '@cerc-io/nitro-util';
+import { Bytes32 } from '@statechannels/nitro-protocol';
 
 import { ChainTransaction, Objective } from '../../../protocols/interfaces';
 import { Address } from '../../../types/types';
@@ -17,11 +17,13 @@ import { SignedState } from '../../../channel/state/signedstate';
 export interface ChainEvent {
   channelID(): Destination
   blockNum(): Uint64
+  txIndex(): Uint
 }
 
 interface CommonEventConstructorOptions {
   _channelID?: Destination
   _blockNum?: Uint64
+  _txIndex?: Uint
 }
 
 // CommonEvent declares fields shared by all chain events
@@ -29,6 +31,8 @@ class CommonEvent implements ChainEvent {
   private _channelID: Destination = new Destination();
 
   _blockNum = BigInt(0);
+
+  _txIndex = BigInt(0);
 
   constructor(params: CommonEventConstructorOptions) {
     Object.assign(this, params);
@@ -40,6 +44,10 @@ class CommonEvent implements ChainEvent {
 
   blockNum(): Uint64 {
     return this._blockNum;
+  }
+
+  txIndex(): Uint {
+    return this._txIndex;
   }
 }
 
@@ -78,13 +86,20 @@ export class DepositedEvent extends CommonEvent {
     Object.assign(this, params);
   }
 
-  static newDepositedEvent(channelId: Destination, blockNum: Uint64, assetAddress: Address, nowHeld?: bigint): DepositedEvent {
+  static newDepositedEvent(
+    channelId: Destination,
+    blockNum: Uint64,
+    txIndex: Uint64,
+    assetAddress: Address,
+    nowHeld?: bigint,
+  ): DepositedEvent {
     return new DepositedEvent(
       {
         nowHeld,
         asset: assetAddress,
         _channelID: channelId,
         _blockNum: blockNum,
+        _txIndex: txIndex,
       },
     );
   }
@@ -110,6 +125,9 @@ export interface ChainService {
   getVirtualPaymentAppAddress(): Address;
 
   getChainId(): Promise<bigint>;
+
+  // GetLastConfirmedBlockNum returns the highest blockNum that satisfies the chainservice's REQUIRED_BLOCK_CONFIRMATIONS
+  getLastConfirmedBlockNum(): Promise<Uint64>;
 
   close(): Promise<void>;
 }
@@ -140,12 +158,14 @@ export class ChallengeRegisteredEvent extends CommonEvent {
   static NewChallengeRegisteredEvent(
     channelId: Destination,
     blockNum: Uint64,
+    txIndex: Uint64,
     variablePart: VariablePart,
     sigs: Signature[],
   ): ChallengeRegisteredEvent {
     return new ChallengeRegisteredEvent({
       _channelID: channelId,
       _blockNum: blockNum,
+      _txIndex: txIndex,
       canditate: new VariablePart({
         appData: variablePart.appData,
         outcome: variablePart.outcome,
@@ -193,8 +213,8 @@ export class AllocationUpdatedEvent extends CommonEvent {
     return `Channel ${this.channelID().string()} has had allocation updated to ${this.assetAndAmount.string()} at Block ${this._blockNum}`;
   }
 
-  static newAllocationUpdatedEvent(channelId: Destination, blockNum: Uint64, assetAddress: Address, assetAmount: bigint | undefined): AllocationUpdatedEvent {
-    return new AllocationUpdatedEvent({ _channelID: channelId, _blockNum: blockNum }, { assetAddress, assetAmount });
+  static newAllocationUpdatedEvent(channelId: Destination, blockNum: Uint64, txIndex: Uint64, assetAddress: Address, assetAmount: bigint | undefined): AllocationUpdatedEvent {
+    return new AllocationUpdatedEvent({ _channelID: channelId, _blockNum: blockNum, _txIndex: txIndex }, { assetAddress, assetAmount });
   }
 
   constructor(

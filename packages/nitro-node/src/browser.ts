@@ -14,6 +14,7 @@ export { Voucher } from './payments/vouchers';
 export {
   Signature, recoverEthereumMessageSigner, getSignatureFromEthersSignature, signEthereumMessage,
 } from './crypto/signatures';
+export { deployContracts } from './internal/chain/chain';
 
 export * as utils from './utils';
 

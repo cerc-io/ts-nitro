@@ -63,6 +63,7 @@ export class Nitro {
     location?: string,
     metricsApi?: MetricsApi,
     asset?: string,
+    chainStartBlock: number = 0,
   ): Promise<Nitro> {
     const keySigner = new KeySigner(pk);
 
@@ -75,6 +76,7 @@ export class Nitro {
         caAddress: contractAddresses.consensusAppAddress,
         chainPk,
         chainUrl: chainURL,
+        chainStartBlock: BigInt(chainStartBlock),
       },
       location,
       metricsApi,
@@ -90,6 +92,7 @@ export class Nitro {
     location?: string,
     metricsApi?: MetricsApi,
     asset?: string,
+    chainStartBlock: number = 0,
   ): Promise<Nitro> {
     const snapSigner = new SnapSigner(provider, snapOrigin);
 
@@ -101,6 +104,7 @@ export class Nitro {
         vpaAddress: contractAddresses.virtualPaymentAppAddress,
         caAddress: contractAddresses.consensusAppAddress,
         provider,
+        chainStartBlock: BigInt(chainStartBlock),
       },
       location,
       metricsApi,

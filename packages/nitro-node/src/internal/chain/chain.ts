@@ -1,40 +1,51 @@
 import debug from 'debug';
 import assert from 'assert';
-import { providers } from 'ethers';
+import {
+  BytesLike, ContractFactory, ContractInterface, Signer, ethers, providers,
+} from 'ethers';
+
+import nitroAdjudicatorArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
+import consensusAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
+import virtualPaymentAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
+import { Uint64 } from '@cerc-io/nitro-util';
 
 import { Address } from '../../types/types';
-import { EthChainService } from '../../node/engine/chainservice/eth-chainservice';
-
-export interface ChainOpts {
-  naAddress: Address
-  vpaAddress: Address
-  caAddress: Address
-  provider?: providers.JsonRpcProvider,
-  chainUrl?: string
-  chainPk?: string
-}
 
 const log = debug('ts-nitro:chain');
 
-export async function initializeEthChainService(chainOpts: ChainOpts): Promise<EthChainService> {
-  if (chainOpts.provider) {
-    log(`Initializing chain service and connecting to ${chainOpts.provider.connection.url}...`);
+export interface ChainOpts {
+  chainUrl?: string
+  chainStartBlock: Uint64
+  chainPk?: string
+  provider?: providers.JsonRpcProvider,
+  naAddress: Address
+  vpaAddress: Address
+  caAddress: Address
+}
 
-    return EthChainService.newEthChainServiceWithProvider(
-      chainOpts.provider,
-      chainOpts.naAddress,
-      chainOpts.caAddress,
-      chainOpts.vpaAddress,
-    );
-  }
+// deployContract deploys a contract and waits for the transaction to be mined.
+async function deployContract(name: string, signer: Signer, contractInterface: ContractInterface, bytecode: BytesLike): Promise<string> {
+  const contractFactory = new ContractFactory(contractInterface, bytecode).connect(signer);
 
-  assert(chainOpts.chainUrl && chainOpts.chainPk);
-  log(`Initializing chain service and connecting to ${chainOpts.chainUrl}...`);
-  return EthChainService.newEthChainService(
-    chainOpts.chainUrl,
-    chainOpts.chainPk,
-    chainOpts.naAddress,
-    chainOpts.caAddress,
-    chainOpts.vpaAddress,
-  );
+  const contract = await contractFactory.deploy();
+  log(`Waiting for ${name} deployment confirmation`);
+
+  await contract.deployTransaction.wait();
+  log(`${name} successfully deployed to ${contract.address}`);
+
+  return contract.address;
+}
+
+// DeployContracts deploys the NitroAdjudicator, VirtualPaymentApp and ConsensusApp contracts.
+export async function deployContracts(chainURL: string, chainPK?: string): Promise<[string, string, string]> {
+  const provider = new providers.JsonRpcProvider(chainURL);
+  const signer = chainPK ? new ethers.Wallet(chainPK, provider) : provider.getSigner();
+
+  const na = await deployContract('NitroAdjudicator', signer, nitroAdjudicatorArtifact.abi, nitroAdjudicatorArtifact.bytecode);
+
+  const vpa = await deployContract('VirtualPaymentApp', signer, virtualPaymentAppArtifact.abi, virtualPaymentAppArtifact.bytecode);
+
+  const ca = await deployContract('ConsensusApp', signer, consensusAppArtifact.abi, consensusAppArtifact.bytecode);
+
+  return [na, vpa, ca];
 }

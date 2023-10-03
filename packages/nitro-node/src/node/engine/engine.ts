@@ -9,7 +9,7 @@ import { WaitGroup } from '@jpwilliams/waitgroup';
 import Channel from '@cerc-io/ts-channel';
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
-  JSONbigNative, go, Context, WrappedError,
+  JSONbigNative, go, Context, WrappedError, Ticker,
 } from '@cerc-io/nitro-util';
 
 import { MessageService } from './messageservice/messageservice';
@@ -170,7 +170,7 @@ export class Engine {
 
   private fromLedger?: ReadWriteChannel<Proposal>;
 
-  private eventHandler?: (engineEvent: EngineEvent)=> void;
+  private eventHandler?: (engineEvent: EngineEvent) => void;
 
   private msg?: MessageService;
 
@@ -191,7 +191,7 @@ export class Engine {
   // Custom channel for vouchers being sent
   private _sentVouchers?: ReadWriteChannel<Voucher>;
 
-  private cancel?: (reason ?: any) => void;
+  private cancel?: (reason?: any) => void;
 
   private wg?: WaitGroup;
 
@@ -201,7 +201,7 @@ export class Engine {
     chain: ChainService,
     store: Store,
     policymaker: PolicyMaker,
-    eventHandler: (engineEvent: EngineEvent)=> void,
+    eventHandler: (engineEvent: EngineEvent) => void,
     metricsApi?: MetricsApi,
   ) {
     const e = new Engine();
@@ -280,10 +280,14 @@ export class Engine {
     assert(this.fromLedger);
     assert(this.eventHandler);
     assert(this.store);
+    assert(this.chain);
 
     while (true) {
       let res = new EngineEvent({});
       let err: Error | null = null;
+
+      // eslint-disable-next-line no-await-in-loop
+      const blockTicker = await Ticker.newTicker(15 * 1000);
 
       if (METRICS_ENABLED) {
         this.metrics!.recordQueueLength('api_objective_request_queue', this.objectiveRequestsFromAPI.channelLength());
@@ -302,6 +306,7 @@ export class Engine {
         this.fromMsg.shift(),
         this.fromLedger.shift(),
         ctx.done.shift(),
+        blockTicker.c!.shift(),
       ])) {
         case this.objectiveRequestsFromAPI:
           [res, err] = await this.handleObjectiveRequest(this.objectiveRequestsFromAPI.value());
@@ -312,13 +317,6 @@ export class Engine {
           break;
 
         case this.fromChain:
-          try {
-            await this.store.setLastBlockNumSeen(this.fromChain.value().blockNum());
-            // eslint-disable-next-line @typescript-eslint/no-shadow
-          } catch (err) {
-            this.checkError(err as Error);
-          }
-
           [res, err] = await this.handleChainEvent(this.fromChain.value());
           break;
 
@@ -330,11 +328,27 @@ export class Engine {
           [res, err] = await this.handleProposal(this.fromLedger.value());
           break;
 
+        case blockTicker.c: {
+          const blockNum = await this.chain.getLastConfirmedBlockNum();
+
+          try {
+            await this.store.setLastBlockNumSeen(blockNum);
+          } catch (storeErr) {
+            err = storeErr as Error;
+          }
+          break;
+        }
+
         case ctx.done: {
+          // Stop ticker instance
+          blockTicker.stop();
           this.wg!.done();
           return;
         }
       }
+
+      // Stop ticker instance
+      blockTicker.stop();
 
       // Handle errors
       if (err) {
@@ -631,10 +645,17 @@ export class Engine {
       }
 
       assert('string' in chainEvent && typeof chainEvent.string === 'function');
-      this.logger(JSON.stringify({
+      this.logger(JSONbigNative.stringify({
         msg: 'handling chain event',
+        blockNum: chainEvent.blockNum(),
         event: chainEvent.string(),
       }));
+
+      try {
+        await this.store!.setLastBlockNumSeen(chainEvent.blockNum());
+      } catch (err) {
+        return [new EngineEvent({}), err as Error];
+      }
 
       // eslint-disable-next-line prefer-const
       let [c, ok] = await this.store!.getChannelById(chainEvent.channelID());
@@ -742,7 +763,7 @@ export class Engine {
                 failedEngineEvent,
                 new WrappedError(
                   `could not register channel with payment/receipt manager: ${err}`,
-                  [err],
+                  err,
                 )];
             }
           }
@@ -1388,7 +1409,7 @@ export class Engine {
     if (err) {
       this.logger(JSON.stringify({
         msg: 'error in run loop',
-        err,
+        err: (err as Error).message,
       }));
 
       for (const nonFatalError of nonFatalErrors) {
