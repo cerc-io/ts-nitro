@@ -64,7 +64,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
   ```bash
   # In packages/server
-  yarn cli --pk $BOB_PK --chainpk $BOB_CHAIN_PK --store ./out/bob-db --wait
+  yarn cli --pk $BOB_PK --chain-pk $BOB_CHAIN_PK --store ./out/bob-db --wait
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -83,7 +83,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 
   ```bash
   # In packages/server
-  yarn cli --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --direct-fund --counterparty $BOB_ADDRESS --amount 1000000
+  yarn cli --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --direct-fund --counter-party $BOB_ADDRESS --amount 1000000
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -103,7 +103,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Run command to get ledger channel information
 
   ```bash
-  yarn cli --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-ledger-channel --ledger-channel $LEDGER_CHANNEL_ID
+  yarn cli --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --get-ledger-channel --ledger-channel $LEDGER_CHANNEL_ID
 
   # Expected output:
   # ts-nitro:server Ledger channel 0xb18b4a179496b698d1adef6c6a57a8debf75c1000ed69154615a5a4904036e4d status:
@@ -123,7 +123,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Run client for Alice again to create virtual payment channel:
 
   ```bash
-  yarn cli --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-fund --counterparty $BOB_ADDRESS --amount 1000
+  yarn cli --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-fund --counter-party $BOB_ADDRESS --amount 1000
 
   # Final Expected output:
   # ts-nitro:engine Objective VirtualFund-0x033d8dcf8a34333cf7807082c03cb940241a3a115a7fa44e47de2c9ec7e5e992 is complete & returned to API +1ms
@@ -140,7 +140,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Run command to get payment channel information
 
   ```bash
-  yarn cli --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID
+  yarn cli --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID
 
   # Expected output:
   # ts-nitro:server Virtual payment channel 0x033d8dcf8a34333cf7807082c03cb940241a3a115a7fa44e47de2c9ec7e5e992 status:
@@ -160,7 +160,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Run client for Alice to make payment:
 
   ```bash
-  yarn cli --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --pay --amount 50 --payment-channel $PAYMENT_CHANNEL_ID --wait
+  yarn cli --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --pay --amount 50 --payment-channel $PAYMENT_CHANNEL_ID --wait
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -192,13 +192,13 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Check status of payment channel after making payments
 
     ```bash
-    yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID
+    yarn cli -p 3005 --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID
     ```
 
 * Close virtual payment channel using client Alice
 
   ```bash
-  yarn cli --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-defund --payment-channel $PAYMENT_CHANNEL_ID --get-payment-channel
+  yarn cli --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-defund --payment-channel $PAYMENT_CHANNEL_ID --get-payment-channel
 
   # Final Expected output:
   # ts-nitro:engine Objective VirtualDefund-0x033d8dcf8a34333cf7807082c03cb940241a3a115a7fa44e47de2c9ec7e5e992 is complete & returned to API +1ms
@@ -220,7 +220,7 @@ Instructions to run two instances of `ts-nitro` clients in a node environment an
 * Close the ledger channel using client Alice
 
   ```bash
-  yarn cli --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --direct-defund --ledger-channel $LEDGER_CHANNEL_ID --get-ledger-channel
+  yarn cli --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --direct-defund --ledger-channel $LEDGER_CHANNEL_ID --get-ledger-channel
 
   # Final Expected output:
   # ts-nitro:engine Objective DirectDefunding-0xb18b4a179496b698d1adef6c6a57a8debf75c1000ed69154615a5a4904036e4d is complete & returned to API +1ms
@@ -358,7 +358,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 
   ```bash
   # In packages/server
-  yarn cli --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --direct-fund --counterparty $ERIN_ADDRESS --amount 1000000 --additional-peers ./additional-peers.json
+  yarn cli --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --direct-fund --counter-party $ERIN_ADDRESS --amount 1000000 --additional-peers ./additional-peers.json
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -378,7 +378,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Run command to get ledger channel information
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-ledger-channel --ledger-channel $LEDGER_CHANNEL_ID --counterparty $ERIN_ADDRESS --amount 1000000 --additional-peers ./additional-peers.json
+  yarn cli -p 3005 --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --get-ledger-channel --ledger-channel $LEDGER_CHANNEL_ID --counter-party $ERIN_ADDRESS --amount 1000000 --additional-peers ./additional-peers.json
 
   # Expected output:
   # ts-nitro:server Ledger channel 0xb18b4a179496b698d1adef6c6a57a8debf75c1000ed69154615a5a4904036e4d status:
@@ -398,7 +398,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Run client for Alice again to create virtual payment channel:
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-fund --counterparty $ERIN_ADDRESS --amount 1000 --additional-peers ./additional-peers.json
+  yarn cli -p 3005 --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-fund --counter-party $ERIN_ADDRESS --amount 1000 --additional-peers ./additional-peers.json
 
   # Final Expected output:
   # ts-nitro:engine Objective VirtualFund-0x033d8dcf8a34333cf7807082c03cb940241a3a115a7fa44e47de2c9ec7e5e992 is complete & returned to API +1ms
@@ -415,7 +415,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Run command to get payment channel information
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID  --counterparty $ERIN_ADDRESS --additional-peers ./additional-peers.json
+  yarn cli -p 3005 --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID  --counter-party $ERIN_ADDRESS --additional-peers ./additional-peers.json
 
   # Expected output:
   # ts-nitro:server Virtual payment channel 0x033d8dcf8a34333cf7807082c03cb940241a3a115a7fa44e47de2c9ec7e5e992 status:
@@ -435,7 +435,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Run client for Alice to make payment:
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --pay --amount 50 --payment-channel $PAYMENT_CHANNEL_ID --wait  --counterparty $ERIN_ADDRESS --additional-peers ./additional-peers.json
+  yarn cli -p 3005 --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --pay --amount 50 --payment-channel $PAYMENT_CHANNEL_ID --wait  --counter-party $ERIN_ADDRESS --additional-peers ./additional-peers.json
 
   # Expected output:
   # ts-nitro:engine Constructed Engine +0ms
@@ -448,13 +448,13 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Check status of payment channel after making payments
 
     ```bash
-    yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID  --counterparty $ERIN_ADDRESS --additional-peers ./additional-peers.json
+    yarn cli -p 3005 --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --get-payment-channel --payment-channel $PAYMENT_CHANNEL_ID  --counter-party $ERIN_ADDRESS --additional-peers ./additional-peers.json
     ```
 
 * Close virtual payment channel using client Alice
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-defund --payment-channel $PAYMENT_CHANNEL_ID  --counterparty $ERIN_ADDRESS --additional-peers ./additional-peers.json
+  yarn cli -p 3005 --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --virtual-defund --payment-channel $PAYMENT_CHANNEL_ID  --counter-party $ERIN_ADDRESS --additional-peers ./additional-peers.json
 
   # Final Expected output:
   # ts-nitro:engine Objective VirtualDefund-0x033d8dcf8a34333cf7807082c03cb940241a3a115a7fa44e47de2c9ec7e5e992 is complete & returned to API +1ms
@@ -477,7 +477,7 @@ Instructions to run instances of `ts-nitro` (node) and `go-nitro` clients and cr
 * Close the ledger channel using client Alice
 
   ```bash
-  yarn cli -p 3005 --pk $ALICE_PK --chainpk $ALICE_CHAIN_PK --store ./out/alice-db --direct-defund --ledger-channel $LEDGER_CHANNEL_ID --get-ledger-channel --counterparty $ERIN_ADDRESS --additional-peers ./additional-peers.json
+  yarn cli -p 3005 --pk $ALICE_PK --chain-pk $ALICE_CHAIN_PK --store ./out/alice-db --direct-defund --ledger-channel $LEDGER_CHANNEL_ID --get-ledger-channel --counter-party $ERIN_ADDRESS --additional-peers ./additional-peers.json
 
   # Final Expected output:
   # ts-nitro:engine Objective DirectDefunding-0xb18b4a179496b698d1adef6c6a57a8debf75c1000ed69154615a5a4904036e4d is complete & returned to API +1ms

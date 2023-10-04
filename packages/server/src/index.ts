@@ -30,13 +30,13 @@ const getArgv = () => yargs.parserConfiguration({
     demandOption: true,
     describe: 'Private key for the client',
   },
-  chainpk: {
+  chainPk: {
     type: 'string',
     require: true,
     demandOption: true,
     describe: 'Private key to use when interacting with the chain',
   },
-  chainurl: {
+  chainUrl: {
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
@@ -46,7 +46,7 @@ const getArgv = () => yargs.parserConfiguration({
     type: 'string',
     describe: 'File path of the deployed nitro contract addresses',
   },
-  counterparty: {
+  counterParty: {
     type: 'string',
     describe: 'Counterparty to create channel(s) against',
   },
@@ -137,8 +137,8 @@ const main = async () => {
 
   const nitro = await utils.Nitro.setupNode(
     argv.pk,
-    argv.chainurl,
-    argv.chainpk,
+    argv.chainUrl,
+    argv.chainPk,
     contractAddresses,
     peer,
     argv.store && path.resolve(argv.store),
@@ -149,7 +149,7 @@ const main = async () => {
   subscribeVoucherLogs(nitro.node);
   log('Started P2PMessageService and subscribed to vouchers');
 
-  const peersToConnect: string[] = argv.counterparty ? [argv.counterparty] : [];
+  const peersToConnect: string[] = argv.counterParty ? [argv.counterParty] : [];
   peersToConnect.push(...(argv.intermediaries as string[]));
 
   let peersToAdd: any[] = [];
@@ -181,7 +181,7 @@ const main = async () => {
 
   let ledgerChannelIdString = argv.ledgerChannel;
   let paymentChannelIdString = argv.paymentChannel;
-  const counterParty = argv.counterparty;
+  const { counterParty } = argv;
 
   if (argv.directFund) {
     assert(counterParty, 'Specify counterparty address');

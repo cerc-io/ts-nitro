@@ -11,7 +11,7 @@ const log = debug('ts-nitro:util');
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
 }).options({
-  chainurl: {
+  chainUrl: {
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
@@ -48,16 +48,16 @@ async function main() {
   if (argv.address) {
     address = argv.address;
   } else if (argv.key) {
-    address = await getAddressByKey(argv.key, argv.chainurl);
+    address = await getAddressByKey(argv.key, argv.chainUrl);
   } else {
     throw new Error('Provide either address or private key of an account');
   }
 
   if (argv.token) {
-    const balance = await getTokenBalanceByAddress(argv.token, address, argv.chainurl);
+    const balance = await getTokenBalanceByAddress(argv.token, address, argv.chainUrl);
     log(`Token balance of account ${address} is ${balance.toString()}`);
   } else {
-    const balance = await getBalanceByAddress(address, argv.chainurl);
+    const balance = await getBalanceByAddress(address, argv.chainUrl);
     log(`ETH balance of account ${address} is ${balance.toString()}`);
   }
 }

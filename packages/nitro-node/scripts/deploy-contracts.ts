@@ -12,7 +12,7 @@ const log = debug('ts-nitro:node');
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
 }).options({
-  chainurl: {
+  chainUrl: {
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
@@ -38,7 +38,7 @@ async function main() {
     nitroAdjudicatorAddress,
     virtualPaymentAppAddress,
     consensusAppAddress,
-  ] = await deployContracts(argv.chainurl, argv.key);
+  ] = await deployContracts(argv.chainUrl, argv.key);
 
   const output = {
     nitroAdjudicatorAddress,

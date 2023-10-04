@@ -9,7 +9,7 @@ const log = debug('ts-nitro:util');
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
 }).options({
-  chainurl: {
+  chainUrl: {
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
@@ -43,7 +43,7 @@ const getArgv = () => yargs.parserConfiguration({
 async function main() {
   const argv = getArgv();
 
-  const provider = new providers.JsonRpcProvider(argv.chainurl);
+  const provider = new providers.JsonRpcProvider(argv.chainUrl);
   const signer = new Wallet(argv.key, provider);
   const from = await signer.getAddress();
 
