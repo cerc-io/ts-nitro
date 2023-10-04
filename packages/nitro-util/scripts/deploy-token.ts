@@ -11,7 +11,7 @@ const log = debug('ts-nitro:util');
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
 }).options({
-  chainurl: {
+  chainUrl: {
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
@@ -27,7 +27,7 @@ const getArgv = () => yargs.parserConfiguration({
 async function main() {
   const argv = getArgv();
 
-  const provider = new providers.JsonRpcProvider(argv.chainurl);
+  const provider = new providers.JsonRpcProvider(argv.chainUrl);
   const signer = argv.key ? new ethers.Wallet(argv.key, provider) : provider.getSigner();
 
   const tokenAddress = await deployToken(signer, tokenArtifact);

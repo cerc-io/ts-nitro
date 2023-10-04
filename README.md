@@ -71,7 +71,7 @@ Run relay node using v2 watcher
 
     ```bash
     # In packages/server
-    yarn cli --pk $BOB_PK --chainpk $BOB_CHAIN_PK --store ./out/bob-db --directfund --counterparty $CHARLIE_ADDRESS --getledgerchannel --amount 1000000
+    yarn cli --pk $BOB_PK --chain-pk $BOB_CHAIN_PK --store ./out/bob-db --direct-fund --counter-party $CHARLIE_ADDRESS --get-ledger-channel --amount 1000000
 
     # Expected output:
     # ts-nitro:engine Constructed Engine +0ms
@@ -90,7 +90,7 @@ Run relay node using v2 watcher
 * Run client for Bob again to create virtual payment channel:
 
     ```bash
-    yarn cli --pk $BOB_PK --chainpk $BOB_CHAIN_PK --store ./out/bob-db --virtualfund --counterparty $CHARLIE_ADDRESS --getpaymentchannel --amount 1000
+    yarn cli --pk $BOB_PK --chain-pk $BOB_CHAIN_PK --store ./out/bob-db --virtual-fund --counter-party $CHARLIE_ADDRESS --get-payment-channel --amount 1000
 
     # Final Expected output:
     # ts-nitro:engine Objective VirtualFund-0xf112143060c59a6d2c5b2d429ca46eb48286e1ca1301da60b9a1a184ad1a58bb is complete & returned to API +1ms
@@ -106,7 +106,7 @@ Run relay node using v2 watcher
 * Run client for Bob to make payment:
 
     ```bash
-    yarn cli --pk $BOB_PK --chainpk $BOB_CHAIN_PK --store ./out/bob-db --pay --amount 50 --paymentchannel $PAYMENT_CHANNEL_ID --wait
+    yarn cli --pk $BOB_PK --chain-pk $BOB_CHAIN_PK --store ./out/bob-db --pay --amount 50 --payment-channel $PAYMENT_CHANNEL_ID --wait
     ```
 
   * Wait for voucher received log in client Charlie
@@ -120,7 +120,7 @@ Run relay node using v2 watcher
 * Close virtual payment channel using client Bob
 
   ```bash
-  yarn cli --pk $BOB_PK --chainpk $BOB_CHAIN_PK --store ./out/bob-db --virtualdefund --paymentchannel $PAYMENT_CHANNEL_ID --getpaymentchannel
+  yarn cli --pk $BOB_PK --chain-pk $BOB_CHAIN_PK --store ./out/bob-db --virtual-defund --payment-channel $PAYMENT_CHANNEL_ID --get-payment-channel
 
   # Final Expected output:
   # ts-nitro:engine Objective VirtualDefund-0xe613b9f1651f971473061a968823463e9570b83230c2bce734b21800f663e4aa is complete & returned to API +1ms
@@ -130,7 +130,7 @@ Run relay node using v2 watcher
 * Close the ledger channel using client Bob
 
   ```bash
-  yarn cli --pk $BOB_PK --chainpk $BOB_CHAIN_PK --store ./out/bob-db --directdefund --ledgerchannel $LEDGER_CHANNEL_ID --getledgerchannel
+  yarn cli --pk $BOB_PK --chain-pk $BOB_CHAIN_PK --store ./out/bob-db --direct-defund --ledger-channel $LEDGER_CHANNEL_ID --get-ledger-channel
 
   # Final Expected output:
   # ts-nitro:engine Objective DirectDefunding-0xe29e2d7ee060fb78b279ac4c8f5cc9bf59334f3e0d25315d5e3c822ed0303d9e is complete & returned to API +1ms

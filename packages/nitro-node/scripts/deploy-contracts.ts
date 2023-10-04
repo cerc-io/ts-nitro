@@ -12,13 +12,13 @@ const log = debug('ts-nitro:node');
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
 }).options({
-  chainurl: {
+  chainUrl: {
     alias: 'c',
     type: 'string',
     describe: 'RPC endpoint for the chain',
     default: DEFAULT_CHAIN_URL,
   },
-  addressesfilepath: {
+  addressesFilePath: {
     alias: 'f',
     type: 'string',
     describe: 'JSON file path to export addresses to',
@@ -38,7 +38,7 @@ async function main() {
     nitroAdjudicatorAddress,
     virtualPaymentAppAddress,
     consensusAppAddress,
-  ] = await deployContracts(argv.chainurl, argv.key);
+  ] = await deployContracts(argv.chainUrl, argv.key);
 
   const output = {
     nitroAdjudicatorAddress,
@@ -46,7 +46,7 @@ async function main() {
     consensusAppAddress,
   };
 
-  const outputFilePath = path.resolve(argv.addressesfilepath);
+  const outputFilePath = path.resolve(argv.addressesFilePath);
   fs.writeFileSync(outputFilePath, JSON.stringify(output, null, 2));
   log('Contracts deployed, addresses written to', outputFilePath);
 }
