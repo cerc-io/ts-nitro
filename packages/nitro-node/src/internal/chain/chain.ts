@@ -13,16 +13,6 @@ import { Address } from '../../types/types';
 
 const log = debug('ts-nitro:chain');
 
-export interface ChainOpts {
-  chainUrl?: string
-  chainStartBlock: Uint64
-  chainPk?: string
-  provider?: providers.JsonRpcProvider,
-  naAddress: Address
-  vpaAddress: Address
-  caAddress: Address
-}
-
 // deployContract deploys a contract and waits for the transaction to be mined.
 async function deployContract(name: string, signer: Signer, contractInterface: ContractInterface, bytecode: BytesLike): Promise<string> {
   const contractFactory = new ContractFactory(contractInterface, bytecode).connect(signer);

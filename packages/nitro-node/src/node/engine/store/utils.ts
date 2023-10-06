@@ -9,28 +9,32 @@ import { MemStore } from './memstore';
 
 const log = debug('ts-nitro:store');
 
+export interface StoreOpts {
+  signer: NitroSigner,
+  durableStoreFolder?: string
+}
 // In go-nitro newStore method is placed in node/engine/store/store.go
 // In ts-nitro it cannot be placed in same path as dependency cycle is detected (import/no-cycle)
-export async function newStore(signer: NitroSigner, durableStoreFolder?: string): Promise<Store> {
+export async function newStore(options: StoreOpts): Promise<Store> {
   let ourStore: Store;
-  await signer.init();
+  await options.signer.init();
 
-  if (durableStoreFolder) {
-    const me = await signer.getAddress();
-    const dataFolder = path.join(durableStoreFolder, me);
+  if (options.durableStoreFolder) {
+    const me = await options.signer.getAddress();
+    const dataFolder = path.join(options.durableStoreFolder, me);
 
     log(JSON.stringify({
       msg: 'Initialising durable store...',
       dataFolder,
     }));
 
-    ourStore = await DurableStore.newDurableStore(signer, dataFolder);
+    ourStore = await DurableStore.newDurableStore(options.signer, dataFolder);
   } else {
     log(JSON.stringify({
       msg: 'Initialising mem store...',
     }));
 
-    ourStore = await MemStore.newMemStore(signer);
+    ourStore = await MemStore.newMemStore(options.signer);
   }
 
   return ourStore;

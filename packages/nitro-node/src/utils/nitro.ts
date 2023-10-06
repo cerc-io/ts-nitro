@@ -68,8 +68,6 @@ export class Nitro {
     const keySigner = new KeySigner(pk);
 
     const [node, store, msgService, chainService] = await initializeNode(
-      keySigner,
-      peer,
       {
         naAddress: contractAddresses.nitroAdjudicatorAddress,
         vpaAddress: contractAddresses.virtualPaymentAppAddress,
@@ -78,7 +76,13 @@ export class Nitro {
         chainUrl: chainURL,
         chainStartBlock: BigInt(chainStartBlock),
       },
-      location,
+      {
+        signer: keySigner,
+        durableStoreFolder: location,
+      },
+      {
+        peer,
+      },
       metricsApi,
     );
     return new Nitro(node, msgService, chainService, keySigner, store);
@@ -97,8 +101,6 @@ export class Nitro {
     const snapSigner = new SnapSigner(provider, snapOrigin);
 
     const [node, store, msgService, chainService] = await initializeNode(
-      snapSigner,
-      peer,
       {
         naAddress: contractAddresses.nitroAdjudicatorAddress,
         vpaAddress: contractAddresses.virtualPaymentAppAddress,
@@ -106,7 +108,13 @@ export class Nitro {
         provider,
         chainStartBlock: BigInt(chainStartBlock),
       },
-      location,
+      {
+        signer: snapSigner,
+        durableStoreFolder: location,
+      },
+      {
+        peer,
+      },
       metricsApi,
     );
 

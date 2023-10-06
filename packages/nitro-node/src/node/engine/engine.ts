@@ -948,7 +948,6 @@ export class Engine {
       assert(this.msg);
       for await (const message of msgs) {
         message.from = this.store.getAddress();
-        this.logMessage(message, Outgoing);
 
         if (METRICS_ENABLED) {
           this.recordMessageMetrics(message);
@@ -957,7 +956,10 @@ export class Engine {
           await this.msg.send(message);
         } catch (err) {
           this.logger(err);
+          throw err;
         }
+
+        this.logMessage(message, Outgoing);
       }
     } finally {
       this.wg!.done();

@@ -32,7 +32,6 @@ import { assetAddressForIndex } from './eth-chain-helpers';
 import { connectToChain } from './utils/utils';
 import { VariablePart } from '../../../channel/state/state';
 import { convertBindingsExitToExit, convertBindingsSignaturesToSignatures } from './adjudicator/reverse_typeconversions';
-import { ChainOpts } from '../../../internal/chain/chain';
 import { EventTracker } from './event-queue';
 
 const log = debug('ts-nitro:eth-chain-service');
@@ -58,6 +57,16 @@ const topicsToWatch: string[] = [
   challengeRegisteredTopic,
   challengeClearedTopic,
 ];
+
+export interface ChainOpts {
+  chainUrl?: string
+  chainStartBlock: Uint64
+  chainPk?: string
+  provider?: providers.JsonRpcProvider,
+  naAddress: Address
+  vpaAddress: Address
+  caAddress: Address
+}
 
 interface EthChain {
   // Following Interfaces in Go have been implemented using EthClient.provider (ethers Provider)
