@@ -67,7 +67,7 @@ export function createOutcome(
   asset: string,
   alpha: string,
   beta: string,
-  amount: number,
+  amount: string,
 ): Exit {
   return new Exit([
     new SingleAssetExit({

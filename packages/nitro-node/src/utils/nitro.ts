@@ -142,7 +142,7 @@ export class Nitro {
     return [true, `Peer with address ${address} is dialable`];
   }
 
-  async directFund(counterParty: string, amount: number): Promise<string> {
+  async directFund(counterParty: string, amount: string): Promise<string> {
     const outcome = createOutcome(
       this.asset,
       this.node.address,
@@ -162,7 +162,7 @@ export class Nitro {
     return response.channelId.string();
   }
 
-  async virtualFund(counterParty: string, amount: number, intermediaries: string[] = []): Promise<string> {
+  async virtualFund(counterParty: string, amount: string, intermediaries: string[] = []): Promise<string> {
     const outcome = createOutcome(
       this.asset,
       this.node.address,
@@ -182,7 +182,7 @@ export class Nitro {
     return response.channelId.string();
   }
 
-  async pay(virtualPaymentChannel: string, amount: number): Promise<Voucher> {
+  async pay(virtualPaymentChannel: string, amount: string): Promise<Voucher> {
     const virtualPaymentChannelId = new Destination(virtualPaymentChannel);
     await this.node.pay(virtualPaymentChannelId, BigInt(amount));
     const sentVoucher = await this.node.sentVouchers().shift();
