@@ -79,8 +79,8 @@ export class Nitro {
       },
       {
         signer: keySigner,
-        useDurableStore: useDurableStore,
-        durableStoreFolder: durableStoreFolder,
+        useDurableStore,
+        durableStoreFolder,
       },
       {
         peer,
@@ -113,8 +113,8 @@ export class Nitro {
       },
       {
         signer: snapSigner,
-        useDurableStore: useDurableStore,
-        durableStoreFolder: durableStoreFolder,
+        useDurableStore,
+        durableStoreFolder,
       },
       {
         peer,
