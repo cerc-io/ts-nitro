@@ -60,7 +60,8 @@ export class Nitro {
     chainPk: string,
     contractAddresses: { [key: string]: string },
     peer: Peer,
-    location?: string,
+    useDurableStore: boolean = false,
+    durableStoreFolder: string = './data/nitro-store',
     metricsApi?: MetricsApi,
     asset?: string,
     chainStartBlock: number = 0,
@@ -78,7 +79,8 @@ export class Nitro {
       },
       {
         signer: keySigner,
-        durableStoreFolder: location,
+        useDurableStore: useDurableStore,
+        durableStoreFolder: durableStoreFolder,
       },
       {
         peer,
@@ -93,7 +95,8 @@ export class Nitro {
     snapOrigin: string,
     contractAddresses: { [key: string]: string },
     peer: Peer,
-    location?: string,
+    useDurableStore: boolean = false,
+    durableStoreFolder: string = './data/nitro-store',
     metricsApi?: MetricsApi,
     asset?: string,
     chainStartBlock: number = 0,
@@ -110,7 +113,8 @@ export class Nitro {
       },
       {
         signer: snapSigner,
-        durableStoreFolder: location,
+        useDurableStore: useDurableStore,
+        durableStoreFolder: durableStoreFolder,
       },
       {
         peer,

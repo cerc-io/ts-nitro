@@ -11,7 +11,8 @@ const log = debug('ts-nitro:store');
 
 export interface StoreOpts {
   signer: NitroSigner,
-  durableStoreFolder?: string
+  useDurableStore: boolean,
+  durableStoreFolder: string,
 }
 // In go-nitro newStore method is placed in node/engine/store/store.go
 // In ts-nitro it cannot be placed in same path as dependency cycle is detected (import/no-cycle)
@@ -19,7 +20,7 @@ export async function newStore(options: StoreOpts): Promise<Store> {
   let ourStore: Store;
   await options.signer.init();
 
-  if (options.durableStoreFolder) {
+  if (options.useDurableStore) {
     const me = await options.signer.getAddress();
     const dataFolder = path.join(options.durableStoreFolder, me);
 

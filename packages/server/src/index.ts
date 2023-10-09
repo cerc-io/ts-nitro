@@ -24,6 +24,7 @@ const {
 const DEFAULT_LEDGER_AMOUNT = '1000000';
 const DEFAULT_VIRTUAL_CHANNEL_AMOUNT = '1000';
 const DEFAULT_PAY_AMOUNT = '0';
+const DEFAULT_DURABLE_STORE_FOLDER = './data/nitro-store';
 
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
@@ -106,9 +107,15 @@ const getArgv = () => yargs.parserConfiguration({
     default: false,
     describe: 'Whether to close a ledger channel with the given counterparty',
   },
-  store: {
+  useDurableStore: {
+    type: 'boolean',
+    default: false,
+    describe: 'Specifies whether to use a durable store or an in-memory store.',
+  },
+  durableStoreFolder: {
     type: 'string',
     describe: 'Directory path to use for DurableStore',
+    default: DEFAULT_DURABLE_STORE_FOLDER,
   },
   paymentChannel: {
     type: 'string',
@@ -145,7 +152,8 @@ const main = async () => {
     argv.chainPk,
     contractAddresses,
     peer,
-    argv.store && path.resolve(argv.store),
+    argv.useDurableStore,
+    argv.durableStoreFolder && path.resolve(argv.durableStoreFolder),
     undefined,
     asset,
   );
