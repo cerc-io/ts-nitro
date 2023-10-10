@@ -50,6 +50,9 @@ const depositedTopic = ethers.utils.id(naInterface.getEvent('Deposited').format(
 const challengeRegisteredTopic = ethers.utils.id(naInterface.getEvent('ChallengeRegistered').format());
 const challengeClearedTopic = ethers.utils.id(naInterface.getEvent('ChallengeCleared').format());
 
+const MIN_BACKOFF_TIME = 1;
+const MAX_BACKOFF_TIME = 5 * 60;
+
 const topicsToWatch: string[] = [
   allocationUpdatedTopic,
   concludedTopic,
@@ -68,13 +71,12 @@ export interface ChainOpts {
   caAddress: Address
 }
 
-interface EthChain {
-  // Following Interfaces in Go have been implemented using EthClient.provider (ethers Provider)
+interface EthChain extends EthClient {
+  // Following Interfaces in Go have been implemented using EthClient
   //  bind.ContractBackend (github.com/ethereum/go-ethereum/accounts/abi/bind)
   //  ethereum.TransactionReader (github.com/ethereum/go-ethereum)
-  provider: ethers.providers.BaseProvider
 
-  chainID (): Promise<bigint>;
+  chainID(): Promise<bigint>;
 }
 
 export class EthChainService implements ChainService {
@@ -102,6 +104,10 @@ export class EthChainService implements ChainService {
 
   private eventTracker: EventTracker;
 
+  private eventSub?: () => void;
+
+  private newBlockSub?: () => void;
+
   constructor(
     chain: EthChain,
     na: NitroAdjudicator,
@@ -115,6 +121,8 @@ export class EthChainService implements ChainService {
     cancel: () => void,
     wg: WaitGroup,
     eventTracker: EventTracker,
+    eventSub?: () => void,
+    newBlockSub?: () => void,
   ) {
     this.chain = chain;
     this.na = na;
@@ -128,6 +136,8 @@ export class EthChainService implements ChainService {
     this.cancel = cancel;
     this.wg = wg;
     this.eventTracker = eventTracker;
+    this.eventSub = eventSub;
+    this.newBlockSub = newBlockSub;
   }
 
   // newEthChainService is a convenient wrapper around _newEthChainService, which provides a simpler API
@@ -199,31 +209,27 @@ export class EthChainService implements ChainService {
 
     const [
       errChan,
-      subErr,
-      newBlockSubUnSubscribe,
       newBlockChan,
-      eventSubUnSubscribe,
       eventChan,
       eventQuery,
-      eventListener,
-      newBlockListener,
+      subErrChan,
+      errorSub,
     ] = ecs.subscribeForLogs();
 
     // Prevent go routines from processing events before checkForMissedEvents completes
     const release = await ecs.eventTracker.mu.acquire();
     try {
       ecs.wg!.add(4);
-      go(ecs.listenForEventLogs.bind(ecs), errChan, eventSubUnSubscribe, eventChan);
-      go(ecs.listenForNewBlocks.bind(ecs), errChan, newBlockSubUnSubscribe, newBlockChan);
+      go(ecs.listenForEventLogs.bind(ecs), errChan, eventChan);
+      go(ecs.listenForNewBlocks.bind(ecs), errChan, newBlockChan);
       go(
         ecs.listenForSubscriptionError.bind(ecs),
         errChan,
-        subErr,
+        subErrChan,
+        errorSub,
         eventQuery,
-        eventListener,
-        eventSubUnSubscribe,
-        newBlockListener,
-        newBlockSubUnSubscribe,
+        eventChan,
+        newBlockChan,
       );
       go(ecs.listenForErrors.bind(ecs), errChan);
 
@@ -296,56 +302,108 @@ export class EthChainService implements ChainService {
 
   private async listenForSubscriptionError(
     errorChan: ReadWriteChannel<Error>,
-    subErr: ReadWriteChannel<Error>,
+    subErrChan: ReadWriteChannel<Error>,
+    errorSub: () => void,
     eventQuery: ethers.providers.EventType,
-    eventListener: (eventLog: Log) => void,
-    eventSubUnSubscribe: () => void,
-    newBlockListener: (blockNumber: number) => void,
-    newBlockSubUnSubscribe: () => void,
+    eventChan: ReadWriteChannel<Log>,
+    newBlockChan: ReadWriteChannel<number>,
   ): Promise<void> {
-    // eslint-disable-next-line no-labels, no-restricted-syntax
-    out:
     while (true) {
       // eslint-disable-next-line default-case, no-await-in-loop
       switch (await Channel.select([
         this.ctx.done.shift(),
-        subErr.shift(),
+        subErrChan.shift(),
       ])) {
         case this.ctx.done: {
           this.wg!.done();
-          subErr.close();
+          errorSub();
+          subErrChan.close();
           return;
         }
-        case subErr: {
-          const err = subErr.value();
-          if (err) {
-            this.logger(`error in subscription: ${err}`);
-            eventSubUnSubscribe();
-            newBlockSubUnSubscribe();
-          }
 
-          // Try to re-establish subscription once before failing
-          try {
-            this.chain.provider.on(eventQuery, eventListener);
-          } catch (sErr) {
-            // eslint-disable-next-line no-await-in-loop
-            await errorChan.push(new WrappedError(`subscribeFilterLogs failed on resubscribe: ${sErr}`, sErr as Error));
-            // eslint-disable-next-line no-labels
-            break out;
-          }
-          this.logger('resubscribed to filtered event logs');
+        case subErrChan: {
+          const err = subErrChan.value();
 
-          // Try to re-establish subscription once before failing
+          // eslint-disable-next-line no-await-in-loop
+          const release = await this.eventTracker.mu.acquire();
+
           try {
-            this.chain.provider.on('block', newBlockListener);
-          } catch (sErr) {
-            // eslint-disable-next-line no-await-in-loop
-            await errorChan.push(new WrappedError(`subscribeNewHead failed on resubscribe: ${sErr}`, sErr as Error));
-            // eslint-disable-next-line no-labels
-            break out;
+            const latestBlockNum = this.eventTracker.latestBlockNum!;
+
+            if (err) {
+              this.logger(`error in chain subscription: ${err}`);
+
+              assert(this.eventSub);
+              assert(this.newBlockSub);
+
+              this.eventSub();
+              this.newBlockSub();
+              errorSub();
+            } else {
+              this.logger('chain subscription closed');
+            }
+
+            // Use exponential backoff loop to attempt to re-establish subscription
+            for (let backoffTime = MIN_BACKOFF_TIME; backoffTime <= MAX_BACKOFF_TIME; backoffTime *= 2) {
+              let eventSub;
+              try {
+                eventSub = this.chain.subscribeFilterLogs(eventQuery, eventChan);
+              } catch (subErr) {
+                this.logger(JSON.stringify({
+                  msg: 'failed to resubscribe to chain events, retrying',
+                  backoffTime,
+                }));
+
+                // eslint-disable-next-line no-await-in-loop
+                await new Promise((resolve) => { setTimeout(resolve, backoffTime * 1000); });
+
+                // eslint-disable-next-line no-continue
+                continue;
+              }
+
+              this.eventSub = eventSub.bind(this.chain);
+              this.logger('resubscribed to chain events');
+
+              let newBlockSub;
+              try {
+                newBlockSub = this.chain.subscribeNewHead(newBlockChan);
+              } catch (subErr) {
+                errorChan.push(new WrappedError(
+                  `subscribeNewHead failed to resubscribe: ${subErr}`,
+                  subErr as Error,
+                ));
+
+                // eslint-disable-next-line no-await-in-loop
+                await new Promise((resolve) => { setTimeout(resolve, backoffTime * 1000); });
+
+                // eslint-disable-next-line no-continue
+                continue;
+              }
+
+              this.newBlockSub = newBlockSub.bind(this.chain);
+              this.logger('resubscribed to chain new blocks');
+
+              try {
+                // eslint-disable-next-line no-await-in-loop
+                await this.checkForMissedEvents(latestBlockNum);
+              } catch (checkErr) {
+                errorChan.push(new Error(`subscribeFilterLogs failed during checkForMissedEvents: ${checkErr}`));
+                return;
+              }
+
+              // Resubscribe subscription error
+              this.chain.subscriptionError(subErrChan);
+
+              break;
+            }
+
+            this.logger('subscribe failed to resubscribe');
+            errorChan.push(new Error('subscribe failed to resubscribe'));
+
+            return;
+          } finally {
+            release();
           }
-          this.logger('resubscribed to new blocks');
-          break;
         }
       }
     }
@@ -378,7 +436,7 @@ export class EthChainService implements ChainService {
 
   // defaultTxOpts returns transaction options suitable for most transaction submissions
   // TODO: Implement (if required)
-  private defaultTxOpts(): void {}
+  private defaultTxOpts(): void { }
 
   // sendTransaction sends the transaction and blocks until it has been submitted.
   async sendTransaction(tx: ChainTransaction): Promise<void> {
@@ -567,7 +625,6 @@ export class EthChainService implements ChainService {
 
   private async listenForEventLogs(
     errorChan: ReadWriteChannel<Error>,
-    eventSubUnSubscribe: () => void,
     eventChan: ReadWriteChannel<Log>,
   ) {
     while (true) {
@@ -577,7 +634,8 @@ export class EthChainService implements ChainService {
         eventChan.shift(),
       ])) {
         case this.ctx.done: {
-          eventSubUnSubscribe();
+          assert(this.eventSub);
+          this.eventSub();
           this.wg!.done();
           return;
         }
@@ -609,7 +667,6 @@ export class EthChainService implements ChainService {
 
   private async listenForNewBlocks(
     errorChan: ReadWriteChannel<Error>,
-    newBlockSubUnSubscribe: () => void,
     newBlockChan: ReadWriteChannel<number>,
   ) {
     // eslint-disable-next-line no-restricted-syntax, no-labels
@@ -620,7 +677,8 @@ export class EthChainService implements ChainService {
         newBlockChan.shift(),
       ])) {
         case this.ctx.done: {
-          newBlockSubUnSubscribe();
+          assert(this.newBlockSub);
+          this.newBlockSub();
           this.wg!.done();
           return;
         }
@@ -670,13 +728,34 @@ export class EthChainService implements ChainService {
         // eslint-disable-next-line @typescript-eslint/no-shadow
         const chainEvent = this.eventTracker.pop();
 
-        assert(chainEvent);
-        eventsToDispatch.push(chainEvent);
-
         this.logger(JSON.stringify({
           msg: 'event popped from queue',
           'updated-queue-length': this.eventTracker.events!.size(),
         }));
+
+        // Ensure event & associated tx is still in the chain before adding to eventsToDispatch
+        let oldBlock;
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          oldBlock = await this.chain.provider.getBlock(chainEvent.blockNumber);
+        } catch (err) {
+          this.logger(`failed to fetch block: ${err}`);
+          errorChan.push(new Error(`failed to fetch block: ${err}`));
+          return;
+        }
+
+        if (oldBlock.hash !== chainEvent.blockHash) {
+          this.logger(JSON.stringify({
+            msg: 'dropping event because its block is no longer in the chain (possible re-org)',
+            blockNumber: chainEvent.blockNumber,
+            blockHash: chainEvent.blockHash,
+          }));
+
+          // eslint-disable-next-line no-continue
+          continue;
+        }
+
+        eventsToDispatch.push(chainEvent);
       }
     } finally {
       release();
@@ -696,75 +775,51 @@ export class EthChainService implements ChainService {
   // It relies on notifications being supported by the chain node.
   private subscribeForLogs(): [
     ReadWriteChannel<Error>,
-    ReadWriteChannel<Error>,
-    () => void,
     ReadWriteChannel<number>,
-    () => void,
     ReadWriteChannel<ethers.providers.Log>,
     ethers.providers.EventType,
-    (eventLog: Log) => void,
-    (blockNumber: number) => void,
+    ReadWriteChannel<Error>,
+    () => void,
   ] {
     // Subscribe to Adjudicator events
     const eventQuery: ethers.providers.EventType = {
       address: this.naAddress,
+      topics: [topicsToWatch],
     };
     const eventChan = Channel<Log>();
-    const eventListener = (eventLog: Log) => {
-      eventChan.push(eventLog);
-    };
 
+    let eventSub;
     try {
-      this.chain.provider.on(eventQuery, eventListener);
+      eventSub = this.chain.subscribeFilterLogs(eventQuery, eventChan);
     } catch (err) {
       throw new WrappedError(`subscribeFilterLogs failed: ${err}`, err as Error);
     }
+    this.eventSub = eventSub.bind(this.chain);
 
     const errorChan = Channel<Error>();
 
     const newBlockChan = Channel<number>();
-    const newBlockListener = (blockNumber: number) => {
-      // *ethTypes.Header have full block information
-      // but only block number is used.
-      // get full block information if those are used in future
-      newBlockChan.push(blockNumber);
-    };
 
+    let newBlockSub;
     try {
-      this.chain.provider.on('block', newBlockListener);
+      newBlockSub = this.chain.subscribeNewHead(newBlockChan);
     } catch (err) {
       throw new WrappedError(`subscribeNewHead failed: ${err}`, err as Error);
     }
+    this.newBlockSub = newBlockSub.bind(this.chain);
 
     // Channel to implement subscription.Err() for eventSub and newBlockSub
-    const subErr = Channel<Error>();
-    const subErrListener = (err: Error) => {
-      subErr.push(err);
-    };
-    this.chain.provider.on('error', subErrListener);
-
-    // Method to implement eventSub.UnSubscribe
-    const eventSubUnSubscribe = () => {
-      this.chain.provider.off(eventQuery, eventListener);
-      this.chain.provider.off('error', subErrListener);
-    };
-
-    // Method to implement newBlockSub.UnSubscribe
-    const newBlockSubUnSubscribe = () => {
-      this.chain.provider.off('block', newBlockListener);
-      this.chain.provider.off('error', subErrListener);
-    };
+    const subErrChan = Channel<Error>();
+    let errorSub = this.chain.subscriptionError(subErrChan);
+    errorSub = errorSub.bind(this.chain);
 
     return [
       errorChan,
-      subErr,
-      newBlockSubUnSubscribe,
       newBlockChan,
-      eventSubUnSubscribe,
       eventChan,
       eventQuery,
-      eventListener,
-      newBlockListener,
+      subErrChan,
+      errorSub,
     ];
   }
 
