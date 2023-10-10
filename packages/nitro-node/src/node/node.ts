@@ -277,7 +277,14 @@ export class Node {
   async createVoucher(channelId: Destination, amount: bigint): Promise<Voucher> {
     assert(this.vm);
     assert(this.store);
-    return this.vm.pay(channelId, amount, this.store.getChannelSigner());
+    assert(this.channelNotifier);
+    const voucher = this.vm.pay(channelId, amount, this.store.getChannelSigner());
+
+    const info = await this.getPaymentChannel(channelId);
+
+    this.channelNotifier.notifyPaymentUpdated(info);
+
+    return voucher;
   }
 
   // ReceiveVoucher receives a voucher and returns the amount that was paid.
