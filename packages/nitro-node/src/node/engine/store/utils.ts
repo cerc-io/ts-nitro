@@ -22,7 +22,10 @@ export async function newStore(options: StoreOpts): Promise<Store> {
   await options.signer.init();
 
   if (options.useDurableStore) {
-    assert(options.durableStoreFolder);
+    if (!options.durableStoreFolder) {
+      throw new Error('durable store folder not passed');
+    }
+
     const me = await options.signer.getAddress();
     const dataFolder = path.join(options.durableStoreFolder, me);
 

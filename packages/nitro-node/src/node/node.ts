@@ -101,8 +101,6 @@ export class Node {
   // CreateLedgerChannel creates a directly funded ledger channel with the given counterparty.
   // The channel will run under full consensus rules (it is not possible to provide a custom AppDefinition or AppData).
   async createLedgerChannel(counterparty: Address, challengeDuration: number, outcome: Exit): Promise<DirectFundObjectiveResponse> {
-    assert(this.engine);
-    assert(this.address);
     assert(this.chainId);
 
     const objectiveRequest = DirectFundObjectiveRequest.newObjectiveRequest(
@@ -167,8 +165,6 @@ export class Node {
     challengeDuration: number,
     outcome: Exit,
   ): Promise<VirtualFundObjectiveResponse> {
-    assert(this.engine);
-
     const objectiveRequest = VirtualFundObjectiveRequest.newObjectiveRequest(
       intermediaries,
       ethers.utils.getAddress(counterParty),
@@ -257,7 +253,6 @@ export class Node {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async close(): Promise<void> {
     assert(this.channelNotifier);
-    assert(this.engine);
     assert(this.store);
     assert(this.completedObjectivesForRPC);
 
