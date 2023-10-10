@@ -57,6 +57,7 @@ async function createNode(actor: utils.Actor, contractAddresses: ContractAddress
     actor.chainPrivateKey,
     contractAddresses,
     nodePeer,
+    false,
     undefined,
     nodeMetrics,
   );
