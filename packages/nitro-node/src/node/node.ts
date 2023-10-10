@@ -1,12 +1,11 @@
 import debug from 'debug';
 import assert from 'assert';
 import { ethers } from 'ethers';
-import { WaitGroup } from '@jpwilliams/waitgroup';
 
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import Channel from '@cerc-io/ts-channel';
 import {
-  go, randUint64, Context, WrappedError, Uint64,
+  randUint64, WrappedError,
 } from '@cerc-io/nitro-util';
 
 import { MessageService } from './engine/messageservice/messageservice';
@@ -20,7 +19,7 @@ import { ChannelNotifier } from './notifier/channel-notifier';
 import { ObjectiveId } from '../protocols/messages';
 import { SafeSyncMap } from '../internal/safesync/safesync';
 import { Voucher, ReceiveVoucherSummary } from '../payments/vouchers';
-import { MetricsApi, NoOpMetrics } from './engine/metrics';
+import { MetricsApi } from './engine/metrics';
 import { Exit } from '../channel/state/outcome/exit';
 import {
   ObjectiveResponse as DirectFundObjectiveResponse,
@@ -29,7 +28,6 @@ import {
   ErrLedgerChannelExists,
 } from '../protocols/directfund/directfund';
 import {
-  Objective as DirectDefundObjective,
   ObjectiveRequest as DirectDefundObjectiveRequest,
 } from '../protocols/directdefund/directdefund';
 import {
@@ -37,7 +35,6 @@ import {
   ObjectiveRequest as VirtualFundObjectiveRequest,
 } from '../protocols/virtualfund/virtualfund';
 import {
-  Objective as VirtualDefundObjective,
   ObjectiveRequest as VirtualDefundObjectiveRequest,
 } from '../protocols/virtualdefund/virtualdefund';
 import { Destination } from '../types/destination';

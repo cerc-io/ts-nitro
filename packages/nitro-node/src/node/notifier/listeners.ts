@@ -1,4 +1,4 @@
-import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
+import { ReadWriteChannel } from '@cerc-io/ts-channel';
 
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
 

@@ -2,8 +2,6 @@ import assert from 'assert';
 import { ethers, providers } from 'ethers';
 import debug from 'debug';
 import { WaitGroup } from '@jpwilliams/waitgroup';
-import Heap from 'heap';
-import { Mutex } from 'async-mutex';
 
 import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 import type { Log } from '@ethersproject/abstract-provider';

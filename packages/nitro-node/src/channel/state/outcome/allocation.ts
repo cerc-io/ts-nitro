@@ -1,4 +1,3 @@
-import assert from 'assert';
 import _ from 'lodash';
 import { Buffer } from 'buffer';
 
@@ -170,7 +169,7 @@ export class Allocations {
 
       surplus = BigInt(surplus!) - BigInt(allocation.amount!);
 
-      if (!(surplus > BigInt(0))) {
+      if (!(surplus > bigZero)) {
         break; // no funds remain for further allocations
       }
     }

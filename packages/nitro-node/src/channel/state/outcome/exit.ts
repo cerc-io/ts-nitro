@@ -1,4 +1,3 @@
-import assert from 'assert';
 import { ethers } from 'ethers';
 import { Buffer } from 'buffer';
 import _ from 'lodash';

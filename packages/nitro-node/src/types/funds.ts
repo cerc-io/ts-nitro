@@ -32,7 +32,7 @@ export class Funds {
 
   // isNonZero returns true if the Holdings structure has any non-zero asset
   isNonZero(): boolean {
-    for (const [asset, amount] of this.value.entries()) {
+    for (const [, amount] of this.value.entries()) {
       if (amount > BigInt(0)) {
         return true;
       }

@@ -4,7 +4,7 @@ import { Buffer } from 'buffer';
 import { Mutex } from 'async-mutex';
 
 import {
-  JSONbigNative, bytes2Hex, hex2Bytes, WrappedError,
+  JSONbigNative, WrappedError,
   Uint64,
 } from '@cerc-io/nitro-util';
 import type { NitroSigner } from '@cerc-io/nitro-util';
@@ -19,7 +19,6 @@ import { VoucherInfo } from '../../../payments/vouchers';
 import { SafeSyncMap } from '../../../internal/safesync/safesync';
 import { ObjectiveId } from '../../../protocols/messages';
 import { Address } from '../../../types/types';
-import { getAddressFromSecretKeyBytes } from '../../../crypto/keys';
 import { VirtualChannel } from '../../../channel/virtual';
 import { Destination } from '../../../types/destination';
 import { isDirectFundObjective, Objective as DirectFundObjective } from '../../../protocols/directfund/directfund';

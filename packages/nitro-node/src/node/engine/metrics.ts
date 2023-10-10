@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import prom, { RegistryType } from 'promjs';
 import { Gauge } from 'promjs/gauge';
 import assert from 'assert';

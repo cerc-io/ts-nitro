@@ -1,5 +1,3 @@
-import { Buffer } from 'buffer';
-
 import { NitroSigner, Uint64 } from '@cerc-io/nitro-util';
 
 import { Objective } from '../../../protocols/interfaces';

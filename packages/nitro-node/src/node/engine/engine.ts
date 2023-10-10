@@ -13,13 +13,13 @@ import {
 } from '@cerc-io/nitro-util';
 
 import { MessageService } from './messageservice/messageservice';
-import { ChainService, ChainEvent, ChainEventHandler } from './chainservice/chainservice';
+import { ChainService, ChainEvent } from './chainservice/chainservice';
 import { ErrNoSuchObjective, Store, ErrLoadVouchers } from './store/store';
 import { PolicyMaker } from './policy-maker';
 import { MetricsApi, MetricsRecorder, NoOpMetrics } from './metrics';
 import { VoucherManager } from '../../payments/voucher-manager';
 import {
-  Objective, ObjectiveRequest, ObjectiveStatus, ProposalReceiver, SideEffects, WaitingFor,
+  Objective, ObjectiveRequest, ObjectiveStatus, ProposalReceiver, SideEffects,
 } from '../../protocols/interfaces';
 import { Message, ObjectiveId, ObjectivePayload } from '../../protocols/messages';
 import { ConsensusChannel, Proposal, ProposalType } from '../../channel/consensus-channel/consensus-channel';
@@ -64,6 +64,7 @@ const log = debug('ts-nitro:engine');
 const SENT_VOUCHERS_CHANNEL_BUFFER_SIZE = 100;
 const METRICS_ENABLED = false;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class ErrUnhandledChainEvent extends Error {
   event?: ChainEvent;
 

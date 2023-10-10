@@ -1,4 +1,3 @@
-import assert from 'assert';
 import _ from 'lodash';
 
 import { NitroSigner } from '@cerc-io/nitro-util';

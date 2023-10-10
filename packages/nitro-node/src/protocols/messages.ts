@@ -2,7 +2,7 @@ import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
 
 import {
-  FieldDescription, JSONbigNative, Uint64, bytes2Hex, fromJSON, toJSON,
+  FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { SignedProposal, Proposal } from '../channel/consensus-channel/consensus-channel';

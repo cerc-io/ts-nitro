@@ -1,9 +1,4 @@
 import debug from 'debug';
-import assert from 'assert';
-
-// @ts-expect-error
-import type { Peer } from '@cerc-io/peer';
-import { NitroSigner } from '@cerc-io/nitro-util';
 
 import { EthChainService, ChainOpts } from '../../node/engine/chainservice/eth-chainservice';
 import { ChainService } from '../../node/engine/chainservice/chainservice';

@@ -6,7 +6,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
-  FieldDescription, JSONbigNative, NitroSigner, Uint64, fromJSON, toJSON,
+  FieldDescription, NitroSigner, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
@@ -28,7 +28,6 @@ import {
 import { Address } from '../../types/types';
 import { SignedState } from '../../channel/state/signedstate';
 import { State } from '../../channel/state/state';
-import { AllocationUpdatedEvent, ChainEvent, ConcludedEvent } from '../../node/engine/chainservice/chainservice';
 
 const WaitingForFinalization: WaitingFor = 'WaitingForFinalization';
 const WaitingForWithdraw: WaitingFor = 'WaitingForWithdraw';
@@ -407,6 +406,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   id(address: Address, chainId?: bigint): ObjectiveId {
     return ObjectivePrefix + this.channelId.string();
   }

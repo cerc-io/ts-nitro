@@ -1,5 +1,4 @@
 import debug from 'debug';
-import assert from 'assert';
 import {
   BytesLike, ContractFactory, ContractInterface, Signer, ethers, providers,
 } from 'ethers';
@@ -7,9 +6,6 @@ import {
 import nitroAdjudicatorArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/NitroAdjudicator.sol/NitroAdjudicator.json';
 import consensusAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/ConsensusApp.sol/ConsensusApp.json';
 import virtualPaymentAppArtifact from '@statechannels/nitro-protocol/dist/artifacts/contracts/VirtualPaymentApp.sol/VirtualPaymentApp.json';
-import { Uint64 } from '@cerc-io/nitro-util';
-
-import { Address } from '../../types/types';
 
 const log = debug('ts-nitro:chain');
 
