@@ -409,7 +409,7 @@ export class P2PMessageService implements MessageService {
 
     const [peerId, ok] = this.peers!.load(msg.to);
     if (!ok) {
-      throw new Error(`Could not load peer ${msg.to}`);
+      throw new Error(`did not find scAddr in local peers map ${msg.to}`);
     }
 
     assert(peerId);

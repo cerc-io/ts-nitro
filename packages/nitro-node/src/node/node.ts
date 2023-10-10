@@ -254,7 +254,7 @@ export class Node {
     assert(this.completedObjectivesForRPC);
 
     await this.engine.close();
-    this.channelNotifier.close();
+    await this.channelNotifier.close();
 
     // If there are blocking consumers (for or select channel statements) on any channel for which the node is a producer,
     // those channels need to be closed.

@@ -33,7 +33,7 @@ export class SafeSyncMap<T> {
   //
   // Range may be O(N) with the number of elements in the map even if f returns
   // false after a constant number of calls.
-  range(f: (key: string, value: T) => boolean): void {
+  range(f: (key: string, value: T) => boolean | Promise<boolean>): void | Promise<void> {
     for (const [key, value] of this.m) {
       if (!f(key, value)) {
         break;

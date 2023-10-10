@@ -57,14 +57,14 @@ export class ChannelNotifier {
     allLi.notify(info);
   }
 
-  close(): void {
-    this.ledgerListeners!.range((k: string, v: LedgerChannelListeners): boolean => {
-      v.close();
+  async close(): Promise<void> {
+    this.ledgerListeners!.range(async (k: string, v: LedgerChannelListeners): Promise<boolean> => {
+      await v.close();
       return true;
     });
 
-    this.paymentListeners!.range((k: string, v: PaymentChannelListeners): boolean => {
-      v.close();
+    this.paymentListeners!.range(async (k: string, v: PaymentChannelListeners): Promise<boolean> => {
+      await v.close();
       return true;
     });
   }
