@@ -24,7 +24,7 @@ const {
 const DEFAULT_LEDGER_AMOUNT = '1000000';
 const DEFAULT_VIRTUAL_CHANNEL_AMOUNT = '1000';
 const DEFAULT_PAY_AMOUNT = '0';
-const DEFAULT_DURABLE_STORE_FOLDER = './data/nitro-store';
+const DEFAULT_DURABLE_STORE_FOLDER = './out/nitro-store';
 
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
