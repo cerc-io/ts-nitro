@@ -39,6 +39,11 @@ const ERR_PROTOCOL_FAIL = 'protocol selection failed';
 const ERR_PEER_NOT_FOUND = 'peer info not found';
 const ERR_PEER_DIAL_FAILED = 'peer dial failed';
 
+export interface MessageOpts {
+  scAddr?: Address;
+  peer: Peer,
+}
+
 // BasicPeerInfo contains the basic information about a peer
 export interface BasicPeerInfo {
   id: PeerId;
@@ -59,7 +64,7 @@ async function parseBasicPeerInfo(raw: string): Promise<BasicPeerInfo> {
 interface ConstructorOptions {
   toEngine: ReadWriteChannel<Message>;
   peers: SafeSyncMap<PeerId>;
-  me: Address;
+  scAddr: Address;
   newPeerInfo: ReadWriteChannel<BasicPeerInfo>;
   logger: debug.Debugger;
   key?: PrivateKey;
@@ -73,9 +78,9 @@ export class P2PMessageService implements MessageService {
 
   private peers?: SafeSyncMap<PeerId>;
 
-  private me: Address = ethers.constants.AddressZero;
+  private scAddr: Address = ethers.constants.AddressZero;
 
-  private key?: PrivateKey;
+  private privateKey?: PrivateKey;
 
   private p2pHost?: Libp2p;
 
@@ -94,24 +99,29 @@ export class P2PMessageService implements MessageService {
 
   // newMessageService returns a running P2PMessageService listening on the given ip, port and message key.
   static async newMessageService(
-    me: Address,
-    peer: Peer,
-    logWriter?: WritableStream,
+    opts: MessageOpts,
   ): Promise<P2PMessageService> {
     const ms = new P2PMessageService({
       toEngine: Channel<Message>(BUFFER_SIZE),
       newPeerInfo: Channel<BasicPeerInfo>(BUFFER_SIZE),
       peers: new SafeSyncMap<PeerId>(),
-      me,
+      scAddr: opts.scAddr!,
       logger: log,
     });
 
-    ms.peer = peer;
+    ms.peer = opts.peer;
     assert(ms.peer.peerId);
     const { unmarshalPrivateKey } = await import('@libp2p/crypto/keys');
 
-    const messageKey = await unmarshalPrivateKey(ms.peer.peerId.privateKey!);
-    ms.key = messageKey;
+    let messageKey;
+    try {
+      messageKey = await unmarshalPrivateKey(ms.peer.peerId.privateKey!);
+    } catch (err) {
+      ms.checkError(err as Error);
+    }
+
+    assert(messageKey);
+    ms.privateKey = messageKey;
 
     assert(ms.peer.node);
     ms.p2pHost = ms.peer.node;
@@ -131,8 +141,8 @@ export class P2PMessageService implements MessageService {
   async id(): Promise<PeerId> {
     const PeerIdFactory = await import('@libp2p/peer-id-factory');
 
-    assert(this.key);
-    return PeerIdFactory.createFromPrivKey(this.key);
+    assert(this.privateKey);
+    return PeerIdFactory.createFromPrivKey(this.privateKey);
   }
 
   // Custom Method to exchange info with already connected peers
@@ -295,7 +305,7 @@ export class P2PMessageService implements MessageService {
       const peerId = await this.id();
       const basicPeerInfo: BasicPeerInfo = {
         id: peerId,
-        address: this.me,
+        address: this.scAddr,
       };
 
       try {
@@ -465,7 +475,7 @@ export class P2PMessageService implements MessageService {
   // Used for adding peers that support transports other than tcp
   async addPeerByMultiaddr(clientAddress: Address, multiaddrString: string) {
     // Ignore ourselves
-    if (clientAddress === this.me) {
+    if (clientAddress === this.scAddr) {
       return;
     }
 

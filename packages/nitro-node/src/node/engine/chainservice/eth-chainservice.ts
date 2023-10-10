@@ -32,13 +32,16 @@ import { assetAddressForIndex } from './eth-chain-helpers';
 import { connectToChain } from './utils/utils';
 import { VariablePart } from '../../../channel/state/state';
 import { convertBindingsExitToExit, convertBindingsSignaturesToSignatures } from './adjudicator/reverse_typeconversions';
-import { ChainOpts } from '../../../internal/chain/chain';
 import { EventTracker } from './event-queue';
 
 const log = debug('ts-nitro:eth-chain-service');
 
 // REQUIRED_BLOCK_CONFIRMATIONS is how many blocks must be mined before an emitted event is processed
 const REQUIRED_BLOCK_CONFIRMATIONS = 2;
+
+// MAX_EPOCHS is the maximum range of old epochs we can query with a single "FilterLogs" request
+// This is a restriction enforced by the rpc provider
+const MAX_EPOCHS = 60480;
 
 const naInterface = NitroAdjudicator__factory.createInterface();
 const concludedTopic = ethers.utils.id(naInterface.getEvent('Concluded').format());
@@ -54,6 +57,16 @@ const topicsToWatch: string[] = [
   challengeRegisteredTopic,
   challengeClearedTopic,
 ];
+
+export interface ChainOpts {
+  chainUrl?: string
+  chainStartBlock: Uint64
+  chainPk?: string
+  provider?: providers.JsonRpcProvider,
+  naAddress: Address
+  vpaAddress: Address
+  caAddress: Address
+}
 
 interface EthChain {
   // Following Interfaces in Go have been implemented using EthClient.provider (ethers Provider)
@@ -226,41 +239,58 @@ export class EthChainService implements ChainService {
   private async checkForMissedEvents(startBlock: Uint64): Promise<void> {
     // Fetch the latest block
     const latestBlock = await this.chain.provider.getBlock('latest');
+    const latestBlockNum = latestBlock.number;
 
     this.logger(JSONbigNative.stringify({
       msg: 'checking for missed chain events',
       startBlock,
-      currentBlock: latestBlock.number,
+      currentBlock: latestBlockNum,
     }));
 
-    const query: ethers.providers.Filter = {
-      fromBlock: Number(startBlock),
-      toBlock: Number(latestBlock.number),
-      address: this.naAddress,
-      topics: [topicsToWatch],
-    };
+    // Loop through in chunks of MAX_EPOCHS
+    for (let currentStart = startBlock; currentStart <= latestBlockNum;) {
+      let currentEnd = currentStart + BigInt(MAX_EPOCHS);
 
-    let missedEvents;
-    try {
-      missedEvents = await this.chain.provider.getLogs(query);
-    } catch (err) {
-      this.logger(`failed to retrieve old chain logs. ${(err as Error).message}`);
+      if (currentEnd > latestBlockNum) {
+        currentEnd = BigInt(latestBlockNum);
+      }
 
-      let errorMsg = '*** To avoid this error, consider increasing the chainstartblock value in your configuration before restarting the node.';
-      errorMsg += ' Note that this may cause your node to miss chain events emitted prior to the chainstartblock.';
+      // Create a query for the current chunk
+      const query: ethers.providers.Filter = {
+        fromBlock: Number(currentStart),
+        toBlock: Number(currentEnd),
+        address: this.naAddress,
+        topics: [topicsToWatch],
+      };
 
-      this.logger(errorMsg);
-      throw err;
-    }
+      // Fetch logs for the current chunk
+      let missedEvents;
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        missedEvents = await this.chain.provider.getLogs(query);
+      } catch (err) {
+        this.logger(`failed to retrieve old chain logs. ${(err as Error).message}`);
 
-    this.logger(JSON.stringify({
-      msg: 'finished checking for missed chain events',
-      numMissedEvents: missedEvents.length,
-    }));
+        let errorMsg = '*** To avoid this error, consider increasing the chainstartblock value in your configuration before restarting the node.';
+        errorMsg += ' Note that this may cause your node to miss chain events emitted prior to the chainstartblock.';
 
-    for (let i = 0; i < missedEvents.length; i += 1) {
-      const event = missedEvents[i];
-      this.eventTracker.push(event);
+        this.logger(errorMsg);
+        throw err;
+      }
+
+      this.logger(JSONbigNative.stringify({
+        msg: 'finished checking for missed chain events in range',
+        fromBlock: currentStart,
+        toBlock: currentEnd,
+        numMissedEvents: missedEvents.length,
+      }));
+
+      for (let i = 0; i < missedEvents.length; i += 1) {
+        const event = missedEvents[i];
+        this.eventTracker.push(event);
+      }
+
+      currentStart = currentEnd + BigInt(1); // Move to the next chunk
     }
   }
 

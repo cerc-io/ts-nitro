@@ -60,13 +60,13 @@ Instructions to run two instances of `ts-nitro` clients in a browser environment
   * In first browser
 
     ```bash
-    const nitro = await setupClient('charlie')
+    const nitro = await setupNode('charlie')
     ```
 
   * In second browser
 
     ```bash
-    const nitro = await setupClient('david')
+    const nitro = await setupNode('david')
     ```
 
 * Wait for `New peer found` log in console
@@ -198,7 +198,7 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 * Setup client
 
   ```bash
-  const nitro = await setupClient('david')
+  const nitro = await setupNode('david')
   ```
 
 * Assign private keys of Erin to variables
@@ -349,7 +349,7 @@ Instructions to run instances of `ts-nitro` (browser) and `go-nitro` clients and
 * Clear nitro client storage
 
   ```bash
-  clearClientStorage()
+  clearNodeStorage()
   ```
 
 ## Getting Started with Create React App

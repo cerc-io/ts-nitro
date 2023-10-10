@@ -21,6 +21,11 @@ const {
   subscribeVoucherLogs,
 } = utils;
 
+const DEFAULT_LEDGER_AMOUNT = '1000000';
+const DEFAULT_VIRTUAL_CHANNEL_AMOUNT = '1000';
+const DEFAULT_PAY_AMOUNT = '0';
+const DEFAULT_DURABLE_STORE_FOLDER = './out/nitro-store';
+
 const getArgv = () => yargs.parserConfiguration({
   'parse-numbers': false,
 }).options({
@@ -89,7 +94,7 @@ const getArgv = () => yargs.parserConfiguration({
     describe: 'Whether to pay on the virtual payment channel with the given counterparty',
   },
   amount: {
-    type: 'number',
+    type: 'string',
     describe: 'Amount for fund and pay methods',
   },
   virtualDefund: {
@@ -102,9 +107,15 @@ const getArgv = () => yargs.parserConfiguration({
     default: false,
     describe: 'Whether to close a ledger channel with the given counterparty',
   },
-  store: {
+  useDurableStore: {
+    type: 'boolean',
+    default: false,
+    describe: 'Specifies whether to use a durable store or an in-memory store.',
+  },
+  durableStoreFolder: {
     type: 'string',
     describe: 'Directory path to use for DurableStore',
+    default: DEFAULT_DURABLE_STORE_FOLDER,
   },
   paymentChannel: {
     type: 'string',
@@ -141,7 +152,8 @@ const main = async () => {
     argv.chainPk,
     contractAddresses,
     peer,
-    argv.store && path.resolve(argv.store),
+    argv.useDurableStore,
+    argv.durableStoreFolder && path.resolve(argv.durableStoreFolder),
     undefined,
     asset,
   );
@@ -188,7 +200,7 @@ const main = async () => {
 
     ledgerChannelIdString = await nitro.directFund(
       counterParty,
-      argv.amount ?? 1_000_000,
+      argv.amount ?? DEFAULT_LEDGER_AMOUNT,
     );
   }
 
@@ -197,14 +209,14 @@ const main = async () => {
 
     paymentChannelIdString = await nitro.virtualFund(
       counterParty,
-      argv.amount ?? 1_000,
+      argv.amount ?? DEFAULT_VIRTUAL_CHANNEL_AMOUNT,
       argv.intermediaries,
     );
   }
 
   if (argv.pay) {
     assert(paymentChannelIdString, 'Provide payment-channel id for payment');
-    const sentVoucher = await nitro.pay(paymentChannelIdString, argv.amount ?? 0);
+    const sentVoucher = await nitro.pay(paymentChannelIdString, argv.amount ?? DEFAULT_PAY_AMOUNT);
 
     log(`Voucher sent for amount ${sentVoucher.amount}`);
     log(`Hash: ${sentVoucher.hash()} Sig: ${utils.getJoinedSignature(sentVoucher.signature)}`);
