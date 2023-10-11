@@ -322,86 +322,93 @@ export class EthChainService implements ChainService {
         case subErrChan: {
           const err = subErrChan.value();
 
-          // eslint-disable-next-line no-await-in-loop
-          const release = await this.eventTracker.mu.acquire();
+          (async () => {
+            const latestBlockNum = await this.getLastConfirmedBlockNum();
 
-          try {
-            const latestBlockNum = this.eventTracker.latestBlockNum!;
+            // eslint-disable-next-line no-await-in-loop
+            const release = await this.eventTracker.mu.acquire();
 
-            if (err) {
-              this.logger(`error in chain subscription: ${err}`);
+            try {
+              if (err) {
+                this.logger(`error in chain subscription: ${err}`);
 
-              assert(this.eventSub);
-              assert(this.newBlockSub);
+                assert(this.eventSub);
+                assert(this.newBlockSub);
 
-              this.eventSub();
-              this.newBlockSub();
-              errorSub();
-            } else {
-              this.logger('chain subscription closed');
-            }
-
-            // Use exponential backoff loop to attempt to re-establish subscription
-            for (let backoffTime = MIN_BACKOFF_TIME; backoffTime <= MAX_BACKOFF_TIME; backoffTime *= 2) {
-              let eventSub;
-              try {
-                eventSub = this.chain.subscribeFilterLogs(eventQuery, eventChan);
-              } catch (subErr) {
-                this.logger(JSON.stringify({
-                  msg: 'failed to resubscribe to chain events, retrying',
-                  backoffTime,
-                }));
-
-                // eslint-disable-next-line no-await-in-loop
-                await new Promise((resolve) => { setTimeout(resolve, backoffTime * 1000); });
-
-                // eslint-disable-next-line no-continue
-                continue;
+                this.eventSub();
+                this.newBlockSub();
+                errorSub();
+              } else {
+                this.logger('chain subscription closed');
               }
 
-              this.eventSub = eventSub.bind(this.chain);
-              this.logger('resubscribed to chain events');
+              let resubscribed = false; // Flag to indicate whether resubscription was successful
 
-              let newBlockSub;
-              try {
-                newBlockSub = this.chain.subscribeNewHead(newBlockChan);
-              } catch (subErr) {
-                errorChan.push(new WrappedError(
-                  `subscribeNewHead failed to resubscribe: ${subErr}`,
-                  subErr as Error,
-                ));
+              // Use exponential backoff loop to attempt to re-establish subscription
+              for (let backoffTime = MIN_BACKOFF_TIME; backoffTime <= MAX_BACKOFF_TIME; backoffTime *= 2) {
+                let eventSub;
+                try {
+                  eventSub = this.chain.subscribeFilterLogs(eventQuery, eventChan);
+                } catch (subErr) {
+                  this.logger(JSON.stringify({
+                    msg: 'failed to resubscribe to chain events, retrying',
+                    backoffTime,
+                  }));
 
-                // eslint-disable-next-line no-await-in-loop
-                await new Promise((resolve) => { setTimeout(resolve, backoffTime * 1000); });
+                  // eslint-disable-next-line no-await-in-loop
+                  await new Promise((resolve) => { setTimeout(resolve, backoffTime * 1000); });
 
-                // eslint-disable-next-line no-continue
-                continue;
+                  // eslint-disable-next-line no-continue
+                  continue;
+                }
+
+                this.eventSub = eventSub.bind(this.chain);
+                this.logger('resubscribed to chain events');
+
+                let newBlockSub;
+                try {
+                  newBlockSub = this.chain.subscribeNewHead(newBlockChan);
+                } catch (subErr) {
+                  errorChan.push(new WrappedError(
+                    `subscribeNewHead failed to resubscribe: ${subErr}`,
+                    subErr as Error,
+                  ));
+
+                  // eslint-disable-next-line no-await-in-loop
+                  await new Promise((resolve) => { setTimeout(resolve, backoffTime * 1000); });
+
+                  // eslint-disable-next-line no-continue
+                  continue;
+                }
+
+                this.newBlockSub = newBlockSub.bind(this.chain);
+                this.logger('resubscribed to chain new blocks');
+
+                try {
+                  // eslint-disable-next-line no-await-in-loop
+                  await this.checkForMissedEvents(latestBlockNum);
+                } catch (checkErr) {
+                  errorChan.push(new Error(`subscribeFilterLogs failed during checkForMissedEvents: ${checkErr}`));
+                  return;
+                }
+
+                // Resubscribe subscription error
+                this.chain.subscriptionError(subErrChan);
+
+                resubscribed = true;
+
+                break;
               }
 
-              this.newBlockSub = newBlockSub.bind(this.chain);
-              this.logger('resubscribed to chain new blocks');
-
-              try {
-                // eslint-disable-next-line no-await-in-loop
-                await this.checkForMissedEvents(latestBlockNum);
-              } catch (checkErr) {
-                errorChan.push(new Error(`subscribeFilterLogs failed during checkForMissedEvents: ${checkErr}`));
+              if (!resubscribed) {
+                this.logger('subscribe failed to resubscribe');
+                errorChan.push(new Error('subscribe failed to resubscribe'));
                 return;
               }
-
-              // Resubscribe subscription error
-              this.chain.subscriptionError(subErrChan);
-
-              break;
+            } finally {
+              release();
             }
-
-            this.logger('subscribe failed to resubscribe');
-            errorChan.push(new Error('subscribe failed to resubscribe'));
-
-            return;
-          } finally {
-            release();
-          }
+          })();
         }
       }
     }
