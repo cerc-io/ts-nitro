@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@cerc-io/ts-channel": "1.0.3-ts-nitro-0.1.1",
-    "@statechannels/nitro-protocol": "^2.0.0-alpha.5",
+    "@statechannels/nitro-protocol": "^2.0.1-alpha.5",
     "assert": "^2.0.0",
     "debug": "^4.3.4",
     "ethers": "^5.7.2",

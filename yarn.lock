@@ -3949,10 +3949,10 @@
     ethers "^5.1.4"
     lodash "^4.17.21"
 
-"@statechannels/nitro-protocol@^2.0.0-alpha.5":
-  version "2.0.0-alpha.5"
-  resolved "https://registry.yarnpkg.com/@statechannels/nitro-protocol/-/nitro-protocol-2.0.0-alpha.5.tgz#9b51ee8170de9f51816144c06f568199ccab3237"
-  integrity sha512-b4rlq0D97MidlKL3MxOsn1Rtl5VzH26xyvVSe8iZXapUdpYfsIH8Nj5PqVki7drFJWVYjVTjwDwc5pvRW8jNbg==
+"@statechannels/nitro-protocol@^2.0.1-alpha.5":
+  version "2.0.1-alpha.5"
+  resolved "https://registry.yarnpkg.com/@statechannels/nitro-protocol/-/nitro-protocol-2.0.1-alpha.5.tgz#3aa09dacf6780a47ff415de23123f9aafe2534ec"
+  integrity sha512-CT32i5ZlZ0Jz8mAOmywALCnS/+Cl7ntrRlJr2r3jGBkkzNBWxHWR4qXg6HTUh7xxm5tY/g/TSmsGH8/z54K/Sw==
   dependencies:
     "@openzeppelin/contracts" "^4.7.3"
     "@statechannels/exit-format" "^0.2.0"
