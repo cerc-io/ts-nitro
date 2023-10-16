@@ -939,6 +939,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   // Id returns the objective id for the request.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   id(myAddress: Address, chainId?: bigint): ObjectiveId {
     const idStr = this.channelId(myAddress).string();
     return `${ObjectivePrefix}${idStr}`;

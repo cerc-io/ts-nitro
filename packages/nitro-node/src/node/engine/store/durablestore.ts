@@ -285,7 +285,7 @@ export class DurableStore implements Store {
 
     let err: Error;
 
-    for await (const [key, chJSON] of this.channels!.iterator()) {
+    for await (const [, chJSON] of this.channels!.iterator()) {
       let ch: Channel;
       try {
         ch = Channel.fromJSON(chJSON.toString());
@@ -317,7 +317,7 @@ export class DurableStore implements Store {
     const toReturn: Channel[] = [];
     let err: Error;
 
-    for await (const [key, chJSON] of this.channels!.iterator()) {
+    for await (const [, chJSON] of this.channels!.iterator()) {
       let ch: Channel;
 
       try {
@@ -343,7 +343,7 @@ export class DurableStore implements Store {
   async getChannelsByParticipant(participant: Address): Promise<Channel[]> {
     const toReturn: Channel[] = [];
 
-    for await (const [key, chJSON] of this.channels!.iterator()) {
+    for await (const [, chJSON] of this.channels!.iterator()) {
       let ch: Channel;
       try {
         ch = Channel.fromJSON(chJSON.toString());
@@ -388,7 +388,7 @@ export class DurableStore implements Store {
     let channel: ConsensusChannel;
     let ok = false;
 
-    for await (const [key, chJSON] of this.consensusChannels!.iterator()) {
+    for await (const [, chJSON] of this.consensusChannels!.iterator()) {
       let ch: ConsensusChannel;
 
       try {
@@ -418,7 +418,7 @@ export class DurableStore implements Store {
     const toReturn: ConsensusChannel[] = [];
     let unmarshErr: Error | undefined;
 
-    for await (const [key, chJSON] of this.consensusChannels!.iterator()) {
+    for await (const [, chJSON] of this.consensusChannels!.iterator()) {
       let ch: ConsensusChannel;
 
       try {

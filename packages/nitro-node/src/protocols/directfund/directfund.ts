@@ -545,7 +545,7 @@ export class Objective implements ObjectiveInterface {
     return Buffer.alloc(0);
   }
 
-  unmarshalJSON(b: Buffer): void {}
+  unmarshalJSON(): void { }
 }
 
 // ObjectiveResponse is the type returned across the API in response to the ObjectiveRequest.
@@ -618,6 +618,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   // Id returns the objective id for the request.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   id(myAddress: Address, chainId?: bigint): ObjectiveId {
     const fixedPart: FixedPart = new FixedPart({
       participants: [myAddress, this.counterParty],
@@ -630,6 +631,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
   }
 
   // Response computes and returns the appropriate response from the request.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   response(myAddress: Address, chainId?: bigint): ObjectiveResponse {
     const fixedPart = new FixedPart({
       participants: [myAddress, this.counterParty],

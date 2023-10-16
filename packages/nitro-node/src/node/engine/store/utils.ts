@@ -1,4 +1,3 @@
-import assert from 'assert';
 import debug from 'debug';
 import path from 'path-browserify';
 

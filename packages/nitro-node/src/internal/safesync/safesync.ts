@@ -33,9 +33,10 @@ export class SafeSyncMap<T> {
   //
   // Range may be O(N) with the number of elements in the map even if f returns
   // false after a constant number of calls.
-  range(f: (key: string, value: T) => boolean): void {
+  async range(f: (key: string, value: T) => boolean | Promise<boolean>): Promise<void> {
     for (const [key, value] of this.m) {
-      if (!f(key, value)) {
+      // eslint-disable-next-line no-await-in-loop
+      if (!(await f(key, value))) {
         break;
       }
     }

@@ -145,6 +145,7 @@ export class ObjectiveRequest implements ObjectiveRequestInterface {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   id(address: Address, chainId?: bigint): ObjectiveId {
     return ObjectivePrefix + this.channelId.string();
   }

@@ -1,7 +1,10 @@
 import assert from 'assert';
 import {
-  ethers, providers, EventFilter,
+  ethers, providers,
 } from 'ethers';
+
+import type { Log } from '@ethersproject/abstract-provider';
+import type { ReadWriteChannel } from '@cerc-io/ts-channel';
 
 export class EthClient {
   provider: providers.BaseProvider;
@@ -32,16 +35,40 @@ export class EthClient {
     return BigInt(network.chainId);
   }
 
-  subscribeFilterLogs(filter: EventFilter, callback: (log: providers.Log) => void): providers.Listener {
-    assert(this.provider);
-
-    // Subscribe to filtered logs
-    const listener = (log: providers.Log) => {
-      callback(log);
+  subscribeFilterLogs(query: ethers.providers.EventType, ch: ReadWriteChannel<Log>): () => void {
+    const eventListener = async (eventLog: Log) => {
+      ch.push(eventLog);
     };
+    this.provider.on(query, eventListener);
 
-    this.provider.on(filter, listener);
+    return () => {
+      this.provider.off(query, eventListener);
+    };
+  }
 
-    return listener;
+  subscribeNewHead(ch: ReadWriteChannel<number>): () => void {
+    const newBlockListener = (blockNumber: number) => {
+      // *ethTypes.Header have full block information
+      // but only block number is used.
+      // get full block information if those are used in future
+      ch.push(blockNumber);
+    };
+    this.provider.on('block', newBlockListener);
+
+    return () => {
+      this.provider.off('block', newBlockListener);
+    };
+  }
+
+  subscribeError(ch: ReadWriteChannel<Error>) {
+    const subErrListener = (err: Error) => {
+      ch.push(err);
+    };
+    this.provider.on('error', subErrListener);
+
+    return () => {
+      this.provider.off('error', subErrListener);
+      ch.close();
+    };
   }
 }

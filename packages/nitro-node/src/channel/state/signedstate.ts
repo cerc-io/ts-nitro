@@ -151,7 +151,7 @@ export class SignedState {
 
   // UnmarshalJSON unmarshals the passed JSON into a SignedState, implementing the Unmarshaler interface.
   // Use SignedState.fromJSON
-  unmarshalJSON(j: Buffer): void {}
+  unmarshalJSON(): void { }
 
   // ChannelId returns the channel id of the state.
   channelId(): Destination {

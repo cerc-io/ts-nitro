@@ -36,8 +36,6 @@
       }
     ],
     "no-underscore-dangle": "off",
-    // TODO: Switch on after implementing class methods
-    "@typescript-eslint/no-unused-vars": "off",
     "class-methods-use-this": "off",
     "arrow-body-style": "off"
   }

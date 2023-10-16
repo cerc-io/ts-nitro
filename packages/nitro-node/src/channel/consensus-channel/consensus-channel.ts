@@ -6,12 +6,11 @@ import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
 
 import {
-  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON, JSONbigNative,
+  FieldDescription, NitroSigner, Uint, Uint64, fromJSON, toJSON,
 } from '@cerc-io/nitro-util';
 import { Bytes32 } from '@statechannels/nitro-protocol';
 
 import { Signature } from '../../crypto/signatures';
-import { getAddressFromSecretKeyBytes } from '../../crypto/keys';
 import { Address } from '../../types/types';
 import { Funds } from '../../types/funds';
 import { FixedPart, State } from '../state/state';
@@ -1220,7 +1219,7 @@ export class ConsensusChannel {
 
   // UnmarshalJSON populates the receiver with the
   // json-encoded data
-  unmarshalJSON(data: Buffer) {
+  unmarshalJSON() {
     // Use ConsensusChannel.fromJSON()
   }
 

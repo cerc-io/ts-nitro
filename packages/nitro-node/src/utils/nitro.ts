@@ -8,12 +8,10 @@ import { NitroSigner, DEFAULT_ASSET } from '@cerc-io/nitro-util';
 import { Node } from '../node/node';
 import { P2PMessageService } from '../node/engine/messageservice/p2p-message-service/service';
 import { Store } from '../node/engine/store/store';
-import { newStore } from '../node/engine/store/utils';
 import { Destination } from '../types/destination';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../node/query/types';
-import { EthChainService } from '../node/engine/chainservice/eth-chainservice';
 
-import { createOutcome, setupNode, subscribeVoucherLogs } from './helpers';
+import { createOutcome } from './helpers';
 import { ChainService } from '../node/engine/chainservice/chainservice';
 import { Voucher } from '../payments/vouchers';
 import { KeySigner } from './signers/key-signer';

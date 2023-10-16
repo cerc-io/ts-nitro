@@ -184,7 +184,7 @@ export class Channel extends FixedPart {
 
   // UnmarshalJSON populates the calling Channel with the
   // json-encoded data
-  unmarshalJSON(data: Buffer): void {
+  unmarshalJSON(): void {
     // Use Channel.fromJSON()
   }
 

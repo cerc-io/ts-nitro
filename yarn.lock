@@ -1188,10 +1188,10 @@
     wherearewe "^2.0.0"
     xsalsa20 "^1.1.0"
 
-"@cerc-io/peer@^0.2.60":
-  version "0.2.60"
-  resolved "https://git.vdb.to/api/packages/cerc-io/npm/%40cerc-io%2Fpeer/-/0.2.60/peer-0.2.60.tgz#3f90e5174f544f2bcb549282fdb4c157f857d427"
-  integrity sha512-t9nuiBUJ7a6hRSyF4PVZqy5KS6AIf5el4CX3/v/LIAXHk0fKomoAtQ/OMqJgSBScxx2kAryVShMSdKgH1klUlA==
+"@cerc-io/peer@^0.2.63":
+  version "0.2.63"
+  resolved "https://git.vdb.to/api/packages/cerc-io/npm/%40cerc-io%2Fpeer/-/0.2.63/peer-0.2.63.tgz#d932f1ec3181aae5add62eded567128b6faf7cc8"
+  integrity sha512-595Il+/t6ZuknVR/zm08D0uZ95YNlJvCg13zCC4GFPeFWwVFxUhK6H88/yaeXod+xCSf1nmtuq24mq3e4QFEAA==
   dependencies:
     "@cerc-io/libp2p" "^0.42.2-laconic-0.1.4"
     "@cerc-io/prometheus-metrics" "1.1.4"
@@ -3949,10 +3949,10 @@
     ethers "^5.1.4"
     lodash "^4.17.21"
 
-"@statechannels/nitro-protocol@^2.0.0-alpha.5":
-  version "2.0.0-alpha.5"
-  resolved "https://registry.yarnpkg.com/@statechannels/nitro-protocol/-/nitro-protocol-2.0.0-alpha.5.tgz#9b51ee8170de9f51816144c06f568199ccab3237"
-  integrity sha512-b4rlq0D97MidlKL3MxOsn1Rtl5VzH26xyvVSe8iZXapUdpYfsIH8Nj5PqVki7drFJWVYjVTjwDwc5pvRW8jNbg==
+"@statechannels/nitro-protocol@^2.0.1-alpha.5":
+  version "2.0.1-alpha.5"
+  resolved "https://registry.yarnpkg.com/@statechannels/nitro-protocol/-/nitro-protocol-2.0.1-alpha.5.tgz#3aa09dacf6780a47ff415de23123f9aafe2534ec"
+  integrity sha512-CT32i5ZlZ0Jz8mAOmywALCnS/+Cl7ntrRlJr2r3jGBkkzNBWxHWR4qXg6HTUh7xxm5tY/g/TSmsGH8/z54K/Sw==
   dependencies:
     "@openzeppelin/contracts" "^4.7.3"
     "@statechannels/exit-format" "^0.2.0"
