@@ -102,9 +102,11 @@ export class EthChainService implements ChainService {
 
   private eventTracker: EventTracker;
 
-  private eventSub?: () => void;
+  private eventUnsubscribe?: () => void;
 
-  private newBlockSub?: () => void;
+  private newBlockUnsubscribe?: () => void;
+
+  private errorUnsubscribe?: () => void;
 
   constructor(
     chain: EthChain,
@@ -119,8 +121,9 @@ export class EthChainService implements ChainService {
     cancel: () => void,
     wg: WaitGroup,
     eventTracker: EventTracker,
-    eventSub?: () => void,
-    newBlockSub?: () => void,
+    eventUnsubscribe?: () => void,
+    newBlockUnsubscribe?: () => void,
+    errorUnsubscribe?: () => void,
   ) {
     this.chain = chain;
     this.na = na;
@@ -134,8 +137,9 @@ export class EthChainService implements ChainService {
     this.cancel = cancel;
     this.wg = wg;
     this.eventTracker = eventTracker;
-    this.eventSub = eventSub;
-    this.newBlockSub = newBlockSub;
+    this.eventUnsubscribe = eventUnsubscribe;
+    this.newBlockUnsubscribe = newBlockUnsubscribe;
+    this.errorUnsubscribe = errorUnsubscribe;
   }
 
   // newEthChainService is a convenient wrapper around _newEthChainService, which provides a simpler API
@@ -211,7 +215,6 @@ export class EthChainService implements ChainService {
       eventChan,
       eventQuery,
       subErrChan,
-      errorSub,
     ] = ecs.subscribeForLogs();
 
     // Prevent go routines from processing events before checkForMissedEvents completes
@@ -224,7 +227,6 @@ export class EthChainService implements ChainService {
         ecs.listenForSubscriptionError.bind(ecs),
         errChan,
         subErrChan,
-        errorSub,
         eventQuery,
         eventChan,
         newBlockChan,
@@ -301,7 +303,6 @@ export class EthChainService implements ChainService {
   private async listenForSubscriptionError(
     errorChan: ReadWriteChannel<Error>,
     subErrChan: ReadWriteChannel<Error>,
-    errorSub: () => void,
     eventQuery: ethers.providers.EventType,
     eventChan: ReadWriteChannel<Log>,
     newBlockChan: ReadWriteChannel<number>,
@@ -314,8 +315,7 @@ export class EthChainService implements ChainService {
       ])) {
         case this.ctx.done: {
           this.wg!.done();
-          errorSub();
-          subErrChan.close();
+          this.errorUnsubscribe!();
           return;
         }
 
@@ -332,12 +332,13 @@ export class EthChainService implements ChainService {
               if (err) {
                 this.logger(`error in chain subscription: ${err}`);
 
-                assert(this.eventSub);
-                assert(this.newBlockSub);
+                assert(this.eventUnsubscribe);
+                assert(this.newBlockUnsubscribe);
+                assert(this.errorUnsubscribe);
 
-                this.eventSub();
-                this.newBlockSub();
-                errorSub();
+                this.eventUnsubscribe();
+                this.newBlockUnsubscribe();
+                this.errorUnsubscribe();
               } else {
                 this.logger('chain subscription closed');
               }
@@ -346,28 +347,9 @@ export class EthChainService implements ChainService {
 
               // Use exponential backoff loop to attempt to re-establish subscription
               for (let backoffTime = MIN_BACKOFF_TIME; backoffTime <= MAX_BACKOFF_TIME; backoffTime *= 2) {
-                let eventSub;
+                let newBlockUnsubscribe;
                 try {
-                  eventSub = this.chain.subscribeFilterLogs(eventQuery, eventChan);
-                } catch (subErr) {
-                  this.logger(JSON.stringify({
-                    msg: 'failed to resubscribe to chain events, retrying',
-                    backoffTime,
-                  }));
-
-                  // eslint-disable-next-line no-await-in-loop
-                  await new Promise((resolve) => { setTimeout(resolve, backoffTime * 1000); });
-
-                  // eslint-disable-next-line no-continue
-                  continue;
-                }
-
-                this.eventSub = eventSub.bind(this.chain);
-                this.logger('resubscribed to chain events');
-
-                let newBlockSub;
-                try {
-                  newBlockSub = this.chain.subscribeNewHead(newBlockChan);
+                  newBlockUnsubscribe = this.chain.subscribeNewHead(newBlockChan);
                 } catch (subErr) {
                   errorChan.push(new WrappedError(
                     `subscribeNewHead failed to resubscribe: ${subErr}`,
@@ -381,8 +363,27 @@ export class EthChainService implements ChainService {
                   continue;
                 }
 
-                this.newBlockSub = newBlockSub.bind(this.chain);
+                this.newBlockUnsubscribe = newBlockUnsubscribe.bind(this.chain);
                 this.logger('resubscribed to chain new blocks');
+
+                let eventUnsubscribe;
+                try {
+                  eventUnsubscribe = this.chain.subscribeFilterLogs(eventQuery, eventChan);
+                } catch (subErr) {
+                  this.logger(JSON.stringify({
+                    msg: 'failed to resubscribe to chain events, retrying',
+                    backoffTime,
+                  }));
+
+                  // eslint-disable-next-line no-await-in-loop
+                  await new Promise((resolve) => { setTimeout(resolve, backoffTime * 1000); });
+
+                  // eslint-disable-next-line no-continue
+                  continue;
+                }
+
+                this.eventUnsubscribe = eventUnsubscribe.bind(this.chain);
+                this.logger('resubscribed to chain events');
 
                 try {
                   // eslint-disable-next-line no-await-in-loop
@@ -393,7 +394,8 @@ export class EthChainService implements ChainService {
                 }
 
                 // Resubscribe subscription error
-                this.chain.subscriptionError(subErrChan);
+                const errorUnsubscribe = this.chain.subscribeError(subErrChan);
+                this.errorUnsubscribe = errorUnsubscribe.bind(this.chain);
 
                 resubscribed = true;
 
@@ -639,8 +641,8 @@ export class EthChainService implements ChainService {
         eventChan.shift(),
       ])) {
         case this.ctx.done: {
-          assert(this.eventSub);
-          this.eventSub();
+          assert(this.eventUnsubscribe);
+          this.eventUnsubscribe();
           this.wg!.done();
           return;
         }
@@ -682,8 +684,8 @@ export class EthChainService implements ChainService {
         newBlockChan.shift(),
       ])) {
         case this.ctx.done: {
-          assert(this.newBlockSub);
-          this.newBlockSub();
+          assert(this.newBlockUnsubscribe);
+          this.newBlockUnsubscribe();
           this.wg!.done();
           return;
         }
@@ -784,7 +786,6 @@ export class EthChainService implements ChainService {
     ReadWriteChannel<ethers.providers.Log>,
     ethers.providers.EventType,
     ReadWriteChannel<Error>,
-    () => void,
   ] {
     // Subscribe to Adjudicator events
     const eventQuery: ethers.providers.EventType = {
@@ -793,30 +794,30 @@ export class EthChainService implements ChainService {
     };
     const eventChan = Channel<Log>();
 
-    let eventSub;
+    let eventUnsubscribe;
     try {
-      eventSub = this.chain.subscribeFilterLogs(eventQuery, eventChan);
+      eventUnsubscribe = this.chain.subscribeFilterLogs(eventQuery, eventChan);
     } catch (err) {
       throw new WrappedError(`subscribeFilterLogs failed: ${err}`, err as Error);
     }
-    this.eventSub = eventSub.bind(this.chain);
+    this.eventUnsubscribe = eventUnsubscribe.bind(this.chain);
 
     const errorChan = Channel<Error>();
 
     const newBlockChan = Channel<number>();
 
-    let newBlockSub;
+    let newBlockUnsubscribe;
     try {
-      newBlockSub = this.chain.subscribeNewHead(newBlockChan);
+      newBlockUnsubscribe = this.chain.subscribeNewHead(newBlockChan);
     } catch (err) {
       throw new WrappedError(`subscribeNewHead failed: ${err}`, err as Error);
     }
-    this.newBlockSub = newBlockSub.bind(this.chain);
+    this.newBlockUnsubscribe = newBlockUnsubscribe.bind(this.chain);
 
     // Channel to implement subscription.Err() for eventSub and newBlockSub
     const subErrChan = Channel<Error>();
-    let errorSub = this.chain.subscriptionError(subErrChan);
-    errorSub = errorSub.bind(this.chain);
+    const errorUnsubscribe = this.chain.subscribeError(subErrChan);
+    this.errorUnsubscribe = errorUnsubscribe.bind(this.chain);
 
     return [
       errorChan,
@@ -824,7 +825,6 @@ export class EthChainService implements ChainService {
       eventChan,
       eventQuery,
       subErrChan,
-      errorSub,
     ];
   }
 

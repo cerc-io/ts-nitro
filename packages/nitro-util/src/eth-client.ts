@@ -60,7 +60,7 @@ export class EthClient {
     };
   }
 
-  subscriptionError(ch: ReadWriteChannel<Error>) {
+  subscribeError(ch: ReadWriteChannel<Error>) {
     const subErrListener = (err: Error) => {
       ch.push(err);
     };
@@ -68,6 +68,7 @@ export class EthClient {
 
     return () => {
       this.provider.off('error', subErrListener);
+      ch.close();
     };
   }
 }
