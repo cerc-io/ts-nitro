@@ -249,12 +249,12 @@ export class MemStore implements Store {
   }
 
   // GetChannelsByIds returns a collection of channels with the given ids
-  getChannelsByIds(ids: Destination[]): Channel[] {
+  async getChannelsByIds(ids: Destination[]): Promise<Channel[]> {
     const toReturn: Channel[] = [];
 
     let err: Error;
 
-    this.channels!.range((key: string, chJSON: Buffer): boolean => {
+    await this.channels!.range((key: string, chJSON: Buffer): boolean => {
       let ch: Channel;
       try {
         ch = Channel.fromJSON(chJSON.toString());
@@ -284,11 +284,11 @@ export class MemStore implements Store {
   }
 
   // GetChannelsByAppDefinition returns any channels that include the given app definition
-  getChannelsByAppDefinition(appDef: Address): Channel[] {
+  async getChannelsByAppDefinition(appDef: Address): Promise<Channel[]> {
     const toReturn: Channel[] = [];
     let err: Error;
 
-    this.channels!.range((key: string, chJSON: Buffer): boolean => {
+    await this.channels!.range((key: string, chJSON: Buffer): boolean => {
       let ch: Channel;
 
       try {
@@ -311,10 +311,10 @@ export class MemStore implements Store {
   }
 
   // GetChannelsByParticipant returns any channels that include the given participant
-  getChannelsByParticipant(participant: Address): Channel[] {
+  async getChannelsByParticipant(participant: Address): Promise<Channel[]> {
     const toReturn: Channel[] = [];
 
-    this.channels!.range((key: string, chJSON: Buffer) => {
+    await this.channels!.range((key: string, chJSON: Buffer) => {
       let ch: Channel;
       try {
         ch = Channel.fromJSON(chJSON.toString());
@@ -355,11 +355,11 @@ export class MemStore implements Store {
 
   // getConsensusChannel returns a ConsensusChannel between the calling node and
   // the supplied counterparty, if such channel exists
-  getConsensusChannel(counterparty: Address): [ConsensusChannel | undefined, boolean] {
+  async getConsensusChannel(counterparty: Address): Promise<[ConsensusChannel | undefined, boolean]> {
     let channel: ConsensusChannel | undefined;
     let ok = false;
 
-    this.consensusChannels!.range((key: string, chJSON: Buffer): boolean => {
+    await this.consensusChannels!.range((key: string, chJSON: Buffer): boolean => {
       let ch = new ConsensusChannel({});
       try {
         ch = ConsensusChannel.fromJSON(chJSON.toString());
@@ -382,11 +382,11 @@ export class MemStore implements Store {
     return [channel, ok];
   }
 
-  getAllConsensusChannels(): ConsensusChannel[] {
+  async getAllConsensusChannels(): Promise<ConsensusChannel[]> {
     const toReturn: ConsensusChannel[] = [];
     let err: Error;
 
-    this.consensusChannels!.range((key: string, chJSON: Buffer): boolean => {
+    await this.consensusChannels!.range((key: string, chJSON: Buffer): boolean => {
       let ch: ConsensusChannel;
 
       try {

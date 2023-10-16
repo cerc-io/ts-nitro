@@ -58,12 +58,12 @@ export class ChannelNotifier {
   }
 
   async close(): Promise<void> {
-    this.ledgerListeners!.range(async (k: string, v: LedgerChannelListeners): Promise<boolean> => {
+    await this.ledgerListeners!.range(async (k: string, v: LedgerChannelListeners): Promise<boolean> => {
       await v.close();
       return true;
     });
 
-    this.paymentListeners!.range(async (k: string, v: PaymentChannelListeners): Promise<boolean> => {
+    await this.paymentListeners!.range(async (k: string, v: PaymentChannelListeners): Promise<boolean> => {
       await v.close();
       return true;
     });
