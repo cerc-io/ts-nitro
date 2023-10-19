@@ -22,12 +22,17 @@ export const DAVID_PK = 'febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7
 export const ERIN_ADDRESS = '0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01';
 export const ERIN_PK = '0aca28ba64679f63d71e671ab4dbb32aaa212d4789988e6ca47da47601c18fe2';
 
+// PeerID: 12D3KooWD6Fv6x7j6Y9amprfxvei8KPLsAofhJsAkgHDuS4K67oH
+export const FRANK_ADDRESS = '0x660a4bEF3fbC863Fcd8D3CDB39242aE513d7D92e';
+export const FRANK_PK = 'f36f6dd450892224ee113899195ef922a4795d41c32cafb386d9aab6e0b7b0c6';
+
 // First accounts from hardhat chain
 export const ALICE_CHAIN_PK = 'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 export const BOB_CHAIN_PK = '59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
 export const CHARLIE_CHAIN_PK = '47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a';
 export const DAVID_CHAIN_PK = '5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a';
 export const ERIN_CHAIN_PK = '7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6';
+export const FRANK_CHAIN_PK = '8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba';
 
 export const ACTORS: { [key: string]: Actor } = {
   alice: {
@@ -54,5 +59,10 @@ export const ACTORS: { [key: string]: Actor } = {
     address: ERIN_ADDRESS,
     privateKey: ERIN_PK,
     chainPrivateKey: ERIN_CHAIN_PK,
+  },
+  frank: {
+    address: FRANK_ADDRESS,
+    privateKey: FRANK_PK,
+    chainPrivateKey: FRANK_CHAIN_PK,
   },
 };
