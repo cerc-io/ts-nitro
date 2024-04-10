@@ -1,50 +1,40 @@
-import React, { useEffect } from 'react';
-import assert from 'assert';
+import { useEffect, useState } from 'react';
+import {
+  utils,
+  LedgerChannelInfo,
+  PaymentChannelInfo
+} from '@cerc-io/nitro-node';
+import {
+  JSONbigNative,
+  hex2Bytes
+} from '@cerc-io/nitro-util';
 
-import { utils } from '@cerc-io/nitro-node';
-import { JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL_WEBSOCKET } from '@cerc-io/nitro-util';
-
-import contractAddresses from './nitro-addresses.json';
-import logo from './logo.svg';
 import './App.css';
 
-const {
-  ACTORS,
-  createPeerIdFromKey,
-  createPeerAndInit,
-  subscribeVoucherLogs
-} = utils;
+const { createPeerIdFromKey, createPeerAndInit, subscribeVoucherLogs } = utils;
 
-declare global {
-  interface Window {
-    setupNode: (name: string) => Promise<utils.Nitro>
-    clearNodeStorage: () => Promise<boolean>
-    out: (jsonObject: any) => void
-  }
-}
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this.toString());
+};
 
-window.clearNodeStorage = utils.Nitro.clearNodeStorage;
-
-// Method to setup nitro node with test actors
-window.setupNode = async (name: string): Promise<utils.Nitro> => {
-  const actor = ACTORS[name];
-  assert(actor, `Actor with name ${name} does not exists`);
-  assert(process.env.REACT_APP_RELAY_MULTIADDR);
-
+const setupNode = async (
+  websocketUrl: string,
+  privateKey: string,
+  bootNodeMultiAddr: string,
+  contractAddresses: { [key: string]: string }
+): Promise<utils.Nitro> => {
   // Create peer instance
-  const peerIdObj = await createPeerIdFromKey(hex2Bytes(actor.privateKey));
-  const peer = await createPeerAndInit(process.env.REACT_APP_RELAY_MULTIADDR, {}, peerIdObj);
+  const peerIdObj = await createPeerIdFromKey(hex2Bytes(privateKey));
+  const peer = await createPeerAndInit(bootNodeMultiAddr, {}, peerIdObj);
 
   const nitro = await utils.Nitro.setupNode(
-    actor.privateKey,
-    DEFAULT_CHAIN_URL_WEBSOCKET,
-    actor.chainPrivateKey,
+    privateKey,
+    websocketUrl,
+    privateKey,
     contractAddresses,
     peer,
     true,
-    `${name}-db`,
-    undefined,
-    process.env.REACT_APP_ASSET_ADDRESS
+    'nitro-db'
   );
 
   // Subscribe to vouchers and log them
@@ -53,25 +43,390 @@ window.setupNode = async (name: string): Promise<utils.Nitro> => {
   return nitro;
 };
 
-window.out = (jsonObject) => {
-  console.log(JSONbigNative.stringify(jsonObject, null, 2));
-};
+async function updateChannels (
+  nitro: utils.Nitro,
+  setFocusedLedgerChannel: (l: LedgerChannelInfo | null) => void,
+  setFocusedPaymentChannel: (p: PaymentChannelInfo | null) => void,
+  setCreatingLedgerChannel: (v: boolean) => void,
+  setCreatingPaymentChannel: (v: boolean) => void
+) {
+  if (!nitro) {
+    return;
+  }
+  const ledgerChannels = (await nitro.getAllLedgerChannels()).filter(
+    (lc) => lc.status === 'Open'
+  );
+  const paymentChannels = new Map<string, PaymentChannelInfo[]>();
+
+  let focusedLedgerChannel: LedgerChannelInfo | null = null;
+  let focusedPaymentChannel: PaymentChannelInfo | null = null;
+
+  for (const lc of ledgerChannels) {
+    const pcs = (await nitro.getPaymentChannelsByLedger(lc.iD.string())).filter(
+      (pc) => pc.status === 'Open'
+    );
+    paymentChannels.set(lc.iD.string(), pcs);
+    for (const pc of pcs) {
+      if (
+        focusedPaymentChannel == null ||
+          pc.balance.remainingFunds!.valueOf() >
+          focusedPaymentChannel.balance.remainingFunds!.valueOf()
+      ) {
+        focusedLedgerChannel = lc;
+        focusedPaymentChannel = pc;
+      }
+    }
+  }
+
+  if (!focusedLedgerChannel && ledgerChannels.length) {
+    focusedLedgerChannel = ledgerChannels[0];
+  }
+
+  setFocusedPaymentChannel(focusedPaymentChannel);
+  if (focusedPaymentChannel) {
+    setCreatingPaymentChannel(false);
+  }
+  setFocusedLedgerChannel(focusedLedgerChannel);
+  if (focusedLedgerChannel) {
+    setCreatingLedgerChannel(false);
+  }
+}
+
+async function pay (
+  nitro: utils.Nitro | null,
+  targetUrl: string,
+  paymentChannel: PaymentChannelInfo | null,
+  amount: number,
+  setToken: (p: any | null) => void
+) {
+  if (nitro && paymentChannel) {
+    const voucher = await nitro.pay(paymentChannel.iD.string(), `${amount}`);
+    const response = await fetch(`${targetUrl}/pay/receive`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(voucher)
+    });
+    const token = await response.json();
+    setToken(token);
+  }
+}
+
+function getRpcUrl (rpcUrl?: string): string {
+  if (rpcUrl) {
+    return rpcUrl ?? '';
+  }
+  return 'ws://localhost:8545';
+}
+
+function getTargetUrl (targetUrl?: string): string {
+  if (targetUrl) {
+    return targetUrl ?? '';
+  }
+
+  return 'http://localhost:5678';
+}
+
+async function send (url: string): Promise<any> {
+  try {
+    const fromEl = document.getElementById('api-send');
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      // @ts-ignore
+      body: fromEl!.value
+    });
+
+    const text = await response.text();
+    const recvEl = document.getElementById('api-recv');
+    // @ts-ignore
+    recvEl.value = text;
+  } catch (e) {
+    const recvEl = document.getElementById('api-recv');
+    // @ts-ignore
+    recvEl.value = e;
+  }
+}
 
 function App () {
+  const [nitro, setNitro] = useState<utils.Nitro | null>(null);
+  const [targetServerUrl, setTargetServerUrl] = useState<string>(
+    getTargetUrl()
+  );
+  const [myEthWebSocketUrl, setMyEthWebSocketUrl] = useState<string>(getRpcUrl());
+  const [myNitroAddress, setMyNitroAddress] = useState<string>('');
+  const [theirNitroAddress, setTheirNitroAddress] = useState<string>('');
+  const [targetMultiAddr, setTargetMultiAddr] = useState<string>('/ip4/127.0.0.1/tcp/5007/ws/p2p/16Uiu2HAmHWMQivwbNvkzaAwnSkFxYjxvcbe55oPKWPXdKz3NwPbi');
+  const [focusedLedgerChannel, setFocusedLedgerChannel] =
+    useState<LedgerChannelInfo | null>(null);
+  const [focusedPaymentChannel, setFocusedPaymentChannel] =
+    useState<PaymentChannelInfo | null>(null);
+  const [token, setToken] = useState<any>(null);
+  const [creatingLedgerChannel, setCreatingLedgerChannel] =
+    useState<boolean>(false);
+  const [creatingPaymentChannel, setCreatingPaymentChannel] =
+    useState<boolean>(false);
+
+  let updateEverything = async () => {};
+  let updateInterval: NodeJS.Timeout | undefined;
+
   useEffect(() => {
-    window.onunhandledrejection = (err) => {
-      // Log unhandled errors instead of stopping application
-      console.log(err);
-    };
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      setFocusedPaymentChannel(null);
+      setFocusedLedgerChannel(null);
+      setMyNitroAddress('');
+      setupNode(
+        myEthWebSocketUrl,
+        '888814df89c4358d7ddb3fa4b0213e7331239a80e1f013eaa7b2deca2a41a218',
+        targetMultiAddr,
+        {
+          nitroAdjudicatorAddress: '0x2B6AFbd4F479cE4101Df722cF4E05F941523EaD9',
+          virtualPaymentAppAddress: '0xBca48057Da826cB2eb1258E2C679678b269dC262',
+          consensusAppAddress: '0xCf5207018766587b8cBad4B8B1a1a38c225ebA7A'
+        }).then((c) => {
+        setNitro(c);
+        setMyNitroAddress(c.node.address);
+        updateEverything = async () =>
+          updateChannels(
+            c,
+            setFocusedLedgerChannel,
+            setFocusedPaymentChannel,
+            setCreatingLedgerChannel,
+            setCreatingPaymentChannel
+          );
+        if (updateInterval) {
+          clearInterval(updateInterval);
+        }
+        updateInterval = setInterval(updateEverything, 1000);
+      });
+    }, 1000);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [myEthWebSocketUrl]);
+
+  useEffect(() => {
+    if (nitro) {
+      setMyNitroAddress(nitro.store.getAddress());
+      nitro.addPeerByMultiaddr(theirNitroAddress, targetMultiAddr);
+      updateEverything();
+      // nitro.notifications.on('objective_completed', updateEverything);
+    }
+  }, [nitro, targetMultiAddr, theirNitroAddress]);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      setFocusedPaymentChannel(null);
+      setFocusedLedgerChannel(null);
+      setTheirNitroAddress('');
+      fetch(targetServerUrl + '/pay/address').then((response) => {
+        response.text().then((v) => {
+          setTheirNitroAddress(v);
+          if (nitro) {
+            updateEverything();
+          }
+        });
+      });
+    }, 1000);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [targetServerUrl, targetMultiAddr]);
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <h3>ts-nitro</h3>
-      </header>
-    </div>
+    <>
+      <div id="top-group">
+        <h2>Nitro Details</h2>
+        <table>
+          <tbody>
+            <tr>
+              <td className="key">Consumer Nitro Node</td>
+              <td className="value">
+                <input
+                  type="text"
+                  onChange={(e) => setMyEthWebSocketUrl(e.target.value)}
+                  value={myEthWebSocketUrl?.toString()}
+                />
+              </td>
+            </tr>
+            <tr>
+              <td className="key">Consumer Address</td>
+              <td className="value">{myNitroAddress}</td>
+            </tr>
+            <tr>
+              <td className="key">Provider Endpoint</td>
+              <td className="value">
+                <input
+                  type="text"
+                  onChange={(e) => setTargetServerUrl(e.target.value)}
+                  value={targetServerUrl?.toString()}
+                />
+              </td>
+            </tr>
+            <tr>
+              <td className="key">Provider Address</td>
+              <td className="value">{theirNitroAddress}</td>
+            </tr>
+            <tr>
+              <td className="key">Ledger Channel</td>
+              <td className="value">
+                {focusedLedgerChannel
+                  ? (
+                    <span>
+                    {focusedLedgerChannel.iD.string()}{' '}
+                      <button
+                          onClick={() =>
+                              nitro!.directDefund(focusedLedgerChannel.iD.string())
+                          }
+                      >
+                      Close
+                    </button>
+                  </span>
+                    )
+                  : (
+                    <button
+                        onClick={() => {
+                          setCreatingLedgerChannel(true);
+                          nitro!.directFund(theirNitroAddress, '100000');
+                        }}
+                        disabled={
+                            creatingLedgerChannel || !myNitroAddress || !theirNitroAddress
+                        }
+                    >
+                      {creatingLedgerChannel ? 'Please wait ...' : 'Create'}
+                    </button>
+                    )}
+              </td>
+            </tr>
+            <tr>
+              <td className="key">Ledger Balance</td>
+              <td className="value">
+                {focusedLedgerChannel
+                  ? `${focusedLedgerChannel.balance.theirBalance} / ${focusedLedgerChannel.balance.myBalance}`
+                  : ''}
+              </td>
+            </tr>
+            <tr>
+            <td className="key">Payment Channel</td>
+              <td className="value">
+                {focusedPaymentChannel
+                  ? (
+                    <span>
+                    {focusedPaymentChannel.iD.string()}{' '}
+                      <button
+                          onClick={() =>
+                              nitro!.virtualDefund(focusedPaymentChannel.iD.string())
+                          }
+                      >
+                      Close
+                    </button>
+                  </span>
+                    )
+                  : focusedLedgerChannel
+                    ? (
+                    <button
+                        onClick={() => {
+                          setCreatingPaymentChannel(true);
+                          nitro!.virtualFund(theirNitroAddress, '100');
+                        }}
+                        disabled={creatingLedgerChannel || !focusedLedgerChannel}
+                    >
+                      {creatingPaymentChannel || creatingLedgerChannel
+                        ? 'Please wait ...'
+                        : 'Create'}
+                    </button>
+                      )
+                    : (
+                        ''
+                      )}
+              </td>
+            </tr>
+            <tr>
+              <td className="key">Channel Balance</td>
+              <td className="value">
+                {focusedPaymentChannel
+                  ? `${focusedPaymentChannel.balance.paidSoFar} / ${focusedPaymentChannel.balance.remainingFunds}`
+                  : ''}
+              </td>
+            </tr>
+            <tr>
+              <td className="key">API Token</td>
+              <td className="value">
+                {token && `${token.token}`}{' '}
+                {focusedPaymentChannel && (
+                  <button
+                    className={
+                      token &&
+                      (token.used >= token.total ||
+                        focusedPaymentChannel?.balance?.remainingFunds?.toString() === '0')
+                        ? 'empty'
+                        : ''
+                    }
+                    onClick={() => {
+                      pay(
+                        nitro,
+                        targetServerUrl,
+                        focusedPaymentChannel,
+                        10,
+                        setToken
+                      ).then(() => updateEverything());
+                    }}
+                    disabled={
+                      focusedPaymentChannel?.balance?.remainingFunds?.toString() === '0'
+                    }
+                  >
+                    {token ? `Renew (${token.total - token.used})` : 'Obtain'}
+                  </button>
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="mid-group">
+        <h2>Ethereum API</h2>
+        <table width="100%">
+          <tbody>
+            <tr>
+              <td>
+                <textarea
+                  id="api-send"
+                  defaultValue={JSON.stringify(
+                    {
+                      jsonrpc: '2.0',
+                      id: 42,
+                      method: 'eth_blockNumber',
+                      params: []
+                    },
+                    null,
+                    2
+                  )}
+                />
+              </td>
+              <td>
+                <textarea id="api-recv" contentEditable={false}></textarea>
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={2}>
+                <button
+                  onClick={() => {
+                    send(`${targetServerUrl}/eth/${token ? token.token : ''}`);
+                    if (token?.used < token?.total) {
+                      token.used += 1;
+                      setToken({ ...token });
+                    }
+                  }}
+                >
+                  Send Request
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
