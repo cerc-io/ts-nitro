@@ -9,8 +9,6 @@ import type { ReadChannel, ReadWriteChannel } from '@cerc-io/ts-channel';
 // @ts-expect-error
 import type { Libp2p } from '@cerc-io/libp2p';
 // @ts-expect-error
-import type { PrivateKey } from '@libp2p/interface-keys';
-// @ts-expect-error
 import type { Stream, Connection } from '@libp2p/interface-connection';
 // @ts-expect-error
 import type { IncomingStreamData } from '@libp2p/interface-registrar';
@@ -67,7 +65,6 @@ interface ConstructorOptions {
   scAddr: Address;
   newPeerInfo: ReadWriteChannel<BasicPeerInfo>;
   logger: debug.Debugger;
-  key?: PrivateKey;
   p2pHost?: Libp2p;
 }
 
@@ -79,8 +76,6 @@ export class P2PMessageService implements MessageService {
   private peers?: SafeSyncMap<PeerId>;
 
   private scAddr: Address = ethers.constants.AddressZero;
-
-  private privateKey?: PrivateKey;
 
   private p2pHost?: Libp2p;
 
@@ -110,19 +105,6 @@ export class P2PMessageService implements MessageService {
     });
 
     ms.peer = opts.peer;
-    assert(ms.peer.peerId);
-    const { unmarshalPrivateKey } = await import('@libp2p/crypto/keys');
-
-    let messageKey;
-    try {
-      messageKey = await unmarshalPrivateKey(ms.peer.peerId.privateKey!);
-    } catch (err) {
-      ms.checkError(err as Error);
-    }
-
-    assert(messageKey);
-    ms.privateKey = messageKey;
-
     assert(ms.peer.node);
     ms.p2pHost = ms.peer.node;
     assert(ms.p2pHost);
@@ -139,10 +121,7 @@ export class P2PMessageService implements MessageService {
 
   // id returns the libp2p peer ID of the message service.
   async id(): Promise<PeerId> {
-    const PeerIdFactory = await import('@libp2p/peer-id-factory');
-
-    assert(this.privateKey);
-    return PeerIdFactory.createFromPrivKey(this.privateKey);
+    return this.p2pHost.peerId;
   }
 
   // Custom Method to exchange info with already connected peers
@@ -452,8 +431,8 @@ export class P2PMessageService implements MessageService {
     throw err;
   }
 
-  // out returns a channel that can be used to receive messages from the message service
-  out(): ReadChannel<Message> {
+  // p2pMessages returns a channel that can be used to receive messages from the message service
+  p2pMessages(): ReadChannel<Message> {
     return this.toEngine!.readOnly();
   }
 
