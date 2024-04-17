@@ -214,7 +214,7 @@ export class Engine {
     e.paymentRequestsFromAPI = Channel<PaymentRequest>();
 
     e.fromChain = chain.eventFeed();
-    e.fromMsg = msg.out();
+    e.fromMsg = msg.p2pMessages();
 
     e.chain = chain;
     e.msg = msg;
@@ -398,7 +398,7 @@ export class Engine {
 
       if (obj.getStatus() === ObjectiveStatus.Completed) {
         this.logger(JSON.stringify({
-          msg: 'Ignoring proposal for complected objective',
+          msg: 'Ignoring proposal for completed objective',
           ...withObjectiveIdAttribute(id),
         }));
         return [new EngineEvent({}), null];
@@ -484,7 +484,7 @@ export class Engine {
 
         if (objective.getStatus() === ObjectiveStatus.Completed) {
           this.logger(JSON.stringify({
-            msg: 'Ignoring payload for complected objective',
+            msg: 'Ignoring payload for completed objective',
             ...withObjectiveIdAttribute(objective.id()),
           }));
 
