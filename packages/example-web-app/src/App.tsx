@@ -13,10 +13,6 @@ import './App.css';
 
 const { createPeerIdFromKey, createPeerAndInit, subscribeVoucherLogs } = utils;
 
-(BigInt.prototype as any).toJSON = function () {
-  return Number(this.toString());
-};
-
 const setupNode = async (
   websocketUrl: string,
   privateKey: string,
@@ -106,7 +102,7 @@ async function pay (
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(voucher)
+      body: JSONbigNative.stringify(voucher)
     });
     const token = await response.json();
     setToken(token);
@@ -117,7 +113,7 @@ function getRpcUrl (rpcUrl?: string): string {
   if (rpcUrl) {
     return rpcUrl ?? '';
   }
-  return 'ws://localhost:8545';
+  return process.env.REACT_APP_RPC_URL ?? 'ws://localhost:8546';
 }
 
 function getTargetUrl (targetUrl?: string): string {
@@ -125,7 +121,7 @@ function getTargetUrl (targetUrl?: string): string {
     return targetUrl ?? '';
   }
 
-  return 'http://localhost:5678';
+  return process.env.REACT_APP_TARGET_URL ?? 'http://localhost:5678';
 }
 
 async function send (url: string): Promise<any> {
@@ -180,12 +176,12 @@ function App () {
       setMyNitroAddress('');
       setupNode(
         myEthWebSocketUrl,
-        '888814df89c4358d7ddb3fa4b0213e7331239a80e1f013eaa7b2deca2a41a218',
+        process.env.REACT_APP_NITRO_PK!,
         targetMultiAddr,
         {
-          nitroAdjudicatorAddress: '0x2B6AFbd4F479cE4101Df722cF4E05F941523EaD9',
-          virtualPaymentAppAddress: '0xBca48057Da826cB2eb1258E2C679678b269dC262',
-          consensusAppAddress: '0xCf5207018766587b8cBad4B8B1a1a38c225ebA7A'
+          nitroAdjudicatorAddress: process.env.REACT_APP_NA_ADDRESS!,
+          virtualPaymentAppAddress: process.env.REACT_APP_VPA_ADDRESS!,
+          consensusAppAddress: process.env.REACT_APP_CA_ADDRESS!
         }).then((c) => {
         setNitro(c);
         setMyNitroAddress(c.node.address);
@@ -241,7 +237,7 @@ function App () {
         <table>
           <tbody>
             <tr>
-              <td className="key">Consumer Nitro Node</td>
+              <td className="key">ETH WebSocket URL</td>
               <td className="value">
                 <input
                   type="text"
@@ -392,14 +388,14 @@ function App () {
               <td>
                 <textarea
                   id="api-send"
-                  defaultValue={JSON.stringify(
+                  defaultValue={JSONbigNative.stringify(
                     {
                       jsonrpc: '2.0',
                       id: 42,
                       method: 'eth_blockNumber',
                       params: []
                     },
-                    null,
+                    undefined,
                     2
                   )}
                 />
