@@ -169,40 +169,39 @@ function App () {
   let updateEverything = async () => {};
   let updateInterval: NodeJS.Timeout | undefined;
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (!myEthWebSocketUrl || !targetMultiAddr) {
-        return;
-      }
-      setFocusedPaymentChannel(null);
-      setFocusedLedgerChannel(null);
-      setMyNitroAddress('');
-      setupNode(
-        myEthWebSocketUrl,
+  const rpcChange = async () => {
+    if (!myEthWebSocketUrl || !targetMultiAddr) {
+      return;
+    }
+    setFocusedPaymentChannel(null);
+    setFocusedLedgerChannel(null);
+    setMyNitroAddress('');
+    const c = await setupNode(myEthWebSocketUrl,
         process.env.REACT_APP_NITRO_PK!,
         targetMultiAddr,
         {
           nitroAdjudicatorAddress: process.env.REACT_APP_NA_ADDRESS!,
           virtualPaymentAppAddress: process.env.REACT_APP_VPA_ADDRESS!,
           consensusAppAddress: process.env.REACT_APP_CA_ADDRESS!
-        }).then((c) => {
-        setNitro(c);
-        setMyNitroAddress(c.node.address);
-        updateEverything = async () =>
-          updateChannels(
-            c,
-            setFocusedLedgerChannel,
-            setFocusedPaymentChannel,
-            setCreatingLedgerChannel,
-            setCreatingPaymentChannel
-          );
-        if (updateInterval) {
-          clearInterval(updateInterval);
-        }
-        updateInterval = setInterval(updateEverything, 1000);
-      });
-    }, 1000);
+        });
+    setNitro(c);
+    setMyNitroAddress(c.node.address);
+    updateEverything = async () =>
+      updateChannels(
+        c,
+        setFocusedLedgerChannel,
+        setFocusedPaymentChannel,
+        setCreatingLedgerChannel,
+        setCreatingPaymentChannel
+      );
+    if (updateInterval) {
+      clearInterval(updateInterval);
+    }
+    updateInterval = setInterval(updateEverything, 1000);
+  };
 
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(rpcChange, 1000);
     return () => clearTimeout(delayDebounceFn);
   }, [myEthWebSocketUrl]);
 
@@ -224,6 +223,7 @@ function App () {
         response.json().then((v: any) => {
           setTheirNitroAddress(v?.address);
           setTargetMultiAddr(v?.multiaddrs[0]);
+          rpcChange();
           if (nitro) {
             updateEverything();
           }
