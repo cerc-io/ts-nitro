@@ -1,4 +1,4 @@
-import { ReadWriteChannel } from '@cerc-io/ts-channel';
+import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import { Mutex } from 'async-mutex';
 
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
@@ -43,6 +43,33 @@ export class PaymentChannelListeners {
     } finally {
       release();
     }
+  }
+
+  // createNewListener creates a new listener and adds it to the list of listeners.
+  async createNewListener() {
+    const release = await this.listenersLock.acquire();
+    let listener;
+    try {
+      // Use a buffered channel to avoid blocking the notifier.
+      listener = Channel<PaymentChannelInfo>(1000);
+      this.listeners.push(listener);
+    } finally {
+      release();
+    }
+    return listener;
+  }
+
+  // getOrCreateListener returns the first listener, creating one if none exist.
+  async getOrCreateListener() {
+    const release = await this.listenersLock.acquire();
+    if (this.listeners.length !== 0) {
+      const l = this.listeners[0];
+      release();
+      return l;
+    }
+
+    release();
+    return this.createNewListener();
   }
 
   async close(): Promise<void> {
@@ -99,6 +126,33 @@ export class LedgerChannelListeners {
     } finally {
       release();
     }
+  }
+
+  // createNewListener creates a new listener and adds it to the list of listeners.
+  async createNewListener() {
+    const release = await this.listenersLock.acquire();
+    let listener;
+    try {
+      // Use a buffered channel to avoid blocking the notifier.
+      listener = Channel<LedgerChannelInfo>(1000);
+      this.listeners.push(listener);
+    } finally {
+      release();
+    }
+    return listener;
+  }
+
+  // getOrCreateListener returns the first listener, creating one if none exist.
+  async getOrCreateListener() {
+    const release = await this.listenersLock.acquire();
+    if (this.listeners.length !== 0) {
+      const l = this.listeners[0];
+      release();
+      return l;
+    }
+
+    release();
+    return this.createNewListener();
   }
 
   async close(): Promise<void> {

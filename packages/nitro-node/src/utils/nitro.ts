@@ -3,13 +3,14 @@ import { providers } from 'ethers';
 
 // @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
-import { NitroSigner, DEFAULT_ASSET } from '@cerc-io/nitro-util';
+import { NitroSigner, DEFAULT_ASSET, Context } from '@cerc-io/nitro-util';
+import Channel from '@cerc-io/ts-channel';
 
 import { Node } from '../node/node';
 import { P2PMessageService } from '../node/engine/messageservice/p2p-message-service/service';
 import { Store } from '../node/engine/store/store';
 import { Destination } from '../types/destination';
-import { LedgerChannelInfo, PaymentChannelInfo } from '../node/query/types';
+import { ChannelStatus, LedgerChannelInfo, PaymentChannelInfo } from '../node/query/types';
 
 import { createOutcome } from './helpers';
 import { ChainService } from '../node/engine/chainservice/chainservice';
@@ -225,6 +226,97 @@ export class Nitro {
   async getPaymentChannelsByLedger(ledgerChannel: string): Promise<PaymentChannelInfo[]> {
     const ledgerChannelId = new Destination(ledgerChannel);
     return this.node.getPaymentChannelsByLedger(ledgerChannelId);
+  }
+
+  async waitForPaymentChannelStatus(
+    channelId: string,
+    status: ChannelStatus,
+    ctx: Context,
+  ) {
+    const paymentUpdatesChannel = await this.node.paymentUpdates();
+
+    while (true) {
+      /* eslint-disable default-case */
+      /* eslint-disable no-await-in-loop */
+      switch (await Channel.select([
+        paymentUpdatesChannel.shift(),
+        ctx.done.shift(),
+      ])) {
+        case paymentUpdatesChannel: {
+          const paymentInfo = paymentUpdatesChannel.value();
+          if (paymentInfo.iD.string() === channelId && paymentInfo.status === status) {
+            return;
+          }
+          break;
+        }
+
+        case ctx.done: {
+          return;
+        }
+      }
+    }
+  }
+
+  async waitForLedgerChannelStatus(
+    channelId: string,
+    status: ChannelStatus,
+    ctx: Context,
+  ) {
+    const ledgerUpdatesChannel = await this.node.ledgerUpdates();
+
+    while (true) {
+      /* eslint-disable default-case */
+      /* eslint-disable no-await-in-loop */
+      switch (await Channel.select([
+        ledgerUpdatesChannel.shift(),
+        ctx.done.shift(),
+      ])) {
+        case ledgerUpdatesChannel: {
+          const ledgerInfo = ledgerUpdatesChannel.value();
+          if (ledgerInfo.iD.string() === channelId && ledgerInfo.status === status) {
+            return;
+          }
+          break;
+        }
+
+        case ctx.done: {
+          return;
+        }
+      }
+    }
+  }
+
+  async onPaymentChannelUpdated(
+    channelId: string,
+    callback: (info: PaymentChannelInfo) => void,
+    ctx: Context,
+  ) {
+    const wrapperFn = (info: PaymentChannelInfo) => {
+      if (info.iD.string().toLowerCase() === channelId.toLowerCase()) {
+        callback(info);
+      }
+    };
+
+    const paymentUpdatesChannel = await this.node.paymentUpdates();
+
+    while (true) {
+      /* eslint-disable default-case */
+      /* eslint-disable no-await-in-loop */
+      switch (await Channel.select([
+        paymentUpdatesChannel.shift(),
+        ctx.done.shift(),
+      ])) {
+        case paymentUpdatesChannel: {
+          const paymentInfo = paymentUpdatesChannel.value();
+          wrapperFn(paymentInfo);
+          break;
+        }
+
+        case ctx.done: {
+          return;
+        }
+      }
+    }
   }
 
   async close() {
