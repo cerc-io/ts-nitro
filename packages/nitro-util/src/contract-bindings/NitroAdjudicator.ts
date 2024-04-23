@@ -302,6 +302,7 @@ export interface NitroAdjudicatorInterface extends utils.Interface {
     "AllocationUpdated(bytes32,uint256,uint256,uint256)": EventFragment;
     "ChallengeCleared(bytes32,uint48)": EventFragment;
     "ChallengeRegistered(bytes32,uint48,tuple[],tuple)": EventFragment;
+    "Checkpointed(bytes32,uint48)": EventFragment;
     "Concluded(bytes32,uint48)": EventFragment;
     "Deposited(bytes32,address,uint256)": EventFragment;
     "Reclaimed(bytes32,uint256)": EventFragment;
@@ -310,6 +311,7 @@ export interface NitroAdjudicatorInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "AllocationUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ChallengeCleared"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ChallengeRegistered"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Checkpointed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Concluded"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Deposited"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Reclaimed"): EventFragment;
@@ -359,6 +361,17 @@ export type ChallengeRegisteredEvent = TypedEvent<
 
 export type ChallengeRegisteredEventFilter =
   TypedEventFilter<ChallengeRegisteredEvent>;
+
+export interface CheckpointedEventObject {
+  channelId: string;
+  newTurnNumRecord: number;
+}
+export type CheckpointedEvent = TypedEvent<
+  [string, number],
+  CheckpointedEventObject
+>;
+
+export type CheckpointedEventFilter = TypedEventFilter<CheckpointedEvent>;
 
 export interface ConcludedEventObject {
   channelId: string;
@@ -780,6 +793,15 @@ export interface NitroAdjudicator extends BaseContract {
       proof?: null,
       candidate?: null
     ): ChallengeRegisteredEventFilter;
+
+    "Checkpointed(bytes32,uint48)"(
+      channelId?: BytesLike | null,
+      newTurnNumRecord?: null
+    ): CheckpointedEventFilter;
+    Checkpointed(
+      channelId?: BytesLike | null,
+      newTurnNumRecord?: null
+    ): CheckpointedEventFilter;
 
     "Concluded(bytes32,uint48)"(
       channelId?: BytesLike | null,

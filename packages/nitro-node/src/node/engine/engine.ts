@@ -719,7 +719,7 @@ export class Engine {
       try {
         chainId = await this.chain.getChainId();
       } catch (err) {
-        return [new EngineEvent({}), new Error(`could not get chain id from chain service: ${err}`)];
+        return [new EngineEvent({}), new WrappedError(`could not get chain id from chain service: ${err}`, err as Error)];
       }
 
       const objectiveId = or.id(myAddress, chainId);
@@ -746,7 +746,7 @@ export class Engine {
               this.store.getConsensusChannel.bind(this.store),
             );
           } catch (err) {
-            return [failedEngineEvent, new Error(`handleAPIEvent: Could not create virtualfund objective for ${or}: ${err}`)];
+            return [failedEngineEvent, new WrappedError(`handleAPIEvent: Could not create virtualfund objective for ${or}: ${err}`, err as Error)];
           }
 
           if (METRICS_ENABLED) {
@@ -784,7 +784,10 @@ export class Engine {
             } catch (err) {
               return [
                 failedEngineEvent,
-                new Error(`handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
+                new WrappedError(
+                  `handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}: ${err}`,
+                  err as Error,
+                ),
               ];
             }
           }
@@ -806,7 +809,10 @@ export class Engine {
           } catch (err) {
             return [
               failedEngineEvent,
-              new Error(`handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
+              new WrappedError(
+                `handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}: ${err}`,
+                err as Error,
+              ),
             ];
           }
 
@@ -831,7 +837,7 @@ export class Engine {
           } catch (err) {
             return [
               failedEngineEvent,
-              new Error(`handleAPIEvent: Could not create directfund objective for ${JSONbigNative.stringify(or)}: ${err}`),
+              new WrappedError(`handleAPIEvent: Could not create directfund objective for ${JSONbigNative.stringify(or)}: ${err}`, err as Error),
             ];
           }
 
@@ -850,7 +856,10 @@ export class Engine {
           } catch (err) {
             return [
               failedEngineEvent,
-              new Error(`handleAPIEvent: Could not create directdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
+              new WrappedError(
+                `handleAPIEvent: Could not create directdefund objective for ${JSONbigNative.stringify(request)}: ${err}`,
+                err as Error,
+              ),
             ];
           }
 
@@ -863,7 +872,7 @@ export class Engine {
           } catch (err) {
             return [
               failedEngineEvent,
-              new Error(`handleAPIEvent: Could not destroy consensus channel for ${JSONbigNative.stringify(request)}: ${err}`),
+              new WrappedError(`handleAPIEvent: Could not destroy consensus channel for ${JSONbigNative.stringify(request)}: ${err}`, err as Error),
             ];
           }
 
