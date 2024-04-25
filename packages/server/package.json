@@ -1,5 +1,5 @@
 {
-  "name": "@cerc-io/server",
+  "name": "get_peerid/server",
   "version": "0.2.0",
   "main": "index.js",
   "license": "MIT",
@@ -32,8 +32,8 @@
     "chain:anvil": "hardhat --config hardhat.anvil.config.ts node"
   },
   "dependencies": {
-    "@cerc-io/nitro-node": "^0.2.0",
-    "@cerc-io/nitro-util": "^0.2.0",
+    "@cerc-nitro/nitro-node": "^0.2.0",
+    "@cerc-nitro/nitro-util": "^0.2.0",
     "assert": "^2.0.0",
     "debug": "^4.3.4",
     "dotenv": "^16.0.3",

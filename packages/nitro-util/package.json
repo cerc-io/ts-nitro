@@ -1,5 +1,5 @@
 {
-  "name": "@cerc-io/nitro-util",
+  "name": "@cerc-nitro/nitro-util",
   "version": "0.2.0",
   "main": "dist/index.js",
   "license": "MIT",

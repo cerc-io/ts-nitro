@@ -1,5 +1,5 @@
 {
-  "name": "@cerc-io/nitro-node",
+  "name": "@cerc-nitro/nitro-node",
   "version": "0.2.0",
   "main": "dist/index.js",
   "license": "MIT",
@@ -54,7 +54,7 @@
   },
   "dependencies": {
     "@cerc-io/libp2p": "0.42.2-laconic-0.1.4",
-    "@cerc-io/nitro-util": "^0.2.0",
+    "@cerc-nitro/nitro-util": "^0.2.0",
     "@cerc-io/peer": "^0.2.65",
     "@cerc-io/ts-channel": "1.0.3-ts-nitro-0.1.1",
     "@jpwilliams/waitgroup": "^2.1.0",
