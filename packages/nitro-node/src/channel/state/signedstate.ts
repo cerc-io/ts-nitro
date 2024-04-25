@@ -2,7 +2,7 @@ import _ from 'lodash';
 import { Buffer } from 'buffer';
 
 import {
-  FieldDescription, Uint, Uint64, fromJSON, toJSON,
+  FieldDescription, Uint, Uint64, fromJSON, toJSON, WrappedError,
 } from '@cerc-io/nitro-util';
 
 import { Signature } from '../../crypto/signatures';
@@ -55,7 +55,7 @@ export class SignedState {
     try {
       signer = this.state().recoverSigner(sig);
     } catch (err) {
-      throw new Error('AddSignature failed to recover signer');
+      throw new WrappedError('AddSignature failed to recover signer', err as Error);
     }
 
     for (let i = 0; i < (this.state().participants ?? []).length; i += 1) {

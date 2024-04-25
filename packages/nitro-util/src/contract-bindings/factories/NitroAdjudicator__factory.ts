@@ -307,6 +307,25 @@ const _abi = [
       {
         indexed: false,
         internalType: "uint48",
+        name: "newTurnNumRecord",
+        type: "uint48",
+      },
+    ],
+    name: "Checkpointed",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "channelId",
+        type: "bytes32",
+      },
+      {
+        indexed: false,
+        internalType: "uint48",
         name: "finalizesAt",
         type: "uint48",
       },

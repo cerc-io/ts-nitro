@@ -122,7 +122,7 @@ export class Node {
         message: 'direct fund error',
         error: err,
       }));
-      throw new Error(`counterparty check failed: ${err}`);
+      throw new WrappedError('counterparty check failed', err as Error);
     }
 
     if (channelExists) {
@@ -131,7 +131,7 @@ export class Node {
         error: ErrLedgerChannelExists,
       }));
       throw new WrappedError(
-        `counterparty ${ethers.utils.getAddress(counterparty)}: ${ErrLedgerChannelExists}`,
+        `counterparty ${ethers.utils.getAddress(counterparty)}`,
         ErrLedgerChannelExists,
       );
     }
@@ -338,5 +338,25 @@ export class Node {
   // Custom method to return the channel for vouchers being sent
   sentVouchers(): ReadChannel<Voucher> {
     return this.engine.sentVouchers;
+  }
+
+  // LedgerUpdates returns a chan that receives ledger channel info whenever that ledger channel is updated. Not suitable for multiple subscribers.
+  ledgerUpdates() {
+    return this.channelNotifier!.registerForAllLedgerUpdates();
+  }
+
+  // PaymentUpdates returns a chan that receives payment channel info whenever that payment channel is updated. Not suitable fo multiple subscribers.
+  paymentUpdates() {
+    return this.channelNotifier!.registerForAllPaymentUpdates();
+  }
+
+  // LedgerUpdatedChan returns a chan that receives a ledger channel info whenever the ledger with given id is updated
+  ledgerUpdatedChan(ledgerId: Destination) {
+    return this.channelNotifier!.registerForLedgerUpdates(ledgerId);
+  }
+
+  // PaymentChannelUpdatedChan returns a chan that receives a payment channel info whenever the payment channel with given id is updated
+  paymentChannelUpdatedChan(ledgerId: Destination) {
+    return this.channelNotifier!.registerForPaymentChannelUpdates(ledgerId);
   }
 }

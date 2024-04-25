@@ -214,7 +214,7 @@ export class Engine {
     e.paymentRequestsFromAPI = Channel<PaymentRequest>();
 
     e.fromChain = chain.eventFeed();
-    e.fromMsg = msg.out();
+    e.fromMsg = msg.p2pMessages();
 
     e.chain = chain;
     e.msg = msg;
@@ -398,7 +398,7 @@ export class Engine {
 
       if (obj.getStatus() === ObjectiveStatus.Completed) {
         this.logger(JSON.stringify({
-          msg: 'Ignoring proposal for complected objective',
+          msg: 'Ignoring proposal for completed objective',
           ...withObjectiveIdAttribute(id),
         }));
         return [new EngineEvent({}), null];
@@ -484,7 +484,7 @@ export class Engine {
 
         if (objective.getStatus() === ObjectiveStatus.Completed) {
           this.logger(JSON.stringify({
-            msg: 'Ignoring payload for complected objective',
+            msg: 'Ignoring payload for completed objective',
             ...withObjectiveIdAttribute(objective.id()),
           }));
 
@@ -593,7 +593,7 @@ export class Engine {
           // TODO: return the amount we paid?
           await this.vm.receive(voucher);
         } catch (err) {
-          return [new EngineEvent({}), new Error(`error accepting payment voucher: ${err}`)];
+          return [new EngineEvent({}), new WrappedError('error accepting payment voucher', err as Error)];
         } finally {
           allCompleted.receivedVouchers.push(voucher);
         }
@@ -719,7 +719,7 @@ export class Engine {
       try {
         chainId = await this.chain.getChainId();
       } catch (err) {
-        return [new EngineEvent({}), new Error(`could not get chain id from chain service: ${err}`)];
+        return [new EngineEvent({}), new WrappedError('could not get chain id from chain service', err as Error)];
       }
 
       const objectiveId = or.id(myAddress, chainId);
@@ -746,7 +746,7 @@ export class Engine {
               this.store.getConsensusChannel.bind(this.store),
             );
           } catch (err) {
-            return [failedEngineEvent, new Error(`handleAPIEvent: Could not create virtualfund objective for ${or}: ${err}`)];
+            return [failedEngineEvent, new WrappedError(`handleAPIEvent: Could not create virtualfund objective for ${or}`, err as Error)];
           }
 
           if (METRICS_ENABLED) {
@@ -763,7 +763,7 @@ export class Engine {
               return [
                 failedEngineEvent,
                 new WrappedError(
-                  `could not register channel with payment/receipt manager: ${err}`,
+                  'could not register channel with payment/receipt manager',
                   err,
                 )];
             }
@@ -784,7 +784,10 @@ export class Engine {
             } catch (err) {
               return [
                 failedEngineEvent,
-                new Error(`handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
+                new WrappedError(
+                  `handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}`,
+                  err as Error,
+                ),
               ];
             }
           }
@@ -806,7 +809,10 @@ export class Engine {
           } catch (err) {
             return [
               failedEngineEvent,
-              new Error(`handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
+              new WrappedError(
+                `handleAPIEvent: Could not create virtualdefund objective for ${JSONbigNative.stringify(request)}`,
+                err as Error,
+              ),
             ];
           }
 
@@ -831,7 +837,7 @@ export class Engine {
           } catch (err) {
             return [
               failedEngineEvent,
-              new Error(`handleAPIEvent: Could not create directfund objective for ${JSONbigNative.stringify(or)}: ${err}`),
+              new WrappedError(`handleAPIEvent: Could not create directfund objective for ${JSONbigNative.stringify(or)}`, err as Error),
             ];
           }
 
@@ -850,7 +856,10 @@ export class Engine {
           } catch (err) {
             return [
               failedEngineEvent,
-              new Error(`handleAPIEvent: Could not create directdefund objective for ${JSONbigNative.stringify(request)}: ${err}`),
+              new WrappedError(
+                `handleAPIEvent: Could not create directdefund objective for ${JSONbigNative.stringify(request)}`,
+                err as Error,
+              ),
             ];
           }
 
@@ -863,7 +872,7 @@ export class Engine {
           } catch (err) {
             return [
               failedEngineEvent,
-              new Error(`handleAPIEvent: Could not destroy consensus channel for ${JSONbigNative.stringify(request)}: ${err}`),
+              new WrappedError(`handleAPIEvent: Could not destroy consensus channel for ${JSONbigNative.stringify(request)}`, err as Error),
             ];
           }
 
@@ -897,7 +906,7 @@ export class Engine {
     try {
       voucher = await this.vm!.pay(cId, request.amount, this.store!.getChannelSigner());
     } catch (err) {
-      return [ee, new Error(`handleAPIEvent: Error making payment: ${err}`)];
+      return [ee, new WrappedError('handleAPIEvent: Error making payment', err as Error)];
     }
 
     const [c, ok] = await this.store!.getChannelById(cId);
@@ -917,7 +926,7 @@ export class Engine {
     try {
       info = await getPaymentChannelInfo(cId, this.store!, this.vm!);
     } catch (err) {
-      return [ee, new Error(`handleAPIEvent: Error querying channel info: ${err}`)];
+      return [ee, new WrappedError('handleAPIEvent: Error querying channel info', err as Error)];
     }
 
     ee.paymentChannelUpdates = [...ee.paymentChannelUpdates, info];
@@ -1177,20 +1186,29 @@ export class Engine {
         try {
           c = dfo.createConsensusChannel();
         } catch (err) {
-          throw new Error(`could not create consensus channel for objective ${crankedObjective.id()}: ${err}`);
+          throw new WrappedError(
+            `could not create consensus channel for objective ${crankedObjective.id()}`,
+            err as Error,
+          );
         }
 
         try {
           await this.store.setConsensusChannel(c);
         } catch (err) {
-          throw new Error(`could not store consensus channel for objective ${crankedObjective.id()}: ${err}`);
+          throw new WrappedError(
+            `could not store consensus channel for objective ${crankedObjective.id()}`,
+            err as Error,
+          );
         }
 
         try {
           // Destroy the channel since the consensus channel takes over governance:
           await this.store.destroyChannel(c.id);
         } catch (err) {
-          throw new Error(`Could not destroy consensus channel for objective ${crankedObjective.id()}: ${err}`);
+          throw new WrappedError(
+            `Could not destroy consensus channel for objective ${crankedObjective.id()}`,
+            err as Error,
+          );
         }
       }
     } finally {
@@ -1223,7 +1241,7 @@ export class Engine {
           try {
             newObj = await this.constructObjectiveFromMessage(id, p);
           } catch (constructErr) {
-            throw new Error(`error constructing objective from message: ${constructErr}`);
+            throw new WrappedError('error constructing objective from message', constructErr as Error);
           }
 
           if (METRICS_ENABLED) {
@@ -1233,7 +1251,7 @@ export class Engine {
           try {
             await this.store.setObjective(newObj);
           } catch (setErr) {
-            throw new Error(`error setting objective in store: ${setErr}`);
+            throw new WrappedError('error setting objective in store', setErr as Error);
           }
 
           this.logger(JSON.stringify({
@@ -1290,7 +1308,10 @@ export class Engine {
           try {
             await this.registerPaymentChannel(vfo);
           } catch (err) {
-            throw new Error(`could not register channel with payment/receipt manager.\n\ttarget channel: ${id}\n\terr: ${err}`);
+            throw new WrappedError(
+              `could not register channel with payment/receipt manager.\n\ttarget channel: ${id}\n\terr`,
+              err as Error,
+            );
           }
 
           return vfo;
@@ -1300,7 +1321,7 @@ export class Engine {
           try {
             vId = getVirtualChannelFromObjectiveId(id);
           } catch (err) {
-            throw new Error(`could not determine virtual channel id from objective ${id}: ${err}`);
+            throw new WrappedError(`could not determine virtual channel id from objective ${id}`, err as Error);
           }
 
           let minAmount: bigint | undefined = BigInt(0);
@@ -1309,7 +1330,7 @@ export class Engine {
             try {
               paid = await this.vm.paid(vId);
             } catch (err) {
-              throw new Error(`could not determine virtual channel id from objective ${id}: ${err}`);
+              throw new WrappedError(`could not determine virtual channel id from objective ${id}`, err as Error);
             }
 
             minAmount = paid;
@@ -1431,7 +1452,7 @@ type MessageDirection = string;
 // fromMsgErr wraps errors from objective construction functions and
 // returns an error bundled with the objectiveID
 function fromMsgErr(id: ObjectiveId, err: Error): Error {
-  return new Error(`could not create objective from message.\n\ttarget objective: ${id}\n\terr: ${err}`);
+  return new WrappedError(`could not create objective from message.\n\ttarget objective: ${id}\n\terr`, err as Error);
 }
 
 // getProposalObjectiveId returns the objectiveId for a proposal.

@@ -61,7 +61,7 @@
     "@libp2p/crypto": "^1.0.4",
     "@libp2p/tcp": "^6.0.0",
     "@multiformats/multiaddr": "^11.1.4",
-    "@statechannels/nitro-protocol": "^2.0.1-alpha.5",
+    "@statechannels/nitro-protocol": "^2.0.1-alpha.6",
     "assert": "^2.0.0",
     "async-mutex": "^0.4.0",
     "debug": "^4.3.4",

@@ -7,6 +7,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
   FieldDescription, NitroSigner, Uint64, fromJSON, toJSON,
+  WrappedError,
 } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
@@ -139,7 +140,7 @@ export class Objective implements ObjectiveInterface {
     try {
       cc = await getConsensusChannel(request.channelId) as ConsensusChannel;
     } catch (err) {
-      throw new Error(`could not find channel ${request.channelId}; ${err}`);
+      throw new WrappedError(`could not find channel ${request.channelId}`, err as Error);
     }
 
     if (cc.fundingTargets().length !== 0) {
@@ -189,7 +190,7 @@ export class Objective implements ObjectiveInterface {
     try {
       ss = getSignedStatePayload(p.payloadData);
     } catch (err) {
-      throw new Error(`could not get signed state payload: ${err}`);
+      throw new WrappedError('could not get signed state payload', err as Error);
     }
     const s = ss.state();
 
@@ -257,7 +258,7 @@ export class Objective implements ObjectiveInterface {
       /* eslint-disable @typescript-eslint/no-use-before-define */
       ss = getSignedStatePayload(p.payloadData);
     } catch (err) {
-      throw new Error(`could not get signed state payload: ${err}`);
+      throw new WrappedError('could not get signed state payload', err as Error);
     }
 
     if (ss.signatures().length !== 0) {
@@ -306,14 +307,14 @@ export class Objective implements ObjectiveInterface {
       try {
         ss = await updated.c!.signAndAddState(stateToSign, signer);
       } catch (err) {
-        throw new Error(`could not sign final state ${err}`);
+        throw new WrappedError('could not sign final state', err as Error);
       }
 
       let messages: Message[];
       try {
         messages = Message.createObjectivePayloadMessage(updated.id(), ss, SignedStatePayload, ...this.otherParticipants());
       } catch (err) {
-        throw new Error(`could not create payload message ${err}`);
+        throw new WrappedError('could not create payload message', err as Error);
       }
 
       sideEffects.messagesToSend.push(...messages);
@@ -323,7 +324,7 @@ export class Objective implements ObjectiveInterface {
     try {
       latestSupportedState = updated.c!.latestSupportedState();
     } catch (err) {
-      throw new Error(`error finding a supported state: ${err}`);
+      throw new WrappedError('error finding a supported state', err as Error);
     }
 
     if (!latestSupportedState.isFinal) {
@@ -428,7 +429,7 @@ function getSignedStatePayload(b: Buffer): SignedState {
   try {
     ss = SignedState.fromJSON(b.toString());
   } catch (err) {
-    throw new Error(`could not unmarshal signed state: ${err}`);
+    throw new WrappedError('could not unmarshal signed state', err as Error);
   }
 
   return ss;

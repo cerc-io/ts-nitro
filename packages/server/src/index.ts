@@ -279,8 +279,6 @@ const main = async () => {
     await new Promise<void>((resolve) => { setTimeout(() => resolve(), 1000); });
 
     await nitro.close();
-
-    process.exit(0);
   }
 };
 

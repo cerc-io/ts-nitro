@@ -5,6 +5,7 @@ import { Store } from '../engine/store/store';
 import { PaymentChannelListeners, LedgerChannelListeners } from './listeners';
 import { SafeSyncMap } from '../../internal/safesync/safesync';
 import { LedgerChannelInfo, PaymentChannelInfo } from '../query/types';
+import { Destination } from '../../types/destination';
 
 const ALL_NOTIFICATIONS = 'all';
 
@@ -35,6 +36,30 @@ export class ChannelNotifier {
       store,
       vm,
     });
+  }
+
+  // RegisterForAllLedgerUpdates returns a buffered channel that will receive updates for all ledger channels.
+  registerForAllLedgerUpdates() {
+    const [li] = this.ledgerListeners!.loadOrStore(ALL_NOTIFICATIONS, LedgerChannelListeners.newLedgerChannelListeners());
+    return li.getOrCreateListener();
+  }
+
+  // RegisterForLedgerUpdates returns a buffered channel that will receive updates or a specific ledger channel.
+  registerForLedgerUpdates(cId: Destination) {
+    const [li] = this.ledgerListeners!.loadOrStore(cId.string(), LedgerChannelListeners.newLedgerChannelListeners());
+    return li.createNewListener();
+  }
+
+  // RegisterForAllPaymentUpdates returns a buffered channel that will receive updates for all payment channels.
+  registerForAllPaymentUpdates() {
+    const [li] = this.paymentListeners!.loadOrStore(ALL_NOTIFICATIONS, PaymentChannelListeners.newPaymentChannelListeners());
+    return li.getOrCreateListener();
+  }
+
+  // RegisterForPaymentChannelUpdates returns a buffered channel that will receive updates or a specific payment channel.
+  registerForPaymentChannelUpdates(cId: Destination) {
+    const [li] = this.paymentListeners!.loadOrStore(cId.string(), PaymentChannelListeners.newPaymentChannelListeners());
+    return li.createNewListener();
   }
 
   // NotifyLedgerUpdated notifies all listeners of a ledger channel update.

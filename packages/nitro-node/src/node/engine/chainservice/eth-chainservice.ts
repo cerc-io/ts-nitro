@@ -352,7 +352,7 @@ export class EthChainService implements ChainService {
                   newBlockUnsubscribe = this.chain.subscribeNewHead(newBlockChan);
                 } catch (subErr) {
                   errorChan.push(new WrappedError(
-                    `subscribeNewHead failed to resubscribe: ${subErr}`,
+                    'subscribeNewHead failed to resubscribe',
                     subErr as Error,
                   ));
 
@@ -389,7 +389,7 @@ export class EthChainService implements ChainService {
                   // eslint-disable-next-line no-await-in-loop
                   await this.checkForMissedEvents(latestBlockNum);
                 } catch (checkErr) {
-                  errorChan.push(new Error(`subscribeFilterLogs failed during checkForMissedEvents: ${checkErr}`));
+                  errorChan.push(new WrappedError('subscribeFilterLogs failed during checkForMissedEvents', checkErr as Error));
                   return;
                 }
 
@@ -532,7 +532,7 @@ export class EthChainService implements ChainService {
             );
             await this.out.push(event);
           } catch (err) {
-            throw new Error(`error in ParseDeposited: ${err}`);
+            throw new WrappedError('error in ParseDeposited', err as Error);
           }
           break;
         }
@@ -542,7 +542,7 @@ export class EthChainService implements ChainService {
           try {
             au = this.na.interface.parseLog(l).args as unknown as AllocationUpdatedEventObject;
           } catch (err) {
-            throw new Error(`error in ParseAllocationUpdated: ${err}`);
+            throw new WrappedError('error in ParseAllocationUpdated', err as Error);
           }
 
           let tx;
@@ -553,7 +553,7 @@ export class EthChainService implements ChainService {
               throw new Error('Expected transaction to be part of the chain, but the transaction is pending');
             }
           } catch (err) {
-            throw new Error(`error in TransactionByHash: ${err}`);
+            throw new WrappedError('error in TransactionByHash', err as Error);
           }
 
           assert(tx !== undefined);
@@ -563,7 +563,7 @@ export class EthChainService implements ChainService {
             assetAddress = assetAddressForIndex(this.na, tx, au.assetIndex.toBigInt());
           } catch (err) {
             throw new WrappedError(
-              `error in assetAddressForIndex: ${err}`,
+              'error in assetAddressForIndex',
               err as Error,
             );
           }
@@ -590,7 +590,7 @@ export class EthChainService implements ChainService {
             const event = new ConcludedEvent({ _channelID: new Destination(ce.channelId), _blockNum: BigInt(l.blockNumber) });
             await this.out.push(event);
           } catch (err) {
-            throw new Error(`error in ParseConcluded: ${err}`);
+            throw new WrappedError('error in ParseConcluded', err as Error);
           }
           break;
         }
@@ -613,7 +613,7 @@ export class EthChainService implements ChainService {
 
             this.out.push(event);
           } catch (err) {
-            throw new Error(`error in ParseChallengeRegistered: ${err}`);
+            throw new WrappedError('error in ParseChallengeRegistered', err as Error);
           }
           break;
         }
@@ -772,7 +772,7 @@ export class EthChainService implements ChainService {
       await this.dispatchChainEvents(eventsToDispatch);
     } catch (err) {
       await errorChan.push(new WrappedError(
-        `failed dispatchChainEvents: ${err}`,
+        'failed dispatchChainEvents',
         err as Error,
       ));
     }
@@ -798,7 +798,7 @@ export class EthChainService implements ChainService {
     try {
       eventUnsubscribe = this.chain.subscribeFilterLogs(eventQuery, eventChan);
     } catch (err) {
-      throw new WrappedError(`subscribeFilterLogs failed: ${err}`, err as Error);
+      throw new WrappedError('subscribeFilterLogs failed', err as Error);
     }
     this.eventUnsubscribe = eventUnsubscribe.bind(this.chain);
 
@@ -810,7 +810,7 @@ export class EthChainService implements ChainService {
     try {
       newBlockUnsubscribe = this.chain.subscribeNewHead(newBlockChan);
     } catch (err) {
-      throw new WrappedError(`subscribeNewHead failed: ${err}`, err as Error);
+      throw new WrappedError('subscribeNewHead failed', err as Error);
     }
     this.newBlockUnsubscribe = newBlockUnsubscribe.bind(this.chain);
 
