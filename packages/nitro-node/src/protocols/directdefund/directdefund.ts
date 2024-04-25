@@ -7,7 +7,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import Channel, { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
   FieldDescription, NitroSigner, Uint64, fromJSON, toJSON,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import { Destination } from '../../types/destination';
 import { ConsensusChannel } from '../../channel/consensus-channel/consensus-channel';

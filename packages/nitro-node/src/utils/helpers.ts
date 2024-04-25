@@ -1,7 +1,7 @@
 import debug from 'debug';
 import { ethers } from 'ethers';
 
-import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-io/nitro-util';
+import { JSONbigNative, bytes2Hex, hex2Bytes } from '@cerc-nitro/nitro-util';
 
 import { P2PMessageService } from '../node/engine/messageservice/p2p-message-service/service';
 import { Node } from '../node/node';

@@ -1,6 +1,6 @@
 import { Signature, ethers } from 'ethers';
 
-import { NitroSigner } from '@cerc-io/nitro-util';
+import { NitroSigner } from '@cerc-nitro/nitro-util';
 
 export class SnapSigner implements NitroSigner {
   private provider: ethers.providers.ExternalProvider;

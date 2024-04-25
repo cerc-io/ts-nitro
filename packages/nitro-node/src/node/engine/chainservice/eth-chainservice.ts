@@ -9,7 +9,7 @@ import Channel from '@cerc-io/ts-channel';
 import {
   EthClient, go, hex2Bytes, Context, WrappedError,
   JSONbigNative, Uint64,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import {
   ChainService, ChainEvent, DepositedEvent, ConcludedEvent, AllocationUpdatedEvent, ChallengeRegisteredEvent,

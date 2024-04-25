@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 import { signData as utilSignData } from '@statechannels/nitro-protocol/dist/src/signatures';
-import { NitroSigner } from '@cerc-io/nitro-util';
+import { NitroSigner } from '@cerc-nitro/nitro-util';
 
 export class KeySigner implements NitroSigner {
   private pk: string;

@@ -5,10 +5,10 @@ import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
 
-import { utils } from '@cerc-io/nitro-node';
+import { utils } from '@cerc-nitro/nitro-node';
 import {
   JSONbigNative, hex2Bytes, DEFAULT_CHAIN_URL_WEBSOCKET, DEFAULT_ASSET,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import { waitForMultiplePeers } from './utils/index';
 import contractAddresses from './nitro-addresses.json';

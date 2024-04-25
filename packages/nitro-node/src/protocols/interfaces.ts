@@ -1,4 +1,4 @@
-import { NitroSigner } from '@cerc-io/nitro-util';
+import { NitroSigner } from '@cerc-nitro/nitro-util';
 import { Message, ObjectiveId, ObjectivePayload } from './messages';
 import { Proposal, SignedProposal } from '../channel/consensus-channel/consensus-channel';
 import { Address } from '../types/types';

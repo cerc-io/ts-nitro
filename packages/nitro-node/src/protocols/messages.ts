@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 
 import {
   FieldDescription, JSONbigNative, Uint64, fromJSON, toJSON,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import { SignedProposal, Proposal } from '../channel/consensus-channel/consensus-channel';
 import { Voucher } from '../payments/vouchers';

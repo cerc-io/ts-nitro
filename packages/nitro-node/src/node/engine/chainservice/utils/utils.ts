@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { Buffer } from 'buffer';
 
-import { EthClient } from '@cerc-io/nitro-util';
+import { EthClient } from '@cerc-nitro/nitro-util';
 
 // connectToChain connects to the chain at the given url and returns a client and a transactor.
 export async function connectToChain(chainUrl: string, chainPK: Buffer): Promise<[EthClient, ethers.Signer]> {

@@ -6,7 +6,7 @@ const baseConfig: webpack.Configuration = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     library: {
-      name: '@cerc-io/nitro-node',
+      name: '@cerc-nitro/nitro-node',
       type: 'umd',
     },
     libraryTarget: 'umd',
@@ -28,7 +28,7 @@ const baseConfig: webpack.Configuration = {
   },
   externals: {
     '@cerc-io/ts-channel': '@cerc-io/ts-channel',
-    '@cerc-io/nitro-util': '@cerc-io/nitro-util',
+    '@cerc-nitro/nitro-util': '@cerc-nitro/nitro-util',
     '@statechannels/exit-format': '@statechannels/exit-format',
     '@statechannels/nitro-protocol': '@statechannels/nitro-protocol',
     lodash: 'lodash',

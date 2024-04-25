@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import debug from 'debug';
 
-import { DEFAULT_CHAIN_URL } from '@cerc-io/nitro-util/src/constants';
+import { DEFAULT_CHAIN_URL } from '@cerc-nitro/nitro-util/src/constants';
 
 import { deployContracts } from '../src/internal/chain/chain';
 

@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 
 import type { ReadChannel } from '@cerc-io/ts-channel';
 
-import { Uint64, Uint } from '@cerc-io/nitro-util';
+import { Uint64, Uint } from '@cerc-nitro/nitro-util';
 import { Bytes32 } from '@statechannels/nitro-protocol';
 
 import { ChainTransaction, Objective } from '../../../protocols/interfaces';

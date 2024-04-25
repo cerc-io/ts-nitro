@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 import Heap from 'heap';
 import type { Log } from '@ethersproject/abstract-provider';
 
-import { Uint64 } from '@cerc-io/nitro-util';
+import { Uint64 } from '@cerc-nitro/nitro-util';
 
 export class EventTracker {
   latestBlockNum?: bigint;

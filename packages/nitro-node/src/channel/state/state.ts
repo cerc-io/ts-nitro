@@ -11,7 +11,7 @@ import {
 } from '@statechannels/nitro-protocol';
 import {
   FieldDescription, NitroSigner, Uint64, bytes2Hex, fromJSON, hex2Bytes, toJSON,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import * as nc from '../../crypto/signatures';
 import { Signature } from '../../crypto/signatures';

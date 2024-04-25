@@ -8,4 +8,4 @@ export {
   AllocationUpdatedEventObject,
   ConcludedEventObject,
   ChallengeRegisteredEventObject,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';

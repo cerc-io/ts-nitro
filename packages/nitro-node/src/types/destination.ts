@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { Buffer } from 'buffer';
 
 import { Bytes32, isExternalDestination } from '@statechannels/nitro-protocol';
-import { hex2Bytes } from '@cerc-io/nitro-util';
+import { hex2Bytes } from '@cerc-nitro/nitro-util';
 
 import { Address } from './types';
 

@@ -1,6 +1,6 @@
 import {
   P2PMessageService,
-} from '@cerc-io/nitro-node';
+} from '@cerc-nitro/nitro-node';
 
 // waitForPeerInfoExchange waits for all the P2PMessageServices to receive peer info from each other
 export async function waitForPeerInfoExchange(services: P2PMessageService[]) {

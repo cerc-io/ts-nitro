@@ -5,7 +5,7 @@ import type { AbstractSublevel, AbstractSublevelOptions } from 'abstract-level';
 
 import {
   JSONbigNative, NitroSigner, WrappedError, Uint64,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import {
   ErrLoadVouchers, ErrNoSuchChannel, ErrNoSuchObjective, Store, lastBlockNumSeenKey,

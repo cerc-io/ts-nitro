@@ -1,6 +1,6 @@
 import {
   FieldDescription, JSONbigNative, decodeMap, encodeMap,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import { Address } from './types';
 

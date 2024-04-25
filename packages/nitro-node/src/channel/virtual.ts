@@ -1,6 +1,6 @@
 import {
   FieldDescription, Uint, fromJSON, toJSON,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import { Channel } from './channel';
 import { State } from './state/state';

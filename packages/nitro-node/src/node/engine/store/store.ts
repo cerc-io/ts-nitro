@@ -1,4 +1,4 @@
-import { NitroSigner, Uint64 } from '@cerc-io/nitro-util';
+import { NitroSigner, Uint64 } from '@cerc-nitro/nitro-util';
 
 import { Objective } from '../../../protocols/interfaces';
 import { Channel } from '../../../channel/channel';

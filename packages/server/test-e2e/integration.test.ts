@@ -6,10 +6,10 @@ import { BigNumber } from 'ethers';
 import {
   Node, Metrics, P2PMessageService, utils, Destination, LedgerChannelInfo,
   ChannelStatus, LedgerChannelBalance, PaymentChannelInfo, PaymentChannelBalance, ObjectiveResponse, deployContracts,
-} from '@cerc-io/nitro-node';
+} from '@cerc-nitro/nitro-node';
 import {
   hex2Bytes, DEFAULT_CHAIN_URL, DEFAULT_CHAIN_URL_WEBSOCKET, getBalanceByKey, getBalanceByAddress,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import {
   DirectFundParams,

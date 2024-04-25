@@ -4,7 +4,7 @@ import _ from 'lodash';
 
 import {
   FieldDescription, JSONbigNative, fromJSON, toJSON,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import { Destination } from '../../../types/destination';
 import { Address } from '../../../types/types';

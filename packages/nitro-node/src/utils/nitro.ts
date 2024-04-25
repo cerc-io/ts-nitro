@@ -3,7 +3,7 @@ import { providers } from 'ethers';
 
 // @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
-import { NitroSigner, DEFAULT_ASSET } from '@cerc-io/nitro-util';
+import { NitroSigner, DEFAULT_ASSET } from '@cerc-nitro/nitro-util';
 
 import { Node } from '../node/node';
 import { P2PMessageService } from '../node/engine/messageservice/p2p-message-service/service';

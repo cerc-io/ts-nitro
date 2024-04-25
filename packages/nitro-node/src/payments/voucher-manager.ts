@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import { NitroSigner } from '@cerc-io/nitro-util';
+import { NitroSigner } from '@cerc-nitro/nitro-util';
 
 import { Destination } from '../types/destination';
 import { Address } from '../types/types';

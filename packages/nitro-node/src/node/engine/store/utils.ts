@@ -1,7 +1,7 @@
 import debug from 'debug';
 import path from 'path-browserify';
 
-import { NitroSigner } from '@cerc-io/nitro-util';
+import { NitroSigner } from '@cerc-nitro/nitro-util';
 
 import { Store } from './store';
 import { DurableStore } from './durablestore';

@@ -15,7 +15,7 @@ import { Buffer } from 'buffer';
 import { Bytes32, Voucher as NitroVoucher } from '@statechannels/nitro-protocol';
 import {
   FieldDescription, NitroSigner, fromJSON, hex2Bytes, toJSON,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import { Signature } from '../channel/state/state';
 import { Address } from '../types/types';

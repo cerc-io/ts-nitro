@@ -3,7 +3,7 @@ import { Buffer } from 'buffer';
 
 import {
   FieldDescription, JSONbigNative, fromJSON, toJSON,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import { Destination } from '../../../types/destination';
 import { GuaranteeMetadata } from './guarantee';

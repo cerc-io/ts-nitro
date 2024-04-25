@@ -6,8 +6,8 @@ import { Mutex } from 'async-mutex';
 import {
   JSONbigNative, WrappedError,
   Uint64,
-} from '@cerc-io/nitro-util';
-import type { NitroSigner } from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
+import type { NitroSigner } from '@cerc-nitro/nitro-util';
 
 import {
   ErrNoSuchChannel, ErrNoSuchObjective, Store, ErrLoadVouchers,

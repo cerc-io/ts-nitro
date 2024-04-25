@@ -3,11 +3,11 @@ import {
   utils,
   LedgerChannelInfo,
   PaymentChannelInfo
-} from '@cerc-io/nitro-node';
+} from '@cerc-nitro/nitro-node';
 import {
   JSONbigNative,
   hex2Bytes
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import './App.css';
 

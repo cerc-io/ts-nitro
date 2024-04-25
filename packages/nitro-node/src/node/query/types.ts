@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import _ from 'lodash';
 
-import { FieldDescription, toJSON } from '@cerc-io/nitro-util';
+import { FieldDescription, toJSON } from '@cerc-nitro/nitro-util';
 
 import { Address } from '../../types/types';
 import { Destination } from '../../types/destination';

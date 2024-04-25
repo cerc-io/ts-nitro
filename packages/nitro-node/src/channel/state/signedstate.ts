@@ -3,7 +3,7 @@ import { Buffer } from 'buffer';
 
 import {
   FieldDescription, Uint, Uint64, fromJSON, toJSON,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import { Signature } from '../../crypto/signatures';
 import { State } from './state';

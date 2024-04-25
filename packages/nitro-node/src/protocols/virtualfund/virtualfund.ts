@@ -7,7 +7,7 @@ import Channel from '@cerc-io/ts-channel';
 import type { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
   FieldDescription, JSONbigNative, NitroSigner, Uint, Uint64, fromJSON, toJSON,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 import { Destination } from '../../types/destination';
 import {

@@ -5,7 +5,7 @@ import { Buffer } from 'buffer';
 
 import {
   JSONbigNative, NitroSigner, bytes2Hex, hex2Bytes,
-} from '@cerc-io/nitro-util';
+} from '@cerc-nitro/nitro-util';
 
 // Signature is an ECDSA signature
 export class Signature {
