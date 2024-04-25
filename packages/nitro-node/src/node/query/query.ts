@@ -1,5 +1,9 @@
 import _ from 'lodash';
 
+import {
+  WrappedError,
+} from '@cerc-io/nitro-util';
+
 import { Exit } from '../../channel/state/outcome/exit';
 import { Channel } from '../../channel/channel';
 import { State } from '../../channel/state/state';
@@ -146,7 +150,7 @@ export const constructLedgerInfoFromConsensus = (con: ConsensusChannel, myAddres
   try {
     balance = getLedgerBalanceFromState(latest, myAddress);
   } catch (err) {
-    throw new Error(`failed to construct ledger channel info from consensus channel: ${err}`);
+    throw new WrappedError('failed to construct ledger channel info from consensus channel', err as Error);
   }
 
   return new LedgerChannelInfo({
@@ -163,7 +167,7 @@ export const constructLedgerInfoFromChannel = (c: Channel, myAddress: Address): 
   try {
     balance = getLedgerBalanceFromState(latest, myAddress);
   } catch (err) {
-    throw new Error(`failed to construct ledger channel info from channel: ${err}`);
+    throw new WrappedError('failed to construct ledger channel info from channel', err as Error);
   }
 
   return new LedgerChannelInfo({
@@ -221,7 +225,7 @@ export const getPaymentChannelsByLedger = async (ledgerId: Destination, s: Store
       return [];
     }
 
-    throw new Error(`could not find any payment channels funded by ${ledgerId}: ${err}`);
+    throw new WrappedError(`could not find any payment channels funded by ${ledgerId}`, err as Error);
   }
 
   const toQuery = con.consensusVars().outcome.fundingTargets();
@@ -231,7 +235,7 @@ export const getPaymentChannelsByLedger = async (ledgerId: Destination, s: Store
   try {
     paymentChannels = await s.getChannelsByIds(toQuery);
   } catch (err) {
-    throw new Error(`could not query the store about ids ${toQuery}: ${err}`);
+    throw new WrappedError(`could not query the store about ids ${toQuery}`, err as Error);
   }
 
   const toReturn: PaymentChannelInfo[] = [];

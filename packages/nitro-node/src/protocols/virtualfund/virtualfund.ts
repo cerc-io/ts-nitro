@@ -7,6 +7,7 @@ import Channel from '@cerc-io/ts-channel';
 import type { ReadWriteChannel } from '@cerc-io/ts-channel';
 import {
   FieldDescription, JSONbigNative, NitroSigner, Uint, Uint64, fromJSON, toJSON,
+  WrappedError,
 } from '@cerc-io/nitro-util';
 
 import { Destination } from '../../types/destination';
@@ -347,7 +348,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
 
       return objective;
     } catch (err) {
-      throw new Error(`Error creating objective: ${err}`);
+      throw new WrappedError('Error creating objective', err as Error);
     }
   }
 
@@ -461,7 +462,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     try {
       ss = SignedState.fromJSON(b.toString());
     } catch (err) {
-      throw new Error(`could not unmarshal signed state: ${err}`);
+      throw new WrappedError('could not unmarshal signed state', err as Error);
     }
     return ss;
   }
@@ -478,7 +479,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     try {
       initialState = this.getSignedStatePayload(p.payloadData);
     } catch (err) {
-      throw new Error(`could not get signed state payload: ${err}`);
+      throw new WrappedError('could not get signed state payload', err as Error);
     }
     const { participants } = initialState.state();
     assert(participants);
@@ -628,7 +629,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       }
 
       if (err) {
-        throw new Error(`error incorporating signed proposal ${sp} into objective: ${err}`);
+        throw new WrappedError(`error incorporating signed proposal ${sp} into objective`, err as Error);
       }
     }
 
@@ -645,7 +646,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     try {
       payload = this.getPayload(raw);
     } catch (err) {
-      throw new Error(`error parsing payload: ${err}`);
+      throw new WrappedError('error parsing payload', err as Error);
     }
 
     const updated = this.clone();
@@ -686,7 +687,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       try {
         ledgerSideEffects = await updated.updateLedgerWithGuarantee(updated.toMyLeft!, signer);
       } catch (err) {
-        throw new Error(`error updating ledger funding: ${err}`);
+        throw new WrappedError('error updating ledger funding', err as Error);
       }
       sideEffects.merge(ledgerSideEffects);
     }
@@ -696,7 +697,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       try {
         ledgerSideEffects = await updated.updateLedgerWithGuarantee(updated.toMyRight!, signer);
       } catch (err) {
-        throw new Error(`error updating ledger funding: ${err}`);
+        throw new WrappedError('error updating ledger funding', err as Error);
       }
       sideEffects.merge(ledgerSideEffects);
     }
@@ -825,7 +826,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
     try {
       sp = await ledger.signNextProposal(c.expectedProposal(), signer);
     } catch (err) {
-      throw new Error(`no proposed state found for ledger channel ${err}`);
+      throw new WrappedError(`no proposed state found for ledger channel ${err}`, err as Error);
     }
     const sideEffects = new SideEffects({});
 
@@ -858,7 +859,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
       try {
         se = await this.proposeLedgerUpdate(ledgerConnection, signer);
       } catch (err) {
-        throw new Error(`error proposing ledger update: ${err}`);
+        throw new WrappedError('error proposing ledger update', err as Error);
       }
       sideEffects = se;
     } else {
@@ -869,7 +870,7 @@ export class Objective implements ObjectiveInterface, ProposalReceiver {
         try {
           se = await this.acceptLedgerUpdate(ledgerConnection, signer);
         } catch (err) {
-          throw new Error(`error proposing ledger update: ${err}`);
+          throw new WrappedError('error proposing ledger update', err as Error);
         }
 
         sideEffects = se;

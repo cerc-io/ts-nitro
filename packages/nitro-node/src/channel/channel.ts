@@ -4,7 +4,7 @@ import { Buffer } from 'buffer';
 import { ethers } from 'ethers';
 
 import {
-  fromJSON, toJSON, FieldDescription, Uint, Uint64, NitroSigner,
+  fromJSON, toJSON, FieldDescription, Uint, Uint64, NitroSigner, WrappedError,
 } from '@cerc-io/nitro-util';
 import { Bytes32 } from '@statechannels/nitro-protocol';
 
@@ -124,7 +124,7 @@ export class Channel extends FixedPart {
     try {
       props = fromJSON(this.jsonEncodingMap, data);
     } catch (err) {
-      throw new Error(`error unmarshaling channel data: ${err}`);
+      throw new WrappedError('error unmarshaling channel data', err as Error);
     }
 
     return new Channel(props);
@@ -389,14 +389,14 @@ export class Channel extends FixedPart {
     try {
       sig = await s.sign(signer);
     } catch (err) {
-      throw new Error(`Could not sign prefund ${err}`);
+      throw new WrappedError('Could not sign prefund', err as Error);
     }
 
     const ss = SignedState.newSignedState(s);
     try {
       ss.addSignature(sig);
     } catch (err) {
-      throw new Error(`could not add own signature ${err}`);
+      throw new WrappedError('could not add own signature', err as Error);
     }
 
     const ok = this.addSignedState(ss);
