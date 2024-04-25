@@ -1,5 +1,5 @@
 {
-  "name": "@cerc-io/example-web-app",
+  "name": "@cerc-nitro/example-web-app",
   "version": "0.2.0",
   "private": true,
   "dependencies": {

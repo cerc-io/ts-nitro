@@ -1,5 +1,5 @@
 {
-  "name": "get_peerid/server",
+  "name": "@cerc-nitro/server",
   "version": "0.2.0",
   "main": "index.js",
   "license": "MIT",
