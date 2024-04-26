@@ -54,12 +54,12 @@ export const browserConfig: webpack.Configuration = merge(baseConfig, {
 
     // TODO: Fix export paths so that it can be resolved by react build
     'it-pipe': 'it-pipe',
-    '@libp2p/crypto/keys': '@libp2p/crypto/keys',
+    //    '@libp2p/crypto/keys': '@libp2p/crypto/keys',
     '@libp2p/peer-id-factory': '@libp2p/peer-id-factory',
     '@libp2p/peer-id': '@libp2p/peer-id',
-    'uint8arrays/to-string': 'uint8arrays/to-string',
-    'uint8arrays/from-string': 'uint8arrays/from-string',
-    '@multiformats/multiaddr': '@multiformats/multiaddr',
+    //    'uint8arrays/to-string': 'uint8arrays/to-string',
+    //    'uint8arrays/from-string': 'uint8arrays/from-string',
+    //    '@multiformats/multiaddr': '@multiformats/multiaddr',
   },
 });
 
