@@ -10186,7 +10186,7 @@ it-pb-stream@^3.2.0:
     uint8-varint "^1.0.6"
     uint8arraylist "^2.0.0"
 
-it-pipe@^2.0.3, it-pipe@^2.0.4, it-pipe@^2.0.5:
+it-pipe@^2.0.1, it-pipe@^2.0.3, it-pipe@^2.0.4, it-pipe@^2.0.5:
   version "2.0.5"
   resolved "https://registry.npmjs.org/it-pipe/-/it-pipe-2.0.5.tgz"
   integrity sha512-y85nW1N6zoiTnkidr2EAyC+ZVzc7Mwt2p+xt2a2ooG1ThFakSpNw1Kxm+7F13Aivru96brJhjQVRQNU+w0yozw==
