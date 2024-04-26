@@ -1,5 +1,5 @@
 {
-  "name": "@cerc-nitro/nitro-node",
+  "name": "@cerc-nitro/nitro-node-browser",
   "version": "0.2.6",
   "main": "dist/index.js",
   "license": "MIT",

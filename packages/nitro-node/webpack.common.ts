@@ -47,20 +47,7 @@ const baseConfig: webpack.Configuration = {
 export const browserConfig: webpack.Configuration = merge(baseConfig, {
   entry: './src/browser.ts',
   // Packages are resolved properly in browser build tool; so not required in build output
-  externals: {
-    '@chainsafe/libp2p-yamux': '@chainsafe/libp2p-yamux',
-    '@chainsafe/libp2p-noise': '@chainsafe/libp2p-noise',
-    '@cerc-io/peer': '@cerc-io/peer',
-
-    // TODO: Fix export paths so that it can be resolved by react build
-    'it-pipe': 'it-pipe',
-    //    '@libp2p/crypto/keys': '@libp2p/crypto/keys',
-    '@libp2p/peer-id-factory': '@libp2p/peer-id-factory',
-    '@libp2p/peer-id': '@libp2p/peer-id',
-    //    'uint8arrays/to-string': 'uint8arrays/to-string',
-    //    'uint8arrays/from-string': 'uint8arrays/from-string',
-    //    '@multiformats/multiaddr': '@multiformats/multiaddr',
-  },
+  externals: {},
 });
 
 export const nodeConfig: webpack.Configuration = merge(baseConfig, {
