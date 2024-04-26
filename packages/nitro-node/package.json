@@ -1,6 +1,6 @@
 {
-  "name": "@cerc-nitro/nitro-node",
-  "version": "0.2.2",
+  "name": "@cerc-nitro/nitro-node-browser",
+  "version": "0.2.3",
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
@@ -56,7 +56,7 @@
     "@cerc-io/libp2p": "0.42.2-laconic-0.1.4",
     "@cerc-io/peer": "^0.2.65",
     "@cerc-io/ts-channel": "1.0.3-ts-nitro-0.1.1",
-    "@cerc-nitro/nitro-util": "^0.2.2",
+    "@cerc-nitro/nitro-util": "^0.2.3",
     "@jpwilliams/waitgroup": "^2.1.0",
     "@libp2p/crypto": "^2.0.2",
     "@libp2p/interface-peer-id": "^2.0.2",
