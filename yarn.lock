@@ -10195,7 +10195,7 @@ it-pipe@^2.0.1, it-pipe@^2.0.3, it-pipe@^2.0.4, it-pipe@^2.0.5:
     it-pushable "^3.1.0"
     it-stream-types "^1.0.3"
 
-it-pipe@^3.0.0, it-pipe@^3.0.1:
+it-pipe@^3.0.0:
   version "3.0.1"
   resolved "https://registry.npmjs.org/it-pipe/-/it-pipe-3.0.1.tgz"
   integrity sha512-sIoNrQl1qSRg2seYSBH/3QxWhJFn9PKYvOf/bHdtCBF0bnghey44VyASsWzn5dAx0DCDDABq1hZIuzKmtBZmKA==
