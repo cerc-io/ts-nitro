@@ -1,9 +1,9 @@
 {
   "name": "@cerc-nitro/example-web-app",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "private": true,
   "dependencies": {
-    "@cerc-nitro/nitro-node": "^0.2.6",
+    "@cerc-nitro/nitro-node": "^0.2.7",
     "@libp2p/crypto": "^1.0.4",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
