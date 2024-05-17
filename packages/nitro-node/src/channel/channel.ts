@@ -115,7 +115,7 @@ export class Channel extends FixedPart {
     myIndex: { type: 'uint' },
     onChain: { type: 'class', value: OnChainData },
     offChain: { type: 'class', value: OffChainData },
-    ...super.jsonEncodingMap,
+    ...FixedPart.jsonEncodingMap,
   };
 
   static fromJSON(data: string): Channel {

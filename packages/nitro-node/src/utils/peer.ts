@@ -1,12 +1,13 @@
 import { Buffer } from 'buffer';
 
-// @ts-expect-error
-import type { Peer as PeerInterface, PeerInitConfig, PeerIdObj } from '@cerc-io/peer';
+import type { PeerInitConfig, PeerIdObj } from '@cerc-io/peer';
+import { Peer } from '@cerc-io/peer';
 
 export const createPeerIdFromKey = async (pk: Buffer): Promise<PeerIdObj> => {
   const {
     marshalPrivateKey, marshalPublicKey, generateKeyPairFromSeed,
-  } = await import('@libp2p/crypto/keys');
+    // eslint-disable-next-line
+  } = await import('../../../../node_modules/@libp2p/crypto/dist/src/keys/index.js'); // @es
 
   // const messageKey = await unmarshalPrivateKey(pk);
   // Workaround to get a libp2p PrivateKey instance from `pk` passed to message service
@@ -26,8 +27,7 @@ export const createPeerAndInit = async (
   relayMultiAddr: string,
   initOptions: PeerInitConfig = {},
   peerIdObj?: PeerIdObj,
-): Promise<PeerInterface> => {
-  const { Peer } = await import ('@cerc-io/peer');
+): Promise<Peer> => {
   // TODO: Debug connection issue with webrtc enabled in ts-nitro
   // Disabled by setting nodejs option to true below
   const peer = new Peer(relayMultiAddr, true);

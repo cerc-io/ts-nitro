@@ -591,7 +591,7 @@ export class SignedVars extends Vars {
   ];
 
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    ...super.jsonEncodingMap,
+    ...Vars.jsonEncodingMap,
     signatures: { type: 'array', value: { type: 'class', value: Signature } },
   };
 

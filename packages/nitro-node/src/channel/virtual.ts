@@ -7,7 +7,7 @@ import { State } from './state/state';
 
 export class VirtualChannel extends Channel {
   static jsonEncodingMap: Record<string, FieldDescription> = {
-    ...super.jsonEncodingMap,
+    ...Channel.jsonEncodingMap,
   };
 
   static fromJSON(data: string): VirtualChannel {

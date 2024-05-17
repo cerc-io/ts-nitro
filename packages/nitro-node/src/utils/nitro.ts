@@ -1,7 +1,6 @@
 import debug from 'debug';
 import { providers } from 'ethers';
 
-// @ts-expect-error
 import type { Peer } from '@cerc-io/peer';
 import { NitroSigner, DEFAULT_ASSET } from '@cerc-nitro/nitro-util';
 
