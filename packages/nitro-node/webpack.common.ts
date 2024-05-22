@@ -65,6 +65,22 @@ export const browserConfig: webpack.Configuration = merge(baseConfig, {
 export const nodeConfig: webpack.Configuration = merge(baseConfig, {
   entry: './src/node.ts',
   target: 'node',
+  externals: {
+    '@cerc-io/ts-channel': '@cerc-io/ts-channel',
+    '@cerc-io/nitro-util': '@cerc-io/nitro-util',
+    '@statechannels/exit-format': '@statechannels/exit-format',
+    '@statechannels/nitro-protocol': '@statechannels/nitro-protocol',
+    lodash: 'lodash',
+    'json-bigint': 'json-bigint',
+    assert: 'assert',
+    debug: 'debug',
+    ethers: 'ethers',
+    level: 'level',
+
+    // Module is used by @libp2p/websockets in @cerc-io/peer
+    // Internal NodeJS modules used by it cannot be resolved in build
+    ws: 'ws',
+  },
 });
 
 export default { browserConfig, nodeConfig };
