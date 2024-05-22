@@ -7,6 +7,7 @@ const prodConfig: webpack.Configuration = {
   mode: 'production',
   optimization: {
     // Add production-specific optimizations here
+    minimize: false,
   },
 };
 

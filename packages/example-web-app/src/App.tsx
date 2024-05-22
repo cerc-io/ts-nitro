@@ -3,6 +3,7 @@ import {
   utils,
   LedgerChannelInfo,
   PaymentChannelInfo
+  // @ts-expect-error
 } from '@cerc-nitro/nitro-node';
 import {
   JSONbigNative,
@@ -50,6 +51,7 @@ async function updateChannels (
     return;
   }
   const ledgerChannels = (await nitro.getAllLedgerChannels()).filter(
+    // @ts-expect-error
     (lc) => lc.status === 'Open'
   );
   const paymentChannels = new Map<string, PaymentChannelInfo[]>();
@@ -59,6 +61,7 @@ async function updateChannels (
 
   for (const lc of ledgerChannels) {
     const pcs = (await nitro.getPaymentChannelsByLedger(lc.iD.string())).filter(
+      // @ts-expect-error
       (pc) => pc.status === 'Open'
     );
     paymentChannels.set(lc.iD.string(), pcs);
