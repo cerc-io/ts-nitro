@@ -22,12 +22,6 @@ const baseConfig: webpack.Configuration = {
     rules: [
       {
         test: /\.(?:js|mjs|cjs)$/,
-        // exclude: {
-        //  and: [/node_modules/], // Exclude libraries in node_modules ...
-        //  not: [
-        //    /@libp2p/,
-        //  ]
-        // },
         use: {
           loader: 'babel-loader',
           options: {
